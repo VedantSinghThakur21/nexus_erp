@@ -5,10 +5,11 @@ import { ArrowLeft, Building2 } from "lucide-react"
 import Link from "next/link"
 import { InvoiceActions } from "@/components/invoices/invoice-actions"
 
+// Fetch single invoice with child items
 async function getInvoice(id: string) {
   const name = decodeURIComponent(id)
   try {
-    // Fetch invoice with full details
+    // Fetch full document including child tables (items, taxes)
     const doc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Invoice',
       name: name
@@ -20,11 +21,34 @@ async function getInvoice(id: string) {
   }
 }
 
+// Fetch Bank Details (for display)
+async function getBankDetails(companyName: string) {
+  try {
+    const banks = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Bank Account',
+        filters: `[["company", "=", "${companyName}"], ["is_default", "=", 1]]`,
+        fields: '["bank", "bank_account_no", "branch_code"]',
+        limit_page_length: 1
+    })
+    return banks[0] || null
+  } catch (e) {
+    return null
+  }
+}
+
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const invoice = await getInvoice(id)
 
   if (!invoice) return <div className="p-8">Invoice not found</div>
+
+  // Fetch bank details based on the invoice's company
+  const bank = await getBankDetails(invoice.company)
+
+  // Calculate tax values if not provided explicitly in taxes array (Fallback for display)
+  const totalTax = invoice.total_taxes_and_charges || 0;
+  const grandTotal = invoice.grand_total || 0;
+  const netTotal = invoice.net_total || 0;
 
   return (
     <div className="max-w-5xl mx-auto p-8 space-y-6">
@@ -82,7 +106,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                                 <div className="col-span-5">
                                     <div className="font-medium">{item.item_name || item.item_code}</div>
                                     {item.description && (
-                                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-1">{item.description}</div>
+                                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{item.description}</div>
                                     )}
                                 </div>
                                 <div className="col-span-2 text-xs text-slate-500 flex items-center">{item.gst_hsn_code || "—"}</div>
@@ -98,27 +122,30 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                     <div className="flex flex-col gap-2 max-w-[250px] ml-auto">
                         <div className="flex justify-between text-sm">
                             <span className="text-slate-500">Net Total</span>
-                            <span className="text-slate-700 dark:text-slate-300">{invoice.net_total?.toLocaleString()}</span>
+                            <span className="text-slate-700 dark:text-slate-300">{netTotal.toLocaleString()}</span>
                         </div>
                         
                         {/* Tax Breakdown */}
-                        {invoice.taxes?.map((tax: any, i: number) => (
-                            <div key={i} className="flex justify-between text-xs text-slate-500">
-                                <span>{tax.description}</span>
-                                <span>{tax.tax_amount?.toLocaleString()}</span>
-                            </div>
-                        ))}
-                        
-                        {(!invoice.taxes || invoice.taxes.length === 0) && invoice.total_taxes_and_charges > 0 && (
-                             <div className="flex justify-between text-sm text-slate-500">
-                                <span>Total Tax</span>
-                                <span>{invoice.total_taxes_and_charges?.toLocaleString()}</span>
-                            </div>
+                        {invoice.taxes?.length > 0 ? (
+                            invoice.taxes.map((tax: any, i: number) => (
+                                <div key={i} className="flex justify-between text-xs text-slate-500">
+                                    <span>{tax.description}</span>
+                                    <span>{(tax.tax_amount_after_discount_amount || tax.tax_amount)?.toLocaleString()}</span>
+                                </div>
+                            ))
+                        ) : (
+                            /* Fallback if taxes array is empty but total tax exists */
+                            totalTax > 0 && (
+                                <div className="flex justify-between text-xs text-slate-500">
+                                    <span>Total Tax</span>
+                                    <span>{totalTax.toLocaleString()}</span>
+                                </div>
+                            )
                         )}
 
                         <div className="flex justify-between text-lg font-bold border-t border-slate-200 dark:border-slate-700 pt-3 mt-1 text-slate-900 dark:text-white">
                             <span>Grand Total</span>
-                            <span>{invoice.currency} {invoice.grand_total?.toLocaleString()}</span>
+                            <span>{invoice.currency} {grandTotal.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
@@ -146,18 +173,23 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             </Card>
 
             <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">Supplier Info</CardTitle></CardHeader>
+                <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">Bank Details</CardTitle></CardHeader>
                 <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                    <div className="flex gap-2 items-start">
-                        <Building2 className="h-4 w-4 mt-0.5 shrink-0" />
-                        <div>
-                            <p className="font-medium text-slate-900 dark:text-white">ABC Equipment Rentals</p>
-                            <p className="text-xs">Mumbai, Maharashtra</p>
-                            <p className="text-xs mt-1">GSTIN: 27ABCDE1234F1Z5</p>
-                        </div>
-                    </div>
+                     {bank ? (
+                        <>
+                            <div className="flex justify-between"><span>Bank:</span> <span className="font-medium text-slate-900 dark:text-white">{bank.bank}</span></div>
+                            <div className="flex justify-between"><span>A/C No:</span> <span className="font-medium text-slate-900 dark:text-white">{bank.bank_account_no}</span></div>
+                            <div className="flex justify-between"><span>IFSC:</span> <span className="font-medium text-slate-900 dark:text-white">{bank.branch_code || "—"}</span></div>
+                        </>
+                    ) : (
+                        <p className="italic text-xs">No bank details linked.</p>
+                    )}
                 </CardContent>
             </Card>
+
+            <div className="text-xs text-slate-400 px-2 text-center">
+                This is a computer generated invoice.
+            </div>
         </div>
       </div>
     </div>

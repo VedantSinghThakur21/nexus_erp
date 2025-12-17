@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Download, FileText } from "lucide-react"
 import Link from "next/link"
+import { DeleteInvoiceButton } from "@/components/invoices/delete-invoice-button"
 
 export default async function InvoicesPage() {
   const invoices = await getInvoices()
@@ -70,7 +71,6 @@ export default async function InvoicesPage() {
                       <td className="p-4 font-medium text-slate-900 dark:text-white">
                         <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-slate-400" />
-                            {/* Link to Detail Page */}
                             <Link 
                                 href={`/invoices/${inv.name}`} 
                                 className="hover:underline text-blue-600 dark:text-blue-400"
@@ -93,15 +93,18 @@ export default async function InvoicesPage() {
                           {inv.status}
                         </span>
                       </td>
-                      <td className="p-4 text-right">
-                        {/* Direct Link to ERPNext PDF Generation */}
+                      <td className="p-4 text-right flex items-center justify-end gap-2">
+                        {/* Print Button */}
                         <a 
-                            href={`${process.env.ERP_NEXT_URL}/api/method/frappe.utils.print_format.download_pdf?doctype=Sales%20Invoice&name=${inv.name}&format=Standard`}
+                            href={`/print/invoice/${inv.name}`}
                             target="_blank"
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
                         >
                             <Download className="h-4 w-4" />
                         </a>
+
+                        {/* Delete Button (Client Component) */}
+                        <DeleteInvoiceButton id={inv.name} status={inv.status} />
                       </td>
                     </tr>
                   ))

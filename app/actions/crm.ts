@@ -118,3 +118,70 @@ export async function updateLeadStatus(leadId: string, newStatus: string) {
     return { error: error.message || 'Failed to update status' }
   }
 }
+
+export interface Customer {
+  name: string // ID
+  customer_name: string
+  customer_type: string
+  territory: string
+  email_id?: string
+}
+
+// 1. READ: Get All Customers
+export async function getCustomers() {
+  try {
+    const response = await frappeRequest(
+      'frappe.client.get_list', 
+      'GET', 
+      {
+        doctype: 'Customer',
+        fields: '["name", "customer_name", "customer_type", "territory"]',
+        order_by: 'creation desc',
+        limit_page_length: 50
+      }
+    )
+    return response as Customer[]
+  } catch (error) {
+    console.error("Failed to fetch customers:", error)
+    return []
+  }
+}
+
+// 2. CONVERT: Create Customer from Lead
+export async function convertLeadToCustomer(leadId: string) {
+  try {
+    // 1. Fetch Lead Details
+    const lead = await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Lead', 
+        name: leadId 
+    })
+
+    if (!lead) throw new Error("Lead not found")
+
+    // 2. Create Customer Object
+    const customerData = {
+        doctype: 'Customer',
+        customer_name: lead.company_name || lead.lead_name, // Prefer Company Name
+        customer_type: lead.company_name ? 'Company' : 'Individual',
+        territory: lead.territory || 'All Territories',
+        email_id: lead.email_id,
+        mobile_no: lead.mobile_no
+    }
+
+    // 3. Save to ERPNext
+    await frappeRequest('frappe.client.insert', 'POST', { doc: customerData })
+    
+    // 4. Update Lead Status to 'Converted'
+    await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Lead',
+        name: leadId,
+        fieldname: 'status',
+        value: 'Converted'
+    })
+
+    revalidatePath('/crm')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || 'Failed to convert lead' }
+  }
+}
