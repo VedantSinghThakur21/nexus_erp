@@ -2,7 +2,7 @@ import { getQuotations } from "@/app/actions/crm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { FileText, Calendar, DollarSign } from "lucide-react"
+import { FileText, Calendar, DollarSign, TrendingUp } from "lucide-react"
 import Link from "next/link"
 
 export default async function QuotationsPage() {
