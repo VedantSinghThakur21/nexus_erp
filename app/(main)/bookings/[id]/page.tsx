@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Calendar, Truck, User, CheckCircle2, HardHat, FileText } from "lucide-react"
 import Link from "next/link"
-import { redirect } from "next/navigation"
 import { MobilizeDialog } from "@/components/bookings/mobilize-dialog"
+import { BookingActions } from "@/components/bookings/booking-actions"
 
 export default async function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -43,12 +43,6 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     console.error('Error fetching operator:', e);
   }
 
-  async function handleReturn() {
-    'use server'
-    await returnAsset(id)
-    redirect('/bookings')
-  }
-
   const isMobilized = booking.per_delivered >= 100;
   const isCompleted = booking.status === 'Completed' || booking.status === 'Cancelled';
 
@@ -79,11 +73,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                 {!isMobilized ? (
                     <MobilizeDialog booking={booking} operators={operators} />
                 ) : (
-                    <form action={handleReturn}>
-                        <Button className="bg-green-600 hover:bg-green-700 text-white gap-2">
-                            <CheckCircle2 className="h-4 w-4" /> Return Asset
-                        </Button>
-                    </form>
+                    <BookingActions bookingId={booking.name} />
                 )}
             </div>
         )}
