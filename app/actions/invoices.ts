@@ -251,17 +251,19 @@ export async function searchItems(query: string) {
 // 7. GET COMPANY DETAILS
 export async function getCompanyDetails() {
   try {
-    const defaults = await frappeRequest('frappe.client.get_defaults', 'GET');
-    const companyName = defaults.default_company;
-    if (!companyName) return null;
-
-    const company = await frappeRequest('frappe.client.get', 'GET', {
-        doctype: 'Company',
-        name: companyName
+    // Get list of companies and use the first one as default
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name", "tax_id"]',
+      limit_page_length: 1
     });
-
+    
+    if (!companies || companies.length === 0) return null;
+    
+    const company = companies[0];
     return { name: company.name, gstin: company.tax_id }
   } catch (e) {
+    console.error('Failed to fetch company details:', e);
     return null
   }
 }
@@ -269,8 +271,15 @@ export async function getCompanyDetails() {
 // 8. GET BANK DETAILS
 export async function getBankDetails() {
   try {
-    const defaults = await frappeRequest('frappe.client.get_defaults', 'GET');
-    const companyName = defaults.default_company;
+    // Get first company
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name"]',
+      limit_page_length: 1
+    });
+    
+    if (!companies || companies.length === 0) return null;
+    const companyName = companies[0].name;
     
     const banks = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Bank Account',
