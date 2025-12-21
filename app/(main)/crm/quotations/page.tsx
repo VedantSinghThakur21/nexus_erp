@@ -37,9 +37,14 @@ export default async function QuotationsPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Quotations</h1>
           <p className="text-slate-500 mt-1">Manage and track all customer quotations</p>
         </div>
-        <Link href="/crm">
-          <Button variant="outline">Back to CRM</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/crm/opportunities">
+            <Button variant="outline">View Opportunities</Button>
+          </Link>
+          <Link href="/crm">
+            <Button variant="outline">Back to CRM</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -95,8 +100,28 @@ export default async function QuotationsPage() {
           {quotations.length === 0 ? (
             <div className="text-center py-12 text-slate-500">
               <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-              <p>No quotations yet.</p>
-              <p className="text-sm mt-2">Create opportunities and generate quotations from the pipeline.</p>
+              <p className="font-medium text-lg mb-2">No quotations yet</p>
+              <p className="text-sm mt-2 mb-4">To create a quotation:</p>
+              <ol className="text-sm text-left max-w-md mx-auto space-y-2 mb-6">
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-blue-600">1.</span>
+                  <span>Create an <strong>Opportunity</strong> from a qualified lead</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-blue-600">2.</span>
+                  <span>Move the opportunity to <strong>"Proposal"</strong> stage</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold text-blue-600">3.</span>
+                  <span>Click <strong>"Create Quotation"</strong> button in opportunity details</span>
+                </li>
+              </ol>
+              <Link href="/crm/opportunities">
+                <Button className="gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Go to Opportunities
+                </Button>
+              </Link>
             </div>
           ) : (
             <div className="space-y-3">

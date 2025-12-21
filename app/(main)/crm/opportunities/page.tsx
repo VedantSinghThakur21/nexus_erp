@@ -1,7 +1,8 @@
 import { getOpportunities } from "@/app/actions/crm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Calendar, DollarSign } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { TrendingUp, Calendar, DollarSign, FileText } from "lucide-react"
 import Link from "next/link"
 
 export default async function OpportunitiesPage() {
@@ -36,9 +37,21 @@ export default async function OpportunitiesPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sales Pipeline</h1>
           <p className="text-slate-500 dark:text-slate-400">Track opportunities through the sales process</p>
         </div>
-        <div className="text-right">
-          <div className="text-sm text-slate-500">Total Pipeline Value</div>
-          <div className="text-2xl font-bold text-green-600">₹{totalPipelineValue.toLocaleString('en-IN')}</div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-sm text-slate-500">Total Pipeline Value</div>
+            <div className="text-2xl font-bold text-green-600">₹{totalPipelineValue.toLocaleString('en-IN')}</div>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/crm/quotations">
+              <Button variant="outline" className="gap-2">
+                <FileText className="h-4 w-4" /> Quotations
+              </Button>
+            </Link>
+            <Link href="/crm">
+              <Button variant="outline">Back to Leads</Button>
+            </Link>
+          </div>
         </div>
       </div>
 
