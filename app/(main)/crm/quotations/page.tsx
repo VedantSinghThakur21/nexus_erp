@@ -109,11 +109,11 @@ export default async function QuotationsPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-blue-600">2.</span>
-                  <span>Move the opportunity to <strong>"Proposal"</strong> stage</span>
+                  <span>Move opportunity to <strong>"Proposal/Price Quote"</strong> stage</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-blue-600">3.</span>
-                  <span>Click <strong>"Create Quotation"</strong> button in opportunity details</span>
+                  <span>Click <strong>"Create Quotation"</strong> in opportunity details</span>
                 </li>
               </ol>
               <Link href="/crm/opportunities">

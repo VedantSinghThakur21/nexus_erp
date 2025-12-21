@@ -378,9 +378,9 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
       doctype: 'Opportunity',
       name: opportunityId,
       fieldname: {
-        sales_stage: 'Proposal',
+        sales_stage: 'Proposal/Price Quote',
         status: 'Quotation',
-        probability: 60
+        probability: 70
       }
     })
 
