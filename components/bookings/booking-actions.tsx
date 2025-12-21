@@ -33,17 +33,13 @@ export function BookingActions({ bookingId }: { bookingId: string }) {
       disabled={loading}
       className="bg-green-600 hover:bg-green-700 text-white gap-2"
     >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <CheckCircle2 className="h-4 w-4" />
+      )}
       Return Asset
     </Button>
   )
 }
-                className="bg-green-600 hover:bg-green-700 text-white gap-2"
-            >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                Return Asset
-            </Button>
-        )}
-    </div>
-  )
-}
+
