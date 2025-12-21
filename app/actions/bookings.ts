@@ -134,53 +134,63 @@ export async function returnAsset(bookingId: string) {
     
     if (!booking.po_no || !booking.po_no.startsWith('RENT-')) throw new Error("Invalid Rental Booking ID")
     const assetId = booking.po_no.replace('RENT-', '')
-    const itemCode = booking.items[0].item_code
 
-    // Find return warehouse
-    let targetWarehouse = "Stores - ERP - A"
+    // Check current asset status
+    let asset;
     try {
-        const asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId });
-        if (asset && asset.warehouse) targetWarehouse = asset.warehouse;
-        else {
-             const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
+        asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId });
+    } catch (e) {
+        throw new Error("Asset not found in system");
+    }
+
+    // Only create Material Receipt if asset is NOT already in a warehouse
+    if (!asset.warehouse) {
+        const itemCode = booking.items[0].item_code;
+        
+        // Find a warehouse to return to
+        let targetWarehouse = "Stores - ERP - A";
+        try {
+            const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
                 doctype: 'Warehouse',
                 filters: '[["is_group", "=", 0]]',
                 limit_page_length: 1
             })
-            if (warehouses.length > 0) targetWarehouse = warehouses[0].name
-        }
-    } catch (e) {}
+            if (warehouses.length > 0) targetWarehouse = warehouses[0].name;
+        } catch (e) {}
 
-    // Restore Inventory
-    const stockEntry = {
-        doctype: 'Stock Entry',
-        stock_entry_type: 'Material Receipt',
-        to_warehouse: targetWarehouse,
-        items: [{
-            item_code: itemCode,
-            qty: 1,
-            serial_no: assetId,
-            basic_rate: 1000
-        }],
-        docstatus: 1
-    }
-    
-    try {
+        // Create Material Receipt to add asset back to warehouse
+        const stockEntry = {
+            doctype: 'Stock Entry',
+            stock_entry_type: 'Material Receipt',
+            to_warehouse: targetWarehouse,
+            items: [{
+                item_code: itemCode,
+                qty: 1,
+                serial_no: assetId,
+                basic_rate: 1000
+            }],
+            docstatus: 1
+        }
+        
         await frappeRequest('frappe.client.insert', 'POST', { doc: stockEntry })
-    } catch (stockError: any) {
-        const msg = stockError.message || "";
-        if (!msg.includes("already") && !msg.includes("exists")) {
-             throw new Error(`Inventory Return Failed: ${msg}`);
-        }
+        
+        // Update Serial No with warehouse
+        await frappeRequest('frappe.client.set_value', 'POST', {
+            doctype: 'Serial No',
+            name: assetId,
+            fieldname: { warehouse: targetWarehouse }
+        })
     }
 
-    // Update Statuses
+    // Always update Serial No status to Active
     await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'Serial No',
         name: assetId,
-        fieldname: { status: 'Active', warehouse: targetWarehouse }
+        fieldname: 'status',
+        value: 'Active'
     })
 
+    // Mark Sales Order as Completed
     await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'Sales Order',
         name: bookingId,
@@ -189,6 +199,7 @@ export async function returnAsset(bookingId: string) {
     })
 
     revalidatePath(`/bookings/${bookingId}`)
+    revalidatePath('/bookings')
     return { success: true }
   } catch (error: any) {
     console.error("Return error:", error)
