@@ -1,5 +1,6 @@
 import { getBooking, returnAsset } from "@/app/actions/bookings"
 import { getOperators } from "@/app/actions/operators"
+import { frappeRequest } from "@/app/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,9 +19,29 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
 
   const assetName = booking.po_no?.replace('RENT-', '')
   
-  // FIX: Removed the problematic 'getAssignedOperator' call to prevent API errors.
-  // We will display a generic message instead.
-  const assignedOperator = "Check Delivery Note"
+  // Extract operator from delivery note instructions field
+  let assignedOperator = "Not Assigned";
+  try {
+    if (booking.per_delivered >= 100) {
+      // Try to fetch the delivery note
+      const deliveryNotes = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Delivery Note',
+        filters: `[["customer", "=", "${booking.customer}"], ["docstatus", "!=", 2]]`,
+        fields: '["name", "instructions"]',
+        order_by: 'creation desc',
+        limit_page_length: 1
+      });
+      
+      if (deliveryNotes.length > 0 && deliveryNotes[0].instructions) {
+        const match = deliveryNotes[0].instructions.match(/Operator:\s*(.+?)(?:\||$)/);
+        if (match) {
+          assignedOperator = match[1].trim();
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching operator:', e);
+  }
 
   async function handleReturn() {
     'use server'
@@ -93,7 +114,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                 )}
                  <div className="flex justify-between py-2">
                     <span className="text-slate-500">Daily Rate</span>
-                    <span className="font-medium">${booking.items?.[0]?.rate?.toLocaleString()}</span>
+                    <span className="font-medium">₹{booking.items?.[0]?.rate?.toLocaleString('en-IN')}</span>
                 </div>
                 
                 <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded border border-slate-100 dark:border-slate-800">
@@ -122,7 +143,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                     </div>
                     <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
                         <span className="text-slate-500">Total Value</span>
-                        <span className="font-bold text-lg">${booking.grand_total?.toLocaleString()}</span>
+                        <span className="font-bold text-lg">₹{booking.grand_total?.toLocaleString('en-IN')}</span>
                     </div>
                 </CardContent>
             </Card>
