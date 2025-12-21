@@ -9,12 +9,12 @@ import { OpportunitiesView } from "@/components/crm/opportunities-view"
 export default async function OpportunitiesPage() {
   const opportunities = await getOpportunities()
 
-  // Simplified to 4 logical stages
+  // ERPNext default stages
   const stages = [
-    { name: 'Qualification', color: 'bg-blue-100 text-blue-700 border-blue-200', stage: 1 },
-    { name: 'Proposal', color: 'bg-purple-100 text-purple-700 border-purple-200', stage: 2 },
-    { name: 'Negotiation', color: 'bg-orange-100 text-orange-700 border-orange-200', stage: 3 },
-    { name: 'Closed Won', color: 'bg-green-100 text-green-700 border-green-200', stage: 4 }
+    { name: 'Prospecting', color: 'bg-gray-100 text-gray-700 border-gray-200', stage: 1 },
+    { name: 'Qualification', color: 'bg-blue-100 text-blue-700 border-blue-200', stage: 2 },
+    { name: 'Proposal/Price Quote', color: 'bg-purple-100 text-purple-700 border-purple-200', stage: 3 },
+    { name: 'Negotiation/Review', color: 'bg-orange-100 text-orange-700 border-orange-200', stage: 4 }
   ]
 
   // Only count active opportunities (not Won/Lost)

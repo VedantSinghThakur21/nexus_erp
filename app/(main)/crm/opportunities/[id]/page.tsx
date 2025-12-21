@@ -27,13 +27,12 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     )
   }
 
-  // Sales stage colors
+  // Sales stage colors (ERPNext default stages)
   const stageColors: Record<string, string> = {
+    'Prospecting': 'bg-gray-100 text-gray-700',
     'Qualification': 'bg-blue-100 text-blue-700',
-    'Proposal': 'bg-purple-100 text-purple-700',
-    'Negotiation': 'bg-orange-100 text-orange-700',
-    'Closed Won': 'bg-green-100 text-green-700',
-    'Closed Lost': 'bg-red-100 text-red-700',
+    'Proposal/Price Quote': 'bg-purple-100 text-purple-700',
+    'Negotiation/Review': 'bg-orange-100 text-orange-700',
     'Won': 'bg-green-100 text-green-700',
     'Lost': 'bg-red-100 text-red-700'
   }
