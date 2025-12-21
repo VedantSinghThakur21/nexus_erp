@@ -33,16 +33,57 @@ export async function getInvoices() {
   }
 }
 
-// --- HELPER: Find Tax Accounts ---
-async function getTaxAccount(search: string) {
+// --- HELPER: Create Tax Account if it doesn't exist ---
+async function createTaxAccount(accountName: string, company: string) {
+    try {
+        // First, find the parent account (Duties and Taxes)
+        const parentAccounts = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Account',
+            filters: `[["account_name", "like", "%Duties and Taxes%"], ["is_group", "=", 1], ["company", "=", "${company}"]]`,
+            fields: '["name"]',
+            limit_page_length: 1
+        });
+        
+        const parentAccount = parentAccounts[0]?.name || `Duties and Taxes - ${company}`;
+        
+        // Create the tax account
+        const newAccount = await frappeRequest('frappe.client.insert', 'POST', {
+            doc: {
+                doctype: 'Account',
+                account_name: accountName,
+                company: company,
+                parent_account: parentAccount,
+                account_type: 'Tax',
+                is_group: 0
+            }
+        });
+        
+        console.log(`✅ Created tax account: ${accountName} for ${company}`);
+        return newAccount.name;
+    } catch (error) {
+        console.error(`Failed to create tax account ${accountName}:`, error);
+        return null;
+    }
+}
+
+// --- HELPER: Find or Create Tax Accounts ---
+async function getTaxAccount(search: string, company: string) {
     try {
         const accounts = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Account',
-            filters: `[["account_name", "like", "%${search}%"], ["is_group", "=", 0]]`,
+            filters: `[["account_name", "like", "%${search}%"], ["is_group", "=", 0], ["company", "=", "${company}"]]`,
             limit_page_length: 1
         });
-        return accounts[0]?.name;
+        
+        if (accounts && accounts.length > 0) {
+            return accounts[0]?.name;
+        }
+        
+        // If not found, create it
+        console.log(`Tax account ${search} not found for ${company}, creating...`);
+        return await createTaxAccount(search, company);
     } catch (e) {
+        console.error(`Error finding tax account ${search}:`, e);
         return null;
     }
 }
@@ -59,10 +100,19 @@ async function ensureTaxTemplate(templateName: string) {
     } catch (e) {
         console.log(`Creating missing Tax Template: ${templateName}`);
         try {
-            // Dynamically find valid accounts
-            const cgstAcc = await getTaxAccount('CGST') || await getTaxAccount('Tax') || 'CGST';
-            const sgstAcc = await getTaxAccount('SGST') || await getTaxAccount('Tax') || 'SGST';
-            const igstAcc = await getTaxAccount('IGST') || await getTaxAccount('Tax') || 'IGST';
+            // Get company first
+            const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+                doctype: 'Company',
+                fields: '["name"]',
+                limit_page_length: 1
+            });
+            const companyName = companies[0]?.name;
+            if (!companyName) throw new Error('No company found');
+            
+            // Dynamically find valid accounts for this company
+            const cgstAcc = await getTaxAccount('CGST', companyName) || await getTaxAccount('Tax', companyName) || 'CGST';
+            const sgstAcc = await getTaxAccount('SGST', companyName) || await getTaxAccount('Tax', companyName) || 'SGST';
+            const igstAcc = await getTaxAccount('IGST', companyName) || await getTaxAccount('Tax', companyName) || 'IGST';
 
             // Define rows based on template name
             let taxes = [];
@@ -116,10 +166,18 @@ export async function createInvoice(data: any) {
   let taxRows = []
   
   if (taxRate > 0) {
-    // Dynamically fetch valid tax accounts
-    const cgstAcc = await getTaxAccount('CGST') || 'CGST'
-    const sgstAcc = await getTaxAccount('SGST') || 'SGST'
-    const igstAcc = await getTaxAccount('IGST') || 'IGST'
+    // Get company first
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name"]',
+      limit_page_length: 1
+    });
+    const companyName = companies[0]?.name || 'AVARIQ';
+    
+    // Dynamically fetch valid tax accounts for this company
+    const cgstAcc = await getTaxAccount('CGST', companyName) || 'CGST'
+    const sgstAcc = await getTaxAccount('SGST', companyName) || 'SGST'
+    const igstAcc = await getTaxAccount('IGST', companyName) || 'IGST'
     
     if (data.taxes_and_charges?.includes('Out of State')) {
       // Interstate: IGST @ 18%
