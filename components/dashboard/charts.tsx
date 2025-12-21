@@ -5,7 +5,7 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGri
 
 export function DashboardCharts({ revenueData }: { revenueData: any[] }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" suppressHydrationWarning>
       <Card className="col-span-4">
         <CardHeader>
           <CardTitle>Revenue Overview</CardTitle>
@@ -47,28 +47,28 @@ export function DashboardCharts({ revenueData }: { revenueData: any[] }) {
           <CardTitle>Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-8">
+          <div className="space-y-8" suppressHydrationWarning>
             {/* Placeholder for activity feed */}
-            <div className="flex items-center">
-              <div className="ml-4 space-y-1">
+            <div className="flex items-center" suppressHydrationWarning>
+              <div className="ml-4 space-y-1" suppressHydrationWarning>
                 <p className="text-sm font-medium leading-none">New Lead Created</p>
                 <p className="text-sm text-muted-foreground">Elon Musk via Website</p>
               </div>
-              <div className="ml-auto font-medium text-sm text-slate-500">Just now</div>
+              <div className="ml-auto font-medium text-sm text-slate-500" suppressHydrationWarning>Just now</div>
             </div>
-            <div className="flex items-center">
-              <div className="ml-4 space-y-1">
+            <div className="flex items-center" suppressHydrationWarning>
+              <div className="ml-4 space-y-1" suppressHydrationWarning>
                 <p className="text-sm font-medium leading-none">Invoice Paid</p>
                 <p className="text-sm text-muted-foreground">Acme Corp - INV-001</p>
               </div>
-              <div className="ml-auto font-medium text-green-600">+$2,500</div>
+              <div className="ml-auto font-medium text-green-600" suppressHydrationWarning>+$2,500</div>
             </div>
-             <div className="flex items-center">
-              <div className="ml-4 space-y-1">
+             <div className="flex items-center" suppressHydrationWarning>
+              <div className="ml-4 space-y-1" suppressHydrationWarning>
                 <p className="text-sm font-medium leading-none">Machine Booked</p>
                 <p className="text-sm text-muted-foreground">Crane 50T - Site B</p>
               </div>
-              <div className="ml-auto font-medium text-blue-600">Active</div>
+              <div className="ml-auto font-medium text-blue-600" suppressHydrationWarning>Active</div>
             </div>
           </div>
         </CardContent>

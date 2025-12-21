@@ -63,14 +63,14 @@ export default async function DashboardPage() {
   return (
     <div className="p-8 space-y-8" suppressHydrationWarning>
       {/* Welcome Section */}
-      <div className="flex justify-between items-end">
-        <div>
+      <div className="flex justify-between items-end" suppressHydrationWarning>
+        <div suppressHydrationWarning>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Welcome back, {user.full_name?.split(' ')[0]}
             </h1>
             <p className="text-slate-500 mt-2">Here's what's happening in your business today.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2" suppressHydrationWarning>
              {/* Quick Actions */}
             <Link href="/crm/new"><Button variant="outline" size="sm">Add Lead</Button></Link>
             <Link href="/invoices/new"><Button size="sm">New Invoice</Button></Link>
@@ -78,7 +78,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" suppressHydrationWarning>
         
         {/* Revenue */}
         <Card>
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
             <Wallet className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.revenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>${stats.revenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Collected to date</p>
           </CardContent>
         </Card>
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
             <Calendar className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.active_bookings}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.active_bookings}</div>
             <Link href="/bookings" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
                 View schedule <ArrowRight className="h-3 w-3" />
             </Link>
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
             <Truck className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.fleet_status}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.fleet_status}</div>
             <p className="text-xs text-muted-foreground">Operational Machines</p>
           </CardContent>
         </Card>
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
             <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.open_leads}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.open_leads}</div>
             <p className="text-xs text-muted-foreground">Potential Customers</p>
           </CardContent>
         </Card>
@@ -135,9 +135,9 @@ export default async function DashboardPage() {
       <DashboardCharts revenueData={revenueData} />
 
       {/* Quick Links / "Apps" View */}
-      <div>
+      <div suppressHydrationWarning>
         <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Your Apps</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" suppressHydrationWarning>
             {[
                 { name: 'CRM', icon: Users, color: 'text-purple-600', bg: 'bg-purple-100', href: '/crm' },
                 { name: 'Invoices', icon: Wallet, color: 'text-green-600', bg: 'bg-green-100', href: '/invoices' },
@@ -145,8 +145,8 @@ export default async function DashboardPage() {
                 { name: 'Bookings', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-100', href: '/bookings' },
             ].map((app) => (
                 <Link key={app.name} href={app.href}>
-                    <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border rounded-xl hover:shadow-md transition-all cursor-pointer group h-32">
-                        <div className={`p-3 rounded-lg ${app.bg} mb-3 group-hover:scale-110 transition-transform`}>
+                    <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border rounded-xl hover:shadow-md transition-all cursor-pointer group h-32" suppressHydrationWarning>
+                        <div className={`p-3 rounded-lg ${app.bg} mb-3 group-hover:scale-110 transition-transform`} suppressHydrationWarning>
                             <app.icon className={`h-6 w-6 ${app.color}`} />
                         </div>
                         <span className="font-medium text-sm text-slate-700 dark:text-slate-300">{app.name}</span>

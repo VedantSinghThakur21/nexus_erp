@@ -106,28 +106,49 @@ async function ensureTaxTemplate(templateName: string) {
 
 // 2. CREATE: Create a new Invoice (Fixed Tax Logic)
 export async function createInvoice(data: any) {
-  let taxesToApply = [];
+  // Calculate tax explicitly
+  const subTotal = data.items.reduce((sum: number, item: any) => sum + (item.qty * item.rate), 0)
   
-  // 1. Try to ensure the template exists
-  if (data.taxes_and_charges) {
-      const templateName = await ensureTaxTemplate(data.taxes_and_charges);
-      if (!templateName) {
-           // Fallback: If template creation failed, try to add manual rows so tax is still applied
-           console.warn("Tax Template missing, adding manual tax rows.");
-           
-           // FIX: Dynamically fetch valid accounts for the current company
-           // This prevents "Account does not belong to company" error
-           const cgstAcc = await getTaxAccount('CGST') || 'CGST'; 
-           const sgstAcc = await getTaxAccount('SGST') || 'SGST';
-           
-           if (data.taxes_and_charges.includes('In State')) {
-               taxesToApply = [
-                   { charge_type: "On Net Total", account_head: cgstAcc, description: "CGST", rate: 9 },
-                   { charge_type: "On Net Total", account_head: sgstAcc, description: "SGST", rate: 9 }
-               ];
-           }
-           delete data.taxes_and_charges; // Remove the invalid template name
-      }
+  // Determine tax rate based on template
+  const taxRate = data.taxes_and_charges?.includes("GST") ? 18 : 0
+  
+  // Build tax rows explicitly (don't rely on templates)
+  let taxRows = []
+  
+  if (taxRate > 0) {
+    // Dynamically fetch valid tax accounts
+    const cgstAcc = await getTaxAccount('CGST') || 'CGST'
+    const sgstAcc = await getTaxAccount('SGST') || 'SGST'
+    const igstAcc = await getTaxAccount('IGST') || 'IGST'
+    
+    if (data.taxes_and_charges?.includes('Out of State')) {
+      // Interstate: IGST @ 18%
+      taxRows.push({
+        charge_type: "On Net Total",
+        account_head: igstAcc,
+        description: "IGST @ 18%",
+        rate: 18,
+        tax_amount: subTotal * 0.18
+      })
+    } else {
+      // Intrastate: CGST + SGST @ 9% each
+      taxRows.push(
+        {
+          charge_type: "On Net Total",
+          account_head: cgstAcc,
+          description: "CGST @ 9%",
+          rate: 9,
+          tax_amount: subTotal * 0.09
+        },
+        {
+          charge_type: "On Net Total",
+          account_head: sgstAcc,
+          description: "SGST @ 9%",
+          rate: 9,
+          tax_amount: subTotal * 0.09
+        }
+      )
+    }
   }
 
   const invoiceDoc: any = {
@@ -135,9 +156,6 @@ export async function createInvoice(data: any) {
     customer: data.customer,
     posting_date: data.posting_date,
     due_date: data.due_date,
-    
-    // Use the template if it exists
-    taxes_and_charges: data.taxes_and_charges, 
     
     items: data.items.map((item: any) => ({
         item_code: item.item_code || 'Service',
@@ -148,12 +166,10 @@ export async function createInvoice(data: any) {
         uom: "Nos" 
     })),
     
+    // Add explicit tax rows
+    taxes: taxRows,
+    
     docstatus: 0 // Draft mode
-  }
-
-  // If we generated manual taxes, attach them
-  if (taxesToApply.length > 0) {
-      invoiceDoc.taxes = taxesToApply;
   }
 
   try {
