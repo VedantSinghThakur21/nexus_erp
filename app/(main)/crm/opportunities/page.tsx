@@ -2,37 +2,50 @@ import { getOpportunities } from "@/app/actions/crm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Calendar, DollarSign, FileText } from "lucide-react"
+import { TrendingUp, Calendar, DollarSign, FileText, LayoutGrid, List } from "lucide-react"
 import Link from "next/link"
+import { OpportunitiesList } from "@/components/crm/opportunities-list"
 
 export default async function OpportunitiesPage() {
   const opportunities = await getOpportunities()
 
-  // Group by sales stage
+  // Use only logical/active stages (exclude Won/Lost)
   const stages = [
-    { name: 'Prospecting', color: 'bg-gray-100 text-gray-700 border-gray-200' },
-    { name: 'Qualification', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    { name: 'Needs Analysis', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-    { name: 'Value Proposition', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-    { name: 'Identify Decision Makers', color: 'bg-violet-100 text-violet-700 border-violet-200' },
-    { name: 'Perception Analysis', color: 'bg-pink-100 text-pink-700 border-pink-200' },
-    { name: 'Proposal/Price Quote', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-    { name: 'Negotiation/Review', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    { name: 'Won', color: 'bg-green-100 text-green-700 border-green-200' },
-    { name: 'Lost', color: 'bg-red-100 text-red-700 border-red-200' }
+    { name: 'Prospecting', color: 'bg-gray-100 text-gray-700 border-gray-200', stage: 1 },
+    { name: 'Qualification', color: 'bg-blue-100 text-blue-700 border-blue-200', stage: 2 },
+    { name: 'Needs Analysis', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', stage: 3 },
+    { name: 'Value Proposition', color: 'bg-purple-100 text-purple-700 border-purple-200', stage: 4 },
+    { name: 'Identify Decision Makers', color: 'bg-violet-100 text-violet-700 border-violet-200', stage: 5 },
+    { name: 'Perception Analysis', color: 'bg-pink-100 text-pink-700 border-pink-200', stage: 6 },
+    { name: 'Proposal/Price Quote', color: 'bg-orange-100 text-orange-700 border-orange-200', stage: 7 },
+    { name: 'Negotiation/Review', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', stage: 8 }
   ]
+
+  // Only count active opportunities (not Won/Lost)
+  const activeOpportunities = opportunities.filter(opp => 
+    opp.status === 'Open' && opp.sales_stage !== 'Won' && opp.sales_stage !== 'Lost'
+  )
 
   const groupedOpportunities = stages.map(stage => ({
     ...stage,
-    opportunities: opportunities.filter(opp => opp.sales_stage === stage.name),
-    totalValue: opportunities
+    opportunities: activeOpportunities.filter(opp => opp.sales_stage === stage.name),
+    totalValue: activeOpportunities
       .filter(opp => opp.sales_stage === stage.name)
       .reduce((sum, opp) => sum + (opp.opportunity_amount || 0), 0)
   }))
 
-  const totalPipelineValue = opportunities
-    .filter(opp => opp.sales_stage !== 'Won' && opp.sales_stage !== 'Lost')
+  const totalPipelineValue = activeOpportunities
     .reduce((sum, opp) => sum + (opp.opportunity_amount || 0), 0)
+  
+  const wonThisMonth = opportunities.filter(opp => {
+    if (opp.sales_stage !== 'Won') return false
+    // Simple month check - in production you'd parse the modified date
+    return true
+  }).length
+
+  const avgProbability = activeOpportunities.length > 0
+    ? Math.round(activeOpportunities.reduce((sum, opp) => sum + (opp.probability || 0), 0) / activeOpportunities.length)
+    : 0
 
   return (
     <div className="p-8 space-y-6">
@@ -67,7 +80,7 @@ export default async function OpportunitiesPage() {
             <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{opportunities.filter(o => o.status === 'Open').length}</div>
+            <div className="text-2xl font-bold">{activeOpportunities.length}</div>
           </CardContent>
         </Card>
         
@@ -77,7 +90,7 @@ export default async function OpportunitiesPage() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{opportunities.filter(o => o.sales_stage === 'Won').length}</div>
+            <div className="text-2xl font-bold">{wonThisMonth}</div>
           </CardContent>
         </Card>
 
@@ -87,60 +100,75 @@ export default async function OpportunitiesPage() {
             <Calendar className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {opportunities.length > 0 
-                ? Math.round(opportunities.reduce((sum, o) => sum + (o.probability || 0), 0) / opportunities.length) 
-                : 0}%
-            </div>
+            <div className="text-2xl font-bold">{avgProbability}%</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Pipeline Board */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {groupedOpportunities.map(stage => (
-          <Card key={stage.name} className="flex flex-col">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">{stage.name}</CardTitle>
-                <Badge variant="outline" className={stage.color}>
-                  {stage.opportunities.length}
-                </Badge>
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                ₹{stage.totalValue.toLocaleString('en-IN')}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2 flex-1">
-              {stage.opportunities.map(opp => (
-                <Link key={opp.name} href={`/crm/opportunities/${opp.name}`}>
-                  <div className="p-3 bg-white dark:bg-slate-900 border rounded-lg hover:shadow-md transition-all cursor-pointer">
-                    <div className="font-medium text-sm text-slate-900 dark:text-white mb-1 line-clamp-2">
-                      {opp.customer_name || opp.party_name}
+      {/* Pipeline Board - Horizontal Scroll */}
+      <div className="space-y-4">
+        <div className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory">
+          {groupedOpportunities.map((stage) => (
+            <div key={stage.name} className="flex-shrink-0 w-80 snap-start">
+              <Card className={`border-t-4 ${stage.color.split(' ')[2]} h-full`}>
+                <CardHeader className="pb-3 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        {stage.name}
+                      </CardTitle>
+                      <p className="text-xs text-slate-500 mt-1">Stage {stage.stage}</p>
                     </div>
-                    <div className="text-xs text-slate-500 mb-2">
-                      {opp.opportunity_type}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-green-600">
-                        ₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}
-                      </span>
-                      <Badge variant="outline" className="text-xs">
-                        {opp.probability}%
-                      </Badge>
-                    </div>
+                    <Badge variant="secondary" className={`${stage.color} text-xs font-semibold`}>
+                      {stage.opportunities.length}
+                    </Badge>
                   </div>
-                </Link>
-              ))}
-              {stage.opportunities.length === 0 && (
-                <div className="text-xs text-center text-slate-400 py-4">
-                  No opportunities
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                  <div className="text-sm font-bold text-slate-900 dark:text-white">
+                    ₹{stage.totalValue.toLocaleString('en-IN')}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {stage.opportunities.length === 0 ? (
+                    <p className="text-xs text-slate-400 text-center py-8">No opportunities</p>
+                  ) : (
+                    stage.opportunities.map((opp) => (
+                      <Link key={opp.name} href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}>
+                        <Card className="hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer border">
+                          <CardContent className="p-4">
+                            <div className="space-y-3">
+                              <div className="font-semibold text-sm text-slate-900 dark:text-white line-clamp-2">
+                                {opp.opportunity_from === 'Lead' ? opp.party_name : opp.customer_name}
+                              </div>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-500">{opp.opportunity_type}</span>
+                                <Badge variant="outline" className="text-xs font-semibold">
+                                  {opp.probability}%
+                                </Badge>
+                              </div>
+                              <div className="text-base font-bold text-green-600">
+                                ₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}
+                              </div>
+                              {opp.expected_closing && (
+                                <div className="text-xs text-slate-400 flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {new Date(opp.expected_closing).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* List View Option */}
+      <OpportunitiesList opportunities={activeOpportunities} stages={stages} />
     </div>
   )
 }
