@@ -343,53 +343,34 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 // 1. CREATE: Generate Quotation from Opportunity
 export async function createQuotationFromOpportunity(opportunityId: string) {
   try {
-    // 1. Fetch Opportunity
-    const opportunity = await frappeRequest('frappe.client.get', 'GET', {
-      doctype: 'Opportunity',
-      name: opportunityId
-    })
-
-    if (!opportunity) throw new Error("Opportunity not found")
-
-    // 2. Determine quotation target
-    const quotationTo = opportunity.opportunity_from // 'Customer' or 'Lead'
-    const partyName = opportunity.party_name
-
-    // 3. Calculate valid_till (30 days from now)
-    const validTill = new Date()
-    validTill.setDate(validTill.getDate() + 30)
-    const validTillStr = validTill.toISOString().split('T')[0]
-
-    // 4. Create Quotation
-    const quotationData = {
-      doctype: 'Quotation',
-      quotation_to: quotationTo,
-      party_name: partyName,
-      valid_till: validTillStr,
-      currency: opportunity.currency || 'INR',
-      items: opportunity.items || [],
-      opportunity: opportunityId // Link back to opportunity
-    }
-
-    const quotation = await frappeRequest('frappe.client.insert', 'POST', { doc: quotationData })
-
-    // 5. Update Opportunity Stage
-    await frappeRequest('frappe.client.set_value', 'POST', {
-      doctype: 'Opportunity',
-      name: opportunityId,
-      fieldname: {
-        sales_stage: 'Proposal/Price Quote',
-        status: 'Quotation',
-        probability: 60
+    // Use ERPNext's built-in server method to create quotation from opportunity
+    const quotation = await frappeRequest({
+      method: 'POST',
+      endpoint: '/method/erpnext.crm.doctype.opportunity.opportunity.make_quotation',
+      body: {
+        source_name: opportunityId
       }
     })
 
+    if (!quotation) {
+      throw new Error("Failed to create quotation from opportunity")
+    }
+
+    // The server method automatically:
+    // - Creates the quotation with all opportunity items
+    // - Links it back to the opportunity
+    // - Copies customer/lead info
+    // - Sets proper currency and pricing
+
     revalidatePath('/crm')
+    revalidatePath('/crm/opportunities')
     revalidatePath(`/crm/opportunities/${opportunityId}`)
+    revalidatePath('/crm/quotations')
+    
     return quotation
   } catch (error: any) {
     console.error("Create quotation error:", error)
-    throw new Error(error.message || 'Failed to create quotation')
+    throw new Error(error.message || 'Failed to create quotation from opportunity')
   }
 }
 
