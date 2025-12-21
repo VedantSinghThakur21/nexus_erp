@@ -14,8 +14,7 @@ import {
   Calendar,
   Settings,
   Menu,
-  ClipboardCheck,
-  HardHat // Icon for Operators
+  ClipboardCheck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -29,16 +28,19 @@ const menuItems = [
   { name: 'Fleet', icon: Truck, href: '/fleet' },
   { name: 'Bookings', icon: Calendar, href: '/bookings' },
   { name: 'Inspections', icon: ClipboardCheck, href: '/inspections' },
-  { name: 'Operators', icon: HardHat, href: '/operators' }, // New Module
   { name: 'AI Agents', icon: Bot, href: '/agents' },
   { name: 'Settings', icon: Settings, href: '/settings' },
 ]
 
+// 1. Reusable Sidebar Content
 function SidebarContent() {
   const pathname = usePathname()
   
   return (
-    <div className="flex h-full flex-col bg-slate-50/50 dark:bg-slate-900/50">
+    <div 
+      className="flex h-full flex-col bg-slate-50/50 dark:bg-slate-900/50"
+      suppressHydrationWarning // FIX: Ignore Dark Reader attributes here
+    >
       {/* Logo Area */}
       <div className="flex h-14 items-center border-b px-6 shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2">
@@ -95,11 +97,13 @@ function SidebarContent() {
   )
 }
 
+// 2. Main Responsive Component
 export function AppSidebar() {
   const [open, setOpen] = useState(false)
 
   return (
     <>
+      {/* Mobile Sidebar (Drawer) */}
       <div className="md:hidden fixed top-4 left-4 z-50">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
@@ -115,7 +119,11 @@ export function AppSidebar() {
         </Sheet>
       </div>
 
-      <div className="hidden md:flex h-screen w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+      {/* Desktop Sidebar (Fixed) */}
+      <div 
+        className="hidden md:flex h-screen w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
+        suppressHydrationWarning // FIX: Ignore Dark Reader attributes here too
+      >
         <SidebarContent />
       </div>
     </>

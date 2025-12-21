@@ -28,7 +28,7 @@ export function InvoiceActions({ invoice }: { invoice: any }) {
     <div className="flex items-center gap-2">
         {/* Print Button (Always Visible) */}
         <a 
-            href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}/api/method/frappe.utils.print_format.download_pdf?doctype=Sales%20Invoice&name=${invoice.name}&format=Standard`}
+            href={`/print/invoice/${invoice.name}`}
             target="_blank"
             rel="noopener noreferrer"
         >
