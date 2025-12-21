@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react"
 import Link from "next/link"
 import { EditLeadSheet } from "@/components/crm/edit-lead-sheet"
+import { ConvertLeadDialog } from "@/components/crm/convert-lead-dialog"
 
 // Fetch single lead data from ERPNext
 async function getLead(id: string) {
@@ -60,10 +61,19 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </div>
         <div className="flex gap-2 items-center">
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                lead.status === 'Open' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
+                lead.status === 'Open' ? 'bg-blue-100 text-blue-800' : 
+                lead.status === 'Qualified' ? 'bg-green-100 text-green-800' :
+                lead.status === 'Converted' ? 'bg-purple-100 text-purple-800' :
+                lead.status === 'Lost' ? 'bg-red-100 text-red-800' :
+                'bg-slate-100 text-slate-800'
             }`}>
                 {lead.status}
             </span>
+            
+            {/* Show Convert button for Qualified leads */}
+            {lead.status === 'Qualified' && (
+              <ConvertLeadDialog leadId={lead.name} leadName={lead.lead_name} />
+            )}
             
             {/* The Edit Drawer Component */}
             <EditLeadSheet lead={lead} />

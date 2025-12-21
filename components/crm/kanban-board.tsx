@@ -8,13 +8,14 @@ import { updateLeadStatus } from "@/app/actions/crm"
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-// Define the columns for your pipeline
+// Define the columns for your pipeline (Updated with proper ERPNext Lead statuses)
 const COLUMNS = [
-  { id: 'Open', title: 'New Leads', color: 'bg-blue-500/10 text-blue-700' },
-  { id: 'Replied', title: 'Contacted', color: 'bg-yellow-500/10 text-yellow-700' },
-  { id: 'Opportunity', title: 'Opportunity', color: 'bg-purple-500/10 text-purple-700' },
-  { id: 'Quotation', title: 'Proposal Sent', color: 'bg-orange-500/10 text-orange-700' },
-  { id: 'Converted', title: 'Won', color: 'bg-green-500/10 text-green-700' },
+  { id: 'Open', title: 'Open', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  { id: 'Contacted', title: 'Contacted', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { id: 'Interested', title: 'Interested', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { id: 'Qualified', title: 'Qualified', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { id: 'Converted', title: 'Converted', color: 'bg-green-100 text-green-700 border-green-200' },
+  { id: 'Lost', title: 'Lost', color: 'bg-red-100 text-red-700 border-red-200' },
 ]
 
 export function KanbanBoard({ leads }: { leads: any[] }) {

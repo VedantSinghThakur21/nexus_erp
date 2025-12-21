@@ -60,7 +60,10 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                         Booking #{booking.name}
                     </h1>
-                    <Badge variant={booking.status === 'Completed' ? 'secondary' : 'default'}>
+                    <Badge 
+                        variant={booking.status === 'Completed' ? 'secondary' : booking.status === 'Draft' ? 'outline' : 'default'}
+                        className={booking.status === 'Completed' ? 'bg-green-100 text-green-700 hover:bg-green-100 border-green-200' : ''}
+                    >
                         {booking.status}
                     </Badge>
                 </div>

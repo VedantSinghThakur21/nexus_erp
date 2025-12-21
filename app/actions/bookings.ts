@@ -190,12 +190,25 @@ export async function returnAsset(bookingId: string) {
         value: 'Active'
     })
 
-    // Mark Sales Order as Completed
+    // Properly close the Sales Order by updating both status and per_delivered
+    // First, fetch the latest sales order document
+    const latestBooking = await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Sales Order',
+        name: bookingId
+    })
+
+    // Update the document with completed status
+    latestBooking.status = 'Completed'
+    latestBooking.per_delivered = 100
+    
+    // Save the updated document
     await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'Sales Order',
         name: bookingId,
-        fieldname: 'status',
-        value: 'Completed'
+        fieldname: {
+            status: 'Completed',
+            per_delivered: 100
+        }
     })
 
     revalidatePath(`/bookings/${bookingId}`)

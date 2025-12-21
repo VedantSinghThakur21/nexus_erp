@@ -1,28 +1,42 @@
-import { getLeads, getCustomers } from "@/app/actions/crm"
+import { getLeads, getCustomers, getOpportunities, getQuotations } from "@/app/actions/crm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { List, Kanban, Plus, Users, UserCheck } from "lucide-react"
+import { List, Kanban, Plus, Users, UserCheck, TrendingUp } from "lucide-react"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export default async function CRMPage() {
   const leads = await getLeads()
-  const customers = await getCustomers() // <--- Fetch Customers
+  const customers = await getCustomers()
+  const opportunities = await getOpportunities()
+  const quotations = await getQuotations()
 
   return (
     <div className="p-8 space-y-6 h-[calc(100vh-60px)] flex flex-col">
       <div className="flex justify-between items-center shrink-0">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">CRM</h1>
-          <p className="text-slate-500 dark:text-slate-400">Manage leads and customers</p>
+          <p className="text-slate-500 dark:text-slate-400">Manage leads, opportunities, and customers</p>
         </div>
         
-        <Link href="/crm/new">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                <Plus className="h-4 w-4" /> New Lead
+        <div className="flex gap-2">
+          <Link href="/crm/quotations">
+            <Button variant="outline" className="gap-2">
+              <TrendingUp className="h-4 w-4" /> Quotations ({quotations.length})
             </Button>
-        </Link>
+          </Link>
+          <Link href="/crm/opportunities">
+            <Button variant="outline" className="gap-2">
+              <TrendingUp className="h-4 w-4" /> Pipeline ({opportunities.length})
+            </Button>
+          </Link>
+          <Link href="/crm/new">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+              <Plus className="h-4 w-4" /> New Lead
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Tabs defaultValue="kanban" className="flex-1 flex flex-col min-h-0">

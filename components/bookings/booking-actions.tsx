@@ -19,6 +19,7 @@ export function BookingActions({ bookingId }: { bookingId: string }) {
     const result = await returnAsset(bookingId)
     
     if (result.success) {
+      // Redirect to bookings list and refresh
       router.push('/bookings')
       router.refresh()
     } else {
