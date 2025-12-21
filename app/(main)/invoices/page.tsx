@@ -34,10 +34,10 @@ export default async function InvoicesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <span className="text-muted-foreground">$</span>
+            <span className="text-muted-foreground">₹</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">₹{totalRevenue.toLocaleString('en-IN')}</div>
           </CardContent>
         </Card>
       </div>

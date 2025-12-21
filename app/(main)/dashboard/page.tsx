@@ -35,22 +35,102 @@ async function getRevenueData() {
             limit_page_length: 1000
         });
 
+        // Get last 6 months
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const now = new Date();
+        const last6Months = [];
+        
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            last6Months.push(months[d.getMonth()]);
+        }
+
         // Group by Month
         const monthlyData: Record<string, number> = {};
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        last6Months.forEach(month => monthlyData[month] = 0);
         
         invoices.forEach((inv: any) => {
             const date = new Date(inv.posting_date);
             const month = months[date.getMonth()];
-            monthlyData[month] = (monthlyData[month] || 0) + inv.grand_total;
+            if (monthlyData.hasOwnProperty(month)) {
+                monthlyData[month] += inv.grand_total;
+            }
         });
 
         // Convert to array for Recharts
-        return Object.keys(monthlyData).map(key => ({
+        return last6Months.map(key => ({
             name: key,
-            total: monthlyData[key]
+            total: Math.round(monthlyData[key])
         }));
     } catch (e) {
+        return [];
+    }
+}
+
+// Helper to get Recent Activity
+async function getRecentActivity() {
+    try {
+        const activities = [];
+        
+        // Get latest lead
+        const leads = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Lead',
+            fields: '["name", "lead_name", "source", "creation"]',
+            order_by: 'creation desc',
+            limit_page_length: 1
+        });
+        if (leads.length > 0) {
+            const lead = leads[0];
+            activities.push({
+                type: 'lead',
+                title: 'New Lead Created',
+                description: `${lead.lead_name} via ${lead.source || 'Direct'}`,
+                value: 'Just now',
+                color: 'text-slate-500'
+            });
+        }
+        
+        // Get latest paid invoice
+        const invoices = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Sales Invoice',
+            fields: '["name", "customer_name", "grand_total", "currency"]',
+            filters: '[["status", "=", "Paid"]]',
+            order_by: 'modified desc',
+            limit_page_length: 1
+        });
+        if (invoices.length > 0) {
+            const inv = invoices[0];
+            activities.push({
+                type: 'invoice',
+                title: 'Invoice Paid',
+                description: `${inv.customer_name} - ${inv.name}`,
+                value: `+₹${inv.grand_total.toLocaleString('en-IN')}`,
+                color: 'text-green-600'
+            });
+        }
+        
+        // Get latest booking
+        const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Sales Order',
+            fields: '["name", "customer_name", "status"]',
+            filters: '[["status", "not in", ["Completed", "Cancelled"]]]',
+            order_by: 'creation desc',
+            limit_page_length: 1
+        });
+        if (bookings.length > 0) {
+            const booking = bookings[0];
+            activities.push({
+                type: 'booking',
+                title: 'Machine Booked',
+                description: `${booking.customer_name} - ${booking.name}`,
+                value: 'Active',
+                color: 'text-blue-600'
+            });
+        }
+        
+        return activities;
+    } catch (e) {
+        console.error('Error fetching activity:', e);
         return [];
     }
 }
@@ -59,6 +139,7 @@ export default async function DashboardPage() {
   const user = await getUser()
   const stats = await getDashboardStats()
   const revenueData = await getRevenueData()
+  const recentActivity = await getRecentActivity()
 
   return (
     <div className="p-8 space-y-8" suppressHydrationWarning>
@@ -87,7 +168,7 @@ export default async function DashboardPage() {
             <Wallet className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>${stats.revenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>₹{stats.revenue.toLocaleString('en-IN')}</div>
             <p className="text-xs text-muted-foreground">Collected to date</p>
           </CardContent>
         </Card>
@@ -132,7 +213,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* NEW: Charts & Activity */}
-      <DashboardCharts revenueData={revenueData} />
+      <DashboardCharts revenueData={revenueData} recentActivity={recentActivity} />
 
       {/* Quick Links / "Apps" View */}
       <div suppressHydrationWarning>
