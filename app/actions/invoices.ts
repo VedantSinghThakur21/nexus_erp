@@ -246,8 +246,15 @@ export async function createInvoice(data: any) {
 // 3. SUBMIT
 export async function submitInvoice(id: string) {
   try {
+    // First, fetch the latest version of the document to get the current modified timestamp
+    const latestDoc = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Invoice',
+      name: id
+    })
+    
+    // Now submit with the latest document data (including modified timestamp)
     await frappeRequest('frappe.client.submit', 'POST', {
-      doc: { doctype: 'Sales Invoice', name: id }
+      doc: latestDoc
     })
     
     revalidatePath(`/invoices/${id}`)
