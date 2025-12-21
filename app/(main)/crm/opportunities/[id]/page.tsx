@@ -29,16 +29,13 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   // Sales stage colors
   const stageColors: Record<string, string> = {
-    'Prospecting': 'bg-slate-100 text-slate-800',
-    'Qualification': 'bg-blue-100 text-blue-800',
-    'Needs Analysis': 'bg-indigo-100 text-indigo-800',
-    'Value Proposition': 'bg-purple-100 text-purple-800',
-    'Identify Decision Makers': 'bg-violet-100 text-violet-800',
-    'Perception Analysis': 'bg-pink-100 text-pink-800',
-    'Proposal/Price Quote': 'bg-orange-100 text-orange-800',
-    'Negotiation/Review': 'bg-yellow-100 text-yellow-800',
-    'Won': 'bg-green-100 text-green-800',
-    'Lost': 'bg-red-100 text-red-800'
+    'Qualification': 'bg-blue-100 text-blue-700',
+    'Proposal': 'bg-purple-100 text-purple-700',
+    'Negotiation': 'bg-orange-100 text-orange-700',
+    'Closed Won': 'bg-green-100 text-green-700',
+    'Closed Lost': 'bg-red-100 text-red-700',
+    'Won': 'bg-green-100 text-green-700',
+    'Lost': 'bg-red-100 text-red-700'
   }
 
   const probabilityColor = (prob: number) => {

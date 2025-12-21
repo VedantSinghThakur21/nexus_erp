@@ -109,7 +109,7 @@ export default async function QuotationsPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-blue-600">2.</span>
-                  <span>Move opportunity to <strong>"Proposal/Price Quote"</strong> stage</span>
+                  <span>Move opportunity to <strong>"Proposal"</strong> stage</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-blue-600">3.</span>

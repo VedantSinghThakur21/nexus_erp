@@ -38,14 +38,10 @@ interface OpportunityActionsProps {
 }
 
 const SALES_STAGES = [
-  { value: 'Prospecting', label: 'Prospecting', probability: 10 },
-  { value: 'Qualification', label: 'Qualification', probability: 25 },
-  { value: 'Needs Analysis', label: 'Needs Analysis', probability: 40 },
-  { value: 'Value Proposition', label: 'Value Proposition', probability: 50 },
-  { value: 'Identify Decision Makers', label: 'Identify Decision Makers', probability: 60 },
-  { value: 'Perception Analysis', label: 'Perception Analysis', probability: 65 },
-  { value: 'Proposal/Price Quote', label: 'Proposal/Price Quote', probability: 70 },
-  { value: 'Negotiation/Review', label: 'Negotiation/Review', probability: 80 }
+  { value: 'Qualification', label: 'Qualification (25%)', probability: 25 },
+  { value: 'Proposal', label: 'Proposal (50%)', probability: 50 },
+  { value: 'Negotiation', label: 'Negotiation (75%)', probability: 75 },
+  { value: 'Closed Won', label: 'Closed Won (100%)', probability: 100 }
 ]
 
 export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
@@ -167,7 +163,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
       )}
 
       {/* Create Quotation */}
-      {isOpen && !isWon && !isLost && (opportunity.sales_stage === 'Proposal/Price Quote' || opportunity.sales_stage === 'Value Proposition') && (
+      {isOpen && !isWon && !isLost && opportunity.sales_stage === 'Proposal' && (
         <Button 
           className="w-full gap-2" 
           onClick={handleCreateQuotation}
@@ -179,7 +175,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
       )}
 
       {/* Mark as Won */}
-      {isOpen && !isWon && !isLost && opportunity.sales_stage === 'Negotiation/Review' && (
+      {isOpen && !isWon && !isLost && opportunity.sales_stage === 'Negotiation' && (
         <Button 
           className="w-full gap-2 bg-green-600 hover:bg-green-700" 
           onClick={handleMarkAsWon}
