@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, Calendar, DollarSign, FileText, LayoutGrid, List } from "lucide-react"
 import Link from "next/link"
-import { OpportunitiesList } from "@/components/crm/opportunities-list"
+import { OpportunitiesView } from "@/components/crm/opportunities-view"
 
 export default async function OpportunitiesPage() {
   const opportunities = await getOpportunities()
@@ -49,8 +49,8 @@ export default async function OpportunitiesPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sales Pipeline</h1>
           <p className="text-slate-500 dark:text-slate-400">Track opportunities through the sales process</p>
         </div>
@@ -105,70 +105,12 @@ export default async function OpportunitiesPage() {
         </Card>
       </div>
 
-      {/* Pipeline Board - Horizontal Scroll */}
-      <div className="space-y-4">
-        <div className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory">
-          {groupedOpportunities.map((stage) => (
-            <div key={stage.name} className="flex-shrink-0 w-80 snap-start">
-              <Card className={`border-t-4 ${stage.color.split(' ')[2]} h-full`}>
-                <CardHeader className="pb-3 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        {stage.name}
-                      </CardTitle>
-                      <p className="text-xs text-slate-500 mt-1">Stage {stage.stage}</p>
-                    </div>
-                    <Badge variant="secondary" className={`${stage.color} text-xs font-semibold`}>
-                      {stage.opportunities.length}
-                    </Badge>
-                  </div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">
-                    ₹{stage.totalValue.toLocaleString('en-IN')}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {stage.opportunities.length === 0 ? (
-                    <p className="text-xs text-slate-400 text-center py-8">No opportunities</p>
-                  ) : (
-                    stage.opportunities.map((opp) => (
-                      <Link key={opp.name} href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}>
-                        <Card className="hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer border">
-                          <CardContent className="p-4">
-                            <div className="space-y-3">
-                              <div className="font-semibold text-sm text-slate-900 dark:text-white line-clamp-2">
-                                {opp.opportunity_from === 'Lead' ? opp.party_name : opp.customer_name}
-                              </div>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-500">{opp.opportunity_type}</span>
-                                <Badge variant="outline" className="text-xs font-semibold">
-                                  {opp.probability}%
-                                </Badge>
-                              </div>
-                              <div className="text-base font-bold text-green-600">
-                                ₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}
-                              </div>
-                              {opp.expected_closing && (
-                                <div className="text-xs text-slate-400 flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(opp.expected_closing).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* List View Option */}
-      <OpportunitiesList opportunities={activeOpportunities} stages={stages} />
+      {/* View Component with Kanban and List */}
+      <OpportunitiesView 
+        opportunities={activeOpportunities} 
+        groupedOpportunities={groupedOpportunities}
+        stages={stages} 
+      />
     </div>
   )
 }
