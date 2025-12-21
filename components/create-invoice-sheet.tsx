@@ -80,7 +80,7 @@ export default async function InvoicesPage() {
                       <td className="p-4 text-right">
                         {/* Direct Link to ERPNext PDF Generation */}
                         <a 
-                            href={`${process.env.ERP_NEXT_URL}/api/method/frappe.utils.print_format.download_pdf?doctype=Sales%20Invoice&name=${inv.name}&format=Standard`}
+                            href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL}/api/method/frappe.utils.print_format.download_pdf?doctype=Sales%20Invoice&name=${inv.name}&format=Standard`}
                             target="_blank"
                             className="text-blue-600 hover:text-blue-800"
                         >
