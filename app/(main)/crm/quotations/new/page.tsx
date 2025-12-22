@@ -209,7 +209,18 @@ export default function NewQuotationPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to create quotation')
+        const errorMessage = error.error || 'Failed to create quotation'
+        
+        // Provide helpful error messages
+        if (errorMessage.includes('Could not find Party')) {
+          alert(`The ${quotationTo} "${partyName}" does not exist in ERPNext. Please create this ${quotationTo} first, or select a different party.`)
+        } else if (errorMessage.includes('Payment Terms Template')) {
+          alert('Invalid payment terms template. Please clear this field or enter a valid template name.')
+        } else {
+          alert(errorMessage)
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
