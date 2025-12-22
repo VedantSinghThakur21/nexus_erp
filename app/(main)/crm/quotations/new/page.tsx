@@ -169,14 +169,13 @@ export default function NewQuotationPage() {
     setLoading(true)
 
     try {
-      const quotationData = {
+      const quotationData: any = {
         quotation_to: quotationTo,
         party_name: partyName,
         transaction_date: transactionDate,
         valid_till: validTill,
         currency: currency,
         order_type: orderType,
-        opportunity: opportunityReference || undefined,
         items: items.map(item => ({
           item_code: item.item_code || item.description || 'MISC',
           item_name: item.item_name || item.description || item.item_code || 'Miscellaneous',
@@ -184,9 +183,20 @@ export default function NewQuotationPage() {
           qty: item.qty,
           rate: item.rate,
           amount: item.amount
-        })),
-        payment_terms_template: paymentTermsTemplate || undefined,
-        terms: termsAndConditions || undefined
+        }))
+      }
+
+      // Only add optional fields if they have values
+      if (opportunityReference && opportunityReference.trim() !== '') {
+        quotationData.opportunity = opportunityReference
+      }
+      
+      if (paymentTermsTemplate && paymentTermsTemplate.trim() !== '') {
+        quotationData.payment_terms_template = paymentTermsTemplate
+      }
+      
+      if (termsAndConditions && termsAndConditions.trim() !== '') {
+        quotationData.terms = termsAndConditions
       }
 
       console.log('Submitting quotation data:', quotationData)
