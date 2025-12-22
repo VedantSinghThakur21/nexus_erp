@@ -2,7 +2,7 @@ import { getQuotation } from "@/app/actions/crm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, FileText, Building2 } from "lucide-react"
+import { ArrowLeft, Calendar, FileText, Building2, Pencil } from "lucide-react"
 import Link from "next/link"
 
 export default async function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -61,6 +61,14 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
           </p>
         </div>
         <div className="flex gap-2 items-center">
+          {(quotation.status === 'Draft' || quotation.status === 'Open') && (
+            <Link href={`/crm/quotations/${encodeURIComponent(quotation.name)}/edit`}>
+              <Button className="gap-2">
+                <FileText className="h-4 w-4" />
+                Edit Quotation
+              </Button>
+            </Link>
+          )}
           <Badge className={statusColors[quotation.status] || 'bg-slate-100 text-slate-800'}>
             {quotation.status}
           </Badge>

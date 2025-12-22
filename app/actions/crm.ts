@@ -464,6 +464,88 @@ export async function getQuotation(id: string) {
   }
 }
 
+// 3a. UPDATE: Update existing Quotation
+export async function updateQuotation(quotationId: string, quotationData: {
+  quotation_to: string
+  party_name: string
+  transaction_date: string
+  valid_till: string
+  currency: string
+  order_type?: string
+  items: Array<{
+    item_code?: string
+    item_name?: string
+    description: string
+    qty: number
+    rate: number
+    amount: number
+  }>
+  payment_terms_template?: string
+  terms?: string
+  opportunity?: string
+}) {
+  try {
+    // Get existing quotation to preserve fields
+    const existingQuotation = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Quotation',
+      name: quotationId
+    })
+
+    if (!existingQuotation) {
+      throw new Error('Quotation not found')
+    }
+
+    // Prepare updated document
+    const updatedQuotation = {
+      ...existingQuotation,
+      quotation_to: quotationData.quotation_to,
+      party_name: quotationData.party_name,
+      transaction_date: quotationData.transaction_date,
+      valid_till: quotationData.valid_till,
+      currency: quotationData.currency,
+      order_type: quotationData.order_type || 'Sales',
+      items: quotationData.items.map((item, idx) => ({
+        idx: idx + 1,
+        doctype: 'Quotation Item',
+        item_code: item.item_code || undefined,
+        item_name: item.item_name || item.item_code,
+        description: item.description,
+        qty: item.qty,
+        rate: item.rate,
+        amount: item.amount
+      }))
+    }
+
+    // Add optional fields
+    if (quotationData.payment_terms_template) {
+      updatedQuotation.payment_terms_template = quotationData.payment_terms_template
+    }
+    
+    if (quotationData.terms) {
+      updatedQuotation.terms = quotationData.terms
+    }
+    
+    if (quotationData.opportunity) {
+      updatedQuotation.opportunity = quotationData.opportunity
+    }
+
+    // Update in ERPNext
+    const result = await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Quotation',
+      name: quotationId,
+      fieldname: updatedQuotation
+    })
+
+    revalidatePath('/crm/quotations')
+    revalidatePath(`/crm/quotations/${quotationId}`)
+
+    return { success: true, quotation: result }
+  } catch (error: any) {
+    console.error("Update quotation error:", error)
+    return { error: error.message || 'Failed to update quotation' }
+  }
+}
+
 // 4. UPDATE: Submit Quotation (make it official)
 export async function submitQuotation(quotationId: string) {
   try {

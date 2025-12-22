@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Loader2, ArrowLeft, Calendar as CalendarIcon } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { Plus, Trash2, Loader2, ArrowLeft } from "lucide-react"
+import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
 
@@ -28,33 +28,21 @@ interface QuotationItem {
   amount: number
 }
 
-export default function NewQuotationPage() {
+export default function EditQuotationPage() {
   const [loading, setLoading] = useState(false)
-  const [prefilling, setPrefilling] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const opportunityId = searchParams.get('opportunity')
+  const params = useParams()
+  const quotationId = decodeURIComponent(params.id as string)
 
   // Header Fields
-  const [quotationTo, setQuotationTo] = useState("Customer") // Customer or Lead
+  const [quotationTo, setQuotationTo] = useState("Customer")
   const [partyName, setPartyName] = useState("")
   const [transactionDate, setTransactionDate] = useState("")
   const [validTill, setValidTill] = useState("")
   const [currency, setCurrency] = useState("INR")
-  const [orderType, setOrderType] = useState("Sales") // Sales, Maintenance, etc.
+  const [orderType, setOrderType] = useState("Sales")
   const [opportunityReference, setOpportunityReference] = useState("")
-
-  // Set dates on client side to avoid hydration mismatch
-  useEffect(() => {
-    if (!transactionDate) {
-      setTransactionDate(new Date().toISOString().split('T')[0])
-    }
-    if (!validTill) {
-      const date = new Date()
-      date.setDate(date.getDate() + 30)
-      setValidTill(date.toISOString().split('T')[0])
-    }
-  }, [])
 
   // Items State
   const [items, setItems] = useState<QuotationItem[]>([
@@ -65,61 +53,60 @@ export default function NewQuotationPage() {
   const [paymentTermsTemplate, setPaymentTermsTemplate] = useState("")
   const [termsAndConditions, setTermsAndConditions] = useState("")
 
-  // Prefill from opportunity if provided
+  // Fetch existing quotation data
   useEffect(() => {
-    if (opportunityId) {
-      setPrefilling(true)
-      fetch(`/api/opportunities/${encodeURIComponent(opportunityId)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.opportunity) {
-            const opp = data.opportunity
-            
-            // Set party info
-            setQuotationTo(opp.opportunity_from === 'Customer' ? 'Customer' : 'Lead')
-            setPartyName(opp.party_name || '')
-            setCurrency(opp.currency || 'INR')
-            setOpportunityReference(opp.name)
-            
-            // Set items if available
-            if (opp.items && opp.items.length > 0) {
-              const prefillItems = opp.items.map((item: any, index: number) => ({
-                id: index + 1,
-                item_code: item.item_code || '',
-                item_name: item.item_name || item.item_code || '',
-                description: item.description || item.item_name || '',
-                qty: item.qty || 1,
-                rate: item.rate || 0,
-                amount: (item.qty || 1) * (item.rate || 0)
-              }))
-              setItems(prefillItems)
-            }
+    const fetchQuotation = async () => {
+      try {
+        const response = await fetch(`/api/quotations/${encodeURIComponent(quotationId)}`)
+        const data = await response.json()
+        
+        if (data.quotation) {
+          const q = data.quotation
+          
+          // Set header fields
+          setQuotationTo(q.quotation_to || 'Customer')
+          setPartyName(q.party_name || '')
+          setTransactionDate(q.transaction_date || new Date().toISOString().split('T')[0])
+          setValidTill(q.valid_till || '')
+          setCurrency(q.currency || 'INR')
+          setOrderType(q.order_type || 'Sales')
+          setOpportunityReference(q.opportunity || '')
+          
+          // Set items
+          if (q.items && q.items.length > 0) {
+            const loadedItems = q.items.map((item: any, index: number) => ({
+              id: index + 1,
+              item_code: item.item_code || '',
+              item_name: item.item_name || item.item_code || '',
+              description: item.description || item.item_name || '',
+              qty: item.qty || 1,
+              rate: item.rate || 0,
+              amount: (item.qty || 1) * (item.rate || 0)
+            }))
+            setItems(loadedItems)
           }
-        })
-        .catch(error => {
-          console.error('Error fetching opportunity:', error)
-          alert('Failed to load opportunity details')
-        })
-        .finally(() => setPrefilling(false))
-    }
-  }, [opportunityId])
-
-  // Calculations
-  const calculateRowAmount = (qty: number, rate: number) => qty * rate
-
-  const updateItem = (id: number, field: keyof QuotationItem, value: any) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value }
-        if (field === 'qty' || field === 'rate') {
-          updatedItem.amount = calculateRowAmount(updatedItem.qty, updatedItem.rate)
+          
+          // Set additional fields
+          setPaymentTermsTemplate(q.payment_terms_template || '')
+          setTermsAndConditions(q.terms || '')
         }
-        return updatedItem
+      } catch (error) {
+        console.error('Error fetching quotation:', error)
+        alert('Failed to load quotation data')
+      } finally {
+        setFetching(false)
       }
-      return item
-    }))
-  }
+    }
+    
+    fetchQuotation()
+  }, [quotationId])
 
+  // Calculate totals
+  const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
+  const totalTaxes = netTotal * 0.18 // 18% GST
+  const grandTotal = netTotal + totalTaxes
+
+  // Item management functions
   const addItem = () => {
     const newId = Math.max(...items.map(i => i.id), 0) + 1
     setItems([...items, { id: newId, item_code: "", item_name: "", description: "", qty: 1, rate: 0, amount: 0 }])
@@ -131,54 +118,47 @@ export default function NewQuotationPage() {
     }
   }
 
-  // Totals
-  const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
-  const taxRate = 0.18 // 18% GST
-  const totalTaxes = netTotal * taxRate
-  const grandTotal = netTotal + totalTaxes
+  const updateItem = (id: number, field: keyof QuotationItem, value: any) => {
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value }
+        // Recalculate amount when qty or rate changes
+        if (field === 'qty' || field === 'rate') {
+          updatedItem.amount = updatedItem.qty * updatedItem.rate
+        }
+        return updatedItem
+      }
+      return item
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!partyName) {
-      alert(`Please select a ${quotationTo.toLowerCase()}`)
-      return
-    }
-
-    if (!transactionDate || !validTill) {
-      alert('Please ensure transaction date and valid till date are filled')
-      return
-    }
-
-    // Validate items - check if description is filled even if item_code is not selected from dropdown
-    const invalidItems = items.filter(item => {
-      const hasItemCode = item.item_code && item.item_code.trim() !== ''
-      const hasDescription = item.description && item.description.trim() !== ''
-      const hasValidQty = item.qty > 0
-      
-      // Item is valid if it has either item_code OR description, AND has valid quantity
-      return !(hasItemCode || hasDescription) || !hasValidQty
-    })
-    
-    if (invalidItems.length > 0) {
-      console.log('Invalid items:', invalidItems)
-      alert('Please fill in item code or description, and ensure quantity is greater than 0 for all items')
-      return
-    }
-
     setLoading(true)
 
     try {
-      const quotationData: any = {
+      // Validate items
+      const validItems = items.filter(item => 
+        (item.item_code || item.description) && item.qty > 0
+      )
+
+      if (validItems.length === 0) {
+        alert('Please add at least one item with a valid item code/description and quantity')
+        setLoading(false)
+        return
+      }
+
+      // Prepare quotation data
+      const quotationData = {
         quotation_to: quotationTo,
         party_name: partyName,
         transaction_date: transactionDate,
         valid_till: validTill,
         currency: currency,
         order_type: orderType,
-        items: items.map(item => ({
-          item_code: item.item_code || item.description || 'MISC',
-          item_name: item.item_name || item.description || item.item_code || 'Miscellaneous',
+        items: validItems.map(item => ({
+          item_code: item.item_code || undefined,
+          item_name: item.item_name || item.item_code,
           description: item.description || item.item_name || item.item_code,
           qty: item.qty,
           rate: item.rate,
@@ -186,56 +166,61 @@ export default function NewQuotationPage() {
         }))
       }
 
-      // Only add optional fields if they have values
-      if (opportunityReference && opportunityReference.trim() !== '') {
-        quotationData.opportunity = opportunityReference
+      // Add optional fields only if they have values
+      if (paymentTermsTemplate && paymentTermsTemplate.trim()) {
+        quotationData.payment_terms_template = paymentTermsTemplate.trim()
       }
       
-      if (paymentTermsTemplate && paymentTermsTemplate.trim() !== '') {
-        quotationData.payment_terms_template = paymentTermsTemplate
+      if (termsAndConditions && termsAndConditions.trim()) {
+        quotationData.terms = termsAndConditions.trim()
       }
       
-      if (termsAndConditions && termsAndConditions.trim() !== '') {
-        quotationData.terms = termsAndConditions
+      if (opportunityReference && opportunityReference.trim()) {
+        quotationData.opportunity = opportunityReference.trim()
       }
 
-      console.log('Submitting quotation data:', quotationData)
-
-      const response = await fetch('/api/quotations/create-new', {
+      // Send update request
+      const response = await fetch(`/api/quotations/${encodeURIComponent(quotationId)}/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(quotationData)
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        const error = await response.json()
-        const errorMessage = error.error || 'Failed to create quotation'
-        
-        // Provide helpful error messages
-        if (errorMessage.includes('Could not find Party')) {
-          alert(`The ${quotationTo} "${partyName}" does not exist in ERPNext. Please create this ${quotationTo} first, or select a different party.`)
-        } else if (errorMessage.includes('Payment Terms Template')) {
-          alert('Invalid payment terms template. Please clear this field or enter a valid template name.')
-        } else {
-          alert(errorMessage)
-        }
-        
-        throw new Error(errorMessage)
+        throw new Error(result.error || 'Failed to update quotation')
       }
 
-      const result = await response.json()
-      
-      if (result.quotation?.name) {
-        router.push(`/crm/quotations/${encodeURIComponent(result.quotation.name)}`)
-      } else {
-        router.push('/crm/quotations')
-      }
+      alert('✅ Quotation updated successfully!')
+      router.push(`/crm/quotations/${encodeURIComponent(quotationId)}`)
     } catch (error: any) {
-      console.error('Error creating quotation:', error)
-      alert(error.message || 'Failed to create quotation')
+      console.error('Error updating quotation:', error)
+      
+      // Parse error message for better user feedback
+      const errorMessage = error.message || 'Failed to update quotation'
+      
+      if (errorMessage.includes('Party')) {
+        alert(`❌ Error: ${errorMessage}\n\nThe customer/lead specified does not exist in ERPNext. Please create it first or use an existing party name.`)
+      } else if (errorMessage.includes('Payment Terms')) {
+        alert(`❌ Error: ${errorMessage}\n\nThe payment terms template does not exist in ERPNext. Please leave it blank or use an existing template.`)
+      } else {
+        alert(`❌ ${errorMessage}`)
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  if (fetching) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-slate-600">Loading quotation data...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -243,34 +228,21 @@ export default function NewQuotationPage() {
       <div className="max-w-6xl mx-auto" suppressHydrationWarning>
         {/* Header */}
         <div className="mb-6" suppressHydrationWarning>
-          <Link href="/crm/quotations">
+          <Link href={`/crm/quotations/${encodeURIComponent(quotationId)}`}>
             <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-blue-600 mb-4">
-              <ArrowLeft className="h-4 w-4" /> Back to Quotations
+              <ArrowLeft className="h-4 w-4" /> Back to Quotation
             </Button>
           </Link>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {opportunityId ? 'Create Quotation from Opportunity' : 'Create New Quotation'}
+            Edit Quotation: {quotationId}
           </h1>
           <p className="text-slate-500 mt-1">
-            {opportunityId 
-              ? `Creating quotation for opportunity ${opportunityId}` 
-              : 'Fill in the details below to create a new quotation'}
+            Update the quotation details below
           </p>
         </div>
 
-        {prefilling && (
-          <Card className="mb-6 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-            <CardContent className="py-4">
-              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading opportunity details...</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Customer/Lead Information */}
+          {/* Customer / Lead Information */}
           <Card>
             <CardHeader>
               <CardTitle>Customer / Lead Information</CardTitle>
@@ -278,8 +250,8 @@ export default function NewQuotationPage() {
             <CardContent className="grid md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="quotationTo">Quotation To *</Label>
-                <Select value={quotationTo} onValueChange={setQuotationTo} disabled={!!opportunityId}>
-                  <SelectTrigger>
+                <Select value={quotationTo} onValueChange={setQuotationTo}>
+                  <SelectTrigger id="quotationTo">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -296,7 +268,6 @@ export default function NewQuotationPage() {
                   value={partyName}
                   onChange={(e) => setPartyName(e.target.value)}
                   placeholder={`Enter ${quotationTo.toLowerCase()} name`}
-                  disabled={!!opportunityId}
                   required
                 />
               </div>
@@ -324,29 +295,29 @@ export default function NewQuotationPage() {
               </div>
 
               <div className="grid gap-2">
+                <Label htmlFor="currency">Currency *</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger id="currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                    <SelectItem value="USD">USD - US Dollar</SelectItem>
+                    <SelectItem value="EUR">EUR - Euro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
                 <Label htmlFor="orderType">Order Type</Label>
                 <Select value={orderType} onValueChange={setOrderType}>
-                  <SelectTrigger>
+                  <SelectTrigger id="orderType">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Sales">Sales</SelectItem>
                     <SelectItem value="Maintenance">Maintenance</SelectItem>
                     <SelectItem value="Shopping Cart">Shopping Cart</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INR">INR (₹)</SelectItem>
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -486,14 +457,14 @@ export default function NewQuotationPage() {
 
           {/* Submit Buttons */}
           <div className="flex justify-end gap-4">
-            <Link href="/crm/quotations">
+            <Link href={`/crm/quotations/${encodeURIComponent(quotationId)}`}>
               <Button type="button" variant="outline" disabled={loading}>
                 Cancel
               </Button>
             </Link>
             <Button type="submit" disabled={loading} className="gap-2">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? 'Creating...' : 'Create Quotation'}
+              {loading ? 'Updating...' : 'Update Quotation'}
             </Button>
           </div>
         </form>
