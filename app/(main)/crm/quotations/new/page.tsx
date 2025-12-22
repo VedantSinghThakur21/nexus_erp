@@ -407,6 +407,17 @@ export default function NewQuotationPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Additional Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Additional Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="paymentTerms">Payment Terms Template</Label>
+                <Input
+                  id="paymentTerms"
                   value={paymentTermsTemplate}
                   onChange={(e) => setPaymentTermsTemplate(e.target.value)}
                   placeholder="e.g., Net 30, 50% Advance"
