@@ -38,16 +38,23 @@ export default function NewQuotationPage() {
   // Header Fields
   const [quotationTo, setQuotationTo] = useState("Customer") // Customer or Lead
   const [partyName, setPartyName] = useState("")
-  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0])
-  const [validTill, setValidTill] = useState(() => {
-    // Default valid till 30 days from now
-    const date = new Date()
-    date.setDate(date.getDate() + 30)
-    return date.toISOString().split('T')[0]
-  })
+  const [transactionDate, setTransactionDate] = useState("")
+  const [validTill, setValidTill] = useState("")
   const [currency, setCurrency] = useState("INR")
   const [orderType, setOrderType] = useState("Sales") // Sales, Maintenance, etc.
   const [opportunityReference, setOpportunityReference] = useState("")
+
+  // Set dates on client side to avoid hydration mismatch
+  useEffect(() => {
+    if (!transactionDate) {
+      setTransactionDate(new Date().toISOString().split('T')[0])
+    }
+    if (!validTill) {
+      const date = new Date()
+      date.setDate(date.getDate() + 30)
+      setValidTill(date.toISOString().split('T')[0])
+    }
+  }, [])
 
   // Items State
   const [items, setItems] = useState<QuotationItem[]>([
@@ -138,8 +145,8 @@ export default function NewQuotationPage() {
       return
     }
 
-    if (items.some(item => !item.item_code || !item.item_name)) {
-      alert('Please fill in all item details')
+    if (items.some(item => !item.item_code || item.qty <= 0 || item.rate < 0)) {
+      alert('Please fill in all item details with valid quantity and rate')
       return
     }
 
@@ -156,8 +163,8 @@ export default function NewQuotationPage() {
         opportunity: opportunityReference || undefined,
         items: items.map(item => ({
           item_code: item.item_code,
-          item_name: item.item_name,
-          description: item.description || item.item_name,
+          item_name: item.item_name || item.item_code,
+          description: item.description || item.item_name || item.item_code,
           qty: item.qty,
           rate: item.rate,
           amount: item.amount
