@@ -68,7 +68,7 @@ export default async function CustomersPage() {
             <div className="text-center py-12 text-slate-500">
               <Users className="h-12 w-12 mx-auto mb-4 text-slate-300" />
               <p>No customers yet.</p>
-              <p className="text-sm mt-2">Convert qualified leads to create customers.</p>
+              <p className="text-sm mt-2">Convert interested leads to create customers.</p>
             </div>
           ) : (
             <div className="rounded-md border border-slate-200 dark:border-slate-800">

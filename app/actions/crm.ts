@@ -8,7 +8,7 @@ export interface Lead {
   lead_name: string
   email_id: string
   mobile_no: string
-  status: string // Open | Contacted | Interested | Qualified | Converted | Lost
+  status: string // Lead | Open | Replied | Opportunity | Quotation | Lost Quotation | Interested | Converted | Do Not Contact
   company_name: string
   job_title?: string
   territory?: string
@@ -284,7 +284,7 @@ export async function convertLeadToCustomer(leadId: string) {
   }
 }
 
-// 3. CONVERT: Create Opportunity from Qualified Lead
+// 3. CONVERT: Create Opportunity from Lead (Interested or Replied status)
 export async function convertLeadToOpportunity(leadId: string, createCustomer: boolean = false) {
   try {
     // 1. Fetch Lead

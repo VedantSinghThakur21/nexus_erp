@@ -61,17 +61,21 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </div>
         <div className="flex gap-2 items-center">
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                lead.status === 'Lead' ? 'bg-gray-100 text-gray-800' :
                 lead.status === 'Open' ? 'bg-blue-100 text-blue-800' : 
-                lead.status === 'Qualified' ? 'bg-green-100 text-green-800' :
-                lead.status === 'Converted' ? 'bg-purple-100 text-purple-800' :
-                lead.status === 'Lost' ? 'bg-red-100 text-red-800' :
+                lead.status === 'Replied' ? 'bg-cyan-100 text-cyan-800' :
+                lead.status === 'Interested' ? 'bg-purple-100 text-purple-800' :
+                lead.status === 'Opportunity' ? 'bg-orange-100 text-orange-800' :
+                lead.status === 'Quotation' ? 'bg-yellow-100 text-yellow-800' :
+                lead.status === 'Converted' ? 'bg-green-100 text-green-800' :
+                lead.status === 'Do Not Contact' ? 'bg-red-100 text-red-800' :
                 'bg-slate-100 text-slate-800'
             }`}>
                 {lead.status}
             </span>
             
-            {/* Show Convert button for Qualified leads */}
-            {lead.status === 'Qualified' && (
+            {/* Show Convert button for Interested leads */}
+            {(lead.status === 'Interested' || lead.status === 'Replied') && (
               <ConvertLeadDialog leadId={lead.name} leadName={lead.lead_name} />
             )}
             

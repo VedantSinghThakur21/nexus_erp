@@ -10,12 +10,14 @@ import Link from 'next/link'
 
 // Define the columns for your pipeline (Updated with proper ERPNext Lead statuses)
 const COLUMNS = [
-  { id: 'Open', title: 'Open', color: 'bg-gray-100 text-gray-700 border-gray-200' },
-  { id: 'Contacted', title: 'Contacted', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { id: 'Lead', title: 'New Lead', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  { id: 'Open', title: 'Open', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { id: 'Replied', title: 'Replied', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
   { id: 'Interested', title: 'Interested', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { id: 'Qualified', title: 'Qualified', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { id: 'Opportunity', title: 'Opportunity', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { id: 'Quotation', title: 'Quotation', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   { id: 'Converted', title: 'Converted', color: 'bg-green-100 text-green-700 border-green-200' },
-  { id: 'Lost', title: 'Lost', color: 'bg-red-100 text-red-700 border-red-200' },
+  { id: 'Do Not Contact', title: 'Do Not Contact', color: 'bg-red-100 text-red-700 border-red-200' },
 ]
 
 export function KanbanBoard({ leads }: { leads: any[] }) {
@@ -101,18 +103,23 @@ function DraggableCard({ lead }: { lead: any }) {
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <Card className="cursor-grab hover:shadow-md transition-shadow active:cursor-grabbing">
+      <Card className="cursor-grab hover:shadow-md transition-shadow active:cursor-grabbing border-l-4" style={{borderLeftColor: getStatusColor(lead.status)}}>
         <CardContent className="p-4 space-y-2">
           <div className="flex justify-between items-start">
-            <Link href={`/crm/${lead.name}`} className="font-semibold hover:text-blue-600 hover:underline">
+            <Link href={`/crm/${lead.name}`} className="font-semibold text-slate-900 dark:text-white hover:text-blue-600 hover:underline">
                 {lead.lead_name}
             </Link>
           </div>
           <div className="text-xs text-slate-500">
             {lead.company_name || "Individual"}
           </div>
+          {lead.email_id && (
+             <div className="text-xs text-slate-600 mt-1 flex items-center gap-1">
+                ✉️ {lead.email_id}
+             </div>
+          )}
           {lead.mobile_no && (
-             <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+             <div className="text-xs text-slate-600 mt-1 flex items-center gap-1">
                 📞 {lead.mobile_no}
              </div>
           )}
@@ -120,4 +127,19 @@ function DraggableCard({ lead }: { lead: any }) {
       </Card>
     </div>
   )
+}
+
+// Helper function to get status color
+function getStatusColor(status: string): string {
+  const colors: Record<string, string> = {
+    'Lead': '#9ca3af',
+    'Open': '#60a5fa',
+    'Replied': '#22d3ee',
+    'Interested': '#a78bfa',
+    'Opportunity': '#fb923c',
+    'Quotation': '#fbbf24',
+    'Converted': '#4ade80',
+    'Do Not Contact': '#f87171'
+  }
+  return colors[status] || '#cbd5e1'
 }

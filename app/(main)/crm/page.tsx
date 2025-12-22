@@ -12,7 +12,7 @@ export default async function CRMPage() {
   // Calculate stats
   const stats = {
     openLeads: leads.filter(l => l.status === 'Open').length,
-    qualifiedLeads: leads.filter(l => l.status === 'Qualified').length,
+    opportunityLeads: leads.filter(l => l.status === 'Opportunity').length,
     totalCustomers: customers.length
   }
 
@@ -66,10 +66,10 @@ export default async function CRMPage() {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Qualified</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-500">Opportunities</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.qualifiedLeads}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.opportunityLeads}</div>
           </CardContent>
         </Card>
       </div>
