@@ -344,13 +344,11 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 export async function createQuotationFromOpportunity(opportunityId: string) {
   try {
     // Use ERPNext's built-in server method to create quotation from opportunity
-    const quotation = await frappeRequest({
-      method: 'POST',
-      endpoint: '/method/erpnext.crm.doctype.opportunity.opportunity.make_quotation',
-      body: {
-        source_name: opportunityId
-      }
-    })
+    const quotation = await frappeRequest(
+      'erpnext.crm.doctype.opportunity.opportunity.make_quotation',
+      'POST',
+      { source_name: opportunityId }
+    )
 
     if (!quotation) {
       throw new Error("Failed to create quotation from opportunity")

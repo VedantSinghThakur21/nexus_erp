@@ -74,6 +74,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
   const [sortBy, setSortBy] = useState<'value' | 'probability'>('value')
   const [currentPage, setCurrentPage] = useState(1)
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const itemsPerPage = 15
 
   // Filter and sort opportunities for list view
@@ -110,17 +111,54 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
     e.dataTransfer.dropEffect = 'move'
   }
 
+  const handleDragEnter = (stageName: string) => {
+    setDragOverStage(stageName)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverStage(null)
+  }
+
   const handleDrop = async (e: React.DragEvent, targetStage: string) => {
     e.preventDefault()
+    setDragOverStage(null)
+    
     if (!draggedItem) return
 
-    // TODO: Implement API call to update opportunity stage
-    console.log(`Moving ${draggedItem} to ${targetStage}`)
-    
-    // You would call an action here like:
-    // await updateOpportunityStage(draggedItem, targetStage)
-    
-    setDraggedItem(null)
+    try {
+      // Get the probability based on stage
+      const stageProbabilities: Record<string, number> = {
+        'Prospecting': 10,
+        'Qualification': 20,
+        'Proposal/Price Quote': 60,
+        'Negotiation/Review': 80
+      }
+
+      const probability = stageProbabilities[targetStage] || 50
+
+      // Call the API to update the opportunity stage
+      const response = await fetch('/api/opportunities/update-stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          opportunityName: draggedItem,
+          sales_stage: targetStage,
+          probability: probability
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update stage')
+      }
+
+      // Refresh the page to show updated data
+      window.location.reload()
+    } catch (error) {
+      console.error('Error updating opportunity stage:', error)
+      alert('Failed to update opportunity stage. Please try again.')
+    } finally {
+      setDraggedItem(null)
+    }
   }
 
   return (
@@ -175,15 +213,19 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
 
       {/* Kanban View */}
       {view === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {groupedOpportunities.map((stage) => (
             <div 
               key={stage.name} 
               className="flex flex-col"
               onDragOver={handleDragOver}
+              onDragEnter={() => handleDragEnter(stage.name)}
+              onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, stage.name)}
             >
-              <Card className={`border-t-4 ${stage.color.split(' ')[2]} h-full flex flex-col`}>
+              <Card className={`border-t-4 ${stage.color.split(' ')[2]} h-full flex flex-col transition-all ${
+                dragOverStage === stage.name ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.02]' : ''
+              }`}>
                 <CardHeader className="pb-3 space-y-2">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -211,9 +253,13 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                         key={opp.name}
                         draggable
                         onDragStart={(e) => handleDragStart(e, opp.name)}
-                        className="cursor-move"
+                        className={`cursor-move transition-opacity ${
+                          draggedItem === opp.name ? 'opacity-50' : 'opacity-100'
+                        }`}
                       >
-                        <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}>
+                        <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`} onClick={(e) => {
+                          if (draggedItem) e.preventDefault()
+                        }}>
                           <Card className="hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer border bg-white dark:bg-slate-900">
                             <CardContent className="p-4">
                               <div className="space-y-3">
