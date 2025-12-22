@@ -320,13 +320,13 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 
     const opportunity = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData })
 
-    // 4. Update Lead Status
+    // 4. Update Lead Status to "Opportunity" (valid ERPNext status)
     if (!customerId) {
       await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'Lead',
         name: leadId,
         fieldname: 'status',
-        value: 'Qualified'
+        value: 'Opportunity'
       })
     }
 
