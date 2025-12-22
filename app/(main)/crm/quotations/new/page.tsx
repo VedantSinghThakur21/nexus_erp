@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Trash2, Loader2, ArrowLeft, Calendar as CalendarIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
 interface QuotationItem {
@@ -29,7 +29,10 @@ interface QuotationItem {
 
 export default function NewQuotationPage() {
   const [loading, setLoading] = useState(false)
+  const [prefilling, setPrefilling] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const opportunityId = searchParams.get('opportunity')
 
   // Header Fields
   const [quotationTo, setQuotationTo] = useState("Customer") // Customer or Lead
@@ -43,6 +46,7 @@ export default function NewQuotationPage() {
   })
   const [currency, setCurrency] = useState("INR")
   const [orderType, setOrderType] = useState("Sales") // Sales, Maintenance, etc.
+  const [opportunityReference, setOpportunityReference] = useState("")
 
   // Items State
   const [items, setItems] = useState<QuotationItem[]>([
@@ -52,6 +56,45 @@ export default function NewQuotationPage() {
   // Additional Fields
   const [paymentTermsTemplate, setPaymentTermsTemplate] = useState("")
   const [termsAndConditions, setTermsAndConditions] = useState("")
+
+  // Prefill from opportunity if provided
+  useEffect(() => {
+    if (opportunityId) {
+      setPrefilling(true)
+      fetch(`/api/opportunities/${encodeURIComponent(opportunityId)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.opportunity) {
+            const opp = data.opportunity
+            
+            // Set party info
+            setQuotationTo(opp.opportunity_from === 'Customer' ? 'Customer' : 'Lead')
+            setPartyName(opp.party_name || '')
+            setCurrency(opp.currency || 'INR')
+            setOpportunityReference(opp.name)
+            
+            // Set items if available
+            if (opp.items && opp.items.length > 0) {
+              const prefillItems = opp.items.map((item: any, index: number) => ({
+                id: index + 1,
+                item_code: item.item_code || '',
+                item_name: item.item_name || item.item_code || '',
+                description: item.description || item.item_name || '',
+                qty: item.qty || 1,
+                rate: item.rate || 0,
+                amount: (item.qty || 1) * (item.rate || 0)
+              }))
+              setItems(prefillItems)
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching opportunity:', error)
+          alert('Failed to load opportunity details')
+        })
+        .finally(() => setPrefilling(false))
+    }
+  }, [opportunityId])
 
   // Calculations
   const calculateRowAmount = (qty: number, rate: number) => qty * rate
@@ -109,6 +152,7 @@ export default function NewQuotationPage() {
         valid_till: validTill,
         currency: currency,
         order_type: orderType,
+        opportunity: opportunityReference || undefined,
         items: items.map(item => ({
           item_code: item.item_code,
           item_name: item.item_name,
@@ -158,10 +202,25 @@ export default function NewQuotationPage() {
             </Button>
           </Link>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Create New Quotation
+            {opportunityId ? 'Create Quotation from Opportunity' : 'Create New Quotation'}
           </h1>
-          <p className="text-slate-500 mt-1">Fill in the details below to create a new quotation</p>
+          <p className="text-slate-500 mt-1">
+            {opportunityId 
+              ? `Creating quotation for opportunity ${opportunityId}` 
+              : 'Fill in the details below to create a new quotation'}
+          </p>
         </div>
+
+        {prefilling && (
+          <Card className="mb-6 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading opportunity details...</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Customer/Lead Information */}
@@ -172,7 +231,7 @@ export default function NewQuotationPage() {
             <CardContent className="grid md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="quotationTo">Quotation To *</Label>
-                <Select value={quotationTo} onValueChange={setQuotationTo}>
+                <Select value={quotationTo} onValueChange={setQuotationTo} disabled={!!opportunityId}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -190,6 +249,7 @@ export default function NewQuotationPage() {
                   value={partyName}
                   onChange={(e) => setPartyName(e.target.value)}
                   placeholder={`Enter ${quotationTo.toLowerCase()} name`}
+                  disabled={!!opportunityId}
                   required
                 />
               </div>

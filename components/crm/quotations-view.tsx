@@ -45,36 +45,9 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
   const [dateFilter, setDateFilter] = useState<string>("all")
   const [creatingQuotation, setCreatingQuotation] = useState<string | null>(null)
 
-  const handleCreateQuotation = async (opportunityName: string) => {
-    setCreatingQuotation(opportunityName)
-    try {
-      const response = await fetch('/api/quotations/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ opportunityName })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create quotation')
-      }
-
-      const result = await response.json()
-      console.log('Quotation creation response:', result)
-      
-      // Redirect to the new quotation page
-      if (result.quotation?.name) {
-        console.log('Redirecting to:', `/crm/quotations/${encodeURIComponent(result.quotation.name)}`)
-        window.location.href = `/crm/quotations/${encodeURIComponent(result.quotation.name)}`
-      } else {
-        console.error('No quotation name found in response:', result)
-        // Fallback: refresh the page
-        window.location.reload()
-      }
-    } catch (error) {
-      console.error('Error creating quotation:', error)
-      alert('Failed to create quotation. Please try again.')
-      setCreatingQuotation(null)
-    }
+  const handleCreateQuotation = (opportunityName: string) => {
+    // Redirect to new quotation page with opportunity ID
+    window.location.href = `/crm/quotations/new?opportunity=${encodeURIComponent(opportunityName)}`
   }
 
   // Status colors
