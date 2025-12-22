@@ -33,17 +33,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the quotation using the action
-    const quotation = await createQuotation({
+    const quotationPayload: any = {
       quotation_to,
       party_name,
       transaction_date,
       valid_till,
       currency: currency || 'INR',
       order_type: order_type || 'Sales',
-      items,
-      payment_terms_template,
-      terms
-    })
+      items
+    }
+
+    // Only add optional fields if they have valid values
+    if (payment_terms_template && payment_terms_template.trim() !== '') {
+      quotationPayload.payment_terms_template = payment_terms_template
+    }
+    
+    if (terms && terms.trim() !== '') {
+      quotationPayload.terms = terms
+    }
+
+    const quotation = await createQuotation(quotationPayload)
 
     return NextResponse.json({ 
       success: true,
