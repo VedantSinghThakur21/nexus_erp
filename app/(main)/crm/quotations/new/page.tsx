@@ -386,21 +386,22 @@ export default function NewQuotationPage() {
                   ))}
                 </div>
 
-              {/* Totals */}
-              <div className="mt-6 border-t pt-4">
-                <div className="flex justify-end">
-                  <div className="w-80 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Net Total:</span>
-                      <span className="font-medium">₹{netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Taxes (18% GST):</span>
-                      <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2">
-                      <span>Grand Total:</span>
-                      <span className="text-slate-900 dark:text-white">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                {/* Totals */}
+                <div className="mt-6 border-t pt-4">
+                  <div className="flex justify-end">
+                    <div className="w-80 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Net Total:</span>
+                        <span className="font-medium">₹{netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Taxes (18% GST):</span>
+                        <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold border-t pt-2">
+                        <span>Grand Total:</span>
+                        <span className="text-slate-900 dark:text-white">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
