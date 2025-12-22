@@ -407,9 +407,27 @@ export async function createQuotation(quotationData: {
   terms?: string
 }) {
   try {
+    // Calculate totals
+    const netTotal = quotationData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
+    const taxRate = 0.18 // 18% GST
+    const taxAmount = netTotal * taxRate
+    const grandTotal = netTotal + taxAmount
+
     const doc = {
       doctype: 'Quotation',
-      ...quotationData
+      ...quotationData,
+      // Add tax template
+      taxes_and_charges: 'GST 18%', // You may need to adjust this based on your ERPNext tax template
+      taxes: [
+        {
+          doctype: 'Sales Taxes and Charges',
+          charge_type: 'On Net Total',
+          account_head: 'GST - YC', // Adjust based on your ERPNext setup
+          description: 'GST @ 18%',
+          rate: 18.0,
+          tax_amount: taxAmount
+        }
+      ]
     }
 
     const quotation = await frappeRequest('frappe.client.insert', 'POST', {
@@ -495,6 +513,11 @@ export async function updateQuotation(quotationId: string, quotationData: {
       throw new Error('Quotation not found')
     }
 
+    // Calculate totals
+    const netTotal = quotationData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
+    const taxRate = 0.18 // 18% GST
+    const taxAmount = netTotal * taxRate
+
     // Prepare updated document
     const updatedQuotation = {
       ...existingQuotation,
@@ -513,7 +536,19 @@ export async function updateQuotation(quotationId: string, quotationData: {
         qty: item.qty,
         rate: item.rate,
         amount: item.amount
-      }))
+      })),
+      // Add tax information
+      taxes_and_charges: 'GST 18%',
+      taxes: [
+        {
+          doctype: 'Sales Taxes and Charges',
+          charge_type: 'On Net Total',
+          account_head: 'GST - YC',
+          description: 'GST @ 18%',
+          rate: 18.0,
+          tax_amount: taxAmount
+        }
+      ]
     }
 
     // Add optional fields
