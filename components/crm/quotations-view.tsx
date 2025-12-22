@@ -42,6 +42,7 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<"date" | "value">("date")
+  const [dateFilter, setDateFilter] = useState<string>("all")
   const [creatingQuotation, setCreatingQuotation] = useState<string | null>(null)
 
   const handleCreateQuotation = async (opportunityName: string) => {
@@ -72,7 +73,6 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
       setCreatingQuotation(null)
     }
   }
-  const [creatingQuotation, setCreatingQuotation] = useState<string | null>(null)
 
   // Status colors
   const statusColors: Record<string, string> = {
