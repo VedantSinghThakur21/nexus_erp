@@ -59,11 +59,14 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
       }
 
       const result = await response.json()
+      console.log('Quotation creation response:', result)
       
       // Redirect to the new quotation page
       if (result.quotation?.name) {
+        console.log('Redirecting to:', `/crm/quotations/${encodeURIComponent(result.quotation.name)}`)
         window.location.href = `/crm/quotations/${encodeURIComponent(result.quotation.name)}`
       } else {
+        console.error('No quotation name found in response:', result)
         // Fallback: refresh the page
         window.location.reload()
       }
@@ -139,6 +142,12 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
           <p className="text-slate-500 mt-1">Manage and track all customer quotations</p>
         </div>
         <div className="flex gap-2">
+          <Link href="/crm/quotations/new">
+            <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4" />
+              New Quotation
+            </Button>
+          </Link>
           <Link href="/crm/opportunities">
             <Button variant="outline">View Opportunities</Button>
           </Link>

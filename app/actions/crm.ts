@@ -344,14 +344,32 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 export async function createQuotationFromOpportunity(opportunityId: string) {
   try {
     // Use ERPNext's built-in server method to create quotation from opportunity
-    const quotation = await frappeRequest(
+    const response = await frappeRequest(
       'erpnext.crm.doctype.opportunity.opportunity.make_quotation',
       'POST',
       { source_name: opportunityId }
     )
 
-    if (!quotation) {
+    console.log('ERPNext make_quotation response:', JSON.stringify(response, null, 2))
+
+    if (!response) {
       throw new Error("Failed to create quotation from opportunity")
+    }
+
+    // ERPNext may return the document directly or nested in 'message'
+    const quotationDoc = response.message || response
+    
+    // Extract the quotation name - try multiple possible fields
+    const quotationName = quotationDoc.name || 
+                         quotationDoc.quotation_name || 
+                         response.name ||
+                         response.quotation_name
+
+    console.log('Extracted quotation name:', quotationName)
+
+    if (!quotationName) {
+      console.error("Quotation created but no name found in response:", response)
+      throw new Error("Quotation created but name not found in response structure")
     }
 
     // The server method automatically:
@@ -365,10 +383,49 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
     revalidatePath(`/crm/opportunities/${opportunityId}`)
     revalidatePath('/crm/quotations')
     
-    return quotation
+    return {
+      name: quotationName,
+      ...(quotationDoc || response)
+    }
   } catch (error: any) {
     console.error("Create quotation error:", error)
     throw new Error(error.message || 'Failed to create quotation from opportunity')
+  }
+}
+
+// 1a. CREATE: Create Quotation from scratch
+export async function createQuotation(quotationData: {
+  quotation_to: string
+  party_name: string
+  transaction_date: string
+  valid_till: string
+  currency: string
+  order_type: string
+  items: any[]
+  payment_terms_template?: string
+  terms?: string
+}) {
+  try {
+    const doc = {
+      doctype: 'Quotation',
+      ...quotationData
+    }
+
+    const quotation = await frappeRequest('frappe.client.insert', 'POST', {
+      doc
+    })
+
+    if (!quotation || !quotation.name) {
+      throw new Error("Failed to create quotation")
+    }
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/quotations')
+    
+    return quotation
+  } catch (error: any) {
+    console.error("Create quotation error:", error)
+    throw new Error(error.message || 'Failed to create quotation')
   }
 }
 
