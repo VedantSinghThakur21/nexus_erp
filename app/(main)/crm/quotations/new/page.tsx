@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Trash2, Loader2, ArrowLeft, Calendar as CalendarIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { ItemSearch } from "@/components/invoices/item-search"
 
 interface QuotationItem {
   id: number
@@ -315,84 +316,75 @@ export default function NewQuotationPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="border-t">
                 {/* Header Row */}
-                <div className="grid grid-cols-12 gap-2 text-sm font-medium text-slate-500 pb-2 border-b">
-                  <div className="col-span-2">Item Code *</div>
-                  <div className="col-span-3">Item Name *</div>
-                  <div className="col-span-3">Description</div>
+                <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b">
+                  <div className="col-span-1 text-center">#</div>
+                  <div className="col-span-4">Item / Description</div>
                   <div className="col-span-1 text-right">Qty *</div>
                   <div className="col-span-2 text-right">Rate *</div>
-                  <div className="col-span-1 text-right">Amount</div>
+                  <div className="col-span-2 text-right">Amount</div>
+                  <div className="col-span-2"></div>
                 </div>
 
                 {/* Item Rows */}
-                {items.map((item) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-2 items-start">
-                    <div className="col-span-2">
-                      <Input
-                        value={item.item_code}
-                        onChange={(e) => updateItem(item.id, 'item_code', e.target.value)}
-                        placeholder="ITEM-001"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <Input
-                        value={item.item_name}
-                        onChange={(e) => updateItem(item.id, 'item_name', e.target.value)}
-                        placeholder="Item name"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <Input
-                        value={item.description}
-                        onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                        placeholder="Description (optional)"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={item.qty}
-                        onChange={(e) => updateItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
-                        className="text-right"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.rate}
-                        onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
-                        className="text-right"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-1 flex items-center justify-between">
-                      <span className="text-sm font-medium text-right flex-1">
+                <div className="divide-y">
+                  {items.map((item, index) => (
+                    <div key={item.id} className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 dark:hover:bg-slate-900/50 group">
+                      <div className="col-span-1 pt-2 text-center text-sm text-slate-400">
+                        <span className="group-hover:hidden">{index + 1}</span>
+                        <Trash2 
+                          className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer" 
+                          onClick={() => removeItem(item.id)} 
+                        />
+                      </div>
+                      <div className="col-span-4 space-y-1">
+                        <div className="h-8">
+                          <ItemSearch
+                            value={item.item_code}
+                            onChange={(code, desc) => {
+                              updateItem(item.id, 'item_code', code)
+                              updateItem(item.id, 'item_name', code)
+                              if (desc) updateItem(item.id, 'description', desc)
+                            }}
+                          />
+                        </div>
+                        <Input
+                          placeholder="Description"
+                          value={item.description}
+                          onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                          className="h-7 text-xs text-muted-foreground border-dashed border-slate-200 dark:border-slate-800 bg-transparent"
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <Input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={item.qty}
+                          onChange={(e) => updateItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
+                          className="h-8 text-sm text-right"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.rate}
+                          onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                          className="h-8 text-sm text-right"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2 pt-2 text-right text-sm font-medium">
                         ₹{item.amount.toLocaleString('en-IN')}
-                      </span>
-                      {items.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(item.id)}
-                          className="h-8 w-8 p-0 ml-2"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      )}
+                      </div>
+                      <div className="col-span-2"></div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
               {/* Totals */}
               <div className="mt-6 border-t pt-4">
@@ -415,17 +407,6 @@ export default function NewQuotationPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Additional Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="paymentTerms">Payment Terms Template</Label>
-                <Input
-                  id="paymentTerms"
                   value={paymentTermsTemplate}
                   onChange={(e) => setPaymentTermsTemplate(e.target.value)}
                   placeholder="e.g., Net 30, 50% Advance"
