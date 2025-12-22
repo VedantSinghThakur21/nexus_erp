@@ -343,33 +343,37 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 // 1. CREATE: Generate Quotation from Opportunity
 export async function createQuotationFromOpportunity(opportunityId: string) {
   try {
-    // Use ERPNext's built-in server method to create quotation from opportunity
-    const response = await frappeRequest(
+    // Use ERPNext's built-in server method to get quotation template from opportunity
+    const draftQuotation = await frappeRequest(
       'erpnext.crm.doctype.opportunity.opportunity.make_quotation',
       'POST',
       { source_name: opportunityId }
     )
 
-    console.log('ERPNext make_quotation response:', JSON.stringify(response, null, 2))
+    console.log('ERPNext make_quotation draft response:', JSON.stringify(draftQuotation, null, 2))
 
-    if (!response) {
-      throw new Error("Failed to create quotation from opportunity")
+    if (!draftQuotation) {
+      throw new Error("Failed to create quotation template from opportunity")
     }
 
-    // ERPNext may return the document directly or nested in 'message'
-    const quotationDoc = response.message || response
+    // The make_quotation method returns a draft document without a name
+    // We need to insert it to get the actual quotation name
+    const quotationDoc = draftQuotation.message || draftQuotation
     
-    // Extract the quotation name - try multiple possible fields
-    const quotationName = quotationDoc.name || 
-                         quotationDoc.quotation_name || 
-                         response.name ||
-                         response.quotation_name
+    // Remove the name field if it exists (it might be empty)
+    if (quotationDoc.name === undefined || quotationDoc.name === null || quotationDoc.name === '') {
+      delete quotationDoc.name
+    }
 
-    console.log('Extracted quotation name:', quotationName)
+    // Insert the document to create the actual quotation
+    const savedQuotation = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: quotationDoc
+    })
 
-    if (!quotationName) {
-      console.error("Quotation created but no name found in response:", response)
-      throw new Error("Quotation created but name not found in response structure")
+    console.log('Saved quotation response:', JSON.stringify(savedQuotation, null, 2))
+
+    if (!savedQuotation || !savedQuotation.name) {
+      throw new Error("Failed to save quotation - no name returned")
     }
 
     // The server method automatically:
@@ -383,10 +387,7 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
     revalidatePath(`/crm/opportunities/${opportunityId}`)
     revalidatePath('/crm/quotations')
     
-    return {
-      name: quotationName,
-      ...(quotationDoc || response)
-    }
+    return savedQuotation
   } catch (error: any) {
     console.error("Create quotation error:", error)
     throw new Error(error.message || 'Failed to create quotation from opportunity')
