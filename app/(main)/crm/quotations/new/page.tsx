@@ -145,11 +145,24 @@ export default function NewQuotationPage() {
       return
     }
 
-    // Validate items
-    const invalidItems = items.filter(item => !item.item_code || item.qty <= 0)
+    if (!transactionDate || !validTill) {
+      alert('Please ensure transaction date and valid till date are filled')
+      return
+    }
+
+    // Validate items - check if description is filled even if item_code is not selected from dropdown
+    const invalidItems = items.filter(item => {
+      const hasItemCode = item.item_code && item.item_code.trim() !== ''
+      const hasDescription = item.description && item.description.trim() !== ''
+      const hasValidQty = item.qty > 0
+      
+      // Item is valid if it has either item_code OR description, AND has valid quantity
+      return !(hasItemCode || hasDescription) || !hasValidQty
+    })
+    
     if (invalidItems.length > 0) {
       console.log('Invalid items:', invalidItems)
-      alert('Please ensure all items have a valid item code and quantity greater than 0')
+      alert('Please fill in item code or description, and ensure quantity is greater than 0 for all items')
       return
     }
 
@@ -165,8 +178,8 @@ export default function NewQuotationPage() {
         order_type: orderType,
         opportunity: opportunityReference || undefined,
         items: items.map(item => ({
-          item_code: item.item_code,
-          item_name: item.item_name || item.item_code,
+          item_code: item.item_code || item.description || 'MISC',
+          item_name: item.item_name || item.description || item.item_code || 'Miscellaneous',
           description: item.description || item.item_name || item.item_code,
           qty: item.qty,
           rate: item.rate,
