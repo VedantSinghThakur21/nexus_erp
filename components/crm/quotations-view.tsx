@@ -42,7 +42,37 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<"date" | "value">("date")
-  const [dateFilter, setDateFilter] = useState<string>("all")
+  const [creatingQuotation, setCreatingQuotation] = useState<string | null>(null)
+
+  const handleCreateQuotation = async (opportunityName: string) => {
+    setCreatingQuotation(opportunityName)
+    try {
+      const response = await fetch('/api/quotations/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ opportunityName })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create quotation')
+      }
+
+      const result = await response.json()
+      
+      // Redirect to the new quotation page
+      if (result.quotation?.name) {
+        window.location.href = `/crm/quotations/${encodeURIComponent(result.quotation.name)}`
+      } else {
+        // Fallback: refresh the page
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('Error creating quotation:', error)
+      alert('Failed to create quotation. Please try again.')
+      setCreatingQuotation(null)
+    }
+  }
+  const [creatingQuotation, setCreatingQuotation] = useState<string | null>(null)
 
   // Status colors
   const statusColors: Record<string, string> = {
@@ -324,52 +354,61 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
               ) : (
                 <div className="space-y-3">
                   {proposalOpportunities.map((opp) => (
-                    <Link 
-                      key={opp.name} 
-                      href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
-                      className="block"
+                    <div 
+                      key={opp.name}
+                      className="border rounded-lg p-4 hover:shadow-md transition-all bg-purple-50/50 dark:bg-purple-950/20"
                     >
-                      <div className="border rounded-lg p-4 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer bg-purple-50/50 dark:bg-purple-950/20">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-lg text-slate-900 dark:text-white">
-                                {opp.customer_name || opp.party_name}
-                              </h3>
-                              <Badge className="bg-purple-100 text-purple-700">
-                                {opp.probability}% Win Rate
-                              </Badge>
-                              <Badge variant="outline" className="gap-1">
-                                <Plus className="h-3 w-3" />
-                                Create Quotation
-                              </Badge>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg text-slate-900 dark:text-white">
+                              {opp.customer_name || opp.party_name}
+                            </h3>
+                            <Badge className="bg-purple-100 text-purple-700">
+                              {opp.probability}% Win Rate
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid md:grid-cols-3 gap-4 text-sm mb-4">
+                            <div>
+                              <span className="text-slate-500">Type: </span>
+                              <span className="font-medium">{opp.opportunity_type}</span>
                             </div>
-                            
-                            <div className="grid md:grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <span className="text-slate-500">Type: </span>
-                                <span className="font-medium">{opp.opportunity_type}</span>
-                              </div>
-                              {opp.expected_closing && (
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4 text-slate-400" />
-                                  <span className="text-slate-500">Expected: </span>
-                                  <span className="font-medium">
-                                    {new Date(opp.expected_closing).toLocaleDateString('en-IN')}
-                                  </span>
-                                </div>
-                              )}
-                              <div>
-                                <span className="text-slate-500">Value: </span>
-                                <span className="font-bold text-purple-700 dark:text-purple-400">
-                                  ₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}
+                            {opp.expected_closing && (
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-slate-400" />
+                                <span className="text-slate-500">Expected: </span>
+                                <span className="font-medium">
+                                  {new Date(opp.expected_closing).toLocaleDateString('en-IN')}
                                 </span>
                               </div>
+                            )}
+                            <div>
+                              <span className="text-slate-500">Value: </span>
+                              <span className="font-bold text-purple-700 dark:text-purple-400">
+                                ₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}
+                              </span>
                             </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleCreateQuotation(opp.name)}
+                              disabled={creatingQuotation === opp.name}
+                              className="gap-2 bg-purple-600 hover:bg-purple-700"
+                            >
+                              <Plus className="h-4 w-4" />
+                              {creatingQuotation === opp.name ? 'Creating...' : 'Create Quotation'}
+                            </Button>
+                            <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}>
+                              <Button variant="outline">
+                                View Details
+                              </Button>
+                            </Link>
                           </div>
                         </div>
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               )}

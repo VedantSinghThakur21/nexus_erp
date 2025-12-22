@@ -12,6 +12,11 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
   let quotation
   try {
     quotation = await getQuotation(quotationName)
+    
+    // Additional null check
+    if (!quotation) {
+      throw new Error("Quotation not found")
+    }
   } catch (e) {
     console.error("Error fetching quotation:", e)
     return (
