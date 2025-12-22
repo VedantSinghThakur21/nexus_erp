@@ -145,8 +145,11 @@ export default function NewQuotationPage() {
       return
     }
 
-    if (items.some(item => !item.item_code || item.qty <= 0 || item.rate < 0)) {
-      alert('Please fill in all item details with valid quantity and rate')
+    // Validate items
+    const invalidItems = items.filter(item => !item.item_code || item.qty <= 0)
+    if (invalidItems.length > 0) {
+      console.log('Invalid items:', invalidItems)
+      alert('Please ensure all items have a valid item code and quantity greater than 0')
       return
     }
 
@@ -172,6 +175,8 @@ export default function NewQuotationPage() {
         payment_terms_template: paymentTermsTemplate || undefined,
         terms: termsAndConditions || undefined
       }
+
+      console.log('Submitting quotation data:', quotationData)
 
       const response = await fetch('/api/quotations/create-new', {
         method: 'POST',
