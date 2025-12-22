@@ -23,10 +23,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      {/* FIX: suppressHydrationWarning here is the global fix.
-        It prevents React from crashing when browser extensions 
-        (like Dark Reader, LastPass) inject extra attributes into the body.
+    <html lang="en" suppressHydrationWarning>
+      {/* FIX: suppressHydrationWarning prevents React from showing warnings when browser extensions 
+        (like Bitdefender, Dark Reader, LastPass) inject extra attributes into the HTML.
+        This is safe and doesn't affect functionality.
       */}
       <body
         suppressHydrationWarning
