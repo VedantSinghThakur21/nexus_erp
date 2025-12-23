@@ -32,8 +32,3 @@ export default async function InvoicesPage() {
     </div>
   )
 }
-
-      </Card>
-    </div>
-  )
-}
