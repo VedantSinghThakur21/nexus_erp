@@ -76,12 +76,12 @@ export function FleetCalendar({ assets, bookings }: { assets: Asset[], bookings:
   return (
     <Card className="col-span-full border-slate-200 dark:border-slate-800">
       <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4" suppressHydrationWarning>
             
             {/* Title & Navigation */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4" suppressHydrationWarning>
                 <CardTitle className="text-lg">Schedule - {format(currentDate, 'MMMM yyyy')}</CardTitle>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" suppressHydrationWarning>
                     <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -92,7 +92,7 @@ export function FleetCalendar({ assets, bookings }: { assets: Asset[], bookings:
             </div>
 
             {/* Search Filter (The "Anti-Chaos" Tool) */}
-            <div className="relative w-full md:w-64">
+            <div className="relative w-full md:w-64" suppressHydrationWarning>
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                 <Input 
                     placeholder="Filter by machine..." 
@@ -105,34 +105,34 @@ export function FleetCalendar({ assets, bookings }: { assets: Asset[], bookings:
       </CardHeader>
       
       <CardContent className="p-0 overflow-x-auto">
-        <div className="min-w-[1000px]">
+        <div className="min-w-[1000px]" suppressHydrationWarning>
             {/* Calendar Header Row */}
-            <div className="flex border-b border-slate-200 dark:border-slate-800">
-                <div className="w-56 shrink-0 p-3 font-medium text-sm bg-slate-50 dark:bg-slate-900 sticky left-0 z-20 border-r border-slate-200 dark:border-slate-800 text-slate-500">
+            <div className="flex border-b border-slate-200 dark:border-slate-800" suppressHydrationWarning>
+                <div className="w-56 shrink-0 p-3 font-medium text-sm bg-slate-50 dark:bg-slate-900 sticky left-0 z-20 border-r border-slate-200 dark:border-slate-800 text-slate-500" suppressHydrationWarning>
                     Asset
                 </div>
                 {daysInMonth.map((day) => (
                     <div key={day.toString()} className={`w-10 shrink-0 p-2 text-center border-r border-slate-100 dark:border-slate-800 ${
                         format(day, 'EEE') === 'Sun' || format(day, 'EEE') === 'Sat' ? 'bg-slate-50/50 dark:bg-slate-900/50' : ''
-                    }`}>
-                        <div className="text-xs font-medium text-slate-700 dark:text-slate-300">{format(day, 'd')}</div>
-                        <div className="text-[10px] text-slate-400 uppercase">{format(day, 'EEEEE')}</div>
+                    }`} suppressHydrationWarning>
+                        <div className="text-xs font-medium text-slate-700 dark:text-slate-300" suppressHydrationWarning>{format(day, 'd')}</div>
+                        <div className="text-[10px] text-slate-400 uppercase" suppressHydrationWarning>{format(day, 'EEEEE')}</div>
                     </div>
                 ))}
             </div>
 
             {/* Rows */}
             {filteredAssets.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-sm">No machines match your filter.</div>
+                <div className="p-8 text-center text-slate-500 text-sm" suppressHydrationWarning>No machines match your filter.</div>
             ) : (
                 filteredAssets.map((asset) => (
-                    <div key={asset.name} className="flex border-b border-slate-100 dark:border-slate-800 group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                    <div key={asset.name} className="flex border-b border-slate-100 dark:border-slate-800 group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors" suppressHydrationWarning>
                         {/* Sticky Name Column */}
-                        <div className="w-56 shrink-0 p-3 sticky left-0 bg-white dark:bg-slate-950 z-10 border-r border-slate-200 dark:border-slate-800 group-hover:bg-slate-50 dark:group-hover:bg-slate-900 transition-colors">
-                            <div className="font-medium text-sm text-slate-900 dark:text-white truncate" title={asset.item_name}>
+                        <div className="w-56 shrink-0 p-3 sticky left-0 bg-white dark:bg-slate-950 z-10 border-r border-slate-200 dark:border-slate-800 group-hover:bg-slate-50 dark:group-hover:bg-slate-900 transition-colors" suppressHydrationWarning>
+                            <div className="font-medium text-sm text-slate-900 dark:text-white truncate" title={asset.item_name} suppressHydrationWarning>
                                 {asset.item_name || asset.item_code}
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-2 mt-1" suppressHydrationWarning>
                                 <span className="font-mono text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 rounded">{asset.name}</span>
                                 <span className="text-[10px] text-slate-500 truncate max-w-[80px]" title={asset.warehouse}>{asset.warehouse}</span>
                             </div>
@@ -159,13 +159,14 @@ export function FleetCalendar({ assets, bookings }: { assets: Asset[], bookings:
                             return (
                                 <div key={day.toString()} className={`w-10 shrink-0 border-r border-slate-100 dark:border-slate-800 relative h-16 ${
                                     format(day, 'EEE') === 'Sun' || format(day, 'EEE') === 'Sat' ? 'bg-slate-50/30 dark:bg-slate-900/30' : ''
-                                }`}>
+                                }`} suppressHydrationWarning>
                                     {booking && (
                                         <div 
                                             className={`absolute top-2 bottom-2 left-0 right-0 border-y ${barStyle} mx-[-1px] z-0 flex items-center justify-center group/booking cursor-help`}
+                                            suppressHydrationWarning
                                         >
                                             {/* Tooltip on Hover */}
-                                            <div className="hidden group-hover/booking:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-xs rounded shadow-xl z-50">
+                                            <div className="hidden group-hover/booking:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-xs rounded shadow-xl z-50" suppressHydrationWarning>
                                                 <p className="font-semibold">{booking.customer}</p>
                                                 <p className="opacity-80">{format(booking.start_date, 'MMM d')} - {format(booking.end_date, 'MMM d')}</p>
                                             </div>
