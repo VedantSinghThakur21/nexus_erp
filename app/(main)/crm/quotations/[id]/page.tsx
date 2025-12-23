@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Calendar, FileText, Building2, Pencil } from "lucide-react"
 import Link from "next/link"
+import { DeleteQuotationButton } from "@/components/crm/delete-quotation-button"
 
 export default async function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -69,6 +70,10 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
               </Button>
             </Link>
           )}
+          <DeleteQuotationButton 
+            quotationId={quotation.name} 
+            quotationStatus={quotation.status} 
+          />
           <Badge className={statusColors[quotation.status] || 'bg-slate-100 text-slate-800'}>
             {quotation.status}
           </Badge>

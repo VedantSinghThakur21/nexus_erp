@@ -649,6 +649,34 @@ export async function submitQuotation(quotationId: string) {
   }
 }
 
+// 5. DELETE: Delete Quotation (only if Draft)
+export async function deleteQuotation(quotationId: string) {
+  try {
+    // First check if quotation is in Draft status
+    const quotation = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Quotation',
+      name: quotationId
+    })
+
+    if (quotation.docstatus !== 0) {
+      throw new Error('Only Draft quotations can be deleted')
+    }
+
+    // Delete the quotation
+    await frappeRequest('frappe.client.delete', 'POST', {
+      doctype: 'Quotation',
+      name: quotationId
+    })
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/quotations')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Delete quotation error:", error)
+    return { error: error.message || 'Failed to delete quotation' }
+  }
+}
+
 // ========== OPPORTUNITY STATUS MANAGEMENT ==========
 
 // 1. Mark Opportunity as Won
