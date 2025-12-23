@@ -46,9 +46,9 @@ function SidebarContent() {
       suppressHydrationWarning // FIX: Ignore Dark Reader attributes here
     >
       {/* Logo Area */}
-      <div className="flex h-14 items-center border-b px-6 shrink-0">
+      <div className="flex h-14 items-center border-b px-6 shrink-0" suppressHydrationWarning>
         <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center" suppressHydrationWarning>
               <span className="text-white font-bold text-xs">N</span>
             </div>
             <span className="text-lg font-bold text-slate-800 dark:text-slate-100">Nexus</span>
@@ -56,7 +56,7 @@ function SidebarContent() {
       </div>
 
       {/* Navigation Links */}
-      <div className="flex-1 overflow-auto py-4">
+      <div className="flex-1 overflow-auto py-4" suppressHydrationWarning>
         <nav className="grid gap-1 px-2">
           {menuItems.map((item, index) => {
             // More precise matching: exact match or starts with href followed by a slash
@@ -82,7 +82,7 @@ function SidebarContent() {
       </div>
 
       {/* Footer Links */}
-      <div className="border-t p-4 space-y-2 shrink-0">
+      <div className="border-t p-4 space-y-2 shrink-0" suppressHydrationWarning>
         <a 
             href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
             target="_blank" 

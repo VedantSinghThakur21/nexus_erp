@@ -39,9 +39,20 @@ const INVOICE_STATUSES = [
   { value: 'Cancelled', label: 'Cancelled', color: 'bg-slate-100 text-slate-700' },
 ]
 
+// Draft status values only (editable before submission)
+const DRAFT_STATUSES = [
+  { value: 'Draft', label: 'Draft', color: 'bg-gray-100 text-gray-700' },
+]
+
 function getStatusColor(status: string): string {
   const statusObj = INVOICE_STATUSES.find(s => s.value === status)
   return statusObj?.color || 'bg-gray-100 text-gray-700'
+}
+
+function isStatusEditable(status: string): boolean {
+  // Only Draft invoices can have their status changed
+  // Submitted invoices (Unpaid, Paid, Overdue, etc.) are controlled by ERPNext
+  return status === 'Draft' || status === 'Cancelled'
 }
 
 export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
@@ -125,26 +136,32 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
                         {inv.currency} {inv.grand_total.toLocaleString()}
                       </td>
                       <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                        <Select
-                          value={inv.status}
-                          onValueChange={(value) => handleStatusChange(inv.name, value)}
-                          disabled={updatingStatus === inv.name}
-                        >
-                          <SelectTrigger className="h-8 w-[140px] border-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800">
-                            <Badge className={getStatusColor(inv.status)}>
-                              {updatingStatus === inv.name ? 'Updating...' : inv.status}
-                            </Badge>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {INVOICE_STATUSES.map((status) => (
-                              <SelectItem key={status.value} value={status.value}>
-                                <Badge className={status.color}>
-                                  {status.label}
-                                </Badge>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {isStatusEditable(inv.status) ? (
+                          <Select
+                            value={inv.status}
+                            onValueChange={(value) => handleStatusChange(inv.name, value)}
+                            disabled={updatingStatus === inv.name}
+                          >
+                            <SelectTrigger className="h-8 w-[140px] border-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800">
+                              <Badge className={getStatusColor(inv.status)}>
+                                {updatingStatus === inv.name ? 'Updating...' : inv.status}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DRAFT_STATUSES.map((status) => (
+                                <SelectItem key={status.value} value={status.value}>
+                                  <Badge className={status.color}>
+                                    {status.label}
+                                  </Badge>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge className={getStatusColor(inv.status)}>
+                            {inv.status}
+                          </Badge>
+                        )}
                       </td>
                       <td className="p-4 text-right flex items-center justify-end gap-2">
                         {/* Print Button */}
