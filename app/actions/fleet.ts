@@ -52,6 +52,48 @@ export async function getAsset(id: string) {
   }
 }
 
+// 2b. READ: Get Customer's Booking History
+export async function getCustomerBookingHistory(customerId: string) {
+  try {
+    const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      fields: '["name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]',
+      filters: `[["customer", "=", "${customerId}"], ["po_no", "like", "RENT-%"]]`,
+      order_by: 'transaction_date desc',
+      limit_page_length: 20
+    })
+    
+    return bookings.map((booking: any) => ({
+      ...booking,
+      equipment: booking.po_no?.replace('RENT-', '') || 'Unknown'
+    }))
+  } catch (error) {
+    console.error('Failed to fetch customer booking history:', error)
+    return []
+  }
+}
+
+// 2c. READ: Get Equipment's Booking History
+export async function getEquipmentBookingHistory(equipmentId: string) {
+  try {
+    const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      fields: '["name", "customer", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "per_delivered"]',
+      filters: `[["po_no", "=", "RENT-${equipmentId}"]]`,
+      order_by: 'transaction_date desc',
+      limit_page_length: 10
+    })
+    
+    return bookings
+  } catch (error) {
+    console.error('Failed to fetch equipment booking history:', error)
+    return []
+  }
+}
+    return null
+  }
+}
+
 // --- HELPER: Smart Auto-Creation ---
 async function ensureMasterData(doctype: string, name: string, extraFields: any = {}): Promise<string> {
   if (!name) return "";
@@ -206,31 +248,52 @@ export async function bookMachine(formData: FormData) {
   const endDate = formData.get('end_date') as string
   const itemCode = formData.get('item_code') as string
   const rate = parseFloat(formData.get('rate') as string || '0')
-
-  await ensureMasterData('Customer', customer, { customer_name: customer, customer_group: 'All Customer Groups', customer_type: 'Company' });
+  const projectName = formData.get('project_name') as string
+  const invoiceRef = formData.get('invoice_ref') as string
 
   try {
+    // Verify customer exists
+    const customerDoc = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Customer',
+      name: customer
+    })
+
+    if (!customerDoc) {
+      throw new Error('Customer not found. Please create customer first.')
+    }
+
+    // Calculate total days and amount
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const totalAmount = days * rate
+
     const bookingDoc = {
         doctype: 'Sales Order',
         customer: customer,
         transaction_date: new Date().toISOString().split('T')[0],
         delivery_date: startDate, 
-        po_no: `RENT-${assetId}`, 
+        po_no: `RENT-${assetId}`,
+        project: projectName || undefined,
         
         items: [{
             item_code: itemCode, 
-            description: `Rental of ${assetId} from ${startDate} to ${endDate}`,
-            qty: 1,
+            description: `Rental of ${assetId} from ${startDate} to ${endDate} (${days} days)${projectName ? ` - ${projectName}` : ''}`,
+            qty: days,
             rate: rate,
-            delivery_date: endDate 
+            delivery_date: endDate
         }],
         
+        // Add invoice reference in custom field or notes
+        remarks: invoiceRef ? `Linked to Invoice: ${invoiceRef}` : `Equipment rental booking for ${days} days`,
         status: 'Draft'
     }
 
-    await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc })
+    const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc })
+    
     revalidatePath(`/fleet/${assetId}`)
-    return { success: true }
+    revalidatePath('/bookings')
+    return { success: true, bookingId: createdBooking.name }
   } catch (error: any) {
     console.error("Booking error:", error)
     return { error: error.message || 'Booking failed' }
