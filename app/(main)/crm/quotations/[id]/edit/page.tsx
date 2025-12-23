@@ -17,6 +17,7 @@ import { Plus, Trash2, Loader2, ArrowLeft } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
+import { getTaxTemplates, getTaxTemplate } from "@/app/actions/settings"
 
 interface QuotationItem {
   id: number
@@ -52,6 +53,27 @@ export default function EditQuotationPage() {
   // Additional Fields
   const [paymentTermsTemplate, setPaymentTermsTemplate] = useState("")
   const [termsAndConditions, setTermsAndConditions] = useState("")
+  const [taxTemplate, setTaxTemplate] = useState("")
+  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>>([])
+  const [selectedTaxTemplateDetails, setSelectedTaxTemplateDetails] = useState<any>(null)
+
+  // Fetch tax templates on mount
+  useEffect(() => {
+    getTaxTemplates().then(templates => {
+      setAvailableTaxTemplates(templates)
+    })
+  }, [])
+
+  // Fetch selected tax template details when template changes
+  useEffect(() => {
+    if (taxTemplate && taxTemplate !== 'none') {
+      getTaxTemplate(taxTemplate).then(details => {
+        setSelectedTaxTemplateDetails(details)
+      })
+    } else {
+      setSelectedTaxTemplateDetails(null)
+    }
+  }, [taxTemplate])
 
   // Fetch existing quotation data
   useEffect(() => {
@@ -89,6 +111,7 @@ export default function EditQuotationPage() {
           // Set additional fields
           setPaymentTermsTemplate(q.payment_terms_template || '')
           setTermsAndConditions(q.terms || '')
+          setTaxTemplate(q.taxes_and_charges || '')
         }
       } catch (error) {
         console.error('Error fetching quotation:', error)
@@ -103,7 +126,12 @@ export default function EditQuotationPage() {
 
   // Calculate totals
   const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
-  const totalTaxes = netTotal * 0.18 // 18% GST
+  
+  // Calculate taxes dynamically based on selected template
+  const totalTaxes = selectedTaxTemplateDetails?.taxes?.reduce((sum: number, tax: any) => {
+    return sum + (netTotal * (tax.rate || 0) / 100)
+  }, 0) || 0
+  
   const grandTotal = netTotal + totalTaxes
 
   // Item management functions
@@ -177,6 +205,10 @@ export default function EditQuotationPage() {
       
       if (opportunityReference && opportunityReference.trim()) {
         quotationData.opportunity = opportunityReference.trim()
+      }
+
+      if (taxTemplate && taxTemplate.trim() !== '' && taxTemplate !== 'none') {
+        quotationData.taxes_and_charges = taxTemplate
       }
 
       // Send update request
@@ -411,10 +443,28 @@ export default function EditQuotationPage() {
                         <span className="text-slate-500">Net Total:</span>
                         <span className="font-medium">₹{netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Taxes (18% GST):</span>
-                        <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
+                      
+                      {/* Dynamic tax breakdown */}
+                      {selectedTaxTemplateDetails?.taxes && selectedTaxTemplateDetails.taxes.length > 0 ? (
+                        <>
+                          {selectedTaxTemplateDetails.taxes.map((tax: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-xs">
+                              <span className="text-slate-400">{tax.description || tax.account_head} ({tax.rate}%):</span>
+                              <span className="font-medium">₹{(netTotal * (tax.rate || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Total Taxes:</span>
+                            <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        </>
+                      ) : taxTemplate && taxTemplate !== 'none' ? (
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Taxes (Loading...):</span>
+                          <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      ) : null}
+                      
                       <div className="flex justify-between text-lg font-bold border-t pt-2">
                         <span>Grand Total:</span>
                         <span className="text-slate-900 dark:text-white">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -432,6 +482,23 @@ export default function EditQuotationPage() {
               <CardTitle>Additional Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="taxTemplate">Tax Template</Label>
+                <Select value={taxTemplate} onValueChange={setTaxTemplate}>
+                  <SelectTrigger id="taxTemplate">
+                    <SelectValue placeholder="Select tax template (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {availableTaxTemplates.map(template => (
+                      <SelectItem key={template.name} value={template.name}>
+                        {template.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="paymentTerms">Payment Terms Template</Label>
                 <Input

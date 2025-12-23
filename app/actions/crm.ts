@@ -408,9 +408,52 @@ export async function createQuotation(quotationData: {
   taxes_and_charges?: string
 }) {
   try {
-    const doc = {
+    const doc: any = {
       doctype: 'Quotation',
-      ...quotationData
+      quotation_to: quotationData.quotation_to,
+      party_name: quotationData.party_name,
+      transaction_date: quotationData.transaction_date,
+      valid_till: quotationData.valid_till,
+      currency: quotationData.currency,
+      order_type: quotationData.order_type,
+      items: quotationData.items
+    }
+
+    // Add optional fields
+    if (quotationData.payment_terms_template) {
+      doc.payment_terms_template = quotationData.payment_terms_template
+    }
+    
+    if (quotationData.terms) {
+      doc.terms = quotationData.terms
+    }
+
+    // If tax template is specified, fetch and add tax rows
+    if (quotationData.taxes_and_charges) {
+      doc.taxes_and_charges = quotationData.taxes_and_charges
+      
+      try {
+        // Fetch the tax template to get the tax rows
+        const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
+          doctype: 'Sales Taxes and Charges Template',
+          name: quotationData.taxes_and_charges
+        })
+        
+        // Add the tax rows to the quotation
+        if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
+          doc.taxes = taxTemplate.taxes.map((tax: any, idx: number) => ({
+            idx: idx + 1,
+            doctype: 'Sales Taxes and Charges',
+            charge_type: tax.charge_type,
+            account_head: tax.account_head,
+            description: tax.description,
+            rate: tax.rate
+          }))
+        }
+      } catch (taxError) {
+        console.error("Error fetching tax template:", taxError)
+        // Continue without taxes if template fetch fails
+      }
     }
 
     // Create the quotation
@@ -485,6 +528,7 @@ export async function updateQuotation(quotationId: string, quotationData: {
   payment_terms_template?: string
   terms?: string
   opportunity?: string
+  taxes_and_charges?: string
 }) {
   try {
     // Get existing quotation to preserve fields
@@ -529,6 +573,37 @@ export async function updateQuotation(quotationId: string, quotationData: {
     
     if (quotationData.opportunity) {
       updatedQuotation.opportunity = quotationData.opportunity
+    }
+
+    // If tax template is specified, fetch and add tax rows
+    if (quotationData.taxes_and_charges) {
+      updatedQuotation.taxes_and_charges = quotationData.taxes_and_charges
+      
+      try {
+        // Fetch the tax template to get the tax rows
+        const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
+          doctype: 'Sales Taxes and Charges Template',
+          name: quotationData.taxes_and_charges
+        })
+        
+        // Add the tax rows to the quotation
+        if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
+          updatedQuotation.taxes = taxTemplate.taxes.map((tax: any, idx: number) => ({
+            idx: idx + 1,
+            doctype: 'Sales Taxes and Charges',
+            charge_type: tax.charge_type,
+            account_head: tax.account_head,
+            description: tax.description,
+            rate: tax.rate
+          }))
+        }
+      } catch (taxError) {
+        console.error("Error fetching tax template:", taxError)
+        // Continue without taxes if template fetch fails
+      }
+    } else {
+      // Clear taxes if no template selected
+      updatedQuotation.taxes = []
     }
 
     // Update in ERPNext using save method to recalculate totals
