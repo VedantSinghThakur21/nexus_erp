@@ -136,27 +136,15 @@ export async function createTaxTemplate(data: {
   }>
 }) {
   try {
-    // Append company abbreviation to account heads if not already present
-    const taxesWithCompany = data.taxes.map((tax, idx) => {
-      let accountHead = tax.account_head
-      // Check if account head already has company suffix
-      if (!accountHead.includes(` - ${data.company}`)) {
-        accountHead = `${accountHead} - ${data.company}`
-      }
-      
-      return {
-        idx: idx + 1,
-        doctype: 'Sales Taxes and Charges',
-        ...tax,
-        account_head: accountHead
-      }
-    })
-
     const doc = {
       doctype: 'Sales Taxes and Charges Template',
       title: data.title,
       company: data.company,
-      taxes: taxesWithCompany
+      taxes: data.taxes.map((tax, idx) => ({
+        idx: idx + 1,
+        doctype: 'Sales Taxes and Charges',
+        ...tax
+      }))
     }
 
     const template = await frappeRequest('frappe.client.insert', 'POST', { doc })
@@ -165,5 +153,26 @@ export async function createTaxTemplate(data: {
   } catch (error: any) {
     console.error("Failed to create tax template:", error)
     return { error: error.message || 'Failed to create tax template' }
+  }
+}
+
+// Get available tax accounts for a company
+export async function getTaxAccounts(company: string) {
+  try {
+    const accounts = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Account',
+        fields: '["name", "account_name"]',
+        filters: `[["company", "=", "${company}"], ["account_type", "in", ["Tax", "Chargeable"]]]`,
+        order_by: 'name',
+        limit_page_length: 100
+      }
+    )
+    return accounts as Array<{name: string, account_name: string}>
+  } catch (error) {
+    console.error("Failed to fetch tax accounts:", error)
+    return []
   }
 }

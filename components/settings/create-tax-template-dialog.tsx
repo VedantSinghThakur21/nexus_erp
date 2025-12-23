@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, Trash2, Loader2 } from "lucide-react"
-import { createTaxTemplate } from "@/app/actions/settings"
+import { createTaxTemplate, getTaxAccounts } from "@/app/actions/settings"
 import { useRouter } from "next/navigation"
 import {
   Select,
@@ -34,13 +34,26 @@ interface TaxRow {
 export function CreateTaxTemplateDialog() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [loadingAccounts, setLoadingAccounts] = useState(false)
   const router = useRouter()
 
   const [title, setTitle] = useState("")
   const [company, setCompany] = useState("AVARIQ")
+  const [availableAccounts, setAvailableAccounts] = useState<Array<{name: string, account_name: string}>>([])
   const [taxRows, setTaxRows] = useState<TaxRow[]>([
     { id: 1, charge_type: "On Net Total", account_head: "", description: "", rate: 0 }
   ])
+
+  // Fetch tax accounts when company changes
+  useEffect(() => {
+    if (company && open) {
+      setLoadingAccounts(true)
+      getTaxAccounts(company).then(accounts => {
+        setAvailableAccounts(accounts)
+        setLoadingAccounts(false)
+      })
+    }
+  }, [company, open])
 
   const addTaxRow = () => {
     setTaxRows([...taxRows, { 
@@ -164,13 +177,36 @@ export function CreateTaxTemplateDialog() {
               {taxRows.map((row, index) => (
                 <div key={row.id} className="grid grid-cols-12 gap-2 items-end pb-3 border-b last:border-0">
                   <div className="col-span-3">
-                    <Label className="text-xs">Account Head (without company) *</Label>
-                    <Input
-                      value={row.account_head}
-                      onChange={(e) => updateTaxRow(row.id, 'account_head', e.target.value)}
-                      placeholder="Output Tax CGST"
-                      className="mt-1"
-                    />
+                    <Label className="text-xs">Account Head *</Label>
+                    {loadingAccounts ? (
+                      <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-slate-100">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span className="text-xs text-slate-500">Loading...</span>
+                      </div>
+                    ) : availableAccounts.length > 0 ? (
+                      <Select 
+                        value={row.account_head} 
+                        onValueChange={(value) => updateTaxRow(row.id, 'account_head', value)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableAccounts.map(account => (
+                            <SelectItem key={account.name} value={account.name}>
+                              {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={row.account_head}
+                        onChange={(e) => updateTaxRow(row.id, 'account_head', e.target.value)}
+                        placeholder="Enter account name"
+                        className="mt-1"
+                      />
+                    )}
                   </div>
                   
                   <div className="col-span-4">
@@ -228,10 +264,12 @@ export function CreateTaxTemplateDialog() {
             </div>
 
             <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1 bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
-              <p className="font-semibold text-blue-900 dark:text-blue-100">Example for 18% GST:</p>
-              <p>Row 1: Account Head: <code className="bg-white dark:bg-slate-800 px-1 rounded">Output Tax CGST</code>, Description: "CGST @ 9%", Rate: 9</p>
-              <p>Row 2: Account Head: <code className="bg-white dark:bg-slate-800 px-1 rounded">Output Tax SGST</code>, Description: "SGST @ 9%", Rate: 9</p>
-              <p className="mt-2 text-green-700 dark:text-green-400">✓ Company abbreviation ({company}) will be added automatically</p>
+              <p className="font-semibold text-blue-900 dark:text-blue-100">Account Selection:</p>
+              <p>✓ Select tax accounts from the dropdown (fetched from your ERPNext Chart of Accounts)</p>
+              <p>✓ Common tax accounts: Look for "Output Tax CGST", "Output Tax SGST", "Output Tax IGST"</p>
+              {availableAccounts.length === 0 && !loadingAccounts && (
+                <p className="text-amber-700 dark:text-amber-400 mt-2">⚠️ No tax accounts found. You may need to create them in ERPNext first.</p>
+              )}
             </div>
           </div>
 
