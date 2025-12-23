@@ -17,7 +17,7 @@ import { Plus, Trash2, Loader2, ArrowLeft, Calendar as CalendarIcon } from "luci
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
-import { getTaxTemplates } from "@/app/actions/settings"
+import { getTaxTemplates, getTaxTemplate } from "@/app/actions/settings"
 
 interface QuotationItem {
   id: number
@@ -67,6 +67,7 @@ export default function NewQuotationPage() {
   const [termsAndConditions, setTermsAndConditions] = useState("")
   const [taxTemplate, setTaxTemplate] = useState("")
   const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>([])
+  const [selectedTaxTemplateDetails, setSelectedTaxTemplateDetails] = useState<any>(null)
 
   // Fetch tax templates on mount
   useEffect(() => {
@@ -74,6 +75,17 @@ export default function NewQuotationPage() {
       setAvailableTaxTemplates(templates)
     })
   }, [])
+
+  // Fetch selected tax template details when template changes
+  useEffect(() => {
+    if (taxTemplate && taxTemplate !== 'none') {
+      getTaxTemplate(taxTemplate).then(details => {
+        setSelectedTaxTemplateDetails(details)
+      })
+    } else {
+      setSelectedTaxTemplateDetails(null)
+    }
+  }, [taxTemplate])
 
   // Prefill from opportunity if provided
   useEffect(() => {
@@ -143,8 +155,12 @@ export default function NewQuotationPage() {
 
   // Totals
   const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
-  const taxRate = 0.18 // 18% GST
-  const totalTaxes = netTotal * taxRate
+  
+  // Calculate taxes dynamically based on selected template
+  const totalTaxes = selectedTaxTemplateDetails?.taxes?.reduce((sum: number, tax: any) => {
+    return sum + (netTotal * (tax.rate || 0) / 100)
+  }, 0) || 0
+  
   const grandTotal = netTotal + totalTaxes
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -223,7 +239,7 @@ export default function NewQuotationPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        const errorMessage = error.error || 'Failed to create quotation'
+        const errorMessage = typeof error === 'string' ? error : (error.error || error.message || 'Failed to create quotation')
         
         // Provide helpful error messages
         if (errorMessage.includes('Could not find Party')) {
@@ -246,7 +262,8 @@ export default function NewQuotationPage() {
       }
     } catch (error: any) {
       console.error('Error creating quotation:', error)
-      alert(error.message || 'Failed to create quotation')
+      const errorMsg = typeof error === 'string' ? error : (error.message || 'Failed to create quotation')
+      alert(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -454,10 +471,28 @@ export default function NewQuotationPage() {
                         <span className="text-slate-500">Net Total:</span>
                         <span className="font-medium">₹{netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Taxes (18% GST):</span>
-                        <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
+                      
+                      {/* Dynamic tax breakdown */}
+                      {selectedTaxTemplateDetails?.taxes && selectedTaxTemplateDetails.taxes.length > 0 ? (
+                        <>
+                          {selectedTaxTemplateDetails.taxes.map((tax: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-xs">
+                              <span className="text-slate-400">{tax.description || tax.account_head} ({tax.rate}%):</span>
+                              <span className="font-medium">₹{(netTotal * (tax.rate || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Total Taxes:</span>
+                            <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        </>
+                      ) : taxTemplate && taxTemplate !== 'none' ? (
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Taxes (Loading...):</span>
+                          <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      ) : null}
+                      
                       <div className="flex justify-between text-lg font-bold border-t pt-2">
                         <span>Grand Total:</span>
                         <span className="text-slate-900 dark:text-white">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
