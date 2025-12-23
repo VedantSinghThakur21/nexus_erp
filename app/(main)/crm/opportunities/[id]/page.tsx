@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, TrendingUp, User, Building2, DollarSign } from "lu
 import Link from "next/link"
 import { getOpportunity } from "@/app/actions/crm"
 import { OpportunityActions } from "@/components/crm/opportunity-actions"
+import { EditOpportunityDialog } from "@/components/crm/edit-opportunity-dialog"
 
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -62,6 +63,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           <p className="text-slate-500">{opportunity.opportunity_type}</p>
         </div>
         <div className="flex gap-2 items-center">
+          <EditOpportunityDialog opportunity={opportunity} />
           <Badge className={stageColors[opportunity.sales_stage] || 'bg-slate-100 text-slate-800'}>
             {opportunity.sales_stage}
           </Badge>

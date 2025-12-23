@@ -286,7 +286,7 @@ export async function convertLeadToCustomer(leadId: string) {
 }
 
 // 3. CONVERT: Create Opportunity from Lead (Interested or Replied status)
-export async function convertLeadToOpportunity(leadId: string, createCustomer: boolean = false) {
+export async function convertLeadToOpportunity(leadId: string, createCustomer: boolean = false, opportunityAmount: number = 0) {
   try {
     // 1. Fetch Lead
     const lead = await frappeRequest('frappe.client.get', 'GET', {
@@ -315,6 +315,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       sales_stage: 'Qualification',
       probability: 20,
       currency: 'INR',
+      opportunity_amount: opportunityAmount,
       title: `${lead.company_name || lead.lead_name} - Sales Opportunity`,
       customer_name: lead.lead_name
     }
@@ -865,5 +866,29 @@ export async function markOpportunityAsLost(opportunityId: string, lostReason: s
   } catch (error: any) {
     console.error("Mark as lost error:", error)
     return { error: error.message || 'Failed to mark as lost' }
+  }
+}
+
+// 3. UPDATE OPPORTUNITY DETAILS
+export async function updateOpportunity(opportunityId: string, data: {
+  opportunity_amount?: number
+  expected_closing?: string
+  probability?: number
+  sales_stage?: string
+}) {
+  try {
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Opportunity',
+      name: opportunityId,
+      fieldname: data
+    })
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/opportunities')
+    revalidatePath(`/crm/opportunities/${opportunityId}`)
+    return { success: true }
+  } catch (error: any) {
+    console.error('Update opportunity error:', error)
+    return { error: error.message || 'Failed to update opportunity' }
   }
 }
