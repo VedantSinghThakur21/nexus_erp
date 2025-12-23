@@ -838,6 +838,7 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
 
     revalidatePath('/crm')
     revalidatePath('/crm/opportunities')
+    revalidatePath('/invoices/new')
     return { success: true, customerId: customer.name }
   } catch (error: any) {
     console.error("Convert opportunity to customer error:", error)

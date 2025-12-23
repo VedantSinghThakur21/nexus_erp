@@ -17,9 +17,17 @@ export default async function OpportunitiesPage() {
     { name: 'Negotiation/Review', color: 'bg-orange-100 text-orange-700 border-orange-200', stage: 4 }
   ]
 
-  // Only count active opportunities (not Won/Lost)
+  // Filter opportunities by status
   const activeOpportunities = opportunities.filter(opp => 
-    opp.status === 'Open' && opp.sales_stage !== 'Won' && opp.sales_stage !== 'Lost'
+    opp.status === 'Open'
+  )
+  
+  const wonOpportunities = opportunities.filter(opp => 
+    opp.status === 'Converted'
+  )
+  
+  const lostOpportunities = opportunities.filter(opp => 
+    opp.status === 'Lost'
   )
 
   const groupedOpportunities = stages.map(stage => ({
@@ -33,11 +41,7 @@ export default async function OpportunitiesPage() {
   const totalPipelineValue = activeOpportunities
     .reduce((sum, opp) => sum + (opp.opportunity_amount || 0), 0)
   
-  const wonThisMonth = opportunities.filter(opp => {
-    if (opp.sales_stage !== 'Won') return false
-    // Simple month check - in production you'd parse the modified date
-    return true
-  }).length
+  const wonThisMonth = wonOpportunities.length
 
   const avgProbability = activeOpportunities.length > 0
     ? Math.round(activeOpportunities.reduce((sum, opp) => sum + (opp.probability || 0), 0) / activeOpportunities.length)
@@ -107,6 +111,60 @@ export default async function OpportunitiesPage() {
         groupedOpportunities={groupedOpportunities}
         stages={stages} 
       />
+
+      {/* Won Opportunities Section */}
+      {wonOpportunities.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4 text-green-700">Won Opportunities ({wonOpportunities.length})</h2>
+          <div className="grid gap-4">
+            {wonOpportunities.map((opp) => (
+              <Link key={opp.name} href={`/crm/opportunities/${opp.name}`}>
+                <Card className="hover:shadow-md transition-shadow border-green-200 bg-green-50">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-lg">{opp.customer_name || opp.party_name}</h3>
+                        <p className="text-sm text-slate-500">{opp.opportunity_type}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-700">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
+                        <Badge className="bg-green-100 text-green-700 mt-1">Converted</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lost Opportunities Section */}
+      {lostOpportunities.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4 text-red-700">Lost Opportunities ({lostOpportunities.length})</h2>
+          <div className="grid gap-4">
+            {lostOpportunities.map((opp) => (
+              <Link key={opp.name} href={`/crm/opportunities/${opp.name}`}>
+                <Card className="hover:shadow-md transition-shadow border-red-200 bg-red-50">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-lg">{opp.customer_name || opp.party_name}</h3>
+                        <p className="text-sm text-slate-500">{opp.opportunity_type}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-red-700">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
+                        <Badge className="bg-red-100 text-red-700 mt-1">Lost</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
