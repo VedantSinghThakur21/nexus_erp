@@ -22,7 +22,7 @@ export function DeleteInvoiceButton({ id, status }: { id: string, status: string
   // Safe check: Usually Paid/Overdue means Submitted.
   const isLocked = status === 'Paid' || status === 'Overdue' || status === 'Unpaid' || status === 'Submitted';
 
-  if (isLocked) return <div className="w-8" />; // Empty placeholder
+  if (isLocked) return <div className="w-8" suppressHydrationWarning />; // Empty placeholder
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this invoice?")) return
