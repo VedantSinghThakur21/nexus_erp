@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { 
   LayoutGrid, 
   List as ListIcon, 
@@ -53,6 +60,7 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const router = useRouter()
   const itemsPerPage = 15
 
@@ -142,6 +150,59 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
       alert('Failed to update lead status. Please try again.')
     } finally {
       setDraggedItem(null)
+    }
+  }
+
+  const handleStatusChange = async (leadName: string, newStatus: string) => {
+    // Special handling for "Opportunity" status
+    if (newStatus === 'Opportunity') {
+      const confirmConvert = confirm(
+        '⚠️ Converting to Opportunity\n\n' +
+        'Changing status to "Opportunity" requires creating an Opportunity record. ' +
+        'This will:\n' +
+        '• Create a new Opportunity linked to this lead\n' +
+        '• Update the lead status to "Opportunity"\n\n' +
+        'Do you want to proceed?'
+      )
+      
+      if (!confirmConvert) return
+
+      setUpdatingStatus(leadName)
+      try {
+        // Import the conversion function
+        const { convertLeadToOpportunity } = await import('@/app/actions/crm')
+        const result = await convertLeadToOpportunity(leadName, false)
+        
+        if (result.error) {
+          throw new Error(result.error)
+        }
+
+        alert('✅ Successfully converted lead to opportunity! Redirecting...')
+        router.push('/crm/opportunities')
+      } catch (error) {
+        console.error('Error converting lead to opportunity:', error)
+        alert('❌ Failed to convert lead to opportunity. Please try again.')
+      } finally {
+        setUpdatingStatus(null)
+      }
+      return
+    }
+
+    // For other statuses, just update the status
+    setUpdatingStatus(leadName)
+    try {
+      const result = await updateLeadStatus(leadName, newStatus)
+      
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      router.refresh()
+    } catch (error) {
+      console.error('Error updating lead status:', error)
+      alert('Failed to update lead status. Please try again.')
+    } finally {
+      setUpdatingStatus(null)
     }
   }
 
@@ -357,53 +418,83 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
               </div>
             ) : (
               paginatedLeads.map((lead) => (
-                <Link 
+                <div 
                   key={lead.name} 
-                  href={`/crm/${encodeURIComponent(lead.name)}`}
+                  className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-900 border rounded-lg transition-colors"
                 >
-                  <div className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-900 border rounded-lg cursor-pointer transition-colors">
-                    <div className="col-span-3">
-                      <div className="font-semibold text-slate-900 dark:text-white">
-                        {lead.lead_name}
-                      </div>
-                      {lead.job_title && (
-                        <div className="text-xs text-slate-500 mt-1">{lead.job_title}</div>
+                  <Link 
+                    href={`/crm/${encodeURIComponent(lead.name)}`}
+                    className="col-span-3 cursor-pointer"
+                  >
+                    <div className="font-semibold text-slate-900 dark:text-white">
+                      {lead.lead_name}
+                    </div>
+                    {lead.job_title && (
+                      <div className="text-xs text-slate-500 mt-1">{lead.job_title}</div>
+                    )}
+                  </Link>
+                  <Link 
+                    href={`/crm/${encodeURIComponent(lead.name)}`}
+                    className="col-span-2 cursor-pointer"
+                  >
+                    <div className="text-slate-700 dark:text-slate-300">
+                      {lead.company_name || "Individual"}
+                    </div>
+                  </Link>
+                  <Link 
+                    href={`/crm/${encodeURIComponent(lead.name)}`}
+                    className="col-span-2 cursor-pointer"
+                  >
+                    <div className="text-xs text-slate-600">
+                      {lead.email_id && (
+                        <div className="flex items-center gap-1 mb-1">
+                          <Mail className="h-3 w-3" />
+                          <span className="truncate">{lead.email_id}</span>
+                        </div>
+                      )}
+                      {lead.mobile_no && (
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          <span>{lead.mobile_no}</span>
+                        </div>
                       )}
                     </div>
-                    <div className="col-span-2">
-                      <div className="text-slate-700 dark:text-slate-300">
-                        {lead.company_name || "Individual"}
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <div className="text-xs text-slate-600">
-                        {lead.email_id && (
-                          <div className="flex items-center gap-1 mb-1">
-                            <Mail className="h-3 w-3" />
-                            <span className="truncate">{lead.email_id}</span>
-                          </div>
-                        )}
-                        {lead.mobile_no && (
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            <span>{lead.mobile_no}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <Badge className={getStatusColor(lead.status)}>
-                        {lead.status}
-                      </Badge>
-                    </div>
-                    <div className="col-span-2 text-sm text-slate-600">
-                      {lead.source || "-"}
-                    </div>
-                    <div className="col-span-1 text-xs text-slate-500">
-                      {lead.territory || "-"}
-                    </div>
+                  </Link>
+                  <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={lead.status}
+                      onValueChange={(value) => handleStatusChange(lead.name, value)}
+                      disabled={updatingStatus === lead.name}
+                    >
+                      <SelectTrigger className="h-7 border-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <Badge className={getStatusColor(lead.status)}>
+                          {updatingStatus === lead.name ? 'Updating...' : lead.status}
+                        </Badge>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stages.map((stage) => (
+                          <SelectItem key={stage.name} value={stage.name}>
+                            <Badge className={getStatusColor(stage.name)}>
+                              {stage.name}
+                            </Badge>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </Link>
+                  <Link 
+                    href={`/crm/${encodeURIComponent(lead.name)}`}
+                    className="col-span-2 text-sm text-slate-600 cursor-pointer"
+                  >
+                    {lead.source || "-"}
+                  </Link>
+                  <Link 
+                    href={`/crm/${encodeURIComponent(lead.name)}`}
+                    className="col-span-1 text-xs text-slate-500 cursor-pointer"
+                  >
+                    {lead.territory || "-"}
+                  </Link>
+                </div>
               ))
             )}
           </div>

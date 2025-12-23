@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { 
   LayoutGrid, 
   List as ListIcon, 
@@ -73,6 +80,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
   const [currentPage, setCurrentPage] = useState(1)
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
+  const [updatingStage, setUpdatingStage] = useState<string | null>(null)
   const itemsPerPage = 15
 
   // Filter and sort opportunities for list view
@@ -156,6 +164,45 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
       alert('Failed to update opportunity stage. Please try again.')
     } finally {
       setDraggedItem(null)
+    }
+  }
+
+  const handleStageChange = async (oppName: string, newStage: string) => {
+    setUpdatingStage(oppName)
+    
+    try {
+      // Get the probability based on stage
+      const stageProbabilities: Record<string, number> = {
+        'Prospecting': 10,
+        'Qualification': 20,
+        'Proposal/Price Quote': 60,
+        'Negotiation/Review': 80
+      }
+
+      const probability = stageProbabilities[newStage] || 50
+
+      // Call the API to update the opportunity stage
+      const response = await fetch('/api/opportunities/update-stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          opportunityName: oppName,
+          sales_stage: newStage,
+          probability: probability
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update stage')
+      }
+
+      // Refresh the page to show updated data
+      window.location.reload()
+    } catch (error) {
+      console.error('Error updating opportunity stage:', error)
+      alert('Failed to update opportunity stage. Please try again.')
+    } finally {
+      setUpdatingStage(null)
     }
   }
 
@@ -343,7 +390,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
             <div className="col-span-3">DEAL NAME</div>
             <div className="col-span-2">VALUE</div>
             <div className="col-span-2">OWNER</div>
-            <div className="col-span-2">STAGE AGE</div>
+            <div className="col-span-2">STAGE</div>
             <div className="col-span-3">STATUS</div>
           </div>
 
@@ -360,46 +407,76 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                 const statusBadge = STATUS_BADGES[status] || STATUS_BADGES['Open']
 
                 return (
-                  <Link 
+                  <div 
                     key={opp.name} 
-                    href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
+                    className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-900 border rounded-lg transition-colors"
                   >
-                    <div className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-900 border rounded-lg cursor-pointer transition-colors">
-                      <div className="col-span-3">
-                        <div className="font-semibold text-slate-900 dark:text-white">
-                          {opp.customer_name || opp.party_name}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">{opp.opportunity_type}</div>
+                    <Link 
+                      href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
+                      className="col-span-3 cursor-pointer"
+                    >
+                      <div className="font-semibold text-slate-900 dark:text-white">
+                        {opp.customer_name || opp.party_name}
                       </div>
-                      <div className="col-span-2">
-                        <div className="font-bold text-slate-900 dark:text-white">
-                          ₹{opp.opportunity_amount.toLocaleString('en-IN')}
-                        </div>
+                      <div className="text-xs text-slate-500 mt-1">{opp.opportunity_type}</div>
+                    </Link>
+                    <Link 
+                      href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
+                      className="col-span-2 cursor-pointer"
+                    >
+                      <div className="font-bold text-slate-900 dark:text-white">
+                        ₹{opp.opportunity_amount.toLocaleString('en-IN')}
                       </div>
-                      <div className="col-span-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
-                            {opp.contact_by?.substring(0, 2).toUpperCase() || 
-                             (opp.customer_name || opp.party_name || 'UN')?.substring(0, 2).toUpperCase()}
+                    </Link>
+                    <Link 
+                      href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
+                      className="col-span-2 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                          {opp.contact_by?.substring(0, 2).toUpperCase() || 
+                           (opp.customer_name || opp.party_name || 'UN')?.substring(0, 2).toUpperCase()}
+                        </div>
+                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                          {opp.contact_by || 'Unassigned'}
+                        </span>
+                      </div>
+                    </Link>
+                    <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={opp.sales_stage}
+                        onValueChange={(value) => handleStageChange(opp.name, value)}
+                        disabled={updatingStage === opp.name}
+                      >
+                        <SelectTrigger className="h-8 border-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <div className="text-sm font-medium">
+                            {updatingStage === opp.name ? 'Updating...' : opp.sales_stage}
                           </div>
-                          <span className="text-sm text-slate-700 dark:text-slate-300">
-                            {opp.contact_by || 'Unassigned'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="col-span-2">
-                        <div className="text-sm text-slate-600">{stageAge}</div>
-                      </div>
-                      <div className="col-span-3 flex items-center justify-between">
-                        <Badge className={`${statusBadge.color} text-xs font-semibold`}>
-                          {statusBadge.label}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs font-semibold">
-                          {opp.probability}%
-                        </Badge>
-                      </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {stages.map((stage) => (
+                            <SelectItem key={stage.name} value={stage.name}>
+                              <div className="flex items-center gap-2">
+                                <span>{stage.name}</span>
+                                <span className="text-xs text-slate-500">Stage {stage.stage}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </Link>
+                    <Link 
+                      href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
+                      className="col-span-3 flex items-center justify-between cursor-pointer"
+                    >
+                      <Badge className={`${statusBadge.color} text-xs font-semibold`}>
+                        {statusBadge.label}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs font-semibold">
+                        {opp.probability}%
+                      </Badge>
+                    </Link>
+                  </div>
                 )
               })
             )}
