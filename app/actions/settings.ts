@@ -67,3 +67,91 @@ export async function inviteUser(formData: FormData) {
     return { error: error.message || 'Failed to invite user' }
   }
 }
+
+// 4. TAX TEMPLATES
+
+export interface TaxTemplate {
+  name: string
+  title: string
+  company: string
+  is_default?: number
+}
+
+export interface TaxTemplateDetail {
+  name: string
+  title: string
+  company: string
+  is_default?: number
+  taxes?: Array<{
+    charge_type: string
+    account_head: string
+    description: string
+    rate: number
+  }>
+}
+
+// Get all tax templates
+export async function getTaxTemplates() {
+  try {
+    const templates = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Sales Taxes and Charges Template',
+        fields: '["name", "title", "company", "is_default"]',
+        order_by: 'creation desc',
+        limit_page_length: 100
+      }
+    )
+    return templates as TaxTemplate[]
+  } catch (error) {
+    console.error("Failed to fetch tax templates:", error)
+    return []
+  }
+}
+
+// Get single tax template with details
+export async function getTaxTemplate(name: string) {
+  try {
+    const template = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Taxes and Charges Template',
+      name: name
+    })
+    return template as TaxTemplateDetail
+  } catch (error) {
+    console.error("Failed to fetch tax template:", error)
+    return null
+  }
+}
+
+// Create new tax template
+export async function createTaxTemplate(data: {
+  title: string
+  company: string
+  taxes: Array<{
+    charge_type: string
+    account_head: string
+    description: string
+    rate: number
+  }>
+}) {
+  try {
+    const doc = {
+      doctype: 'Sales Taxes and Charges Template',
+      title: data.title,
+      company: data.company,
+      taxes: data.taxes.map((tax, idx) => ({
+        idx: idx + 1,
+        doctype: 'Sales Taxes and Charges',
+        ...tax
+      }))
+    }
+
+    const template = await frappeRequest('frappe.client.insert', 'POST', { doc })
+    revalidatePath('/settings')
+    return { success: true, template }
+  } catch (error: any) {
+    console.error("Failed to create tax template:", error)
+    return { error: error.message || 'Failed to create tax template' }
+  }
+}

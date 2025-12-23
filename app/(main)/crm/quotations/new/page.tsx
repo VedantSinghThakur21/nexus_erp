@@ -17,6 +17,7 @@ import { Plus, Trash2, Loader2, ArrowLeft, Calendar as CalendarIcon } from "luci
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
+import { getTaxTemplates } from "@/app/actions/settings"
 
 interface QuotationItem {
   id: number
@@ -64,6 +65,16 @@ export default function NewQuotationPage() {
   // Additional Fields
   const [paymentTermsTemplate, setPaymentTermsTemplate] = useState("")
   const [termsAndConditions, setTermsAndConditions] = useState("")
+  const [taxTemplate, setTaxTemplate] = useState("")
+  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>([])
+
+  // Fetch tax templates on mount
+  useEffect(() => {
+    getTaxTemplates().then(templates => {
+      setAvailableTaxTemplates(templates)
+    })
+  }, [])
+  const [taxTemplate, setTaxTemplate] = useState("")
 
   // Prefill from opportunity if provided
   useEffect(() => {
@@ -197,6 +208,10 @@ export default function NewQuotationPage() {
       
       if (termsAndConditions && termsAndConditions.trim() !== '') {
         quotationData.terms = termsAndConditions
+      }
+
+      if (taxTemplate && taxTemplate.trim() !== '') {
+        quotationData.taxes_and_charges = taxTemplate
       }
 
       console.log('Submitting quotation data:', quotationData)
@@ -461,6 +476,26 @@ export default function NewQuotationPage() {
               <CardTitle>Additional Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="taxTemplate">Sales Taxes and Charges Template</Label>
+                <Select value={taxTemplate} onValueChange={setTaxTemplate}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a tax template (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {availableTaxTemplates.map(template => (
+                      <SelectItem key={template.name} value={template.name}>
+                        {template.title || template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  Select a tax template or <Link href="/settings" className="text-blue-600 hover:underline">create one in Settings</Link>
+                </p>
+              </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="paymentTerms">Payment Terms Template</Label>
                 <Input

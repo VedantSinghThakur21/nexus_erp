@@ -405,35 +405,12 @@ export async function createQuotation(quotationData: {
   items: any[]
   payment_terms_template?: string
   terms?: string
+  taxes_and_charges?: string
 }) {
   try {
-    // Calculate net total
-    const netTotal = quotationData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
-    
-    // Add 18% GST tax rows
-    const taxes = [
-      {
-        doctype: 'Sales Taxes and Charges',
-        charge_type: 'On Net Total',
-        account_head: 'Output Tax CGST - YC',
-        description: 'CGST @ 9%',
-        rate: 9.0,
-        tax_amount: netTotal * 0.09
-      },
-      {
-        doctype: 'Sales Taxes and Charges',
-        charge_type: 'On Net Total',
-        account_head: 'Output Tax SGST - YC',
-        description: 'SGST @ 9%',
-        rate: 9.0,
-        tax_amount: netTotal * 0.09
-      }
-    ]
-
     const doc = {
       doctype: 'Quotation',
-      ...quotationData,
-      taxes: taxes
+      ...quotationData
     }
 
     // Create the quotation
@@ -540,27 +517,6 @@ export async function updateQuotation(quotationId: string, quotationData: {
         amount: item.amount
       }))
     }
-
-    // Calculate net total and add taxes
-    const netTotal = quotationData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
-    updatedQuotation.taxes = [
-      {
-        doctype: 'Sales Taxes and Charges',
-        charge_type: 'On Net Total',
-        account_head: 'Output Tax CGST - YC',
-        description: 'CGST @ 9%',
-        rate: 9.0,
-        tax_amount: netTotal * 0.09
-      },
-      {
-        doctype: 'Sales Taxes and Charges',
-        charge_type: 'On Net Total',
-        account_head: 'Output Tax SGST - YC',
-        description: 'SGST @ 9%',
-        rate: 9.0,
-        tax_amount: netTotal * 0.09
-      }
-    ]
 
     // Add optional fields
     if (quotationData.payment_terms_template) {
