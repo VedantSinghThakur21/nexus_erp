@@ -19,7 +19,8 @@ async function getUser() {
     })
     const userData = await userRes.json()
     return userData.data || { full_name: 'User' }
-  } catch (e) {
+  } catch (e: any) {
+    console.error('Error fetching user:', typeof e === 'object' ? JSON.stringify(e) : e)
     return { full_name: 'User' }
   }
 }
@@ -62,7 +63,8 @@ async function getRevenueData() {
             name: key,
             total: Math.round(monthlyData[key])
         }));
-    } catch (e) {
+    } catch (e: any) {
+        console.error('Error fetching revenue data:', typeof e === 'object' ? JSON.stringify(e) : e)
         return [];
     }
 }
@@ -129,8 +131,8 @@ async function getRecentActivity() {
         }
         
         return activities;
-    } catch (e) {
-        console.error('Error fetching activity:', e);
+    } catch (e: any) {
+        console.error('Error fetching activity:', typeof e === 'object' ? JSON.stringify(e) : e);
         return [];
     }
 }

@@ -48,7 +48,14 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
 
     if (!res.ok) {
       // Improved Error Parsing for Frappe
-      let errorMessage = data.message || 'API Error';
+      let errorMessage = 'API Error';
+      
+      // Safely extract error message
+      if (typeof data.message === 'string') {
+        errorMessage = data.message;
+      } else if (data.message && typeof data.message === 'object') {
+        errorMessage = data.message.message || JSON.stringify(data.message);
+      }
       
       if (data._server_messages) {
         try {
@@ -69,10 +76,12 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
         console.error("ERPNext Error:", errorMessage)
       }
       
-      throw new Error(errorMessage)
+      throw new Error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage))
     }
 
-    return data.message || data.data || data
+    // Safely return data, ensuring we don't return objects that might be rendered
+    const result = data.message || data.data || data;
+    return result
   } catch (error: any) {
     // Don't re-log if we already logged it above
     if (!error.message.includes("ERPNext Error") && !error.message.includes("not found")) {
