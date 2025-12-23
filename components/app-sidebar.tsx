@@ -16,7 +16,8 @@ import {
   Menu,
   ClipboardCheck,
   TrendingUp,
-  Receipt
+  Receipt,
+  Wallet
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -28,6 +29,7 @@ const menuItems = [
   { name: 'Opportunities', icon: TrendingUp, href: '/crm/opportunities' },
   { name: 'Quotations', icon: Receipt, href: '/crm/quotations' },
   { name: 'Invoices', icon: FileText, href: '/invoices' },
+  { name: 'Payments', icon: Wallet, href: '/payments' },
   { name: 'Projects', icon: FolderKanban, href: '/projects' },
   { name: 'Fleet', icon: Truck, href: '/fleet' },
   { name: 'Bookings', icon: Calendar, href: '/bookings' },

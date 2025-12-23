@@ -516,3 +516,37 @@ export async function createPaymentEntry(data: {
     return { error: error.message || 'Failed to create payment entry' }
   }
 }
+
+// 13. GET ALL PAYMENT ENTRIES
+export async function getPaymentEntries() {
+  try {
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Payment Entry',
+        fields: '["name", "posting_date", "party_name", "party_type", "paid_amount", "payment_type", "mode_of_payment", "reference_no", "reference_date", "docstatus"]',
+        order_by: 'posting_date desc',
+        limit_page_length: 100
+      }
+    )
+    return response as any[]
+  } catch (error) {
+    console.error('Failed to fetch payment entries:', error)
+    return []
+  }
+}
+
+// 14. GET SINGLE PAYMENT ENTRY
+export async function getPaymentEntry(id: string) {
+  try {
+    const payment = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Payment Entry',
+      name: id
+    })
+    return payment
+  } catch (error) {
+    console.error('Failed to fetch payment entry:', error)
+    return null
+  }
+}
