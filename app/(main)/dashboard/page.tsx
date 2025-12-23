@@ -1,16 +1,15 @@
-import { frappeRequest } from "@/app/lib/api"
-import { getDashboardStats } from "@/app/actions/dashboard"
+import { getDashboardStats, getSalesPipelineFunnel, getDealsByStage, getMyOpenLeads, getMyOpenOpportunities } from "@/app/actions/dashboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, Truck, Calendar, Wallet, ArrowRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { TrendingUp, TrendingDown, Users, Briefcase, DollarSign, Target, Trophy, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { DashboardCharts } from "@/components/dashboard/charts"
+import { frappeRequest } from "@/app/lib/api"
 
 // Helper to get user name
 async function getUser() {
   try {
     const userEmail = await frappeRequest('frappe.auth.get_logged_user')
-    // Fetch full user details using the REST API directly
     const userRes = await fetch(`${process.env.ERP_NEXT_URL}/api/resource/User/${userEmail}`, {
        headers: { 
          'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}` 
@@ -19,24 +18,22 @@ async function getUser() {
     })
     const userData = await userRes.json()
     return userData.data || { full_name: 'User' }
-  } catch (e: any) {
-    console.error('Error fetching user:', typeof e === 'object' ? JSON.stringify(e) : e)
+  } catch (e) {
     return { full_name: 'User' }
   }
 }
 
-// Helper to get Chart Data (Revenue History)
+// Get Revenue Trend (Last 6 Months)
 async function getRevenueData() {
     try {
         const invoices = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Sales Invoice',
             fields: '["grand_total", "posting_date"]',
-            filters: '[["docstatus", "=", 1]]', // Submitted only
+            filters: '[["docstatus", "=", 1]]',
             order_by: 'posting_date asc',
             limit_page_length: 1000
         });
 
-        // Get last 6 months
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const now = new Date();
         const last6Months = [];
@@ -46,7 +43,6 @@ async function getRevenueData() {
             last6Months.push(months[d.getMonth()]);
         }
 
-        // Group by Month
         const monthlyData: Record<string, number> = {};
         last6Months.forEach(month => monthlyData[month] = 0);
         
@@ -58,88 +54,11 @@ async function getRevenueData() {
             }
         });
 
-        // Convert to array for Recharts
         return last6Months.map(key => ({
             name: key,
             total: Math.round(monthlyData[key])
         }));
-    } catch (e: any) {
-        console.error('Error fetching revenue data:', typeof e === 'object' ? JSON.stringify(e) : e)
-        return [];
-    }
-}
-
-// Helper to get Recent Activity
-async function getRecentActivity() {
-    try {
-        const activities = [];
-        
-        // Get latest lead
-        const leads = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Lead',
-            fields: '["name", "lead_name", "source", "creation"]',
-            order_by: 'creation desc',
-            limit_page_length: 1
-        });
-        if (leads.length > 0) {
-            const lead = leads[0];
-            const leadName = typeof lead.lead_name === 'string' ? lead.lead_name : String(lead.lead_name || 'Unknown');
-            const source = typeof lead.source === 'string' ? lead.source : 'Direct';
-            activities.push({
-                type: 'lead',
-                title: 'New Lead Created',
-                description: `${leadName} via ${source}`,
-                value: 'Just now',
-                color: 'text-slate-500'
-            });
-        }
-        
-        // Get latest paid invoice
-        const invoices = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Sales Invoice',
-            fields: '["name", "customer_name", "grand_total", "currency"]',
-            filters: '[["status", "=", "Paid"]]',
-            order_by: 'modified desc',
-            limit_page_length: 1
-        });
-        if (invoices.length > 0) {
-            const inv = invoices[0];
-            const customerName = typeof inv.customer_name === 'string' ? inv.customer_name : String(inv.customer_name || 'Unknown');
-            const invName = typeof inv.name === 'string' ? inv.name : String(inv.name || '');
-            const grandTotal = typeof inv.grand_total === 'number' ? inv.grand_total : 0;
-            activities.push({
-                type: 'invoice',
-                title: 'Invoice Paid',
-                description: `${customerName} - ${invName}`,
-                value: `+₹${grandTotal.toLocaleString('en-IN')}`,
-                color: 'text-green-600'
-            });
-        }
-        
-        // Get latest booking
-        const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Sales Order',
-            fields: '["name", "customer_name", "status"]',
-            filters: '[["status", "not in", ["Completed", "Cancelled"]]]',
-            order_by: 'creation desc',
-            limit_page_length: 1
-        });
-        if (bookings.length > 0) {
-            const booking = bookings[0];
-            const customerName = typeof booking.customer_name === 'string' ? booking.customer_name : String(booking.customer_name || 'Unknown');
-            const bookingName = typeof booking.name === 'string' ? booking.name : String(booking.name || '');
-            activities.push({
-                type: 'booking',
-                title: 'Machine Booked',
-                description: `${customerName} - ${bookingName}`,
-                value: 'Active',
-                color: 'text-blue-600'
-            });
-        }
-        
-        return activities;
-    } catch (e: any) {
-        console.error('Error fetching activity:', typeof e === 'object' ? JSON.stringify(e) : e);
+    } catch (e) {
         return [];
     }
 }
@@ -147,111 +66,283 @@ async function getRecentActivity() {
 export default async function DashboardPage() {
   const user = await getUser()
   const stats = await getDashboardStats()
+  const pipelineFunnel = await getSalesPipelineFunnel()
+  const dealsByStage = await getDealsByStage()
   const revenueData = await getRevenueData()
-  const recentActivity = await getRecentActivity()
-
-  // Ensure all stat values are safe to render
-  const safeStats = {
-    revenue: typeof stats.revenue === 'number' ? stats.revenue : 0,
-    active_bookings: typeof stats.active_bookings === 'number' ? stats.active_bookings : 0,
-    open_leads: typeof stats.open_leads === 'number' ? stats.open_leads : 0,
-    fleet_status: typeof stats.fleet_status === 'string' ? stats.fleet_status : '0 / 0'
-  }
+  const myLeads = await getMyOpenLeads()
+  const myOpportunities = await getMyOpenOpportunities()
 
   return (
-    <div className="p-8 space-y-8" suppressHydrationWarning>
-      {/* Welcome Section */}
-      <div className="flex justify-between items-end" suppressHydrationWarning>
-        <div suppressHydrationWarning>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Welcome back, {user.full_name?.split(' ')[0]}
+    <div className="p-6 lg:p-8 space-y-6" suppressHydrationWarning>
+      {/* Header */}
+      <div className="flex justify-between items-center" suppressHydrationWarning>
+        <div>
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Overview
             </h1>
-            <p className="text-slate-500 mt-2">Here's what's happening in your business today.</p>
+            <p className="text-slate-500 mt-1 text-sm">Performance metrics and sales pipeline</p>
         </div>
-        <div className="flex gap-2" suppressHydrationWarning>
-             {/* Quick Actions */}
-            <Link href="/crm/new"><Button variant="outline" size="sm">Add Lead</Button></Link>
-            <Link href="/invoices/new"><Button size="sm">New Invoice</Button></Link>
+        <div className="flex gap-2">
+            <select className="text-sm border rounded-lg px-3 py-1.5 bg-white dark:bg-slate-900">
+              <option>This Week</option>
+              <option>This Month</option>
+              <option>This Quarter</option>
+            </select>
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" suppressHydrationWarning>
+      {/* Performance Metrics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5" suppressHydrationWarning>
         
-        {/* Revenue */}
+        {/* New Leads Today */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <Wallet className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>₹{safeStats.revenue.toLocaleString('en-IN')}</div>
-            <p className="text-xs text-muted-foreground">Collected to date</p>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">New Leads Today</span>
+              <Users className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.newLeadsToday}</span>
+              <span className="text-xs text-green-600 flex items-center gap-0.5">
+                <TrendingUp className="h-3 w-3" /> +2
+              </span>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Active Rentals */}
+        {/* Open Opportunities */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Rentals</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{safeStats.active_bookings}</div>
-            <Link href="/bookings" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
-                View schedule <ArrowRight className="h-3 w-3" />
-            </Link>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Open Opportunities</span>
+              <Briefcase className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.openOpportunities}</span>
+              <span className="text-xs text-green-600 flex items-center gap-0.5">
+                <TrendingUp className="h-3 w-3" /> +4%
+              </span>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Fleet Status */}
+        {/* Pipeline Value */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fleet Health</CardTitle>
-            <Truck className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{safeStats.fleet_status}</div>
-            <p className="text-xs text-muted-foreground">Operational Machines</p>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Pipeline Value</span>
+              <DollarSign className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                ₹{(stats.pipelineValue / 100000).toFixed(1)}L
+              </span>
+              <span className="text-xs text-green-600 flex items-center gap-0.5">
+                <TrendingUp className="h-3 w-3" /> +10%
+              </span>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Sales Pipeline */}
+        {/* Deals Won MTD */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Leads</CardTitle>
-            <Users className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{safeStats.open_leads}</div>
-            <p className="text-xs text-muted-foreground">Potential Customers</p>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Deals Won MTD</span>
+              <Trophy className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.dealsWonMTD}</span>
+              <span className="text-xs text-slate-500">On track</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Win Rate % */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Win Rate %</span>
+              <Target className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.winRate}%</span>
+              <span className="text-xs text-green-600 flex items-center gap-0.5">
+                <TrendingUp className="h-3 w-3" /> +2%
+              </span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* NEW: Charts & Activity */}
-      <DashboardCharts revenueData={revenueData} recentActivity={recentActivity} />
+      {/* Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-3" suppressHydrationWarning>
+        
+        {/* Sales Pipeline Funnel */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold">Sales Pipeline Funnel</CardTitle>
+            <p className="text-xs text-slate-500">₹{(stats.pipelineValue / 100000).toFixed(1)}L Potential Value</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {pipelineFunnel.map((stage, idx) => {
+              const maxValue = Math.max(...pipelineFunnel.map(s => s.value))
+              const width = maxValue > 0 ? (stage.value / maxValue) * 100 : 0
+              
+              return (
+                <div key={stage.stage}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{stage.stage} ({stage.count})</span>
+                    <span className="text-slate-500">₹{(stage.value / 100000).toFixed(1)}L</span>
+                  </div>
+                  <div className="w-full h-8 bg-slate-100 dark:bg-slate-800 rounded overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-500 dark:bg-blue-600 rounded transition-all"
+                      style={{ width: `${width}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
 
-      {/* Quick Links / "Apps" View */}
-      <div suppressHydrationWarning>
-        <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Your Apps</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" suppressHydrationWarning>
-            {[
-                { name: 'CRM', icon: Users, color: 'text-purple-600', bg: 'bg-purple-100', href: '/crm' },
-                { name: 'Invoices', icon: Wallet, color: 'text-green-600', bg: 'bg-green-100', href: '/invoices' },
-                { name: 'Fleet', icon: Truck, color: 'text-orange-600', bg: 'bg-orange-100', href: '/fleet' },
-                { name: 'Bookings', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-100', href: '/bookings' },
-            ].map((app) => (
-                <Link key={app.name} href={app.href}>
-                    <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border rounded-xl hover:shadow-md transition-all cursor-pointer group h-32" suppressHydrationWarning>
-                        <div className={`p-3 rounded-lg ${app.bg} mb-3 group-hover:scale-110 transition-transform`} suppressHydrationWarning>
-                            <app.icon className={`h-6 w-6 ${app.color}`} />
-                        </div>
-                        <span className="font-medium text-sm text-slate-700 dark:text-slate-300">{app.name}</span>
+        {/* Deals by Stage Bar Chart */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold">Deals by Stage</CardTitle>
+            <p className="text-xs text-slate-500">{stats.openOpportunities} Active Deals</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end justify-between h-48 gap-2">
+              {dealsByStage.map((stage) => {
+                const maxCount = Math.max(...dealsByStage.map(s => s.count), 1)
+                const height = (stage.count / maxCount) * 100
+                
+                return (
+                  <div key={stage.stage} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="w-full flex items-end justify-center" style={{ height: '160px' }}>
+                      <div 
+                        className={`w-full rounded-t transition-all ${
+                          stage.stage === 'WON' ? 'bg-green-500' : 'bg-blue-500'
+                        }`}
+                        style={{ height: `${height}%` }}
+                      />
                     </div>
-                </Link>
-            ))}
-        </div>
+                    <div className="text-center">
+                      <div className="text-xs font-medium text-slate-700 dark:text-slate-300">{stage.stage}</div>
+                      <div className="text-xs text-slate-500">{stage.count}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Revenue Trend Line Chart */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold">Revenue Trend</CardTitle>
+            <p className="text-xs text-slate-500">Last 6 Months</p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48 flex items-end justify-between gap-1">
+              {revenueData.map((month, idx) => {
+                const maxTotal = Math.max(...revenueData.map(m => m.total), 1)
+                const height = (month.total / maxTotal) * 100
+                
+                return (
+                  <div key={month.name} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="w-full flex items-end justify-center" style={{ height: '160px' }}>
+                      <div 
+                        className="w-full bg-blue-500 dark:bg-blue-600 rounded-t transition-all"
+                        style={{ height: `${height}%` }}
+                        title={`₹${month.total.toLocaleString('en-IN')}`}
+                      />
+                    </div>
+                    <span className="text-xs text-slate-500">{month.name}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tables Section */}
+      <div className="grid gap-6 lg:grid-cols-2" suppressHydrationWarning>
+        
+        {/* My Open Leads */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-base font-semibold">My Open Leads</CardTitle>
+            <Link href="/crm">
+              <Button variant="link" size="sm" className="text-blue-600 p-0 h-auto">
+                View All <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {myLeads.length === 0 ? (
+              <div className="text-center py-8 text-slate-500 text-sm">No open leads</div>
+            ) : (
+              <div className="space-y-3">
+                {myLeads.map((lead, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm text-slate-900 dark:text-white">{lead.name}</p>
+                      <p className="text-xs text-slate-500">{lead.company}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary" className="text-xs">{lead.status}</Badge>
+                      <span className="text-xs text-slate-400">{lead.lastContact}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* My Open Opportunities */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-base font-semibold">My Open Opportunities</CardTitle>
+            <Link href="/crm">
+              <Button variant="link" size="sm" className="text-blue-600 p-0 h-auto">
+                View All <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {myOpportunities.length === 0 ? (
+              <div className="text-center py-8 text-slate-500 text-sm">No open opportunities</div>
+            ) : (
+              <div className="space-y-3">
+                {myOpportunities.map((opp, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm text-slate-900 dark:text-white">{opp.name}</p>
+                      <p className="text-xs text-slate-500">{opp.stage}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                        ₹{(opp.value / 1000).toFixed(0)}K
+                      </span>
+                      <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-600" 
+                          style={{ width: `${opp.probability}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
