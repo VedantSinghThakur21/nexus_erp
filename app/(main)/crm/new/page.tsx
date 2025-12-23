@@ -142,7 +142,6 @@ export default function NewLeadPage() {
                         <Select onValueChange={(val) => handleSelectChange('source', val)} value={formData.source}>
                             <SelectTrigger><SelectValue placeholder="Select source (optional)" /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">None</SelectItem>
                                 <SelectItem value="Existing Customer">Existing Customer</SelectItem>
                                 <SelectItem value="Reference">Reference</SelectItem>
                                 <SelectItem value="Advertisement">Advertisement</SelectItem>
