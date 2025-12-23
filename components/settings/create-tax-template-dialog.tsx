@@ -173,82 +173,11 @@ export function CreateTaxTemplateDialog() {
               </Button>
             </div>
 
-            <div className="space-y-3 border rounded-lg p-4 bg-slate-50 dark:bg-slate-900">
+            <div className="space-y-4">
               {taxRows.map((row, index) => (
-                <div key={row.id} className="grid grid-cols-12 gap-2 items-end pb-3 border-b last:border-0">
-                  <div className="col-span-3">
-                    <Label className="text-xs">Account Head *</Label>
-                    {loadingAccounts ? (
-                      <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-slate-100">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        <span className="text-xs text-slate-500">Loading...</span>
-                      </div>
-                    ) : availableAccounts.length > 0 ? (
-                      <Select 
-                        value={row.account_head} 
-                        onValueChange={(value) => updateTaxRow(row.id, 'account_head', value)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select account" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableAccounts.map(account => (
-                            <SelectItem key={account.name} value={account.name}>
-                              {account.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        value={row.account_head}
-                        onChange={(e) => updateTaxRow(row.id, 'account_head', e.target.value)}
-                        placeholder="Enter account name"
-                        className="mt-1"
-                      />
-                    )}
-                  </div>
-                  
-                  <div className="col-span-4">
-                    <Label className="text-xs">Description *</Label>
-                    <Input
-                      value={row.description}
-                      onChange={(e) => updateTaxRow(row.id, 'description', e.target.value)}
-                      placeholder="CGST @ 9%"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="col-span-2">
-                    <Label className="text-xs">Rate (%) *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={row.rate}
-                      onChange={(e) => updateTaxRow(row.id, 'rate', parseFloat(e.target.value) || 0)}
-                      placeholder="9.0"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="col-span-2">
-                    <Label className="text-xs">Type</Label>
-                    <Select 
-                      value={row.charge_type} 
-                      onValueChange={(value) => updateTaxRow(row.id, 'charge_type', value)}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="On Net Total">On Net Total</SelectItem>
-                        <SelectItem value="On Previous Row Total">On Previous Row</SelectItem>
-                        <SelectItem value="Actual">Actual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="col-span-1 flex justify-end">
+                <div key={row.id} className="space-y-3 p-4 border rounded-lg bg-white dark:bg-slate-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-slate-900 dark:text-white">Tax Row {index + 1}</span>
                     <Button
                       type="button"
                       variant="ghost"
@@ -258,6 +187,77 @@ export function CreateTaxTemplateDialog() {
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Account Head *</Label>
+                      {loadingAccounts ? (
+                        <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-slate-100 dark:bg-slate-900">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm text-slate-500">Loading accounts...</span>
+                        </div>
+                      ) : availableAccounts.length > 0 ? (
+                        <Select 
+                          value={row.account_head} 
+                          onValueChange={(value) => updateTaxRow(row.id, 'account_head', value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select tax account" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableAccounts.map(account => (
+                              <SelectItem key={account.name} value={account.name}>
+                                {account.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={row.account_head}
+                          onChange={(e) => updateTaxRow(row.id, 'account_head', e.target.value)}
+                          placeholder="Enter account name"
+                        />
+                      )}
+                    </div>
+                  
+                    <div className="space-y-2">
+                      <Label className="text-sm">Description *</Label>
+                      <Input
+                        value={row.description}
+                        onChange={(e) => updateTaxRow(row.id, 'description', e.target.value)}
+                        placeholder="e.g., CGST @ 9%"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">Rate (%) *</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={row.rate || ''}
+                        onChange={(e) => updateTaxRow(row.id, 'rate', parseFloat(e.target.value) || 0)}
+                        placeholder="e.g., 9"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">Charge Type</Label>
+                      <Select 
+                        value={row.charge_type} 
+                        onValueChange={(value) => updateTaxRow(row.id, 'charge_type', value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="On Net Total">On Net Total</SelectItem>
+                          <SelectItem value="On Previous Row Total">On Previous Row</SelectItem>
+                          <SelectItem value="Actual">Actual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               ))}
