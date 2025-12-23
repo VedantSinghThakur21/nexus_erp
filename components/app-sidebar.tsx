@@ -119,7 +119,7 @@ export function AppSidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-72" suppressHydrationWarning>
-             <div className="h-full" onClick={() => setOpen(false)}>
+             <div className="h-full" onClick={() => setOpen(false)} suppressHydrationWarning>
                 <SidebarContent />
              </div>
           </SheetContent>
