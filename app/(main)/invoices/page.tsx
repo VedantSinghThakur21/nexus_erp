@@ -32,22 +32,7 @@ export default async function InvoicesPage() {
     </div>
   )
 }
-                            target="_blank"
-                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
-                        >
-                            <Download className="h-4 w-4" />
-                        </a>
 
-                        {/* Delete Button (Client Component) */}
-                        <DeleteInvoiceButton id={inv.name} status={inv.status} />
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
       </Card>
     </div>
   )
