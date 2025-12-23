@@ -264,6 +264,32 @@ export async function cancelInvoice(id: string) {
   }
 }
 
+// UPDATE INVOICE STATUS
+export async function updateInvoiceStatus(id: string, status: string) {
+  try {
+    // Fetch the current invoice first
+    const invoice = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Invoice',
+      name: id
+    })
+
+    // Update the status field
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Sales Invoice',
+      name: id,
+      fieldname: 'status',
+      value: status
+    })
+    
+    revalidatePath(`/invoices/${id}`)
+    revalidatePath('/invoices')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update status error:", error)
+    return { error: error.message || 'Failed to update invoice status' }
+  }
+}
+
 // 5. SEARCH CUSTOMERS
 export async function searchCustomers(query: string) {
   try {
