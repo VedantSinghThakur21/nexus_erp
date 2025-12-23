@@ -59,7 +59,10 @@ function SidebarContent() {
       <div className="flex-1 overflow-auto py-4">
         <nav className="grid gap-1 px-2">
           {menuItems.map((item, index) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            // More precise matching: exact match or starts with href followed by a slash
+            // Special case for /crm to avoid matching /crm/opportunities and /crm/quotations
+            const isActive = pathname === item.href || 
+              (item.href !== '/crm' && pathname.startsWith(item.href + '/'))
             return (
               <Link
                 key={index}

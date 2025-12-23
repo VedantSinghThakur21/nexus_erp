@@ -46,17 +46,15 @@ interface OpportunitiesViewProps {
 }
 
 const STATUS_BADGES: Record<string, { label: string; color: string }> = {
-  'Warm': { label: 'Warm', color: 'bg-yellow-100 text-yellow-700' },
-  'New': { label: 'New', color: 'bg-blue-100 text-blue-700' },
-  'Stagnant': { label: 'Stagnant', color: 'bg-gray-100 text-gray-700' },
-  'High Value': { label: 'High Value', color: 'bg-purple-100 text-purple-700' }
+  'Open': { label: 'Open', color: 'bg-blue-100 text-blue-700' },
+  'Quotation': { label: 'Quotation', color: 'bg-purple-100 text-purple-700' },
+  'Converted': { label: 'Converted', color: 'bg-green-100 text-green-700' },
+  'Lost': { label: 'Lost', color: 'bg-red-100 text-red-700' },
+  'Replied': { label: 'Replied', color: 'bg-yellow-100 text-yellow-700' }
 }
 
 function getOpportunityStatus(opp: Opportunity): string {
-  if (opp.probability >= 80) return 'Warm'
-  if (opp.probability >= 50) return 'High Value'
-  if (opp.probability <= 20) return 'Stagnant'
-  return 'New'
+  return opp.status || 'Open'
 }
 
 function calculateStageAge(opp: Opportunity): string {
@@ -359,7 +357,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
               paginatedOpps.map((opp) => {
                 const status = getOpportunityStatus(opp)
                 const stageAge = calculateStageAge(opp)
-                const statusBadge = STATUS_BADGES[status] || STATUS_BADGES['New']
+                const statusBadge = STATUS_BADGES[status] || STATUS_BADGES['Open']
 
                 return (
                   <Link 

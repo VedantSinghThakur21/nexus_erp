@@ -407,9 +407,33 @@ export async function createQuotation(quotationData: {
   terms?: string
 }) {
   try {
+    // Calculate net total
+    const netTotal = quotationData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
+    
+    // Add 18% GST tax rows
+    const taxes = [
+      {
+        doctype: 'Sales Taxes and Charges',
+        charge_type: 'On Net Total',
+        account_head: 'Output Tax CGST - YC',
+        description: 'CGST @ 9%',
+        rate: 9.0,
+        tax_amount: netTotal * 0.09
+      },
+      {
+        doctype: 'Sales Taxes and Charges',
+        charge_type: 'On Net Total',
+        account_head: 'Output Tax SGST - YC',
+        description: 'SGST @ 9%',
+        rate: 9.0,
+        tax_amount: netTotal * 0.09
+      }
+    ]
+
     const doc = {
       doctype: 'Quotation',
-      ...quotationData
+      ...quotationData,
+      taxes: taxes
     }
 
     // Create the quotation
@@ -419,20 +443,6 @@ export async function createQuotation(quotationData: {
 
     if (!quotation || !quotation.name) {
       throw new Error("Failed to create quotation")
-    }
-
-    // After creation, set a sales taxes template if available
-    try {
-      // Try to apply a default tax template - ERPNext will calculate taxes automatically
-      await frappeRequest('frappe.client.set_value', 'POST', {
-        doctype: 'Quotation',
-        name: quotation.name,
-        fieldname: 'taxes_and_charges',
-        value: 'In State GST' // This is a common default template, adjust if needed
-      })
-    } catch (taxError) {
-      console.log('Could not apply tax template, quotation created without taxes:', taxError)
-      // Continue even if tax template fails - quotation is still created
     }
 
     revalidatePath('/crm')
@@ -531,6 +541,27 @@ export async function updateQuotation(quotationId: string, quotationData: {
       }))
     }
 
+    // Calculate net total and add taxes
+    const netTotal = quotationData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
+    updatedQuotation.taxes = [
+      {
+        doctype: 'Sales Taxes and Charges',
+        charge_type: 'On Net Total',
+        account_head: 'Output Tax CGST - YC',
+        description: 'CGST @ 9%',
+        rate: 9.0,
+        tax_amount: netTotal * 0.09
+      },
+      {
+        doctype: 'Sales Taxes and Charges',
+        charge_type: 'On Net Total',
+        account_head: 'Output Tax SGST - YC',
+        description: 'SGST @ 9%',
+        rate: 9.0,
+        tax_amount: netTotal * 0.09
+      }
+    ]
+
     // Add optional fields
     if (quotationData.payment_terms_template) {
       updatedQuotation.payment_terms_template = quotationData.payment_terms_template
@@ -548,18 +579,6 @@ export async function updateQuotation(quotationId: string, quotationData: {
     const result = await frappeRequest('frappe.client.save', 'POST', {
       doc: updatedQuotation
     })
-
-    // Try to apply tax template after update
-    try {
-      await frappeRequest('frappe.client.set_value', 'POST', {
-        doctype: 'Quotation',
-        name: quotationId,
-        fieldname: 'taxes_and_charges',
-        value: 'In State GST'
-      })
-    } catch (taxError) {
-      console.log('Could not apply tax template on update:', taxError)
-    }
 
     revalidatePath('/crm/quotations')
     revalidatePath(`/crm/quotations/${quotationId}`)
