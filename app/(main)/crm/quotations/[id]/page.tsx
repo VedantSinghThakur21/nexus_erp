@@ -42,7 +42,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
   const isExpired = quotation.valid_till && new Date(quotation.valid_till) < new Date()
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6" suppressHydrationWarning>
       {/* Back Button */}
       <Link href="/crm/quotations">
         <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-blue-600">
@@ -51,8 +51,8 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
       </Link>
 
       {/* Header Section */}
-      <div className="flex justify-between items-start">
-        <div>
+      <div className="flex justify-between items-start" suppressHydrationWarning>
+        <div suppressHydrationWarning>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             {quotation.name}
           </h1>

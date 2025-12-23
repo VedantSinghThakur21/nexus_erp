@@ -407,35 +407,32 @@ export async function createQuotation(quotationData: {
   terms?: string
 }) {
   try {
-    // Calculate totals
-    const netTotal = quotationData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
-    const taxRate = 0.18 // 18% GST
-    const taxAmount = netTotal * taxRate
-    const grandTotal = netTotal + taxAmount
-
     const doc = {
       doctype: 'Quotation',
-      ...quotationData,
-      // Add tax template
-      taxes_and_charges: 'GST 18%', // You may need to adjust this based on your ERPNext tax template
-      taxes: [
-        {
-          doctype: 'Sales Taxes and Charges',
-          charge_type: 'On Net Total',
-          account_head: 'GST - YC', // Adjust based on your ERPNext setup
-          description: 'GST @ 18%',
-          rate: 18.0,
-          tax_amount: taxAmount
-        }
-      ]
+      ...quotationData
     }
 
+    // Create the quotation
     const quotation = await frappeRequest('frappe.client.insert', 'POST', {
       doc
     })
 
     if (!quotation || !quotation.name) {
       throw new Error("Failed to create quotation")
+    }
+
+    // After creation, set a sales taxes template if available
+    try {
+      // Try to apply a default tax template - ERPNext will calculate taxes automatically
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Quotation',
+        name: quotation.name,
+        fieldname: 'taxes_and_charges',
+        value: 'In State GST' // This is a common default template, adjust if needed
+      })
+    } catch (taxError) {
+      console.log('Could not apply tax template, quotation created without taxes:', taxError)
+      // Continue even if tax template fails - quotation is still created
     }
 
     revalidatePath('/crm')
@@ -513,11 +510,6 @@ export async function updateQuotation(quotationId: string, quotationData: {
       throw new Error('Quotation not found')
     }
 
-    // Calculate totals
-    const netTotal = quotationData.items.reduce((sum, item) => sum + (item.amount || 0), 0)
-    const taxRate = 0.18 // 18% GST
-    const taxAmount = netTotal * taxRate
-
     // Prepare updated document
     const updatedQuotation = {
       ...existingQuotation,
@@ -536,19 +528,7 @@ export async function updateQuotation(quotationId: string, quotationData: {
         qty: item.qty,
         rate: item.rate,
         amount: item.amount
-      })),
-      // Add tax information
-      taxes_and_charges: 'GST 18%',
-      taxes: [
-        {
-          doctype: 'Sales Taxes and Charges',
-          charge_type: 'On Net Total',
-          account_head: 'GST - YC',
-          description: 'GST @ 18%',
-          rate: 18.0,
-          tax_amount: taxAmount
-        }
-      ]
+      }))
     }
 
     // Add optional fields
@@ -564,7 +544,32 @@ export async function updateQuotation(quotationId: string, quotationData: {
       updatedQuotation.opportunity = quotationData.opportunity
     }
 
-    // Update in ERPNext
+    // Update in ERPNext using save method to recalculate totals
+    const result = await frappeRequest('frappe.client.save', 'POST', {
+      doc: updatedQuotation
+    })
+
+    // Try to apply tax template after update
+    try {
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Quotation',
+        name: quotationId,
+        fieldname: 'taxes_and_charges',
+        value: 'In State GST'
+      })
+    } catch (taxError) {
+      console.log('Could not apply tax template on update:', taxError)
+    }
+
+    revalidatePath('/crm/quotations')
+    revalidatePath(`/crm/quotations/${quotationId}`)
+
+    return { success: true, quotation: result }
+  } catch (error: any) {
+    console.error("Update quotation error:", error)
+    return { error: error.message || 'Failed to update quotation' }
+  }
+}
     const result = await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Quotation',
       name: quotationId,

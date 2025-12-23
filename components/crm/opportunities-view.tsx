@@ -68,7 +68,7 @@ function calculateStageAge(opp: Opportunity): string {
 }
 
 export function OpportunitiesView({ opportunities, groupedOpportunities, stages }: OpportunitiesViewProps) {
-  const [view, setView] = useState<'kanban' | 'list'>('kanban')
+  const [view, setView] = useState<'kanban' | 'list'>('list')
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStage, setSelectedStage] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'value' | 'probability'>('value')
@@ -264,7 +264,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                             <CardContent className="p-4">
                               <div className="space-y-3">
                                 <div className="font-semibold text-sm text-slate-900 dark:text-white line-clamp-2">
-                                  {opp.opportunity_from === 'Lead' ? opp.party_name : opp.customer_name}
+                                  {opp.customer_name || opp.party_name}
                                 </div>
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-slate-500">{opp.opportunity_type}</span>
@@ -369,7 +369,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                     <div className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-900 border rounded-lg cursor-pointer transition-colors">
                       <div className="col-span-3">
                         <div className="font-semibold text-slate-900 dark:text-white">
-                          {opp.opportunity_from === 'Lead' ? opp.party_name : opp.customer_name}
+                          {opp.customer_name || opp.party_name}
                         </div>
                         <div className="text-xs text-slate-500 mt-1">{opp.opportunity_type}</div>
                       </div>

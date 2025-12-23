@@ -47,7 +47,7 @@ interface LeadsViewProps {
 }
 
 export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
-  const [view, setView] = useState<'kanban' | 'list'>('kanban')
+  const [view, setView] = useState<'kanban' | 'list'>('list')
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStage, setSelectedStage] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
