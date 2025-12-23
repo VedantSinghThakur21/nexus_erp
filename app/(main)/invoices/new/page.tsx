@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { CustomerSearch } from "@/components/invoices/customer-search"
 import { ItemSearch } from "@/components/invoices/item-search"
+import { getTaxTemplates, getTaxTemplate } from "@/app/actions/settings"
 
 interface InvoiceItem {
   id: number
@@ -38,7 +39,9 @@ export default function NewInvoicePage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [dueDate, setDueDate] = useState("")
   const [placeOfSupply, setPlaceOfSupply] = useState("27-Maharashtra")
-  const [taxTemplate, setTaxTemplate] = useState("In State GST") // Default Tax Template
+  const [taxTemplate, setTaxTemplate] = useState("")
+  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>([])
+  const [selectedTaxTemplateDetails, setSelectedTaxTemplateDetails] = useState<any>(null)
   
   // Dynamic Data State
   const [companyInfo, setCompanyInfo] = useState<{ name: string, gstin: string } | null>(null)
@@ -59,7 +62,23 @@ export default function NewInvoicePage() {
     getBankDetails().then(data => {
         if (data) setBankInfo(data)
     })
+
+    // Fetch available tax templates
+    getTaxTemplates().then(templates => {
+      setAvailableTaxTemplates(templates)
+    })
   }, [])
+
+  // Fetch selected tax template details when template changes
+  useEffect(() => {
+    if (taxTemplate && taxTemplate !== 'none') {
+      getTaxTemplate(taxTemplate).then(details => {
+        setSelectedTaxTemplateDetails(details)
+      })
+    } else {
+      setSelectedTaxTemplateDetails(null)
+    }
+  }, [taxTemplate])
 
   // Fetch Customer Data when selected
   useEffect(() => {
@@ -98,24 +117,36 @@ export default function NewInvoicePage() {
     if (items.length > 1) setItems(items.filter(item => item.id !== id))
   }
 
-  // Totals Logic (Visual Estimate Only)
-  // Real calculation happens in ERPNext based on the Tax Template selected
+  // Totals Logic - Calculate dynamically based on selected template
   const subTotal = items.reduce((sum, item) => sum + (item.amount || 0), 0)
-  // Assume 18% for visual feedback if template is GST
-  const taxRate = taxTemplate.includes("GST") ? 0.18 : 0
-  const taxAmount = subTotal * taxRate
+  
+  // Calculate taxes dynamically based on selected template
+  const taxAmount = selectedTaxTemplateDetails?.taxes?.reduce((sum: number, tax: any) => {
+    return sum + (subTotal * (tax.rate || 0) / 100)
+  }, 0) || 0
+  
   const grandTotal = subTotal + taxAmount
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     
-    const payload = {
+    const payload: any = {
         customer,
         posting_date: date,
         due_date: dueDate,
         items,
-        taxes_and_charges: taxTemplate // Pass the selected template to backend
+        place_of_supply: placeOfSupply
+    }
+
+    // Add company if available
+    if (companyInfo?.name) {
+      payload.company = companyInfo.name
+    }
+
+    // Only add tax template if selected
+    if (taxTemplate && taxTemplate.trim() !== '' && taxTemplate !== 'none') {
+      payload.taxes_and_charges = taxTemplate
     }
 
     const res = await createInvoice(payload)
@@ -211,11 +242,15 @@ export default function NewInvoicePage() {
                         <Label>Tax Template</Label>
                         <Select value={taxTemplate} onValueChange={setTaxTemplate}>
                             <SelectTrigger>
-                                <SelectValue />
+                                <SelectValue placeholder="Select tax template (optional)" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="In State GST">In State GST (18%)</SelectItem>
-                                <SelectItem value="Out of State GST">Out of State GST (18%)</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
+                                {availableTaxTemplates.map(template => (
+                                  <SelectItem key={template.name} value={template.name}>
+                                    {template.title}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -328,11 +363,28 @@ export default function NewInvoicePage() {
                         <span className="text-slate-500">Subtotal</span>
                         <span>₹ {subTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    {/* Visual representation of taxes */}
-                    <div className="flex justify-between text-sm" suppressHydrationWarning>
-                        <span className="text-slate-500">Tax ({taxTemplate})</span>
+                    
+                    {/* Dynamic tax breakdown */}
+                    {selectedTaxTemplateDetails?.taxes && selectedTaxTemplateDetails.taxes.length > 0 ? (
+                      <>
+                        {selectedTaxTemplateDetails.taxes.map((tax: any, idx: number) => (
+                          <div key={idx} className="flex justify-between text-xs" suppressHydrationWarning>
+                            <span className="text-slate-400">{tax.description || tax.account_head} ({tax.rate}%)</span>
+                            <span>₹ {(subTotal * (tax.rate || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between text-sm" suppressHydrationWarning>
+                          <span className="text-slate-500">Total Tax</span>
+                          <span>₹ {taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      </>
+                    ) : taxTemplate && taxTemplate !== 'none' ? (
+                      <div className="flex justify-between text-sm" suppressHydrationWarning>
+                        <span className="text-slate-500">Tax (Loading...)</span>
                         <span>₹ {taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                    </div>
+                      </div>
+                    ) : null}
+                    
                     <div className="flex justify-between items-center border-t pt-3 mt-2" suppressHydrationWarning>
                         <span className="font-bold text-lg">Grand Total</span>
                         <span className="font-bold text-xl">₹ {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>

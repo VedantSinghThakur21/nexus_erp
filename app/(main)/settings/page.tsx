@@ -1,15 +1,19 @@
-import { getProfile, getTeam, getTaxTemplates } from "@/app/actions/settings"
+import { getProfile, getTeam, getTaxTemplates, getCompany, getBankAccounts } from "@/app/actions/settings"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { InviteUserDialog } from "@/components/settings/invite-user-dialog"
 import { CreateTaxTemplateDialog } from "@/components/settings/create-tax-template-dialog"
-import { Receipt } from "lucide-react"
+import { EditCompanyDialog } from "@/components/settings/edit-company-dialog"
+import { CreateBankAccountDialog } from "@/components/settings/create-bank-account-dialog"
+import { Receipt, Building2, Landmark } from "lucide-react"
 
 export default async function SettingsPage() {
   const profile = await getProfile()
   const team = await getTeam()
   const taxTemplates = await getTaxTemplates()
+  const company = await getCompany()
+  const bankAccounts = await getBankAccounts()
 
   return (
     <div className="p-8 space-y-8 max-w-5xl mx-auto" suppressHydrationWarning>
@@ -40,6 +44,97 @@ export default async function SettingsPage() {
             </div>
         </CardContent>
       </Card>
+
+      {/* Company Settings */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Company Settings
+          </h2>
+          {company && <EditCompanyDialog company={company} />}
+        </div>
+
+        {company ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Company Name</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{company.company_name || company.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Abbreviation</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{company.abbr}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">GSTIN</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{company.tax_id || "Not Set"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Country</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{company.country || "Not Set"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="p-8 text-center text-slate-500 border-dashed">
+            <Building2 className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+            <p>No company found</p>
+            <p className="text-sm mt-1">Company needs to be set up in ERPNext first</p>
+          </Card>
+        )}
+      </div>
+
+      {/* Bank Accounts */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+            <Landmark className="h-5 w-5" />
+            Bank Accounts
+          </h2>
+          <CreateBankAccountDialog />
+        </div>
+
+        <div className="grid gap-4">
+          {bankAccounts.length === 0 ? (
+            <Card className="p-8 text-center text-slate-500 border-dashed">
+              <Landmark className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+              <p>No bank accounts found</p>
+              <p className="text-sm mt-1">Add your first bank account for invoices and quotations</p>
+            </Card>
+          ) : (
+            bankAccounts.map((account) => (
+              <Card key={account.name} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 grid md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Bank Name</p>
+                        <p className="font-medium text-slate-900 dark:text-white">{account.bank}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Account Number</p>
+                        <p className="font-medium text-slate-900 dark:text-white">{account.bank_account_no}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">IFSC Code</p>
+                        <p className="font-medium text-slate-900 dark:text-white">{account.branch_code || "—"}</p>
+                      </div>
+                    </div>
+                    {account.is_default === 1 && (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Default
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* Team Section */}
       <div className="space-y-4">

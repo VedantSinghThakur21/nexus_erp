@@ -677,6 +677,52 @@ export async function deleteQuotation(quotationId: string) {
   }
 }
 
+// ========== COMPANY & BANK DETAILS ==========
+
+// Get Company Details (for displaying on quotations/invoices)
+export async function getCompanyDetails() {
+  try {
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name", "tax_id"]',
+      limit_page_length: 1
+    });
+    
+    if (!companies || companies.length === 0) return null;
+    
+    const company = companies[0];
+    return { name: company.name, gstin: company.tax_id }
+  } catch (e) {
+    console.error('Failed to fetch company details:', e);
+    return null
+  }
+}
+
+// Get Bank Details (for displaying on quotations/invoices)
+export async function getBankDetails() {
+  try {
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name"]',
+      limit_page_length: 1
+    });
+    
+    if (!companies || companies.length === 0) return null;
+    const companyName = companies[0].name;
+    
+    const banks = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Bank Account',
+        filters: `[["company", "=", "${companyName}"], ["is_default", "=", 1]]`,
+        fields: '["bank", "bank_account_no", "branch_code"]',
+        limit_page_length: 1
+    })
+    
+    return banks[0] || null
+  } catch (e) {
+    return null
+  }
+}
+
 // ========== OPPORTUNITY STATUS MANAGEMENT ==========
 
 // 1. Mark Opportunity as Won

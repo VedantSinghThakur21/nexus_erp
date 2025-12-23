@@ -154,61 +154,8 @@ async function ensureTaxTemplate(templateName: string) {
     }
 }
 
-// 2. CREATE: Create a new Invoice (Fixed Tax Logic)
+// 2. CREATE: Create a new Invoice with Tax Template Support
 export async function createInvoice(data: any) {
-  // Calculate tax explicitly
-  const subTotal = data.items.reduce((sum: number, item: any) => sum + (item.qty * item.rate), 0)
-  
-  // Determine tax rate based on template
-  const taxRate = data.taxes_and_charges?.includes("GST") ? 18 : 0
-  
-  // Build tax rows explicitly (don't rely on templates)
-  let taxRows = []
-  
-  if (taxRate > 0) {
-    // Get company first
-    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Company',
-      fields: '["name"]',
-      limit_page_length: 1
-    });
-    const companyName = companies[0]?.name || 'AVARIQ';
-    
-    // Dynamically fetch valid tax accounts for this company
-    const cgstAcc = await getTaxAccount('CGST', companyName) || 'CGST'
-    const sgstAcc = await getTaxAccount('SGST', companyName) || 'SGST'
-    const igstAcc = await getTaxAccount('IGST', companyName) || 'IGST'
-    
-    if (data.taxes_and_charges?.includes('Out of State')) {
-      // Interstate: IGST @ 18%
-      taxRows.push({
-        charge_type: "On Net Total",
-        account_head: igstAcc,
-        description: "IGST @ 18%",
-        rate: 18,
-        tax_amount: subTotal * 0.18
-      })
-    } else {
-      // Intrastate: CGST + SGST @ 9% each
-      taxRows.push(
-        {
-          charge_type: "On Net Total",
-          account_head: cgstAcc,
-          description: "CGST @ 9%",
-          rate: 9,
-          tax_amount: subTotal * 0.09
-        },
-        {
-          charge_type: "On Net Total",
-          account_head: sgstAcc,
-          description: "SGST @ 9%",
-          rate: 9,
-          tax_amount: subTotal * 0.09
-        }
-      )
-    }
-  }
-
   const invoiceDoc: any = {
     doctype: 'Sales Invoice',
     customer: data.customer,
@@ -224,10 +171,44 @@ export async function createInvoice(data: any) {
         uom: "Nos" 
     })),
     
-    // Add explicit tax rows
-    taxes: taxRows,
-    
     docstatus: 0 // Draft mode
+  }
+
+  // Add optional fields if provided
+  if (data.place_of_supply) {
+    invoiceDoc.place_of_supply = data.place_of_supply
+  }
+
+  if (data.company) {
+    invoiceDoc.company = data.company
+  }
+
+  // If tax template is specified, fetch and add tax rows
+  if (data.taxes_and_charges) {
+    invoiceDoc.taxes_and_charges = data.taxes_and_charges
+    
+    try {
+      // Fetch the tax template to get the tax rows
+      const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Sales Taxes and Charges Template',
+        name: data.taxes_and_charges
+      })
+      
+      // Add the tax rows to the invoice
+      if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
+        invoiceDoc.taxes = taxTemplate.taxes.map((tax: any, idx: number) => ({
+          idx: idx + 1,
+          doctype: 'Sales Taxes and Charges',
+          charge_type: tax.charge_type,
+          account_head: tax.account_head,
+          description: tax.description,
+          rate: tax.rate
+        }))
+      }
+    } catch (taxError) {
+      console.error("Error fetching tax template:", taxError)
+      // Continue without taxes if template fetch fails
+    }
   }
 
   try {

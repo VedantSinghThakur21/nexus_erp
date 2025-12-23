@@ -13,11 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Loader2, ArrowLeft } from "lucide-react"
+import { Plus, Trash2, Loader2, ArrowLeft, Building2 } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
 import { getTaxTemplates, getTaxTemplate } from "@/app/actions/settings"
+import { getCompanyDetails, getBankDetails } from "@/app/actions/crm"
 
 interface QuotationItem {
   id: number
@@ -56,11 +57,21 @@ export default function EditQuotationPage() {
   const [taxTemplate, setTaxTemplate] = useState("")
   const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>>([])
   const [selectedTaxTemplateDetails, setSelectedTaxTemplateDetails] = useState<any>(null)
-
-  // Fetch tax templates on mount
+  // Company and Bank Info (for display only)
+  const [companyInfo, setCompanyInfo] = useState<{ name: string, gstin: string } | null>(null)
+  const [bankInfo, setBankInfo] = useState<{ bank: string, bank_account_no: string, branch_code: string } | null>(null)
+  // Fetch tax templates, company details, and bank details on mount
   useEffect(() => {
     getTaxTemplates().then(templates => {
       setAvailableTaxTemplates(templates)
+    })
+    
+    getCompanyDetails().then(data => {
+      if (data) setCompanyInfo(data)
+    })
+    
+    getBankDetails().then(data => {
+      if (data) setBankInfo(data)
     })
   }, [])
 
@@ -472,6 +483,38 @@ export default function EditQuotationPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Company & Bank Information (Read-only Display) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Company & Bank Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Company Details</Label>
+                <div className="space-y-1 text-sm">
+                  <p className="font-medium text-base">{companyInfo?.name || "Loading Company..."}</p>
+                  <p className="text-xs text-slate-500">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Bank Details</Label>
+                {bankInfo ? (
+                  <div className="space-y-1 text-xs" suppressHydrationWarning>
+                    <div className="flex justify-between" suppressHydrationWarning><span>Bank:</span> <span className="font-medium">{bankInfo.bank}</span></div>
+                    <div className="flex justify-between" suppressHydrationWarning><span>A/C No:</span> <span className="font-medium">{bankInfo.bank_account_no}</span></div>
+                    <div className="flex justify-between" suppressHydrationWarning><span>IFSC:</span> <span className="font-medium">{bankInfo.branch_code || "—"}</span></div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">Loading bank information...</p>
+                )}
               </div>
             </CardContent>
           </Card>

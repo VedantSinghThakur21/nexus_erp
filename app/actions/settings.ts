@@ -176,3 +176,158 @@ export async function getTaxAccounts(company: string) {
     return []
   }
 }
+
+// ========== COMPANY MANAGEMENT ==========
+
+export interface Company {
+  name: string
+  company_name: string
+  abbr: string
+  tax_id?: string // GSTIN
+  country?: string
+  default_currency?: string
+}
+
+// Get company details
+export async function getCompany() {
+  try {
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name", "company_name", "abbr", "tax_id", "country", "default_currency"]',
+      limit_page_length: 1
+    })
+    return companies[0] as Company || null
+  } catch (error) {
+    console.error("Failed to fetch company:", error)
+    return null
+  }
+}
+
+// Update company details
+export async function updateCompany(data: {
+  name: string
+  company_name?: string
+  tax_id?: string
+  country?: string
+}) {
+  try {
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Company',
+      name: data.name,
+      fieldname: {
+        ...(data.company_name && { company_name: data.company_name }),
+        ...(data.tax_id && { tax_id: data.tax_id }),
+        ...(data.country && { country: data.country })
+      }
+    })
+    revalidatePath('/settings')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to update company:", error)
+    return { error: error.message || 'Failed to update company' }
+  }
+}
+
+// ========== BANK ACCOUNT MANAGEMENT ==========
+
+export interface BankAccount {
+  name: string
+  bank: string
+  bank_account_no: string
+  branch_code?: string // IFSC
+  company: string
+  is_default: number
+}
+
+// Get bank accounts for company
+export async function getBankAccounts() {
+  try {
+    // First get company
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name"]',
+      limit_page_length: 1
+    })
+    
+    if (!companies || companies.length === 0) return []
+    const companyName = companies[0].name
+
+    const accounts = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Bank Account',
+      fields: '["name", "bank", "bank_account_no", "branch_code", "company", "is_default"]',
+      filters: `[["company", "=", "${companyName}"]]`,
+      order_by: 'is_default desc, creation desc',
+      limit_page_length: 10
+    })
+    return accounts as BankAccount[]
+  } catch (error) {
+    console.error("Failed to fetch bank accounts:", error)
+    return []
+  }
+}
+
+// Create bank account
+export async function createBankAccount(data: {
+  bank: string
+  bank_account_no: string
+  branch_code?: string
+  is_default?: boolean
+}) {
+  try {
+    // Get company name
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name"]',
+      limit_page_length: 1
+    })
+    
+    if (!companies || companies.length === 0) {
+      return { error: 'No company found. Please set up company first.' }
+    }
+    const companyName = companies[0].name
+
+    const doc = {
+      doctype: 'Bank Account',
+      bank: data.bank,
+      bank_account_no: data.bank_account_no,
+      branch_code: data.branch_code || '',
+      company: companyName,
+      is_default: data.is_default ? 1 : 0,
+      account_type: 'Bank',
+      is_company_account: 1
+    }
+
+    await frappeRequest('frappe.client.insert', 'POST', { doc })
+    revalidatePath('/settings')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to create bank account:", error)
+    return { error: error.message || 'Failed to create bank account' }
+  }
+}
+
+// Update bank account
+export async function updateBankAccount(name: string, data: {
+  bank?: string
+  bank_account_no?: string
+  branch_code?: string
+  is_default?: boolean
+}) {
+  try {
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Bank Account',
+      name: name,
+      fieldname: {
+        ...(data.bank && { bank: data.bank }),
+        ...(data.bank_account_no && { bank_account_no: data.bank_account_no }),
+        ...(data.branch_code !== undefined && { branch_code: data.branch_code }),
+        ...(data.is_default !== undefined && { is_default: data.is_default ? 1 : 0 })
+      }
+    })
+    revalidatePath('/settings')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to update bank account:", error)
+    return { error: error.message || 'Failed to update bank account' }
+  }
+}
