@@ -209,7 +209,7 @@ export default function NewQuotationPage() {
         quotationData.terms = termsAndConditions
       }
 
-      if (taxTemplate && taxTemplate.trim() !== '') {
+      if (taxTemplate && taxTemplate.trim() !== '' && taxTemplate !== 'none') {
         quotationData.taxes_and_charges = taxTemplate
       }
 
@@ -482,7 +482,7 @@ export default function NewQuotationPage() {
                     <SelectValue placeholder="Select a tax template (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {availableTaxTemplates.map(template => (
                       <SelectItem key={template.name} value={template.name}>
                         {template.title || template.name}

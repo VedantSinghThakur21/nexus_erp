@@ -111,14 +111,14 @@ export function AppSidebar() {
   return (
     <>
       {/* Mobile Sidebar (Drawer) */}
-      <div className="md:hidden fixed top-4 left-4 z-50">
+      <div className="md:hidden fixed top-4 left-4 z-50" suppressHydrationWarning>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm shadow-sm border-slate-200 dark:bg-slate-900/80 dark:border-slate-800">
+            <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm shadow-sm border-slate-200 dark:bg-slate-900/80 dark:border-slate-800" suppressHydrationWarning>
               <Menu className="h-4 w-4" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72">
+          <SheetContent side="left" className="p-0 w-72" suppressHydrationWarning>
              <div className="h-full" onClick={() => setOpen(false)}>
                 <SidebarContent />
              </div>
