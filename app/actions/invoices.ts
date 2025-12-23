@@ -419,3 +419,100 @@ export async function getTaxTemplates() {
     return []
   }
 }
+
+// 12. CREATE PAYMENT ENTRY
+export async function createPaymentEntry(data: {
+  invoiceName: string
+  paymentAmount: number
+  paymentDate: string
+  modeOfPayment?: string
+  referenceNo?: string
+  referenceDate?: string
+}) {
+  try {
+    // Fetch the invoice to get necessary details
+    const invoice = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Invoice',
+      name: data.invoiceName
+    })
+
+    if (invoice.docstatus !== 1) {
+      throw new Error('Invoice must be submitted before creating payment entry')
+    }
+
+    // Get company default cash/bank account
+    const company = invoice.company
+    const currency = invoice.currency || 'INR'
+
+    // Try to find a default bank account for the company
+    let paidToAccount = null
+    try {
+      const bankAccounts = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Bank Account',
+        filters: `[["company", "=", "${company}"], ["is_default", "=", 1]]`,
+        fields: '["account"]',
+        limit_page_length: 1
+      })
+      paidToAccount = bankAccounts[0]?.account
+    } catch (e) {
+      console.log('No default bank account found, will use company default')
+    }
+
+    // If no bank account, try to find default cash account
+    if (!paidToAccount) {
+      try {
+        const cashAccounts = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Account',
+          filters: `[["account_type", "=", "Cash"], ["company", "=", "${company}"], ["is_group", "=", 0]]`,
+          fields: '["name"]',
+          limit_page_length: 1
+        })
+        paidToAccount = cashAccounts[0]?.name
+      } catch (e) {
+        throw new Error('No default payment account found for company')
+      }
+    }
+
+    // Create Payment Entry
+    const paymentEntry = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: {
+        doctype: 'Payment Entry',
+        payment_type: 'Receive',
+        posting_date: data.paymentDate,
+        party_type: 'Customer',
+        party: invoice.customer,
+        company: company,
+        paid_amount: data.paymentAmount,
+        received_amount: data.paymentAmount,
+        paid_to: paidToAccount,
+        paid_from: invoice.debit_to,
+        paid_to_account_currency: currency,
+        paid_from_account_currency: currency,
+        mode_of_payment: data.modeOfPayment || 'Cash',
+        reference_no: data.referenceNo || '',
+        reference_date: data.referenceDate || data.paymentDate,
+        references: [
+          {
+            reference_doctype: 'Sales Invoice',
+            reference_name: data.invoiceName,
+            allocated_amount: data.paymentAmount,
+            outstanding_amount: invoice.outstanding_amount || invoice.grand_total
+          }
+        ]
+      }
+    })
+
+    // Submit the payment entry
+    await frappeRequest('frappe.client.submit', 'POST', {
+      doc: paymentEntry
+    })
+
+    revalidatePath(`/invoices/${data.invoiceName}`)
+    revalidatePath('/invoices')
+    
+    return { success: true, paymentEntry: paymentEntry.name }
+  } catch (error: any) {
+    console.error('Create payment entry error:', error)
+    return { error: error.message || 'Failed to create payment entry' }
+  }
+}

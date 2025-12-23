@@ -5,6 +5,7 @@ import { Printer, CheckCircle, Ban, Loader2 } from "lucide-react"
 import { submitInvoice, cancelInvoice } from "@/app/actions/invoices"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { PaymentDialog } from "./payment-dialog"
 
 export function InvoiceActions({ invoice }: { invoice: any }) {
   const [loading, setLoading] = useState(false)
@@ -24,6 +25,9 @@ export function InvoiceActions({ invoice }: { invoice: any }) {
     }
   }
 
+  const hasOutstanding = invoice.docstatus === 1 && 
+    (invoice.outstanding_amount > 0 || invoice.status !== 'Paid')
+
   return (
     <div className="flex items-center gap-2">
         {/* Print Button (Always Visible) */}
@@ -36,6 +40,9 @@ export function InvoiceActions({ invoice }: { invoice: any }) {
                 <Printer className="h-4 w-4" /> Print PDF
             </Button>
         </a>
+
+        {/* Payment Button (Only for Submitted with Outstanding) */}
+        {hasOutstanding && <PaymentDialog invoice={invoice} />}
 
         {/* Submit Button (Only for Drafts) */}
         {invoice.docstatus === 0 && (
