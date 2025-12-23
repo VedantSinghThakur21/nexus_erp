@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteQuotation } from '@/app/actions/crm'
 
+// API route to delete a quotation
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

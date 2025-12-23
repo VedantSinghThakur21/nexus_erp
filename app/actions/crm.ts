@@ -662,7 +662,7 @@ export async function deleteQuotation(quotationId: string) {
       throw new Error('Only Draft quotations can be deleted')
     }
 
-    // Delete the quotation
+    // Delete the quotation from ERPNext
     await frappeRequest('frappe.client.delete', 'POST', {
       doctype: 'Quotation',
       name: quotationId
