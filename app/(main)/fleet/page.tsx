@@ -19,8 +19,8 @@ export default async function FleetPage() {
 
   return (
     <div className="p-8 space-y-8" suppressHydrationWarning>
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex justify-between items-center" suppressHydrationWarning>
+        <div suppressHydrationWarning>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Fleet Manager</h1>
           <p className="text-slate-500 dark:text-slate-400">Track equipment location and status</p>
         </div>
@@ -40,8 +40,8 @@ export default async function FleetPage() {
             <CardTitle className="text-sm font-medium">Total Fleet</CardTitle>
             <Truck className="h-4 w-4 text-slate-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalAssets}</div>
+          <CardContent suppressHydrationWarning>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{totalAssets}</div>
           </CardContent>
         </Card>
         <Card>
@@ -49,8 +49,8 @@ export default async function FleetPage() {
             <CardTitle className="text-sm font-medium">Available to Rent</CardTitle>
             <Activity className="h-4 w-4 text-green-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{available}</div>
+          <CardContent suppressHydrationWarning>
+            <div className="text-2xl font-bold text-green-600" suppressHydrationWarning>{available}</div>
           </CardContent>
         </Card>
         <Card>
@@ -58,8 +58,8 @@ export default async function FleetPage() {
             <CardTitle className="text-sm font-medium">In Maintenance</CardTitle>
             <AlertTriangle className="h-4 w-4 text-orange-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{maintenance}</div>
+          <CardContent suppressHydrationWarning>
+            <div className="text-2xl font-bold text-orange-600" suppressHydrationWarning>{maintenance}</div>
           </CardContent>
         </Card>
       </div>
@@ -72,9 +72,9 @@ export default async function FleetPage() {
         <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">All Machines</h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" suppressHydrationWarning>
             {fleet.length === 0 ? (
-                <div className="col-span-full p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
-                    <div className="flex justify-center mb-4">
-                        <div className="p-4 bg-slate-100 dark:bg-slate-900 rounded-full">
+                <div className="col-span-full p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg" suppressHydrationWarning>
+                    <div className="flex justify-center mb-4" suppressHydrationWarning>
+                        <div className="p-4 bg-slate-100 dark:bg-slate-900 rounded-full" suppressHydrationWarning>
                             <Truck className="h-8 w-8 text-slate-400" />
                         </div>
                     </div>
@@ -109,9 +109,9 @@ export default async function FleetPage() {
                                 {asset.item_name || asset.item_code}
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3 text-sm">
-                                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <CardContent suppressHydrationWarning>
+                            <div className="space-y-3 text-sm" suppressHydrationWarning>
+                                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400" suppressHydrationWarning>
                                     <MapPin className="h-4 w-4" />
                                     <span>{asset.warehouse || "Unknown Location"}</span>
                                 </div>
@@ -119,12 +119,12 @@ export default async function FleetPage() {
                         </CardContent>
                     </Link>
 
-                    <div className="p-6 pt-0 mt-auto">
-                        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+                    <div className="p-6 pt-0 mt-auto" suppressHydrationWarning>
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex gap-2" suppressHydrationWarning>
                             <Link href={`/fleet/${asset.name}`} className="w-full">
                                 <Button variant="secondary" size="sm" className="w-full text-xs h-8">View History</Button>
                             </Link>
-                            <div className="w-full">
+                            <div className="w-full" suppressHydrationWarning>
                                 <BookingDialog asset={asset} />
                             </div>
                         </div>
