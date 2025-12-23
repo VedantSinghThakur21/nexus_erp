@@ -83,10 +83,12 @@ async function getRecentActivity() {
         });
         if (leads.length > 0) {
             const lead = leads[0];
+            const leadName = typeof lead.lead_name === 'string' ? lead.lead_name : String(lead.lead_name || 'Unknown');
+            const source = typeof lead.source === 'string' ? lead.source : 'Direct';
             activities.push({
                 type: 'lead',
                 title: 'New Lead Created',
-                description: `${lead.lead_name} via ${lead.source || 'Direct'}`,
+                description: `${leadName} via ${source}`,
                 value: 'Just now',
                 color: 'text-slate-500'
             });
@@ -102,11 +104,14 @@ async function getRecentActivity() {
         });
         if (invoices.length > 0) {
             const inv = invoices[0];
+            const customerName = typeof inv.customer_name === 'string' ? inv.customer_name : String(inv.customer_name || 'Unknown');
+            const invName = typeof inv.name === 'string' ? inv.name : String(inv.name || '');
+            const grandTotal = typeof inv.grand_total === 'number' ? inv.grand_total : 0;
             activities.push({
                 type: 'invoice',
                 title: 'Invoice Paid',
-                description: `${inv.customer_name} - ${inv.name}`,
-                value: `+₹${inv.grand_total.toLocaleString('en-IN')}`,
+                description: `${customerName} - ${invName}`,
+                value: `+₹${grandTotal.toLocaleString('en-IN')}`,
                 color: 'text-green-600'
             });
         }
@@ -121,10 +126,12 @@ async function getRecentActivity() {
         });
         if (bookings.length > 0) {
             const booking = bookings[0];
+            const customerName = typeof booking.customer_name === 'string' ? booking.customer_name : String(booking.customer_name || 'Unknown');
+            const bookingName = typeof booking.name === 'string' ? booking.name : String(booking.name || '');
             activities.push({
                 type: 'booking',
                 title: 'Machine Booked',
-                description: `${booking.customer_name} - ${booking.name}`,
+                description: `${customerName} - ${bookingName}`,
                 value: 'Active',
                 color: 'text-blue-600'
             });
@@ -142,6 +149,14 @@ export default async function DashboardPage() {
   const stats = await getDashboardStats()
   const revenueData = await getRevenueData()
   const recentActivity = await getRecentActivity()
+
+  // Ensure all stat values are safe to render
+  const safeStats = {
+    revenue: typeof stats.revenue === 'number' ? stats.revenue : 0,
+    active_bookings: typeof stats.active_bookings === 'number' ? stats.active_bookings : 0,
+    open_leads: typeof stats.open_leads === 'number' ? stats.open_leads : 0,
+    fleet_status: typeof stats.fleet_status === 'string' ? stats.fleet_status : '0 / 0'
+  }
 
   return (
     <div className="p-8 space-y-8" suppressHydrationWarning>
@@ -170,7 +185,7 @@ export default async function DashboardPage() {
             <Wallet className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>₹{stats.revenue.toLocaleString('en-IN')}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>₹{safeStats.revenue.toLocaleString('en-IN')}</div>
             <p className="text-xs text-muted-foreground">Collected to date</p>
           </CardContent>
         </Card>
@@ -182,7 +197,7 @@ export default async function DashboardPage() {
             <Calendar className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.active_bookings}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{safeStats.active_bookings}</div>
             <Link href="/bookings" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
                 View schedule <ArrowRight className="h-3 w-3" />
             </Link>
@@ -196,7 +211,7 @@ export default async function DashboardPage() {
             <Truck className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.fleet_status}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{safeStats.fleet_status}</div>
             <p className="text-xs text-muted-foreground">Operational Machines</p>
           </CardContent>
         </Card>
@@ -208,7 +223,7 @@ export default async function DashboardPage() {
             <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.open_leads}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{safeStats.open_leads}</div>
             <p className="text-xs text-muted-foreground">Potential Customers</p>
           </CardContent>
         </Card>
