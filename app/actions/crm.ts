@@ -570,21 +570,6 @@ export async function updateQuotation(quotationId: string, quotationData: {
     return { error: error.message || 'Failed to update quotation' }
   }
 }
-    const result = await frappeRequest('frappe.client.set_value', 'POST', {
-      doctype: 'Quotation',
-      name: quotationId,
-      fieldname: updatedQuotation
-    })
-
-    revalidatePath('/crm/quotations')
-    revalidatePath(`/crm/quotations/${quotationId}`)
-
-    return { success: true, quotation: result }
-  } catch (error: any) {
-    console.error("Update quotation error:", error)
-    return { error: error.message || 'Failed to update quotation' }
-  }
-}
 
 // 4. UPDATE: Submit Quotation (make it official)
 export async function submitQuotation(quotationId: string) {
