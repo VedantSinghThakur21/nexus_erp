@@ -135,33 +135,33 @@ export async function getLeads() {
 // 2. CREATE: Add a new lead (Expanded for Detailed View)
 export async function createLead(data: any) {
   // We switched to a JSON object 'data' to handle the larger form structure easily
-  const leadData = {
+  const leadData: any = {
     doctype: 'Lead',
     // Details
-    salutation: data.salutation,
     first_name: data.first_name,
-    middle_name: data.middle_name,
-    last_name: data.last_name,
-    job_title: data.job_title,
-    gender: data.gender,
-    source: data.source,
     status: 'Lead', // Default status
     
     // Contact Info
     email_id: data.email_id,
     mobile_no: data.mobile_no,
-    phone: data.phone,
-    website: data.website,
-    
-    // Organization
-    company_name: data.company_name, 
-    no_of_employees: data.no_of_employees,
-    annual_revenue: data.annual_revenue,
-    industry: data.industry,
-    market_segment: data.market_segment,
-    territory: data.territory,
-    fax: data.fax
   }
+
+  // Add optional fields only if they have values
+  if (data.salutation) leadData.salutation = data.salutation
+  if (data.middle_name) leadData.middle_name = data.middle_name
+  if (data.last_name) leadData.last_name = data.last_name
+  if (data.job_title) leadData.job_title = data.job_title
+  if (data.gender) leadData.gender = data.gender
+  if (data.source) leadData.source = data.source
+  if (data.phone) leadData.phone = data.phone
+  if (data.website) leadData.website = data.website
+  if (data.company_name) leadData.company_name = data.company_name
+  if (data.no_of_employees) leadData.no_of_employees = data.no_of_employees
+  if (data.annual_revenue) leadData.annual_revenue = data.annual_revenue
+  if (data.industry) leadData.industry = data.industry
+  if (data.market_segment) leadData.market_segment = data.market_segment
+  if (data.territory) leadData.territory = data.territory
+  if (data.fax) leadData.fax = data.fax
 
   try {
     await frappeRequest('frappe.client.insert', 'POST', {
@@ -170,6 +170,7 @@ export async function createLead(data: any) {
     revalidatePath('/crm')
     return { success: true }
   } catch (error: any) {
+    console.error("Create lead error:", error)
     return { error: error.message || 'Failed to create lead' }
   }
 }

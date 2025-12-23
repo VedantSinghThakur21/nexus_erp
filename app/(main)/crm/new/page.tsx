@@ -139,15 +139,23 @@ export default function NewLeadPage() {
                     </div>
                     <div className="grid gap-2">
                         <Label>Source</Label>
-                        <Select onValueChange={(val) => handleSelectChange('source', val)}>
-                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <Select onValueChange={(val) => handleSelectChange('source', val)} value={formData.source}>
+                            <SelectTrigger><SelectValue placeholder="Select source (optional)" /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-                                <SelectItem value="Website">Website</SelectItem>
-                                <SelectItem value="Referral">Referral</SelectItem>
-                                <SelectItem value="Cold Call">Cold Call</SelectItem>
+                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="Existing Customer">Existing Customer</SelectItem>
+                                <SelectItem value="Reference">Reference</SelectItem>
+                                <SelectItem value="Advertisement">Advertisement</SelectItem>
+                                <SelectItem value="Cold Calling">Cold Calling</SelectItem>
+                                <SelectItem value="Exhibition">Exhibition</SelectItem>
+                                <SelectItem value="Supplier Reference">Supplier Reference</SelectItem>
+                                <SelectItem value="Mass Mailing">Mass Mailing</SelectItem>
+                                <SelectItem value="Customer's Vendor">Customer's Vendor</SelectItem>
+                                <SelectItem value="Campaign">Campaign</SelectItem>
+                                <SelectItem value="Walk In">Walk In</SelectItem>
                             </SelectContent>
                         </Select>
+                        <p className="text-xs text-slate-500">Leave blank if not applicable</p>
                     </div>
 
                     <div className="grid gap-2">
@@ -222,7 +230,12 @@ export default function NewLeadPage() {
                     </div>
                     <div className="grid gap-2">
                         <Label>Industry</Label>
-                        <Input name="industry" value={formData.industry} onChange={handleChange} />
+                        <Input 
+                          name="industry" 
+                          value={formData.industry} 
+                          onChange={handleChange} 
+                          placeholder="e.g., Technology, Manufacturing, Healthcare (optional)"
+                        />
                     </div>
                     <div className="grid gap-2">
                         <Label>Annual Revenue</Label>
