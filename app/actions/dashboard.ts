@@ -27,7 +27,9 @@ export async function getDashboardStats() {
       filters: '[["status", "in", ["Open", "Quotation"]]]',
       limit_page_length: 1000
     })
-    const pipelineValue = opportunities.reduce((sum: number, opp: any) => sum + (opp.opportunity_amount || 0), 0)
+    const pipelineValue = Array.isArray(opportunities) 
+      ? opportunities.reduce((sum: number, opp: any) => sum + (opp.opportunity_amount || 0), 0)
+      : 0
 
     // 4. Deals Won This Month (Converted Opportunities)
     const dealsWonMTD = await frappeRequest('frappe.client.get_count', 'GET', {
@@ -40,8 +42,8 @@ export async function getDashboardStats() {
       doctype: 'Opportunity',
       filters: `[["status", "=", "Lost"], ["modified", ">=", "${monthStart}"]]`
     })
-    const totalClosedMTD = dealsWonMTD + dealsLostMTD
-    const winRate = totalClosedMTD > 0 ? Math.round((dealsWonMTD / totalClosedMTD) * 100) : 0
+    const totalClosedMTD = (typeof dealsWonMTD === 'number' ? dealsWonMTD : 0) + (typeof dealsLostMTD === 'number' ? dealsLostMTD : 0)
+    const winRate = totalClosedMTD > 0 ? Math.round(((typeof dealsWonMTD === 'number' ? dealsWonMTD : 0) / totalClosedMTD) * 100) : 0
 
     // 6. Get Total Revenue (from Invoices)
     const invoices = await frappeRequest('frappe.client.get_list', 'GET', {
@@ -50,7 +52,9 @@ export async function getDashboardStats() {
       filters: '[["docstatus", "=", 1]]',
       limit_page_length: 1000
     })
-    const revenue = invoices.reduce((sum: number, inv: any) => sum + inv.grand_total, 0)
+    const revenue = Array.isArray(invoices)
+      ? invoices.reduce((sum: number, inv: any) => sum + (inv.grand_total || 0), 0)
+      : 0
 
     // 7. Get Active Bookings (Sales Orders)
     const bookings = await frappeRequest('frappe.client.get_count', 'GET', {
@@ -60,14 +64,14 @@ export async function getDashboardStats() {
 
     return {
       // CRM Metrics
-      newLeadsToday,
-      openOpportunities,
-      pipelineValue,
-      dealsWonMTD,
-      winRate,
+      newLeadsToday: typeof newLeadsToday === 'number' ? newLeadsToday : 0,
+      openOpportunities: typeof openOpportunities === 'number' ? openOpportunities : 0,
+      pipelineValue: typeof pipelineValue === 'number' ? pipelineValue : 0,
+      dealsWonMTD: typeof dealsWonMTD === 'number' ? dealsWonMTD : 0,
+      winRate: typeof winRate === 'number' ? winRate : 0,
       // Legacy Metrics
-      revenue,
-      active_bookings: bookings,
+      revenue: typeof revenue === 'number' ? revenue : 0,
+      active_bookings: typeof bookings === 'number' ? bookings : 0,
       fleet_status: "N/A"
     }
 
@@ -103,9 +107,15 @@ export async function getSalesPipelineFunnel() {
       limit_page_length: 1000
     })
 
+    // Validate opportunities is an array
+    if (!Array.isArray(opportunities)) {
+      console.error("getSalesPipelineFunnel: opportunities is not an array:", opportunities)
+      return []
+    }
+
     // Group by stage
     const stages: Record<string, { count: number, value: number }> = {
-      'Lead': { count: leadsCount, value: leadsCount * 100000 }, // Estimate
+      'Lead': { count: typeof leadsCount === 'number' ? leadsCount : 0, value: (typeof leadsCount === 'number' ? leadsCount : 0) * 100000 },
       'Prospecting': { count: 0, value: 0 },
       'Qualification': { count: 0, value: 0 },
       'Proposal': { count: 0, value: 0 },
@@ -143,6 +153,12 @@ export async function getDealsByStage() {
       limit_page_length: 1000
     })
 
+    // Validate opportunities is an array
+    if (!Array.isArray(opportunities)) {
+      console.error("getDealsByStage: opportunities is not an array:", opportunities)
+      return []
+    }
+
     const stages: Record<string, number> = {
       'PROSP': 0,  // Prospecting
       'QUAL': 0,   // Qualification  
@@ -162,10 +178,11 @@ export async function getDealsByStage() {
     // Get won this month
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-    stages.WON = await frappeRequest('frappe.client.get_count', 'GET', {
+    const wonCount = await frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Opportunity',
       filters: `[["status", "=", "Converted"], ["modified", ">=", "${monthStart}"]]`
     })
+    stages.WON = typeof wonCount === 'number' ? wonCount : 0
 
     return [
       { stage: 'PROSP', count: stages.PROSP },
@@ -193,10 +210,16 @@ export async function getMyOpenLeads() {
       limit_page_length: 5
     })
 
+    // Validate leads is an array
+    if (!Array.isArray(leads)) {
+      console.error("getMyOpenLeads: leads is not an array:", leads)
+      return []
+    }
+
     return leads.map((lead: any) => ({
-      name: lead.lead_name,
+      name: lead.lead_name || 'Unknown',
       company: lead.company_name || 'N/A',
-      status: lead.status,
+      status: lead.status || 'Open',
       lastContact: getTimeAgo(new Date(lead.modified))
     }))
   } catch (error) {
@@ -218,11 +241,17 @@ export async function getMyOpenOpportunities() {
       limit_page_length: 5
     })
 
+    // Validate opportunities is an array
+    if (!Array.isArray(opportunities)) {
+      console.error("getMyOpenOpportunities: opportunities is not an array:", opportunities)
+      return []
+    }
+
     return opportunities.map((opp: any) => ({
-      name: opp.title || opp.name,
+      name: opp.title || opp.name || 'Unknown',
       stage: opp.sales_stage || 'Prospecting',
-      value: opp.opportunity_amount || 0,
-      probability: opp.probability || 0
+      value: typeof opp.opportunity_amount === 'number' ? opp.opportunity_amount : 0,
+      probability: typeof opp.probability === 'number' ? opp.probability : 0
     }))
   } catch (error) {
     console.error("My Open Opportunities Error:", error)
