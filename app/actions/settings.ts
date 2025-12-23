@@ -136,15 +136,27 @@ export async function createTaxTemplate(data: {
   }>
 }) {
   try {
+    // Append company abbreviation to account heads if not already present
+    const taxesWithCompany = data.taxes.map((tax, idx) => {
+      let accountHead = tax.account_head
+      // Check if account head already has company suffix
+      if (!accountHead.includes(` - ${data.company}`)) {
+        accountHead = `${accountHead} - ${data.company}`
+      }
+      
+      return {
+        idx: idx + 1,
+        doctype: 'Sales Taxes and Charges',
+        ...tax,
+        account_head: accountHead
+      }
+    })
+
     const doc = {
       doctype: 'Sales Taxes and Charges Template',
       title: data.title,
       company: data.company,
-      taxes: data.taxes.map((tax, idx) => ({
-        idx: idx + 1,
-        doctype: 'Sales Taxes and Charges',
-        ...tax
-      }))
+      taxes: taxesWithCompany
     }
 
     const template = await frappeRequest('frappe.client.insert', 'POST', { doc })

@@ -164,11 +164,11 @@ export function CreateTaxTemplateDialog() {
               {taxRows.map((row, index) => (
                 <div key={row.id} className="grid grid-cols-12 gap-2 items-end pb-3 border-b last:border-0">
                   <div className="col-span-3">
-                    <Label className="text-xs">Account Head *</Label>
+                    <Label className="text-xs">Account Head (without company) *</Label>
                     <Input
                       value={row.account_head}
                       onChange={(e) => updateTaxRow(row.id, 'account_head', e.target.value)}
-                      placeholder="e.g., Output Tax CGST"
+                      placeholder="Output Tax CGST"
                       className="mt-1"
                     />
                   </div>
@@ -178,7 +178,7 @@ export function CreateTaxTemplateDialog() {
                     <Input
                       value={row.description}
                       onChange={(e) => updateTaxRow(row.id, 'description', e.target.value)}
-                      placeholder="e.g., CGST @ 9%"
+                      placeholder="CGST @ 9%"
                       className="mt-1"
                     />
                   </div>
@@ -227,9 +227,12 @@ export function CreateTaxTemplateDialog() {
               ))}
             </div>
 
-            <p className="text-xs text-slate-500">
-              Common example: For 18% GST, add two rows - CGST @ 9% and SGST @ 9%
-            </p>
+            <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1 bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
+              <p className="font-semibold text-blue-900 dark:text-blue-100">Example for 18% GST:</p>
+              <p>Row 1: Account Head: <code className="bg-white dark:bg-slate-800 px-1 rounded">Output Tax CGST</code>, Description: "CGST @ 9%", Rate: 9</p>
+              <p>Row 2: Account Head: <code className="bg-white dark:bg-slate-800 px-1 rounded">Output Tax SGST</code>, Description: "SGST @ 9%", Rate: 9</p>
+              <p className="mt-2 text-green-700 dark:text-green-400">✓ Company abbreviation ({company}) will be added automatically</p>
+            </div>
           </div>
 
           <div className="flex justify-end gap-4">
