@@ -74,7 +74,6 @@ export default function NewQuotationPage() {
       setAvailableTaxTemplates(templates)
     })
   }, [])
-  const [taxTemplate, setTaxTemplate] = useState("")
 
   // Prefill from opportunity if provided
   useEffect(() => {
