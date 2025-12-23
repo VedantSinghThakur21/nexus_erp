@@ -726,9 +726,25 @@ export async function getBankDetails() {
 
 // ========== OPPORTUNITY STATUS MANAGEMENT ==========
 
-// 1. Mark Opportunity as Won
-export async function markOpportunityAsWon(opportunityId: string) {
+// 1. Mark Opportunity as Won (and optionally create Customer)
+export async function markOpportunityAsWon(opportunityId: string, createCustomer: boolean = true) {
   try {
+    // Fetch opportunity details
+    const opportunity = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Opportunity',
+      name: opportunityId
+    })
+
+    if (!opportunity) throw new Error("Opportunity not found")
+
+    // If opportunity is from a Lead and we want to create customer
+    if (createCustomer && opportunity.opportunity_from === 'Lead') {
+      const customerResult = await convertOpportunityToCustomer(opportunityId)
+      if (customerResult.error) {
+        console.warn('Customer creation failed, but continuing to mark as won:', customerResult.error)
+      }
+    }
+
     await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Opportunity',
       name: opportunityId,
@@ -745,6 +761,88 @@ export async function markOpportunityAsWon(opportunityId: string) {
   } catch (error: any) {
     console.error("Mark as won error:", error)
     return { error: error.message || 'Failed to mark as won' }
+  }
+}
+
+// Convert Opportunity to Customer
+export async function convertOpportunityToCustomer(opportunityId: string) {
+  try {
+    // 1. Fetch Opportunity Details
+    const opportunity = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Opportunity',
+      name: opportunityId
+    })
+
+    if (!opportunity) throw new Error("Opportunity not found")
+
+    // 2. If it's already from a Customer, nothing to do
+    if (opportunity.opportunity_from === 'Customer') {
+      return { success: true, customerId: opportunity.party_name, alreadyCustomer: true }
+    }
+
+    // 3. Get Lead details if opportunity is from Lead
+    let customerName = opportunity.customer_name || opportunity.party_name
+    let email = null
+    let mobile = null
+    let territory = 'All Territories'
+
+    if (opportunity.opportunity_from === 'Lead') {
+      try {
+        const lead = await frappeRequest('frappe.client.get', 'GET', {
+          doctype: 'Lead',
+          name: opportunity.party_name
+        })
+        customerName = lead.company_name || lead.lead_name
+        email = lead.email_id
+        mobile = lead.mobile_no
+        territory = lead.territory || territory
+      } catch (e) {
+        console.warn('Could not fetch lead details:', e)
+      }
+    }
+
+    // 4. Create Customer
+    const customerData = {
+      doctype: 'Customer',
+      customer_name: customerName,
+      customer_type: 'Company',
+      territory: territory,
+      email_id: email,
+      mobile_no: mobile
+    }
+
+    const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData })
+
+    // 5. Update Opportunity to link to Customer
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Opportunity',
+      name: opportunityId,
+      fieldname: {
+        opportunity_from: 'Customer',
+        party_name: customer.name
+      }
+    })
+
+    // 6. If from Lead, update Lead status to Converted
+    if (opportunity.opportunity_from === 'Lead') {
+      try {
+        await frappeRequest('frappe.client.set_value', 'POST', {
+          doctype: 'Lead',
+          name: opportunity.party_name,
+          fieldname: 'status',
+          value: 'Converted'
+        })
+      } catch (e) {
+        console.warn('Could not update lead status:', e)
+      }
+    }
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/opportunities')
+    return { success: true, customerId: customer.name }
+  } catch (error: any) {
+    console.error("Convert opportunity to customer error:", error)
+    return { error: error.message || 'Failed to convert to customer' }
   }
 }
 
