@@ -750,7 +750,6 @@ export async function markOpportunityAsWon(opportunityId: string, createCustomer
       name: opportunityId,
       fieldname: {
         status: 'Converted',
-        sales_stage: 'Won',
         probability: 100
       }
     })
@@ -854,7 +853,6 @@ export async function markOpportunityAsLost(opportunityId: string, lostReason: s
       name: opportunityId,
       fieldname: {
         status: 'Lost',
-        sales_stage: 'Lost',
         probability: 0,
         order_lost_reason: lostReason
       }

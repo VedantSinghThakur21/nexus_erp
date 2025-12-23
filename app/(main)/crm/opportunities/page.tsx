@@ -44,18 +44,18 @@ export default async function OpportunitiesPage() {
     : 0
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
+    <div className="p-8 space-y-6" suppressHydrationWarning>
+      <div className="flex justify-between items-start" suppressHydrationWarning>
+        <div className="flex-1" suppressHydrationWarning>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sales Pipeline</h1>
           <p className="text-slate-500 dark:text-slate-400">Track opportunities through the sales process</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-sm text-slate-500">Total Pipeline Value</div>
-            <div className="text-2xl font-bold text-green-600">₹{totalPipelineValue.toLocaleString('en-IN')}</div>
+        <div className="flex items-center gap-4" suppressHydrationWarning>
+          <div className="text-right" suppressHydrationWarning>
+            <div className="text-sm text-slate-500" suppressHydrationWarning>Total Pipeline Value</div>
+            <div className="text-2xl font-bold text-green-600" suppressHydrationWarning>₹{totalPipelineValue.toLocaleString('en-IN')}</div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2" suppressHydrationWarning>
             <Link href="/crm/quotations">
               <Button variant="outline" className="gap-2">
                 <FileText className="h-4 w-4" /> Quotations
@@ -69,14 +69,14 @@ export default async function OpportunitiesPage() {
       </div>
 
       {/* Pipeline Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3" suppressHydrationWarning>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Opportunities</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeOpportunities.length}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{activeOpportunities.length}</div>
           </CardContent>
         </Card>
         
@@ -86,7 +86,7 @@ export default async function OpportunitiesPage() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{wonThisMonth}</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{wonThisMonth}</div>
           </CardContent>
         </Card>
 
@@ -96,7 +96,7 @@ export default async function OpportunitiesPage() {
             <Calendar className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{avgProbability}%</div>
+            <div className="text-2xl font-bold" suppressHydrationWarning>{avgProbability}%</div>
           </CardContent>
         </Card>
       </div>
