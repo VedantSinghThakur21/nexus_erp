@@ -72,6 +72,21 @@ export default async function DashboardPage() {
   const myLeads = await getMyOpenLeads()
   const myOpportunities = await getMyOpenOpportunities()
 
+  // Safe validation - ensure all data is arrays/objects, not error objects
+  const safePipelineFunnel = Array.isArray(pipelineFunnel) ? pipelineFunnel : []
+  const safeDealsByStage = Array.isArray(dealsByStage) ? dealsByStage : []
+  const safeRevenueData = Array.isArray(revenueData) ? revenueData : []
+  const safeMyLeads = Array.isArray(myLeads) ? myLeads : []
+  const safeMyOpportunities = Array.isArray(myOpportunities) ? myOpportunities : []
+  
+  const safeStats = {
+    newLeadsToday: typeof stats.newLeadsToday === 'number' ? stats.newLeadsToday : 0,
+    openOpportunities: typeof stats.openOpportunities === 'number' ? stats.openOpportunities : 0,
+    pipelineValue: typeof stats.pipelineValue === 'number' ? stats.pipelineValue : 0,
+    dealsWonMTD: typeof stats.dealsWonMTD === 'number' ? stats.dealsWonMTD : 0,
+    winRate: typeof stats.winRate === 'number' ? stats.winRate : 0
+  }
+
   return (
     <div className="p-6 lg:p-8 space-y-6" suppressHydrationWarning>
       {/* Header */}
@@ -102,7 +117,7 @@ export default async function DashboardPage() {
               <Users className="h-4 w-4 text-slate-400" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.newLeadsToday}</span>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{safeStats.newLeadsToday}</span>
               <span className="text-xs text-green-600 flex items-center gap-0.5">
                 <TrendingUp className="h-3 w-3" /> +2
               </span>
@@ -118,7 +133,7 @@ export default async function DashboardPage() {
               <Briefcase className="h-4 w-4 text-slate-400" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.openOpportunities}</span>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{safeStats.openOpportunities}</span>
               <span className="text-xs text-green-600 flex items-center gap-0.5">
                 <TrendingUp className="h-3 w-3" /> +4%
               </span>
@@ -135,7 +150,7 @@ export default async function DashboardPage() {
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                ₹{(stats.pipelineValue / 100000).toFixed(1)}L
+                ₹{(safeStats.pipelineValue / 100000).toFixed(1)}L
               </span>
               <span className="text-xs text-green-600 flex items-center gap-0.5">
                 <TrendingUp className="h-3 w-3" /> +10%
@@ -152,7 +167,7 @@ export default async function DashboardPage() {
               <Trophy className="h-4 w-4 text-slate-400" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.dealsWonMTD}</span>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{safeStats.dealsWonMTD}</span>
               <span className="text-xs text-slate-500">On track</span>
             </div>
           </CardContent>
@@ -166,7 +181,7 @@ export default async function DashboardPage() {
               <Target className="h-4 w-4 text-slate-400" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.winRate}%</span>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{safeStats.winRate}%</span>
               <span className="text-xs text-green-600 flex items-center gap-0.5">
                 <TrendingUp className="h-3 w-3" /> +2%
               </span>
@@ -182,11 +197,11 @@ export default async function DashboardPage() {
         <Card className="lg:col-span-1">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold">Sales Pipeline Funnel</CardTitle>
-            <p className="text-xs text-slate-500">₹{(stats.pipelineValue / 100000).toFixed(1)}L Potential Value</p>
+            <p className="text-xs text-slate-500">₹{(safeStats.pipelineValue / 100000).toFixed(1)}L Potential Value</p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {pipelineFunnel.map((stage, idx) => {
-              const maxValue = Math.max(...pipelineFunnel.map(s => s.value))
+            {safePipelineFunnel.map((stage, idx) => {
+              const maxValue = Math.max(...safePipelineFunnel.map(s => s.value), 1)
               const width = maxValue > 0 ? (stage.value / maxValue) * 100 : 0
               
               return (
@@ -211,12 +226,12 @@ export default async function DashboardPage() {
         <Card className="lg:col-span-1">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold">Deals by Stage</CardTitle>
-            <p className="text-xs text-slate-500">{stats.openOpportunities} Active Deals</p>
+            <p className="text-xs text-slate-500">{safeStats.openOpportunities} Active Deals</p>
           </CardHeader>
           <CardContent>
             <div className="flex items-end justify-between h-48 gap-2">
-              {dealsByStage.map((stage) => {
-                const maxCount = Math.max(...dealsByStage.map(s => s.count), 1)
+              {safeDealsByStage.map((stage) => {
+                const maxCount = Math.max(...safeDealsByStage.map(s => s.count), 1)
                 const height = (stage.count / maxCount) * 100
                 
                 return (
@@ -248,8 +263,8 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="h-48 flex items-end justify-between gap-1">
-              {revenueData.map((month, idx) => {
-                const maxTotal = Math.max(...revenueData.map(m => m.total), 1)
+              {safeRevenueData.map((month, idx) => {
+                const maxTotal = Math.max(...safeRevenueData.map(m => m.total), 1)
                 const height = (month.total / maxTotal) * 100
                 
                 return (
@@ -284,11 +299,11 @@ export default async function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            {myLeads.length === 0 ? (
+            {safeMyLeads.length === 0 ? (
               <div className="text-center py-8 text-slate-500 text-sm">No open leads</div>
             ) : (
               <div className="space-y-3">
-                {myLeads.map((lead, idx) => (
+                {safeMyLeads.map((lead, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
                     <div className="flex-1">
                       <p className="font-medium text-sm text-slate-900 dark:text-white">{lead.name}</p>
@@ -316,11 +331,11 @@ export default async function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            {myOpportunities.length === 0 ? (
+            {safeMyOpportunities.length === 0 ? (
               <div className="text-center py-8 text-slate-500 text-sm">No open opportunities</div>
             ) : (
               <div className="space-y-3">
-                {myOpportunities.map((opp, idx) => (
+                {safeMyOpportunities.map((opp, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
                     <div className="flex-1">
                       <p className="font-medium text-sm text-slate-900 dark:text-white">{opp.name}</p>
