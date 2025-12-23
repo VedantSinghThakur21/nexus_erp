@@ -90,9 +90,6 @@ export async function getEquipmentBookingHistory(equipmentId: string) {
     return []
   }
 }
-    return null
-  }
-}
 
 // --- HELPER: Smart Auto-Creation ---
 async function ensureMasterData(doctype: string, name: string, extraFields: any = {}): Promise<string> {
