@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
       order_type,
       items,
       payment_terms_template,
-      terms
+      terms,
+      taxes_and_charges
     } = body
 
     // Validate required fields
@@ -50,6 +51,10 @@ export async function POST(request: NextRequest) {
     
     if (terms && terms.trim() !== '') {
       quotationPayload.terms = terms
+    }
+
+    if (taxes_and_charges && taxes_and_charges.trim() !== '') {
+      quotationPayload.taxes_and_charges = taxes_and_charges
     }
 
     const quotation = await createQuotation(quotationPayload)
