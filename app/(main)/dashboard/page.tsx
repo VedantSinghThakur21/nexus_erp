@@ -199,26 +199,47 @@ export default async function DashboardPage() {
             <CardTitle className="text-base font-semibold">Sales Pipeline Funnel</CardTitle>
             <p className="text-xs text-slate-500">₹{(safeStats.pipelineValue / 100000).toFixed(1)}L Potential Value</p>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {safePipelineFunnel.map((stage, idx) => {
-              const maxValue = Math.max(...safePipelineFunnel.map(s => s.value), 1)
-              const width = maxValue > 0 ? (stage.value / maxValue) * 100 : 0
-              
-              return (
-                <div key={stage.stage}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{stage.stage} ({stage.count})</span>
-                    <span className="text-slate-500">₹{(stage.value / 100000).toFixed(1)}L</span>
+          <CardContent>
+            <div className="space-y-2">
+              {safePipelineFunnel.map((stage, idx) => {
+                const maxValue = safePipelineFunnel[0]?.value || 1
+                const width = maxValue > 0 ? (stage.value / maxValue) * 100 : 0
+                const isLast = idx === safePipelineFunnel.length - 1
+                
+                // Color gradient from blue to green
+                const colors = [
+                  'bg-blue-500',
+                  'bg-blue-400', 
+                  'bg-cyan-400',
+                  'bg-teal-400',
+                  'bg-green-500'
+                ]
+                const color = colors[idx] || 'bg-blue-500'
+                
+                return (
+                  <div key={stage.stage} className="flex flex-col items-center">
+                    <div className="w-full flex justify-center">
+                      <div 
+                        className={`${color} transition-all relative flex items-center justify-between px-4 py-3 text-white font-medium`}
+                        style={{ 
+                          width: `${width}%`,
+                          minWidth: '60%',
+                          clipPath: isLast 
+                            ? 'polygon(10% 0%, 90% 0%, 80% 100%, 20% 100%)'
+                            : 'polygon(5% 0%, 95% 0%, 90% 100%, 10% 100%)'
+                        }}
+                      >
+                        <span className="text-xs truncate">{stage.stage}</span>
+                        <span className="text-xs font-semibold">{stage.count}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      ₹{(stage.value / 100000).toFixed(1)}L
+                    </div>
                   </div>
-                  <div className="w-full h-8 bg-slate-100 dark:bg-slate-800 rounded overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500 dark:bg-blue-600 rounded transition-all"
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </CardContent>
         </Card>
 
