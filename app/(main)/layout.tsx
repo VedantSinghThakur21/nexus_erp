@@ -6,10 +6,9 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    // FIX: Added to ignore browser extension attributes
     <div 
+      suppressHydrationWarning
       className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950"
-     
     >
       <AppSidebar />
       

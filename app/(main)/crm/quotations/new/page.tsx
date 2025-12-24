@@ -292,10 +292,10 @@ export default function NewQuotationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
+      <div suppressHydrationWarning className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
+        <div suppressHydrationWarning className="mb-6">
           <Link href="/crm/quotations">
             <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-blue-600 mb-4">
               <ArrowLeft className="h-4 w-4" /> Back to Quotations
