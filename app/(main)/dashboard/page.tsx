@@ -2,6 +2,7 @@ import { getDashboardStats, getSalesPipelineFunnel, getDealsByStage, getMyOpenLe
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { AnimatedStatCard, AnimatedCard, AnimatedButton, AnimatedBadge, AnimatedList, AnimatedListItem } from "@/components/ui/animated"
 import { TrendingUp, TrendingDown, Users, Briefcase, DollarSign, Target, Trophy, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { frappeRequest } from "@/app/lib/api"
@@ -110,91 +111,56 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         
         {/* New Leads Today */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">New Leads Today</span>
-              <Users className="h-4 w-4 text-slate-400" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{safeStats.newLeadsToday}</span>
-              <span className="text-xs text-green-600 flex items-center gap-0.5">
-                <TrendingUp className="h-3 w-3" /> +2
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="New Leads Today"
+          value={safeStats.newLeadsToday}
+          change={{ value: 2, trend: 'up' }}
+          icon={<Users className="h-5 w-5" />}
+          delay={0}
+        />
 
         {/* Open Opportunities */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Open Opportunities</span>
-              <Briefcase className="h-4 w-4 text-slate-400" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{safeStats.openOpportunities}</span>
-              <span className="text-xs text-green-600 flex items-center gap-0.5">
-                <TrendingUp className="h-3 w-3" /> +4%
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Open Opportunities"
+          value={safeStats.openOpportunities}
+          change={{ value: 4, trend: 'up' }}
+          icon={<Briefcase className="h-5 w-5" />}
+          delay={0.1}
+        />
 
         {/* Pipeline Value */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Pipeline Value</span>
-              <DollarSign className="h-4 w-4 text-slate-400" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                ₹{(safeStats.pipelineValue / 100000).toFixed(1)}L
-              </span>
-              <span className="text-xs text-green-600 flex items-center gap-0.5">
-                <TrendingUp className="h-3 w-3" /> +10%
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Pipeline Value"
+          value={`₹${(safeStats.pipelineValue / 100000).toFixed(1)}L`}
+          change={{ value: 10, trend: 'up' }}
+          icon={<DollarSign className="h-5 w-5" />}
+          variant="neon"
+          delay={0.2}
+        />
 
         {/* Deals Won MTD */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Deals Won MTD</span>
-              <Trophy className="h-4 w-4 text-slate-400" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{safeStats.dealsWonMTD}</span>
-              <span className="text-xs text-slate-500">On track</span>
-            </div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Deals Won MTD"
+          value={safeStats.dealsWonMTD}
+          icon={<Trophy className="h-5 w-5" />}
+          delay={0.3}
+        />
 
         {/* Win Rate % */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Win Rate %</span>
-              <Target className="h-4 w-4 text-slate-400" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">{safeStats.winRate}%</span>
-              <span className="text-xs text-green-600 flex items-center gap-0.5">
-                <TrendingUp className="h-3 w-3" /> +2%
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Win Rate %"
+          value={`${safeStats.winRate}%`}
+          change={{ value: 2, trend: 'up' }}
+          icon={<Target className="h-5 w-5" />}
+          delay={0.4}
+        />
       </div>
 
       {/* Charts Section */}
       <div className="grid gap-6 lg:grid-cols-3">
         
         {/* Sales Pipeline Funnel */}
-        <Card className="lg:col-span-1">
+        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.5}>
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold">Sales Pipeline Funnel</CardTitle>
             <p className="text-xs text-slate-500">₹{(safeStats.pipelineValue / 100000).toFixed(1)}L Potential Value</p>
@@ -242,10 +208,10 @@ export default async function DashboardPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </AnimatedCard>
 
         {/* Deals by Stage Bar Chart */}
-        <Card className="lg:col-span-1">
+        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.6}>
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold">Deals by Stage</CardTitle>
             <p className="text-xs text-slate-500">{safeStats.openOpportunities} Active Deals</p>
@@ -275,10 +241,10 @@ export default async function DashboardPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </AnimatedCard>
 
         {/* Revenue Trend Line Chart */}
-        <Card className="lg:col-span-1">
+        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.7}>
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold">Revenue Trend</CardTitle>
             <p className="text-xs text-slate-500">Last 6 Months</p>
@@ -304,82 +270,86 @@ export default async function DashboardPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </AnimatedCard>
       </div>
 
       {/* Tables Section */}
       <div className="grid gap-6 lg:grid-cols-2">
         
         {/* My Open Leads */}
-        <Card>
+        <AnimatedCard variant="glass" delay={0.8}>
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle className="text-base font-semibold">My Open Leads</CardTitle>
             <Link href="/crm">
-              <Button variant="link" size="sm" className="text-blue-600 p-0 h-auto">
+              <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
                 View All <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
+              </AnimatedButton>
             </Link>
           </CardHeader>
           <CardContent>
             {safeMyLeads.length === 0 ? (
               <div className="text-center py-8 text-slate-500 text-sm">No open leads</div>
             ) : (
-              <div className="space-y-3">
+              <AnimatedList>
                 {safeMyLeads.map((lead, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm text-slate-900 dark:text-white">{lead.name}</p>
-                      <p className="text-xs text-slate-500">{lead.company}</p>
+                  <AnimatedListItem key={idx} index={idx}>
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm text-slate-900 dark:text-white">{lead.name}</p>
+                        <p className="text-xs text-slate-500">{lead.company}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <AnimatedBadge variant="default" className="text-xs">{lead.status}</AnimatedBadge>
+                        <span className="text-xs text-slate-400">{lead.lastContact}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="secondary" className="text-xs">{lead.status}</Badge>
-                      <span className="text-xs text-slate-400">{lead.lastContact}</span>
-                    </div>
-                  </div>
+                  </AnimatedListItem>
                 ))}
-              </div>
+              </AnimatedList>
             )}
           </CardContent>
-        </Card>
+        </AnimatedCard>
 
         {/* My Open Opportunities */}
-        <Card>
+        <AnimatedCard variant="glass" delay={0.9}>
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle className="text-base font-semibold">My Open Opportunities</CardTitle>
             <Link href="/crm">
-              <Button variant="link" size="sm" className="text-blue-600 p-0 h-auto">
+              <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
                 View All <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
+              </AnimatedButton>
             </Link>
           </CardHeader>
           <CardContent>
             {safeMyOpportunities.length === 0 ? (
               <div className="text-center py-8 text-slate-500 text-sm">No open opportunities</div>
             ) : (
-              <div className="space-y-3">
+              <AnimatedList>
                 {safeMyOpportunities.map((opp, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm text-slate-900 dark:text-white">{opp.name}</p>
-                      <p className="text-xs text-slate-500">{opp.stage}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        ₹{(opp.value / 1000).toFixed(0)}K
-                      </span>
-                      <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-600" 
-                          style={{ width: `${opp.probability}%` }}
-                        />
+                  <AnimatedListItem key={idx} index={idx}>
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm text-slate-900 dark:text-white">{opp.name}</p>
+                        <p className="text-xs text-slate-500">{opp.stage}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                          ₹{(opp.value / 1000).toFixed(0)}K
+                        </span>
+                        <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-600 transition-all duration-700" 
+                            style={{ width: `${opp.probability}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </AnimatedListItem>
                 ))}
-              </div>
+              </AnimatedList>
             )}
           </CardContent>
-        </Card>
+        </AnimatedCard>
       </div>
     </div>
   )
