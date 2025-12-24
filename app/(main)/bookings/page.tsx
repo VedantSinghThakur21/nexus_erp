@@ -1,7 +1,7 @@
 import { getBookings } from "@/app/actions/bookings"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { AnimatedButton } from "@/components/ui/animated"
 import { Calendar, Truck, List, CalendarDays } from "lucide-react"
 import Link from "next/link"
 import { BookingsCalendar } from "@/components/bookings/bookings-calendar"
@@ -10,16 +10,16 @@ export default async function BookingsPage() {
   const bookings = await getBookings()
 
   return (
-    <div className="p-8 space-y-6">
+    <div suppressHydrationWarning className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Rental Bookings</h1>
-          <p className="text-slate-500 dark:text-slate-400">Manage active and upcoming rentals</p>
+          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent">Rental Bookings</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">Manage active and upcoming rentals</p>
         </div>
         <Link href="/catalogue">
-          <Button className="gap-2">
+          <AnimatedButton variant="neon" className="gap-2">
             <CalendarDays className="h-4 w-4" /> New Booking
-          </Button>
+          </AnimatedButton>
         </Link>
       </div>
 

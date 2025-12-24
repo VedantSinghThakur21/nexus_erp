@@ -18,12 +18,11 @@ export default async function ProjectsPage() {
   }
 
   return (
-    // FIX: Added to ignore browser extension attributes
-    <div className="p-8 space-y-6">
+    <div suppressHydrationWarning className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Projects</h1>
-          <p className="text-slate-500 dark:text-slate-400">Track tasks and milestones</p>
+          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent">Projects</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">Track tasks and milestones</p>
         </div>
         
         <CreateProjectDialog />

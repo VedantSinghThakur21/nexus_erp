@@ -1,7 +1,7 @@
 import { getPaymentEntries } from "@/app/actions/invoices"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { AnimatedStatCard, AnimatedCard } from "@/components/ui/animated"
+import { CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Receipt, DollarSign, Calendar, CreditCard } from "lucide-react"
 import Link from "next/link"
 
@@ -19,64 +19,49 @@ export default async function PaymentsPage() {
   const payPayments = payments.filter(p => p.payment_type === 'Pay')
 
   return (
-    <div className="p-8 space-y-6">
+    <div suppressHydrationWarning className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Payment Entries</h1>
-          <p className="text-slate-500 dark:text-slate-400">Track all payment transactions</p>
+          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent">Payment Entries</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">Track all payment transactions</p>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Payments</CardTitle>
-            <Receipt className="h-4 w-4 text-slate-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalPayments}</div>
-            <p className="text-xs text-slate-500">{draftPayments} drafts</p>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Total Payments"
+          value={totalPayments}
+          icon={<Receipt className="h-5 w-5" />}
+          delay={0}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">₹{totalAmount.toLocaleString('en-IN')}</div>
-            <p className="text-xs text-slate-500">Submitted only</p>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Total Amount"
+          value={`₹${totalAmount.toLocaleString('en-IN')}`}
+          icon={<DollarSign className="h-5 w-5" />}
+          variant="neon"
+          delay={0.1}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Received</CardTitle>
-            <CreditCard className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{receivePayments.length}</div>
-            <p className="text-xs text-slate-500">Money In</p>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Received"
+          value={receivePayments.length}
+          icon={<CreditCard className="h-5 w-5" />}
+          delay={0.2}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Paid Out</CardTitle>
-            <CreditCard className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{payPayments.length}</div>
-            <p className="text-xs text-slate-500">Money Out</p>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Paid Out"
+          value={payPayments.length}
+          icon={<CreditCard className="h-5 w-5" />}
+          delay={0.3}
+        />
       </div>
 
       {/* Payments Table */}
-      <Card>
+      <AnimatedCard variant="glass" delay={0.4}>
         <CardHeader>
           <CardTitle>All Payment Entries</CardTitle>
         </CardHeader>
@@ -84,50 +69,50 @@ export default async function PaymentsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Payment ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Date</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Party</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Type</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Mode</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-600">Amount</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Status</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-600">Action</th>
+                <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-400">Payment ID</th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-400">Date</th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-400">Party</th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-400">Type</th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-400">Mode</th>
+                  <th className="text-right py-3 px-4 font-medium text-slate-600 dark:text-slate-400">Amount</th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-600 dark:text-slate-400">Status</th>
+                  <th className="text-right py-3 px-4 font-medium text-slate-600 dark:text-slate-400">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-slate-500">
+                    <td colSpan={8} className="text-center py-8 text-slate-500 dark:text-slate-400">
                       No payment entries found
                     </td>
                   </tr>
                 ) : (
                   payments.map((payment) => (
-                    <tr key={payment.name} className="border-b hover:bg-slate-50">
+                    <tr key={payment.name} className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50">
                       <td className="py-3 px-4">
-                        <Link href={`/payments/${payment.name}`} className="text-blue-600 hover:underline font-medium">
+                        <Link href={`/payments/${payment.name}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
                           {payment.name}
                         </Link>
                       </td>
-                      <td className="py-3 px-4 text-slate-600">
+                      <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
                         {new Date(payment.posting_date).toLocaleDateString('en-IN')}
                       </td>
-                      <td className="py-3 px-4">{payment.party_name}</td>
+                      <td className="py-3 px-4 text-slate-900 dark:text-white">{payment.party_name}</td>
                       <td className="py-3 px-4">
                         <Badge variant={payment.payment_type === 'Receive' ? 'default' : 'secondary'}>
                           {payment.payment_type}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{payment.mode_of_payment || '-'}</td>
-                      <td className="py-3 px-4 text-right font-medium">
+                      <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{payment.mode_of_payment || '-'}</td>
+                      <td className="py-3 px-4 text-right font-medium text-slate-900 dark:text-white">
                         ₹{(payment.paid_amount || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 px-4">
                         <Badge className={
-                          payment.docstatus === 1 ? 'bg-green-100 text-green-700' :
-                          payment.docstatus === 2 ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
+                          payment.docstatus === 1 ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
+                          payment.docstatus === 2 ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
+                          'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300'
                         }>
                           {payment.docstatus === 1 ? 'Submitted' : payment.docstatus === 2 ? 'Cancelled' : 'Draft'}
                         </Badge>

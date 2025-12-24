@@ -117,8 +117,8 @@ export default async function OpportunitiesPage() {
         <div className="mt-8">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h2 className="text-xl font-semibold text-green-700">Won Opportunities</h2>
-              <p className="text-sm text-slate-600 mt-1">
+              <h2 className="text-xl font-semibold text-green-600 dark:text-green-400">Won Opportunities</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                 {wonOpportunities.length} deals won • ₹{wonOpportunities.reduce((sum, opp) => sum + (opp.opportunity_amount || 0), 0).toLocaleString('en-IN')} total value
               </p>
             </div>
@@ -131,16 +131,16 @@ export default async function OpportunitiesPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {wonOpportunities.slice(0, 4).map((opp) => (
               <Link key={opp.name} href={`/crm/opportunities/${opp.name}`}>
-                <Card className="hover:shadow-md transition-shadow border-green-200 bg-green-50">
+                <Card className="hover:shadow-md transition-shadow border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/30">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-base">{opp.customer_name || opp.party_name}</h3>
-                        <p className="text-xs text-slate-500 mt-1">{opp.opportunity_type}</p>
+                        <h3 className="font-semibold text-base text-slate-900 dark:text-white">{opp.customer_name || opp.party_name}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{opp.opportunity_type}</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-base font-bold text-green-700">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
-                        <Badge className="bg-green-100 text-green-700 mt-1 text-xs">Converted</Badge>
+                        <div className="text-base font-bold text-green-700 dark:text-green-400">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
+                        <Badge className="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 mt-1 text-xs">Converted</Badge>
                       </div>
                     </div>
                   </CardContent>
@@ -150,7 +150,7 @@ export default async function OpportunitiesPage() {
           </div>
           {wonOpportunities.length > 4 && (
             <div className="text-center mt-3">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 + {wonOpportunities.length - 4} more won opportunities
               </p>
             </div>
@@ -163,8 +163,8 @@ export default async function OpportunitiesPage() {
         <div className="mt-8">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h2 className="text-xl font-semibold text-red-700">Lost Opportunities</h2>
-              <p className="text-sm text-slate-600 mt-1">
+              <h2 className="text-xl font-semibold text-red-600 dark:text-red-400">Lost Opportunities</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                 {lostOpportunities.length} deals lost • ₹{lostOpportunities.reduce((sum, opp) => sum + (opp.opportunity_amount || 0), 0).toLocaleString('en-IN')} lost value
               </p>
             </div>
@@ -177,16 +177,16 @@ export default async function OpportunitiesPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {lostOpportunities.slice(0, 4).map((opp) => (
               <Link key={opp.name} href={`/crm/opportunities/${opp.name}`}>
-                <Card className="hover:shadow-md transition-shadow border-red-200 bg-red-50">
+                <Card className="hover:shadow-md transition-shadow border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-base">{opp.customer_name || opp.party_name}</h3>
-                        <p className="text-xs text-slate-500 mt-1">{opp.opportunity_type}</p>
+                        <h3 className="font-semibold text-base text-slate-900 dark:text-white">{opp.customer_name || opp.party_name}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{opp.opportunity_type}</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-base font-bold text-red-700">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
-                        <Badge className="bg-red-100 text-red-700 mt-1 text-xs">Lost</Badge>
+                        <div className="text-base font-bold text-red-700 dark:text-red-400">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
+                        <Badge className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 mt-1 text-xs">Lost</Badge>
                       </div>
                     </div>
                   </CardContent>
@@ -196,7 +196,7 @@ export default async function OpportunitiesPage() {
           </div>
           {lostOpportunities.length > 4 && (
             <div className="text-center mt-3">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 + {lostOpportunities.length - 4} more lost opportunities
               </p>
             </div>
