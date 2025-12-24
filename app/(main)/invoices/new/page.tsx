@@ -161,19 +161,19 @@ export default function NewInvoicePage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-8 space-y-6" suppressHydrationWarning>
+    <div className="max-w-5xl mx-auto p-8 space-y-6">
       {/* Top Bar */}
-      <div className="flex items-center justify-between" suppressHydrationWarning>
-        <div className="flex items-center gap-4" suppressHydrationWarning>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
             <Link href="/invoices">
                 <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
-            <div suppressHydrationWarning>
+            <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">New GST Invoice</h1>
                 <p className="text-slate-500">Create a compliant tax invoice</p>
             </div>
         </div>
-        <div className="flex gap-2" suppressHydrationWarning>
+        <div className="flex gap-2">
             <Button variant="outline" asChild><Link href="/invoices">Cancel</Link></Button>
             <Button onClick={handleSubmit} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -185,17 +185,17 @@ export default function NewInvoicePage() {
       <form onSubmit={handleSubmit} className="space-y-8">
         
         {/* Supplier & Customer Details */}
-        <div className="grid md:grid-cols-2 gap-6 items-start" suppressHydrationWarning>
+        <div className="grid md:grid-cols-2 gap-6 items-start">
             <Card className="h-full flex flex-col">
                 <CardHeader className="pb-2"><CardTitle className="text-base text-slate-500">Bill To (Customer)</CardTitle></CardHeader>
                 <CardContent className="space-y-4 flex-1">
-                    <div className="grid gap-2" suppressHydrationWarning>
+                    <div className="grid gap-2">
                         <Label>Customer Name <span className="text-red-500">*</span></Label>
                         <CustomerSearch value={customer} onChange={setCustomer} />
                         
                         {/* Dynamic Customer Info */}
                         {customerDetails ? (
-                            <div className="mt-2 text-xs text-slate-500 bg-slate-50 p-3 rounded border border-slate-100 space-y-1" suppressHydrationWarning>
+                            <div className="mt-2 text-xs text-slate-500 bg-slate-50 p-3 rounded border border-slate-100 space-y-1">
                                 {customerDetails.tax_id && <p><strong>GSTIN:</strong> {customerDetails.tax_id}</p>}
                                 {customerDetails.primary_address ? (
                                     <p className="whitespace-pre-wrap">{customerDetails.primary_address}</p>
@@ -204,12 +204,12 @@ export default function NewInvoicePage() {
                                 )}
                             </div>
                         ) : (
-                            <div className="mt-2 h-16 bg-slate-50/50 rounded border border-dashed border-slate-100 flex items-center justify-center text-xs text-slate-400" suppressHydrationWarning>
+                            <div className="mt-2 h-16 bg-slate-50/50 rounded border border-dashed border-slate-100 flex items-center justify-center text-xs text-slate-400">
                                 Customer details will appear here
                             </div>
                         )}
                     </div>
-                    <div className="grid gap-2" suppressHydrationWarning>
+                    <div className="grid gap-2">
                         <Label>Place of Supply</Label>
                         <Select value={placeOfSupply} onValueChange={setPlaceOfSupply}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -226,19 +226,19 @@ export default function NewInvoicePage() {
             <Card className="h-full flex flex-col">
                 <CardHeader className="pb-2"><CardTitle className="text-base text-slate-500">Invoice Details</CardTitle></CardHeader>
                 <CardContent className="space-y-4 flex-1">
-                    <div className="grid grid-cols-2 gap-4" suppressHydrationWarning>
-                        <div className="grid gap-2" suppressHydrationWarning>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
                             <Label>Invoice Date</Label>
                             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                         </div>
-                        <div className="grid gap-2" suppressHydrationWarning>
+                        <div className="grid gap-2">
                             <Label>Due Date</Label>
                             <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                         </div>
                     </div>
                     
                     {/* Tax Template Selection */}
-                    <div className="grid gap-2" suppressHydrationWarning>
+                    <div className="grid gap-2">
                         <Label>Tax Template</Label>
                         <Select value={taxTemplate} onValueChange={setTaxTemplate}>
                             <SelectTrigger>
@@ -256,14 +256,14 @@ export default function NewInvoicePage() {
                     </div>
 
                     {/* DYNAMIC COMPANY DETAILS */}
-                    <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded border text-sm text-slate-600 flex-1" suppressHydrationWarning>
-                        <div className="flex gap-2 items-center mb-2" suppressHydrationWarning>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded border text-sm text-slate-600 flex-1">
+                        <div className="flex gap-2 items-center mb-2">
                             <Building2 className="h-4 w-4 text-slate-400" />
                             <span className="font-semibold text-slate-800 dark:text-slate-200">
                                 {companyInfo?.name || "Loading Company..."}
                             </span>
                         </div>
-                        <div className="ml-6 space-y-1" suppressHydrationWarning>
+                        <div className="ml-6 space-y-1">
                              <p className="text-xs text-slate-500">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
                         </div>
                     </div>
@@ -280,26 +280,26 @@ export default function NewInvoicePage() {
                 </Button>
             </CardHeader>
             <CardContent className="p-0">
-                <div className="border-t" suppressHydrationWarning>
-                    <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b" suppressHydrationWarning>
-                        <div className="col-span-1 text-center" suppressHydrationWarning>#</div>
-                        <div className="col-span-4" suppressHydrationWarning>Description / Item</div>
-                        <div className="col-span-2" suppressHydrationWarning>HSN/SAC</div>
-                        <div className="col-span-1 text-right" suppressHydrationWarning>Qty</div>
-                        <div className="col-span-2 text-right" suppressHydrationWarning>Rate (₹)</div>
-                        <div className="col-span-2 text-right" suppressHydrationWarning>Amount (₹)</div>
+                <div className="border-t">
+                    <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b">
+                        <div className="col-span-1 text-center">#</div>
+                        <div className="col-span-4">Description / Item</div>
+                        <div className="col-span-2">HSN/SAC</div>
+                        <div className="col-span-1 text-right">Qty</div>
+                        <div className="col-span-2 text-right">Rate (₹)</div>
+                        <div className="col-span-2 text-right">Amount (₹)</div>
                     </div>
 
-                    <div className="divide-y" suppressHydrationWarning>
+                    <div className="divide-y">
                         {items.map((item, index) => (
-                            <div key={item.id} className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 group" suppressHydrationWarning>
-                                <div className="col-span-1 pt-2 text-center text-sm text-slate-400" suppressHydrationWarning>
+                            <div key={item.id} className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 group">
+                                <div className="col-span-1 pt-2 text-center text-sm text-slate-400">
                                     <span className="group-hover:hidden">{index + 1}</span>
                                     <Trash2 className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer" onClick={() => removeItem(item.id)} />
                                 </div>
-                                <div className="col-span-4 space-y-1" suppressHydrationWarning>
+                                <div className="col-span-4 space-y-1">
                                     {/* Using ItemSearch Component Here */}
-                                    <div className="h-8" suppressHydrationWarning>
+                                    <div className="h-8">
                                         <ItemSearch 
                                             value={item.item_code} 
                                             onChange={(code, desc) => {
@@ -315,16 +315,16 @@ export default function NewInvoicePage() {
                                         className="h-7 text-xs text-muted-foreground border-dashed border-slate-200 dark:border-slate-800 bg-transparent" 
                                     />
                                 </div>
-                                <div className="col-span-2" suppressHydrationWarning>
+                                <div className="col-span-2">
                                     <Input value={item.hsn_sac} onChange={(e) => updateItem(item.id, 'hsn_sac', e.target.value)} className="h-8 text-sm" placeholder="997319" />
                                 </div>
-                                <div className="col-span-1" suppressHydrationWarning>
+                                <div className="col-span-1">
                                     <Input type="number" value={item.qty} onChange={(e) => updateItem(item.id, 'qty', parseFloat(e.target.value) || 0)} className="h-8 text-sm text-right" />
                                 </div>
-                                <div className="col-span-2" suppressHydrationWarning>
+                                <div className="col-span-2">
                                     <Input type="number" value={item.rate} onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)} className="h-8 text-sm text-right" />
                                 </div>
-                                <div className="col-span-2 pt-2 text-right text-sm font-medium" suppressHydrationWarning>
+                                <div className="col-span-2 pt-2 text-right text-sm font-medium">
                                     ₹ {item.amount.toLocaleString('en-IN')}
                                 </div>
                             </div>
@@ -335,31 +335,31 @@ export default function NewInvoicePage() {
         </Card>
 
         {/* Footer: GST Calculation & Totals */}
-        <div className="grid md:grid-cols-2 gap-8 items-start" suppressHydrationWarning>
-            <div className="space-y-6" suppressHydrationWarning>
+        <div className="grid md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-6">
                 <Card>
                     <CardHeader className="pb-2"><CardTitle className="text-sm">Bank Details</CardTitle></CardHeader>
                     <CardContent className="text-sm space-y-1 text-slate-600">
                         {/* DYNAMIC BANK DETAILS */}
                         {bankInfo ? (
                             <>
-                                <div className="flex justify-between" suppressHydrationWarning><span>Bank:</span> <span className="font-medium">{bankInfo.bank}</span></div>
-                                <div className="flex justify-between" suppressHydrationWarning><span>A/C No:</span> <span className="font-medium">{bankInfo.bank_account_no}</span></div>
-                                <div className="flex justify-between" suppressHydrationWarning><span>IFSC:</span> <span className="font-medium">{bankInfo.branch_code || "—"}</span></div>
+                                <div className="flex justify-between"><span>Bank:</span> <span className="font-medium">{bankInfo.bank}</span></div>
+                                <div className="flex justify-between"><span>A/C No:</span> <span className="font-medium">{bankInfo.bank_account_no}</span></div>
+                                <div className="flex justify-between"><span>IFSC:</span> <span className="font-medium">{bankInfo.branch_code || "—"}</span></div>
                             </>
                         ) : (
-                            <div className="text-slate-400 italic" suppressHydrationWarning>No default bank account set.</div>
+                            <div className="text-slate-400 italic">No default bank account set.</div>
                         )}
                     </CardContent>
                 </Card>
-                <div className="text-xs text-slate-400 px-2" suppressHydrationWarning>
+                <div className="text-xs text-slate-400 px-2">
                     Declaration: We declare that this invoice shows the actual price of the goods described and all particulars are true and correct.
                 </div>
             </div>
 
             <Card className="bg-slate-50/50 dark:bg-slate-900/50">
                 <CardContent className="p-6 space-y-3">
-                    <div className="flex justify-between text-sm" suppressHydrationWarning>
+                    <div className="flex justify-between text-sm">
                         <span className="text-slate-500">Subtotal</span>
                         <span>₹ {subTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
@@ -368,28 +368,28 @@ export default function NewInvoicePage() {
                     {selectedTaxTemplateDetails?.taxes && selectedTaxTemplateDetails.taxes.length > 0 ? (
                       <>
                         {selectedTaxTemplateDetails.taxes.map((tax: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-xs" suppressHydrationWarning>
+                          <div key={idx} className="flex justify-between text-xs">
                             <span className="text-slate-400">{tax.description || tax.account_head} ({tax.rate}%)</span>
                             <span>₹ {(subTotal * (tax.rate || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                           </div>
                         ))}
-                        <div className="flex justify-between text-sm" suppressHydrationWarning>
+                        <div className="flex justify-between text-sm">
                           <span className="text-slate-500">Total Tax</span>
                           <span>₹ {taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         </div>
                       </>
                     ) : taxTemplate && taxTemplate !== 'none' ? (
-                      <div className="flex justify-between text-sm" suppressHydrationWarning>
+                      <div className="flex justify-between text-sm">
                         <span className="text-slate-500">Tax (Loading...)</span>
                         <span>₹ {taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
                     ) : null}
                     
-                    <div className="flex justify-between items-center border-t pt-3 mt-2" suppressHydrationWarning>
+                    <div className="flex justify-between items-center border-t pt-3 mt-2">
                         <span className="font-bold text-lg">Grand Total</span>
                         <span className="font-bold text-xl">₹ {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="text-right text-xs text-slate-400 pt-1" suppressHydrationWarning>
+                    <div className="text-right text-xs text-slate-400 pt-1">
                         Amount in Words: (Auto-generated on save)
                     </div>
                 </CardContent>
@@ -400,3 +400,4 @@ export default function NewInvoicePage() {
     </div>
   )
 }
+

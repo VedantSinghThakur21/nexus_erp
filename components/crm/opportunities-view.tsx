@@ -515,3 +515,4 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
     </div>
   )
 }
+

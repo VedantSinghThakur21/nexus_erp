@@ -284,3 +284,4 @@ export function OpportunitiesList({ opportunities, stages }: OpportunitiesListPr
     </>
   )
 }
+

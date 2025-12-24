@@ -283,10 +283,10 @@ export default function NewQuotationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8" suppressHydrationWarning>
-      <div className="max-w-6xl mx-auto" suppressHydrationWarning>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-6" suppressHydrationWarning>
+        <div className="mb-6">
           <Link href="/crm/quotations">
             <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-blue-600 mb-4">
               <ArrowLeft className="h-4 w-4" /> Back to Quotations
@@ -313,7 +313,7 @@ export default function NewQuotationPage() {
           </Card>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6" suppressHydrationWarning>
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Customer/Lead Information */}
           <Card>
             <CardHeader>
@@ -537,10 +537,10 @@ export default function NewQuotationPage() {
               <div>
                 <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Bank Details</Label>
                 {bankInfo ? (
-                  <div className="space-y-1 text-xs" suppressHydrationWarning>
-                    <div className="flex justify-between" suppressHydrationWarning><span>Bank:</span> <span className="font-medium">{bankInfo.bank}</span></div>
-                    <div className="flex justify-between" suppressHydrationWarning><span>A/C No:</span> <span className="font-medium">{bankInfo.bank_account_no}</span></div>
-                    <div className="flex justify-between" suppressHydrationWarning><span>IFSC:</span> <span className="font-medium">{bankInfo.branch_code || "—"}</span></div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between"><span>Bank:</span> <span className="font-medium">{bankInfo.bank}</span></div>
+                    <div className="flex justify-between"><span>A/C No:</span> <span className="font-medium">{bankInfo.bank_account_no}</span></div>
+                    <div className="flex justify-between"><span>IFSC:</span> <span className="font-medium">{bankInfo.branch_code || "—"}</span></div>
                   </div>
                 ) : (
                   <p className="text-xs text-slate-400">Loading bank information...</p>
@@ -615,3 +615,4 @@ export default function NewQuotationPage() {
     </div>
   )
 }
+

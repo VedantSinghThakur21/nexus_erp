@@ -108,3 +108,56 @@ export async function createTask(projectId: string, formData: FormData) {
   }
 }
 
+// 6. UPDATE: Update Project Details
+export async function updateProject(projectId: string, formData: FormData) {
+  try {
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Project',
+      name: projectId,
+      fieldname: {
+        status: formData.get('status'),
+        priority: formData.get('priority'),
+        expected_end_date: formData.get('end_date'),
+        percent_complete: parseInt(formData.get('percent_complete') as string) || 0
+      }
+    })
+    revalidatePath(`/projects/${projectId}`)
+    revalidatePath('/projects')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || 'Failed to update project' }
+  }
+}
+
+// 7. GET: Get Sales Orders linked to Project
+export async function getProjectSalesOrders(projectId: string) {
+  try {
+    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      filters: `[["project", "=", "${decodeURIComponent(projectId)}"]]`,
+      fields: '["name", "customer_name", "transaction_date", "grand_total", "status"]',
+      order_by: 'creation desc'
+    })
+    
+    // Get items for each order
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order: any) => {
+        try {
+          const fullOrder = await frappeRequest('frappe.client.get', 'GET', {
+            doctype: 'Sales Order',
+            name: order.name
+          })
+          return { ...order, items: fullOrder.items }
+        } catch {
+          return order
+        }
+      })
+    )
+    
+    return ordersWithItems
+  } catch (error) {
+    console.error('Failed to fetch project sales orders:', error)
+    return []
+  }
+}
+

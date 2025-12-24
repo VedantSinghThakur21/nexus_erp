@@ -47,7 +47,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const isCompleted = booking.status === 'Completed' || booking.status === 'Cancelled';
 
   return (
-    <div className="max-w-5xl mx-auto p-8 space-y-6" suppressHydrationWarning>
+    <div className="max-w-5xl mx-auto p-8 space-y-6">
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div className="flex items-center gap-4">
             <Link href="/bookings">

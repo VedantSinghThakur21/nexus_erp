@@ -71,3 +71,4 @@ export function InvoiceActions({ invoice }: { invoice: any }) {
     </div>
   )
 }
+

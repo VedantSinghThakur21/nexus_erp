@@ -22,6 +22,7 @@ import {
 import { Calendar, Loader2 } from "lucide-react"
 import { bookMachine } from "@/app/actions/fleet"
 import { searchCustomers, getInvoices } from "@/app/actions/invoices"
+import { getProjects } from "@/app/actions/projects"
 import { useRouter } from "next/navigation"
 
 export function BookingDialog({ asset }: { asset: any }) {
@@ -31,15 +32,20 @@ export function BookingDialog({ asset }: { asset: any }) {
   const [selectedCustomer, setSelectedCustomer] = useState('')
   const [customerInvoices, setCustomerInvoices] = useState<any[]>([])
   const [selectedInvoice, setSelectedInvoice] = useState('')
+  const [projects, setProjects] = useState<any[]>([])
   const router = useRouter()
 
   useEffect(() => {
-    const fetchCustomers = async () => {
-      const results = await searchCustomers('')
-      setCustomers(results)
+    const fetchData = async () => {
+      const [customerResults, projectResults] = await Promise.all([
+        searchCustomers(''),
+        getProjects()
+      ])
+      setCustomers(customerResults)
+      setProjects(projectResults)
     }
     if (open) {
-      fetchCustomers()
+      fetchData()
     }
   }, [open])
 
@@ -144,8 +150,24 @@ export function BookingDialog({ asset }: { asset: any }) {
 
           {/* Project Reference (Optional) */}
           <div className="grid gap-2">
-            <Label>Project/Site Name (Optional)</Label>
-            <Input name="project_name" placeholder="e.g. Mumbai Construction Site" />
+            <Label>Project (Optional)</Label>
+            <Select name="project_name">
+              <SelectTrigger>
+                <SelectValue placeholder="Select project..." />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.length === 0 ? (
+                  <div className="p-2 text-sm text-slate-500">No projects found</div>
+                ) : (
+                  projects.map((project) => (
+                    <SelectItem key={project.name} value={project.name}>
+                      {project.project_name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500">Link this booking to a project</p>
           </div>
 
           {/* Invoice Reference (Optional) */}
@@ -181,3 +203,4 @@ export function BookingDialog({ asset }: { asset: any }) {
     </Dialog>
   )
 }
+

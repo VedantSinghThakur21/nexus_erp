@@ -15,3 +15,4 @@ export default async function QuotationsPage() {
   return <QuotationsView quotations={quotations} proposalOpportunities={proposalOpportunities} />
 }
 
+

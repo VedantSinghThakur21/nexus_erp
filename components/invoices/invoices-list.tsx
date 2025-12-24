@@ -40,14 +40,14 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
   return (
     <>
       {/* Stats Row */}
-      <div className="grid gap-4 md:grid-cols-3" suppressHydrationWarning>
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <span className="text-muted-foreground">₹</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>₹{totalRevenue.toLocaleString('en-IN')}</div>
+            <div className="text-2xl font-bold">₹{totalRevenue.toLocaleString('en-IN')}</div>
           </CardContent>
         </Card>
       </div>
@@ -57,7 +57,7 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
           <CardTitle>Recent Invoices</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-slate-200 dark:border-slate-800" suppressHydrationWarning>
+          <div className="rounded-md border border-slate-200 dark:border-slate-800">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 dark:bg-slate-900 font-medium text-slate-500">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
@@ -80,7 +80,7 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
                   invoices.map((inv) => (
                     <tr key={inv.name} className="hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
                       <td className="p-4 font-medium text-slate-900 dark:text-white">
-                        <div className="flex items-center gap-2" suppressHydrationWarning>
+                        <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-slate-400" />
                           <Link 
                             href={`/invoices/${inv.name}`} 
@@ -124,3 +124,4 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
     </>
   )
 }
+

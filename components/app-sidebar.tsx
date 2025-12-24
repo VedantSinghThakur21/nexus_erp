@@ -45,12 +45,12 @@ function SidebarContent() {
   return (
     <div 
       className="flex h-full flex-col bg-slate-50/50 dark:bg-slate-900/50"
-      suppressHydrationWarning // FIX: Ignore Dark Reader attributes here
+     
     >
       {/* Logo Area */}
-      <div className="flex h-14 items-center border-b px-6 shrink-0" suppressHydrationWarning>
+      <div className="flex h-14 items-center border-b px-6 shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center" suppressHydrationWarning>
+            <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
               <span className="text-white font-bold text-xs">N</span>
             </div>
             <span className="text-lg font-bold text-slate-800 dark:text-slate-100">Nexus</span>
@@ -58,7 +58,7 @@ function SidebarContent() {
       </div>
 
       {/* Navigation Links */}
-      <div className="flex-1 overflow-auto py-4" suppressHydrationWarning>
+      <div className="flex-1 overflow-auto py-4">
         <nav className="grid gap-1 px-2">
           {menuItems.map((item, index) => {
             // More precise matching: exact match or starts with href followed by a slash
@@ -84,7 +84,7 @@ function SidebarContent() {
       </div>
 
       {/* Footer Links */}
-      <div className="border-t p-4 space-y-2 shrink-0" suppressHydrationWarning>
+      <div className="border-t p-4 space-y-2 shrink-0">
         <a 
             href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
             target="_blank" 
@@ -113,15 +113,15 @@ export function AppSidebar() {
   return (
     <>
       {/* Mobile Sidebar (Drawer) */}
-      <div className="md:hidden fixed top-4 left-4 z-50" suppressHydrationWarning>
+      <div className="md:hidden fixed top-4 left-4 z-50">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm shadow-sm border-slate-200 dark:bg-slate-900/80 dark:border-slate-800" suppressHydrationWarning>
+            <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm shadow-sm border-slate-200 dark:bg-slate-900/80 dark:border-slate-800">
               <Menu className="h-4 w-4" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72" suppressHydrationWarning>
-             <div className="h-full" onClick={() => setOpen(false)} suppressHydrationWarning>
+          <SheetContent side="left" className="p-0 w-72">
+             <div className="h-full" onClick={() => setOpen(false)}>
                 <SidebarContent />
              </div>
           </SheetContent>
@@ -131,10 +131,11 @@ export function AppSidebar() {
       {/* Desktop Sidebar (Fixed) */}
       <div 
         className="hidden md:flex h-screen w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
-        suppressHydrationWarning // FIX: Ignore Dark Reader attributes here too
+       
       >
         <SidebarContent />
       </div>
     </>
   )
 }
+

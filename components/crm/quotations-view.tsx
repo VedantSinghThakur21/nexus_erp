@@ -395,3 +395,4 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
     </div>
   )
 }
+

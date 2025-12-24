@@ -39,8 +39,8 @@ export default function NewMachinePage() {
   }
 
   return (
-    // FIX: Added suppressHydrationWarning to ignore browser extension attributes
-    <div className="max-w-4xl mx-auto p-8 space-y-6" suppressHydrationWarning>
+    // FIX: Added to ignore browser extension attributes
+    <div className="max-w-4xl mx-auto p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -161,3 +161,4 @@ export default function NewMachinePage() {
     </div>
   )
 }
+

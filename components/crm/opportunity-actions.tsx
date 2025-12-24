@@ -246,3 +246,4 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
     </div>
   )
 }
+

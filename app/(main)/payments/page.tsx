@@ -19,25 +19,25 @@ export default async function PaymentsPage() {
   const payPayments = payments.filter(p => p.payment_type === 'Pay')
 
   return (
-    <div className="p-8 space-y-6" suppressHydrationWarning>
+    <div className="p-8 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start" suppressHydrationWarning>
-        <div className="flex-1" suppressHydrationWarning>
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Payment Entries</h1>
           <p className="text-slate-500 dark:text-slate-400">Track all payment transactions</p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4" suppressHydrationWarning>
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Payments</CardTitle>
             <Receipt className="h-4 w-4 text-slate-600" />
           </CardHeader>
-          <CardContent suppressHydrationWarning>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{totalPayments}</div>
-            <p className="text-xs text-slate-500" suppressHydrationWarning>{draftPayments} drafts</p>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalPayments}</div>
+            <p className="text-xs text-slate-500">{draftPayments} drafts</p>
           </CardContent>
         </Card>
 
@@ -46,9 +46,9 @@ export default async function PaymentsPage() {
             <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
-          <CardContent suppressHydrationWarning>
-            <div className="text-2xl font-bold text-green-600" suppressHydrationWarning>₹{totalAmount.toLocaleString('en-IN')}</div>
-            <p className="text-xs text-slate-500" suppressHydrationWarning>Submitted only</p>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">₹{totalAmount.toLocaleString('en-IN')}</div>
+            <p className="text-xs text-slate-500">Submitted only</p>
           </CardContent>
         </Card>
 
@@ -57,9 +57,9 @@ export default async function PaymentsPage() {
             <CardTitle className="text-sm font-medium">Received</CardTitle>
             <CreditCard className="h-4 w-4 text-blue-600" />
           </CardHeader>
-          <CardContent suppressHydrationWarning>
-            <div className="text-2xl font-bold text-blue-600" suppressHydrationWarning>{receivePayments.length}</div>
-            <p className="text-xs text-slate-500" suppressHydrationWarning>Money In</p>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{receivePayments.length}</div>
+            <p className="text-xs text-slate-500">Money In</p>
           </CardContent>
         </Card>
 
@@ -68,9 +68,9 @@ export default async function PaymentsPage() {
             <CardTitle className="text-sm font-medium">Paid Out</CardTitle>
             <CreditCard className="h-4 w-4 text-red-600" />
           </CardHeader>
-          <CardContent suppressHydrationWarning>
-            <div className="text-2xl font-bold text-red-600" suppressHydrationWarning>{payPayments.length}</div>
-            <p className="text-xs text-slate-500" suppressHydrationWarning>Money Out</p>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{payPayments.length}</div>
+            <p className="text-xs text-slate-500">Money Out</p>
           </CardContent>
         </Card>
       </div>
@@ -80,8 +80,8 @@ export default async function PaymentsPage() {
         <CardHeader>
           <CardTitle>All Payment Entries</CardTitle>
         </CardHeader>
-        <CardContent suppressHydrationWarning>
-          <div className="overflow-x-auto" suppressHydrationWarning>
+        <CardContent>
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
@@ -148,3 +148,4 @@ export default async function PaymentsPage() {
     </div>
   )
 }
+

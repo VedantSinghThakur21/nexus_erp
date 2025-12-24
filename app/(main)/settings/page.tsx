@@ -16,7 +16,7 @@ export default async function SettingsPage() {
   const bankAccounts = await getBankAccounts()
 
   return (
-    <div className="p-8 space-y-8 max-w-5xl mx-auto" suppressHydrationWarning>
+    <div className="p-8 space-y-8 max-w-5xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h1>
@@ -214,3 +214,4 @@ export default async function SettingsPage() {
     </div>
   )
 }
+

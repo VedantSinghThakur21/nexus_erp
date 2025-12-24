@@ -1,19 +1,21 @@
 import { getAsset } from "@/app/actions/fleet"
+import { getAssetInspections } from "@/app/actions/inspections"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, MapPin, Calendar, Activity, History } from "lucide-react"
+import { ArrowLeft, MapPin, Calendar, Activity, History, ClipboardCheck } from "lucide-react"
 import Link from "next/link"
 import { BookingDialog } from "@/components/fleet/booking-dialog"
 
 export default async function MachineDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const machine = await getAsset(id)
+  const inspections = await getAssetInspections(id)
 
   if (!machine) return <div className="p-8">Machine not found</div>
 
   return (
-    <div className="max-w-6xl mx-auto p-8 space-y-6" suppressHydrationWarning>
+    <div className="max-w-6xl mx-auto p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -126,6 +128,49 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
             </Card>
         </div>
       </div>
+
+      {/* Inspections Section */}
+      {inspections.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-blue-600" />
+              Quality Inspections
+            </CardTitle>
+            <Link href="/inspections/new">
+              <Button size="sm" variant="outline">New Inspection</Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {inspections.map((inspection) => (
+                <Link key={inspection.name} href={`/inspections/${inspection.name}`}>
+                  <div className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <Badge className={inspection.status === 'Accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                          {inspection.status === 'Accepted' ? 'Passed' : 'Failed'}
+                        </Badge>
+                        <span className="font-medium text-slate-900 dark:text-white">
+                          {inspection.inspection_type} Inspection
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-500 mt-1">
+                        {inspection.report_date} • By {inspection.inspected_by || 'Unknown'}
+                      </div>
+                      {inspection.remarks && (
+                        <div className="text-sm text-slate-600 mt-2 line-clamp-2">
+                          {inspection.remarks}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

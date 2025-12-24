@@ -13,13 +13,13 @@ interface Activity {
 
 export function DashboardCharts({ revenueData, recentActivity }: { revenueData: any[], recentActivity: Activity[] }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" suppressHydrationWarning>
-      <Card className="col-span-4" suppressHydrationWarning>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <Card className="col-span-4">
         <CardHeader>
           <CardTitle>Revenue Overview</CardTitle>
         </CardHeader>
-        <CardContent className="pl-2" suppressHydrationWarning>
-          <div suppressHydrationWarning>
+        <CardContent className="pl-2">
+          <div>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={revenueData}>
                 <XAxis
@@ -52,24 +52,24 @@ export function DashboardCharts({ revenueData, recentActivity }: { revenueData: 
         </CardContent>
       </Card>
       
-      <Card className="col-span-3" suppressHydrationWarning>
+      <Card className="col-span-3">
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-8" suppressHydrationWarning>
+          <div className="space-y-8">
             {recentActivity.length > 0 ? (
               recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center" suppressHydrationWarning>
-                  <div className="ml-4 space-y-1" suppressHydrationWarning>
+                <div key={index} className="flex items-center">
+                  <div className="ml-4 space-y-1">
                     <p className="text-sm font-medium leading-none">{activity.title}</p>
                     <p className="text-sm text-muted-foreground">{activity.description}</p>
                   </div>
-                  <div className={`ml-auto font-medium text-sm ${activity.color}`} suppressHydrationWarning>{activity.value}</div>
+                  <div className={`ml-auto font-medium text-sm ${activity.color}`}>{activity.value}</div>
                 </div>
               ))
             ) : (
-              <div className="text-center text-sm text-muted-foreground py-8" suppressHydrationWarning>
+              <div className="text-center text-sm text-muted-foreground py-8">
                 No recent activity
               </div>
             )}
@@ -79,3 +79,4 @@ export function DashboardCharts({ revenueData, recentActivity }: { revenueData: 
     </div>
   )
 }
+

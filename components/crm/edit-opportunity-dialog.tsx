@@ -156,3 +156,4 @@ export function EditOpportunityDialog({ opportunity }: EditOpportunityDialogProp
     </Dialog>
   )
 }
+

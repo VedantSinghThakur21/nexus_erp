@@ -1,15 +1,23 @@
 import { getInspections } from "@/app/actions/inspections"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ClipboardCheck, Plus, ArrowRight, Truck } from "lucide-react"
+import { ClipboardCheck, Plus, ArrowRight, CheckCircle2, XCircle } from "lucide-react"
 import Link from "next/link"
 
 export default async function InspectionsPage() {
   const inspections = await getInspections()
 
+  const stats = {
+    total: inspections.length,
+    accepted: inspections.filter(i => i.status === 'Accepted').length,
+    rejected: inspections.filter(i => i.status === 'Rejected').length,
+    outgoing: inspections.filter(i => i.inspection_type === 'Outgoing').length,
+    incoming: inspections.filter(i => i.inspection_type === 'Incoming').length
+  }
+
   return (
-    <div className="p-8 space-y-6" suppressHydrationWarning>
+    <div className="p-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Inspections</h1>
@@ -22,6 +30,51 @@ export default async function InspectionsPage() {
             </Button>
         </Link>
       </div>
+
+      {/* Stats Cards */}
+      {inspections.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Inspections</CardTitle>
+              <ClipboardCheck className="h-4 w-4 text-slate-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Passed</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.accepted}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Failed</CardTitle>
+              <XCircle className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pre-Delivery</CardTitle>
+              <ArrowRight className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.outgoing}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid gap-4">
         {inspections.length === 0 ? (
@@ -36,7 +89,8 @@ export default async function InspectionsPage() {
            </div>
         ) : (
            inspections.map((insp) => (
-            <Card key={insp.name} className="group hover:shadow-md transition-all border-slate-200 dark:border-slate-800">
+            <Link key={insp.name} href={`/inspections/${insp.name}`}>
+              <Card className="group hover:shadow-md transition-all border-slate-200 dark:border-slate-800">
                 <CardContent className="p-6 flex items-center justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-3">
@@ -60,9 +114,11 @@ export default async function InspectionsPage() {
                     </div>
                 </CardContent>
             </Card>
+            </Link>
            ))
         )}
       </div>
     </div>
   )
 }
+

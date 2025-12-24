@@ -93,3 +93,4 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     </Popover>
   )
 }
+

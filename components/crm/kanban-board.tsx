@@ -143,3 +143,4 @@ function getStatusColor(status: string): string {
   }
   return colors[status] || '#cbd5e1'
 }
+

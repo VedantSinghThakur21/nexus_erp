@@ -542,3 +542,4 @@ function getStatusColor(status: string): string {
   }
   return colors[status] || 'bg-slate-100 text-slate-700'
 }
+

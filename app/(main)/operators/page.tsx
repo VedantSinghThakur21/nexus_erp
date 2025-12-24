@@ -9,7 +9,7 @@ export default async function OperatorsPage() {
   const operators = await getOperators()
 
   return (
-    <div className="p-8 space-y-6" suppressHydrationWarning>
+    <div className="p-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Operators</h1>
@@ -64,3 +64,4 @@ export default async function OperatorsPage() {
     </div>
   )
 }
+

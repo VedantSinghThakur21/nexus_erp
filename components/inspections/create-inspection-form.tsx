@@ -108,3 +108,4 @@ export function CreateInspectionForm({ machines }: { machines: any[] }) {
     </form>
   )
 }
+

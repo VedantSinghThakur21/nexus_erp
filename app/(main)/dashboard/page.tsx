@@ -88,9 +88,9 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-6" suppressHydrationWarning>
+    <div className="p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center" suppressHydrationWarning>
+      <div className="flex justify-between items-center">
         <div>
             <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Overview
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Performance Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5" suppressHydrationWarning>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         
         {/* New Leads Today */}
         <Card>
@@ -191,7 +191,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid gap-6 lg:grid-cols-3" suppressHydrationWarning>
+      <div className="grid gap-6 lg:grid-cols-3">
         
         {/* Sales Pipeline Funnel */}
         <Card className="lg:col-span-1">
@@ -200,7 +200,7 @@ export default async function DashboardPage() {
             <p className="text-xs text-slate-500">₹{(safeStats.pipelineValue / 100000).toFixed(1)}L Potential Value</p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-3 py-2">
               {safePipelineFunnel.map((stage, idx) => {
                 const maxValue = safePipelineFunnel[0]?.value || 1
                 const width = maxValue > 0 ? (stage.value / maxValue) * 100 : 0
@@ -217,23 +217,24 @@ export default async function DashboardPage() {
                 const color = colors[idx] || 'bg-blue-500'
                 
                 return (
-                  <div key={stage.stage} className="flex flex-col items-center">
+                  <div key={stage.stage} className="flex flex-col items-center gap-1">
                     <div className="w-full flex justify-center">
                       <div 
-                        className={`${color} transition-all relative flex items-center justify-between px-4 py-3 text-white font-medium`}
+                        className={`${color} transition-all relative`}
                         style={{ 
-                          width: `${width}%`,
-                          minWidth: '60%',
+                          width: `${Math.max(width, 70)}%`,
                           clipPath: isLast 
-                            ? 'polygon(10% 0%, 90% 0%, 80% 100%, 20% 100%)'
-                            : 'polygon(5% 0%, 95% 0%, 90% 100%, 10% 100%)'
+                            ? 'polygon(8% 0%, 92% 0%, 85% 100%, 15% 100%)'
+                            : 'polygon(3% 0%, 97% 0%, 92% 100%, 8% 100%)'
                         }}
                       >
-                        <span className="text-xs truncate">{stage.stage}</span>
-                        <span className="text-xs font-semibold">{stage.count}</span>
+                        <div className="flex items-center justify-center gap-2 px-6 py-3.5">
+                          <span className="text-sm font-medium text-white">{stage.stage}</span>
+                          <span className="text-sm font-bold text-white">({stage.count})</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
                       ₹{(stage.value / 100000).toFixed(1)}L
                     </div>
                   </div>
@@ -307,7 +308,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Tables Section */}
-      <div className="grid gap-6 lg:grid-cols-2" suppressHydrationWarning>
+      <div className="grid gap-6 lg:grid-cols-2">
         
         {/* My Open Leads */}
         <Card>
@@ -383,3 +384,4 @@ export default async function DashboardPage() {
     </div>
   )
 }
+

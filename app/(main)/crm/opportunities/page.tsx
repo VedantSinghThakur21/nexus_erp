@@ -48,18 +48,18 @@ export default async function OpportunitiesPage() {
     : 0
 
   return (
-    <div className="p-8 space-y-6" suppressHydrationWarning>
-      <div className="flex justify-between items-start" suppressHydrationWarning>
-        <div className="flex-1" suppressHydrationWarning>
+    <div className="p-8 space-y-6">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sales Pipeline</h1>
           <p className="text-slate-500 dark:text-slate-400">Track opportunities through the sales process</p>
         </div>
-        <div className="flex items-center gap-4" suppressHydrationWarning>
-          <div className="text-right" suppressHydrationWarning>
-            <div className="text-sm text-slate-500" suppressHydrationWarning>Total Pipeline Value</div>
-            <div className="text-2xl font-bold text-green-600" suppressHydrationWarning>₹{totalPipelineValue.toLocaleString('en-IN')}</div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-sm text-slate-500">Total Pipeline Value</div>
+            <div className="text-2xl font-bold text-green-600">₹{totalPipelineValue.toLocaleString('en-IN')}</div>
           </div>
-          <div className="flex gap-2" suppressHydrationWarning>
+          <div className="flex gap-2">
             <Link href="/crm/quotations">
               <Button variant="outline" className="gap-2">
                 <FileText className="h-4 w-4" /> Quotations
@@ -73,14 +73,14 @@ export default async function OpportunitiesPage() {
       </div>
 
       {/* Pipeline Stats */}
-      <div className="grid gap-4 md:grid-cols-3" suppressHydrationWarning>
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Opportunities</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{activeOpportunities.length}</div>
+            <div className="text-2xl font-bold">{activeOpportunities.length}</div>
           </CardContent>
         </Card>
         
@@ -90,7 +90,7 @@ export default async function OpportunitiesPage() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{wonThisMonth}</div>
+            <div className="text-2xl font-bold">{wonThisMonth}</div>
           </CardContent>
         </Card>
 
@@ -100,7 +100,7 @@ export default async function OpportunitiesPage() {
             <Calendar className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{avgProbability}%</div>
+            <div className="text-2xl font-bold">{avgProbability}%</div>
           </CardContent>
         </Card>
       </div>
@@ -112,23 +112,35 @@ export default async function OpportunitiesPage() {
         stages={stages} 
       />
 
-      {/* Won Opportunities Section */}
+      {/* Won Opportunities Section - Summary */}
       {wonOpportunities.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4 text-green-700">Won Opportunities ({wonOpportunities.length})</h2>
-          <div className="grid gap-4">
-            {wonOpportunities.map((opp) => (
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-green-700">Won Opportunities</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                {wonOpportunities.length} deals won • ₹{wonOpportunities.reduce((sum, opp) => sum + (opp.opportunity_amount || 0), 0).toLocaleString('en-IN')} total value
+              </p>
+            </div>
+            <Link href="/crm/opportunities?filter=won">
+              <Button variant="outline" size="sm" className="gap-2">
+                View All Won Deals
+              </Button>
+            </Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {wonOpportunities.slice(0, 4).map((opp) => (
               <Link key={opp.name} href={`/crm/opportunities/${opp.name}`}>
                 <Card className="hover:shadow-md transition-shadow border-green-200 bg-green-50">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-lg">{opp.customer_name || opp.party_name}</h3>
-                        <p className="text-sm text-slate-500">{opp.opportunity_type}</p>
+                        <h3 className="font-semibold text-base">{opp.customer_name || opp.party_name}</h3>
+                        <p className="text-xs text-slate-500 mt-1">{opp.opportunity_type}</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-green-700">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
-                        <Badge className="bg-green-100 text-green-700 mt-1">Converted</Badge>
+                        <div className="text-base font-bold text-green-700">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
+                        <Badge className="bg-green-100 text-green-700 mt-1 text-xs">Converted</Badge>
                       </div>
                     </div>
                   </CardContent>
@@ -136,26 +148,45 @@ export default async function OpportunitiesPage() {
               </Link>
             ))}
           </div>
+          {wonOpportunities.length > 4 && (
+            <div className="text-center mt-3">
+              <p className="text-sm text-slate-500">
+                + {wonOpportunities.length - 4} more won opportunities
+              </p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Lost Opportunities Section */}
+      {/* Lost Opportunities Section - Summary */}
       {lostOpportunities.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4 text-red-700">Lost Opportunities ({lostOpportunities.length})</h2>
-          <div className="grid gap-4">
-            {lostOpportunities.map((opp) => (
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-red-700">Lost Opportunities</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                {lostOpportunities.length} deals lost • ₹{lostOpportunities.reduce((sum, opp) => sum + (opp.opportunity_amount || 0), 0).toLocaleString('en-IN')} lost value
+              </p>
+            </div>
+            <Link href="/crm/opportunities?filter=lost">
+              <Button variant="outline" size="sm" className="gap-2">
+                View All Lost Deals
+              </Button>
+            </Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {lostOpportunities.slice(0, 4).map((opp) => (
               <Link key={opp.name} href={`/crm/opportunities/${opp.name}`}>
                 <Card className="hover:shadow-md transition-shadow border-red-200 bg-red-50">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-lg">{opp.customer_name || opp.party_name}</h3>
-                        <p className="text-sm text-slate-500">{opp.opportunity_type}</p>
+                        <h3 className="font-semibold text-base">{opp.customer_name || opp.party_name}</h3>
+                        <p className="text-xs text-slate-500 mt-1">{opp.opportunity_type}</p>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-red-700">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
-                        <Badge className="bg-red-100 text-red-700 mt-1">Lost</Badge>
+                        <div className="text-base font-bold text-red-700">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
+                        <Badge className="bg-red-100 text-red-700 mt-1 text-xs">Lost</Badge>
                       </div>
                     </div>
                   </CardContent>
@@ -163,8 +194,16 @@ export default async function OpportunitiesPage() {
               </Link>
             ))}
           </div>
+          {lostOpportunities.length > 4 && (
+            <div className="text-center mt-3">
+              <p className="text-sm text-slate-500">
+                + {lostOpportunities.length - 4} more lost opportunities
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
+

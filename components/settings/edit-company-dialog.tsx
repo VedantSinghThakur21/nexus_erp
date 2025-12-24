@@ -113,3 +113,4 @@ export function EditCompanyDialog({ company }: EditCompanyDialogProps) {
     </Dialog>
   )
 }
+

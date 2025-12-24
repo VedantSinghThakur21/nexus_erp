@@ -9,7 +9,7 @@ export default async function NewInspectionPage() {
   const fleet = await getFleet()
 
   return (
-    <div className="max-w-3xl mx-auto p-8 space-y-6" suppressHydrationWarning>
+    <div className="max-w-3xl mx-auto p-8 space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/inspections">
             <Button variant="ghost" size="icon">
@@ -27,3 +27,4 @@ export default async function NewInspectionPage() {
     </div>
   )
 }
+

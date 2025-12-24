@@ -11,10 +11,10 @@ export default async function InvoicesPage() {
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.grand_total, 0)
 
   return (
-    // FIX: Added suppressHydrationWarning to ignore browser extension attributes
-    <div className="p-8 space-y-6" suppressHydrationWarning>
-      <div className="flex justify-between items-center" suppressHydrationWarning>
-        <div suppressHydrationWarning>
+    // FIX: Added to ignore browser extension attributes
+    <div className="p-8 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Invoices</h1>
           <p className="text-slate-500 dark:text-slate-400">Manage billing and collections</p>
         </div>
@@ -32,3 +32,4 @@ export default async function InvoicesPage() {
     </div>
   )
 }
+

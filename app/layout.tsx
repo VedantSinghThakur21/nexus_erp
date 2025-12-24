@@ -23,13 +23,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      {/* FIX: suppressHydrationWarning prevents React from showing warnings when browser extensions 
+    <html lang="en">
+      {/* FIX: prevents React from showing warnings when browser extensions 
         (like Bitdefender, Dark Reader, LastPass) inject extra attributes into the HTML.
         This is safe and doesn't affect functionality.
       */}
       <body
-        suppressHydrationWarning
+       
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
@@ -37,3 +37,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -60,3 +60,57 @@ export async function createInspection(formData: FormData) {
     return { error: error.message || 'Failed to create inspection' }
   }
 }
+
+// 3. READ: Get Single Inspection
+export async function getInspection(id: string) {
+  try {
+    const inspection = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Quality Inspection',
+      name: decodeURIComponent(id)
+    })
+    return inspection
+  } catch (error) {
+    console.error("Failed to fetch inspection:", error)
+    return null
+  }
+}
+
+// 4. UPDATE: Update Inspection Status
+export async function updateInspection(inspectionId: string, formData: FormData) {
+  try {
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Quality Inspection',
+      name: inspectionId,
+      fieldname: {
+        status: formData.get('status'),
+        remarks: formData.get('remarks')
+      }
+    })
+    revalidatePath(`/inspections/${inspectionId}`)
+    revalidatePath('/inspections')
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message || 'Failed to update inspection' }
+  }
+}
+
+// 5. GET: Get Inspections for an Asset
+export async function getAssetInspections(assetId: string) {
+  try {
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Quality Inspection',
+        fields: '["name", "inspection_type", "status", "report_date", "inspected_by", "remarks"]',
+        filters: `[["reference_name", "=", "${decodeURIComponent(assetId)}"]]`,
+        order_by: 'report_date desc',
+        limit_page_length: 20
+      }
+    )
+    return response as Inspection[]
+  } catch (error) {
+    console.error('Failed to fetch asset inspections:', error)
+    return []
+  }
+}
