@@ -85,25 +85,4 @@ export default async function BookingsPage() {
     </div>
   )
 }
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Right: Amount & ID */}
-                        <div className="text-left sm:text-right">
-                            <p className="text-xl font-bold text-slate-900 dark:text-white">
-                                ₹{booking.grand_total.toLocaleString('en-IN')}
-                            </p>
-                            <p className="text-xs text-slate-400 font-mono mt-1">{booking.name}</p>
-                        </div>
-
-                    </CardContent>
-                </Card>
-            </Link>
-           ))
-        )}
-      </div>
-    </div>
-  )
-}
 

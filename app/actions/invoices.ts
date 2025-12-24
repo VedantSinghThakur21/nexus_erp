@@ -16,7 +16,7 @@ export interface Invoice {
 // CREATE/UPDATE ITEM
 export async function createItem(formData: FormData) {
   try {
-    const itemData = {
+    const itemData: any = {
       doctype: 'Item',
       item_code: formData.get('item_code') as string,
       item_name: formData.get('item_name') as string,
@@ -26,6 +26,17 @@ export async function createItem(formData: FormData) {
       is_stock_item: formData.get('is_stock_item') === '1' ? 1 : 0,
       stock_uom: formData.get('stock_uom') as string || 'Unit',
     }
+
+    // Add optional fields if provided
+    const brand = formData.get('brand') as string
+    const manufacturer = formData.get('manufacturer') as string
+    const openingStock = formData.get('opening_stock') as string
+    const reorderLevel = formData.get('reorder_level') as string
+
+    if (brand) itemData.brand = brand
+    if (manufacturer) itemData.manufacturer = manufacturer
+    if (openingStock) itemData.opening_stock = parseFloat(openingStock)
+    if (reorderLevel) itemData.reorder_level = parseFloat(reorderLevel)
 
     await frappeRequest('frappe.client.insert', 'POST', { doc: itemData })
     revalidatePath('/catalogue')
@@ -38,13 +49,22 @@ export async function createItem(formData: FormData) {
 
 export async function updateItem(itemCode: string, formData: FormData) {
   try {
-    const updateData = {
+    const updateData: any = {
       item_name: formData.get('item_name') as string,
       item_group: formData.get('item_group') as string,
       description: formData.get('description') as string,
       standard_rate: parseFloat(formData.get('standard_rate') as string),
       is_stock_item: formData.get('is_stock_item') === '1' ? 1 : 0,
     }
+
+    // Add optional fields if provided
+    const brand = formData.get('brand') as string
+    const manufacturer = formData.get('manufacturer') as string
+    const reorderLevel = formData.get('reorder_level') as string
+
+    if (brand) updateData.brand = brand
+    if (manufacturer) updateData.manufacturer = manufacturer
+    if (reorderLevel) updateData.reorder_level = parseFloat(reorderLevel)
 
     await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Item',
