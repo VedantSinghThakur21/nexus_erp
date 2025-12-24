@@ -12,6 +12,7 @@ import { createTask } from "@/app/actions/projects"
 export function CreateTaskDialog({ projectId }: { projectId: string }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [priority, setPriority] = useState('Medium')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -54,7 +55,7 @@ export function CreateTaskDialog({ projectId }: { projectId: string }) {
 
           <div className="grid gap-2">
             <Label htmlFor="priority">Priority</Label>
-            <Select name="priority" defaultValue="Medium">
+            <Select value={priority} onValueChange={setPriority}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -65,6 +66,7 @@ export function CreateTaskDialog({ projectId }: { projectId: string }) {
                 <SelectItem value="Urgent">Urgent</SelectItem>
               </SelectContent>
             </Select>
+            <input type="hidden" name="priority" value={priority} />
           </div>
 
           <div className="grid gap-2">

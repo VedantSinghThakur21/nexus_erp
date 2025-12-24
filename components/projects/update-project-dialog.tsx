@@ -13,6 +13,8 @@ import type { Project } from "@/app/actions/projects"
 export function UpdateProjectDialog({ project }: { project: Project }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState(project.status)
+  const [priority, setPriority] = useState(project.priority)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -44,7 +46,7 @@ export function UpdateProjectDialog({ project }: { project: Project }) {
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="grid gap-2">
             <Label htmlFor="status">Status</Label>
-            <Select name="status" defaultValue={project.status}>
+            <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -55,11 +57,12 @@ export function UpdateProjectDialog({ project }: { project: Project }) {
                 <SelectItem value="On Hold">On Hold</SelectItem>
               </SelectContent>
             </Select>
+            <input type="hidden" name="status" value={status} />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="priority">Priority</Label>
-            <Select name="priority" defaultValue={project.priority}>
+            <Select value={priority} onValueChange={setPriority}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -69,6 +72,7 @@ export function UpdateProjectDialog({ project }: { project: Project }) {
                 <SelectItem value="High">High</SelectItem>
               </SelectContent>
             </Select>
+            <input type="hidden" name="priority" value={priority} />
           </div>
 
           <div className="grid gap-2">

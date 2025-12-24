@@ -12,6 +12,7 @@ import { updateInspection } from "@/app/actions/inspections"
 export function UpdateInspectionDialog({ inspection }: { inspection: any }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState(inspection.status)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -44,7 +45,7 @@ export function UpdateInspectionDialog({ inspection }: { inspection: any }) {
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="grid gap-2">
             <Label htmlFor="status">Result Status</Label>
-            <Select name="status" defaultValue={inspection.status}>
+            <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -53,6 +54,7 @@ export function UpdateInspectionDialog({ inspection }: { inspection: any }) {
                 <SelectItem value="Rejected">Failed (Needs Repair)</SelectItem>
               </SelectContent>
             </Select>
+            <input type="hidden" name="status" value={status} />
           </div>
 
           <div className="grid gap-2">

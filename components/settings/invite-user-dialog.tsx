@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation"
 export function InviteUserDialog() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState('Sales User')
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -72,7 +73,7 @@ export function InviteUserDialog() {
           </div>
           <div className="grid gap-2">
             <Label>Role</Label>
-            <Select name="role" defaultValue="Sales User">
+            <Select value={role} onValueChange={setRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                     <SelectItem value="Sales User">Sales Person</SelectItem>
@@ -81,6 +82,7 @@ export function InviteUserDialog() {
                     <SelectItem value="System Manager">Admin</SelectItem>
                 </SelectContent>
             </Select>
+            <input type="hidden" name="role" value={role} />
           </div>
           
           <Button type="submit" disabled={loading} className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white">

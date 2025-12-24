@@ -18,6 +18,9 @@ import { useRouter } from "next/navigation"
 
 export function CreateInspectionForm({ machines }: { machines: any[] }) {
   const [loading, setLoading] = useState(false)
+  const [machine, setMachine] = useState('')
+  const [type, setType] = useState('Outgoing')
+  const [status, setStatus] = useState('Accepted')
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -46,7 +49,7 @@ export function CreateInspectionForm({ machines }: { machines: any[] }) {
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="grid gap-2">
                         <Label>Machine / Asset <span className="text-red-500">*</span></Label>
-                        <Select name="machine" required>
+                        <Select value={machine} onValueChange={setMachine} required>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select Machine" />
                             </SelectTrigger>
@@ -58,11 +61,12 @@ export function CreateInspectionForm({ machines }: { machines: any[] }) {
                                 ))}
                             </SelectContent>
                         </Select>
+                        <input type="hidden" name="machine" value={machine} />
                     </div>
 
                     <div className="grid gap-2">
                         <Label>Inspection Type</Label>
-                        <Select name="type" defaultValue="Outgoing">
+                        <Select value={type} onValueChange={setType}>
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
@@ -72,12 +76,13 @@ export function CreateInspectionForm({ machines }: { machines: any[] }) {
                                 <SelectItem value="In Process">Maintenance Check</SelectItem>
                             </SelectContent>
                         </Select>
+                        <input type="hidden" name="type" value={type} />
                     </div>
                 </div>
 
                 <div className="grid gap-2">
                     <Label>Result Status</Label>
-                    <Select name="status" defaultValue="Accepted">
+                    <Select value={status} onValueChange={setStatus}>
                         <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
@@ -86,6 +91,7 @@ export function CreateInspectionForm({ machines }: { machines: any[] }) {
                             <SelectItem value="Rejected">Failed (Needs Repair)</SelectItem>
                         </SelectContent>
                     </Select>
+                    <input type="hidden" name="status" value={status} />
                 </div>
 
                 <div className="grid gap-2">

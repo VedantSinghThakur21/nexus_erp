@@ -32,6 +32,7 @@ export function BookingDialog({ asset }: { asset: any }) {
   const [selectedCustomer, setSelectedCustomer] = useState('')
   const [customerInvoices, setCustomerInvoices] = useState<any[]>([])
   const [selectedInvoice, setSelectedInvoice] = useState('')
+  const [selectedProject, setSelectedProject] = useState('')
   const [projects, setProjects] = useState<any[]>([])
   const router = useRouter()
 
@@ -151,7 +152,7 @@ export function BookingDialog({ asset }: { asset: any }) {
           {/* Project Reference (Optional) */}
           <div className="grid gap-2">
             <Label>Project (Optional)</Label>
-            <Select name="project_name">
+            <Select value={selectedProject} onValueChange={setSelectedProject}>
               <SelectTrigger>
                 <SelectValue placeholder="Select project..." />
               </SelectTrigger>
@@ -167,6 +168,7 @@ export function BookingDialog({ asset }: { asset: any }) {
                 )}
               </SelectContent>
             </Select>
+            {selectedProject && <input type="hidden" name="project_name" value={selectedProject} />}
             <p className="text-xs text-slate-500">Link this booking to a project</p>
           </div>
 
