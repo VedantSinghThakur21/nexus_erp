@@ -13,6 +13,53 @@ export interface Invoice {
   docstatus?: number 
 }
 
+// CREATE/UPDATE ITEM
+export async function createItem(formData: FormData) {
+  try {
+    const itemData = {
+      doctype: 'Item',
+      item_code: formData.get('item_code') as string,
+      item_name: formData.get('item_name') as string,
+      item_group: formData.get('item_group') as string,
+      description: formData.get('description') as string,
+      standard_rate: parseFloat(formData.get('standard_rate') as string),
+      is_stock_item: formData.get('is_stock_item') === '1' ? 1 : 0,
+      stock_uom: formData.get('stock_uom') as string || 'Unit',
+    }
+
+    await frappeRequest('frappe.client.insert', 'POST', { doc: itemData })
+    revalidatePath('/catalogue')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to create item:", error)
+    return { success: false, error: error.message || 'Failed to create item' }
+  }
+}
+
+export async function updateItem(itemCode: string, formData: FormData) {
+  try {
+    const updateData = {
+      item_name: formData.get('item_name') as string,
+      item_group: formData.get('item_group') as string,
+      description: formData.get('description') as string,
+      standard_rate: parseFloat(formData.get('standard_rate') as string),
+      is_stock_item: formData.get('is_stock_item') === '1' ? 1 : 0,
+    }
+
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Item',
+      name: itemCode,
+      fieldname: updateData
+    })
+
+    revalidatePath('/catalogue')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to update item:", error)
+    return { success: false, error: error.message || 'Failed to update item' }
+  }
+}
+
 // 1. READ: Fetch list of invoices
 export async function getInvoices() {
   try {

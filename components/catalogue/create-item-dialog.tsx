@@ -1,0 +1,183 @@
+'use client'
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Plus } from "lucide-react"
+import { createItem } from "@/app/actions/invoices"
+import { useRouter } from "next/navigation"
+
+const ITEM_GROUPS = [
+  'Heavy Equipment Rental',
+  'Construction Services',
+  'Consulting',
+]
+
+export function CreateItemDialog() {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [selectedGroup, setSelectedGroup] = useState('')
+  const [isStockItem, setIsStockItem] = useState('1')
+  const router = useRouter()
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setLoading(true)
+    
+    const formData = new FormData(e.currentTarget)
+    formData.append('item_group', selectedGroup)
+    formData.append('is_stock_item', isStockItem)
+    
+    const res = await createItem(formData)
+    
+    if (res.success) {
+      setOpen(false)
+      e.currentTarget.reset()
+      setSelectedGroup('')
+      setIsStockItem('1')
+      router.refresh()
+    } else {
+      alert("Error: " + res.error)
+    }
+    setLoading(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="gap-2">
+          <Plus className="h-4 w-4" /> Add New Item
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Create New Item</DialogTitle>
+          <DialogDescription>
+            Add a new item to your product catalogue
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Item Code */}
+            <div className="grid gap-2">
+              <Label htmlFor="item_code">Item Code *</Label>
+              <Input
+                id="item_code"
+                name="item_code"
+                placeholder="e.g., CRANE-001"
+                required
+              />
+            </div>
+
+            {/* Item Name */}
+            <div className="grid gap-2">
+              <Label htmlFor="item_name">Item Name *</Label>
+              <Input
+                id="item_name"
+                name="item_name"
+                placeholder="e.g., Tower Crane"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Item Group */}
+            <div className="grid gap-2">
+              <Label htmlFor="item_group">Category *</Label>
+              <Select value={selectedGroup} onValueChange={setSelectedGroup} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ITEM_GROUPS.map(group => (
+                    <SelectItem key={group} value={group}>{group}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="item_group" value={selectedGroup} />
+            </div>
+
+            {/* Standard Rate */}
+            <div className="grid gap-2">
+              <Label htmlFor="standard_rate">Rate (₹/day) *</Label>
+              <Input
+                id="standard_rate"
+                name="standard_rate"
+                type="number"
+                step="0.01"
+                placeholder="1000"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Stock Item */}
+            <div className="grid gap-2">
+              <Label htmlFor="is_stock_item">Type *</Label>
+              <Select value={isStockItem} onValueChange={setIsStockItem}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Stock Item (Physical)</SelectItem>
+                  <SelectItem value="0">Service (Non-stock)</SelectItem>
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="is_stock_item" value={isStockItem} />
+            </div>
+
+            {/* UOM */}
+            <div className="grid gap-2">
+              <Label htmlFor="stock_uom">Unit of Measure</Label>
+              <Input
+                id="stock_uom"
+                name="stock_uom"
+                placeholder="Unit"
+                defaultValue="Unit"
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="grid gap-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              name="description"
+              placeholder="Detailed description of the item..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Creating..." : "Create Item"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}

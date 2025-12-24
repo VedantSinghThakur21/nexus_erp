@@ -16,6 +16,8 @@ import { Package, Wrench, Briefcase, CheckCircle, XCircle, Search, Eye, Trending
 import { searchItems, getItemGroups, ensureItemGroups, getItemDetails } from "@/app/actions/invoices"
 import { getItemRentalAnalytics } from "@/app/actions/bookings"
 import { CreateBookingDialog } from "@/components/bookings/create-booking-dialog"
+import { CreateItemDialog } from "@/components/catalogue/create-item-dialog"
+import { EditItemDialog } from "@/components/catalogue/edit-item-dialog"
 
 interface Item {
   item_code: string
@@ -152,6 +154,7 @@ export default function CataloguePage() {
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Product Catalogue</h1>
           <p className="text-slate-500 mt-1">Browse items by business category</p>
         </div>
+        <CreateItemDialog />
       </div>
 
       {/* Summary Cards */}
@@ -290,15 +293,18 @@ export default function CataloguePage() {
                       available={item.available}
                     />
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleQuickView(item.item_code)}
-                    className="w-full text-xs"
-                  >
-                    <Eye className="h-3.5 w-3.5 mr-1" />
-                    View Details
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleQuickView(item.item_code)}
+                      className="text-xs"
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      Details
+                    </Button>
+                    <EditItemDialog item={item} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
