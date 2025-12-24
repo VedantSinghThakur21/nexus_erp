@@ -5,6 +5,7 @@ import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react"
 import Link from "next/link"
 import { EditLeadSheet } from "@/components/crm/edit-lead-sheet"
 import { ConvertLeadDialog } from "@/components/crm/convert-lead-dialog"
+import { CustomerPricingAnalytics } from "@/components/crm/customer-pricing-analytics"
 
 // Fetch single lead data from ERPNext
 async function getLead(id: string) {
@@ -138,6 +139,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </CardContent>
         </Card>
       </div>
+
+      {/* Pricing Rules Analytics - Only show for converted customers */}
+      {lead.status === 'Converted' && lead.lead_name && (
+        <CustomerPricingAnalytics customerName={lead.lead_name} />
+      )}
     </div>
   )
 }
