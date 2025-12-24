@@ -1,7 +1,7 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
 
 interface AnimatedCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -18,13 +18,6 @@ export function AnimatedCard({
   delay = 0,
   ...props
 }: AnimatedCardProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setMounted(true), delay * 1000);
-    return () => clearTimeout(timeout);
-  }, [delay]);
-
   const variantStyles = {
     default: "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
     neon: "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-slate-800 border border-blue-200 dark:border-blue-900/50",
@@ -32,21 +25,28 @@ export function AnimatedCard({
   };
 
   return (
-    <div
-      style={{
-        animationDelay: `${delay}s`,
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{
+        duration: 0.4,
+        delay,
+        ease: [0.4, 0, 0.2, 1],
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
       }}
+      whileHover={hover ? { y: -4, transition: { duration: 0.2 } } : undefined}
       className={cn(
-        "rounded-xl p-6 shadow-sm transition-all duration-300",
-        "animate-in fade-in slide-in-from-bottom-4",
-        hover && "hover:-translate-y-1 hover:shadow-xl",
+        "rounded-xl p-6 shadow-sm",
         variantStyles[variant],
         className
       )}
       {...props}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -67,10 +67,10 @@ export function AnimatedButton({
   ...props
 }: AnimatedButtonProps) {
   const variantStyles = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg",
-    secondary: "bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg",
-    ghost: "bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white",
-    neon: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-purple-500/50",
+    primary: "bg-blue-600 text-white shadow-md",
+    secondary: "bg-purple-600 text-white shadow-md",
+    ghost: "bg-transparent text-slate-900 dark:text-white",
+    neon: "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/50",
   };
 
   const sizeStyles = {
@@ -80,14 +80,15 @@ export function AnimatedButton({
   };
 
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
       disabled={disabled || loading}
       className={cn(
         "relative inline-flex items-center justify-center gap-2 rounded-lg font-medium",
-        "transition-all duration-200 active:scale-95",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
-        hover && "hover:scale-105",
         variantStyles[variant],
         sizeStyles[size],
         className
@@ -95,12 +96,16 @@ export function AnimatedButton({
       {...props}
     >
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-5 w-5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-        </div>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className="h-5 w-5 rounded-full border-2 border-current border-t-transparent" />
+        </motion.div>
       )}
       <span className={loading ? "invisible" : ""}>{children}</span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -126,23 +131,35 @@ export function AnimatedBadge({
   };
 
   return (
-    <span
+    <motion.span
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-        "animate-in zoom-in-95 duration-300",
-        pulse && "animate-pulse",
         variantStyles[variant],
         className
       )}
     >
       {pulse && (
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+        <motion.span
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [1, 0.5, 1],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="relative flex h-2 w-2"
+        >
+          <span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-current"></span>
-        </span>
+        </motion.span>
       )}
       {children}
-    </span>
+    </motion.span>
   );
 }
 
@@ -158,61 +175,100 @@ interface AnimatedStatCardProps {
   delay?: number;
 }
 
-export function AnimatedStatCard({
-  title,
-  value,
-  change,
-  icon,
-  variant = 'default',
-  delay = 0,
-}: AnimatedStatCardProps) {
-  return (
-    <AnimatedCard variant={variant} delay={delay}>
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+export funcmotion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: delay + 0.1 }}
+            className="text-sm font-medium text-slate-600 dark:text-slate-400"
+          >
             {title}
-          </p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white animate-in fade-in slide-in-from-bottom-2 duration-500">
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              delay: delay + 0.2,
+              type: "spring",
+              stiffness: 300,
+              damping: 20,
+            }}
+            className="text-3xl font-bold text-slate-900 dark:text-white"
+          >
             {value}
-          </p>
+          </motion.p>
           {change && (
-            <div
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: delay + 0.3 }}
               className={cn(
                 "inline-flex items-center gap-1 text-sm font-medium",
-                "animate-in fade-in slide-in-from-left-2 duration-500",
                 change.trend === 'up' ? "text-green-600" : "text-red-600"
               )}
             >
               {change.trend === 'up' ? '↑' : '↓'} {Math.abs(change.value)}%
-            </div>
+            </motion.div>
           )}
         </div>
-        <div
+        <motion.div
+          whileHover={{ 
+            rotate: 360,
+            scale: 1.1,
+            transition: { duration: 0.6, ease: "easeInOut" }
+          }}
           className={cn(
-            "rounded-lg p-3 transition-transform duration-500 hover:rotate-[360deg] hover:scale-110",
+            "rounded-lg p-3",
             variant === 'neon' 
               ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30"
               : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
           )}
         >
           {icon}
+        </motion.  </div>
+          )}
         </div>
-      </div>
-    </AnimatedCard>
+     motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{
+        visible: {
+          transition: {
+            staggerChildren: staggerDelay,
+          },
+        },
+      }}
+      className="space-y-4"
+    >
+      {children}
+    </motion.div>
   );
 }
 
-interface AnimatedListProps {
+interface AnimatedListItemProps {
   children: React.ReactNode;
-  staggerDelay?: number;
+  className?: string;
+  index?: number;
 }
 
-export function AnimatedList({ children, staggerDelay = 0.1 }: AnimatedListProps) {
+export function AnimatedListItem({ children, className, index = 0 }: AnimatedListItemProps) {
   return (
-    <div className="space-y-4">
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        visible: { 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            type: "spring",
+            stiffness: 300,
+            damping: 24,
+          }
+        },
+      }}
+      className={className}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }
 

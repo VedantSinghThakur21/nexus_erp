@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AnimatedStatCard, AnimatedCard, AnimatedButton, AnimatedBadge, AnimatedList, AnimatedListItem } from "@/components/ui/animated"
+import { AnimatedAreaChart, AnimatedBarChart, AnimatedFunnelChart } from "@/components/dashboard/animated-charts"
 import { TrendingUp, TrendingDown, Users, Briefcase, DollarSign, Target, Trophy, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { frappeRequest } from "@/app/lib/api"
@@ -166,47 +167,7 @@ export default async function DashboardPage() {
             <p className="text-xs text-slate-500">₹{(safeStats.pipelineValue / 100000).toFixed(1)}L Potential Value</p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 py-2">
-              {safePipelineFunnel.map((stage, idx) => {
-                const maxValue = safePipelineFunnel[0]?.value || 1
-                const width = maxValue > 0 ? (stage.value / maxValue) * 100 : 0
-                const isLast = idx === safePipelineFunnel.length - 1
-                
-                // Color gradient from blue to green
-                const colors = [
-                  'bg-blue-500',
-                  'bg-blue-400', 
-                  'bg-cyan-400',
-                  'bg-teal-400',
-                  'bg-green-500'
-                ]
-                const color = colors[idx] || 'bg-blue-500'
-                
-                return (
-                  <div key={stage.stage} className="flex flex-col items-center gap-1">
-                    <div className="w-full flex justify-center">
-                      <div 
-                        className={`${color} transition-all relative`}
-                        style={{ 
-                          width: `${Math.max(width, 70)}%`,
-                          clipPath: isLast 
-                            ? 'polygon(8% 0%, 92% 0%, 85% 100%, 15% 100%)'
-                            : 'polygon(3% 0%, 97% 0%, 92% 100%, 8% 100%)'
-                        }}
-                      >
-                        <div className="flex items-center justify-center gap-2 px-6 py-3.5">
-                          <span className="text-sm font-medium text-white">{stage.stage}</span>
-                          <span className="text-sm font-bold text-white">({stage.count})</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      ₹{(stage.value / 100000).toFixed(1)}L
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <AnimatedFunnelChart data={safePipelineFunnel} delay={0.5} />
           </CardContent>
         </AnimatedCard>
 
@@ -217,58 +178,18 @@ export default async function DashboardPage() {
             <p className="text-xs text-slate-500">{safeStats.openOpportunities} Active Deals</p>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end justify-between h-48 gap-2">
-              {safeDealsByStage.map((stage) => {
-                const maxCount = Math.max(...safeDealsByStage.map(s => s.count), 1)
-                const height = (stage.count / maxCount) * 100
-                
-                return (
-                  <div key={stage.stage} className="flex-1 flex flex-col items-center gap-2">
-                    <div className="w-full flex items-end justify-center" style={{ height: '160px' }}>
-                      <div 
-                        className={`w-full rounded-t transition-all ${
-                          stage.stage === 'WON' ? 'bg-green-500' : 'bg-blue-500'
-                        }`}
-                        style={{ height: `${height}%` }}
-                      />
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs font-medium text-slate-700 dark:text-slate-300">{stage.stage}</div>
-                      <div className="text-xs text-slate-500">{stage.count}</div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <AnimatedBarChart data={safeDealsByStage} height={200} delay={0.6} />
           </CardContent>
         </AnimatedCard>
 
-        {/* Revenue Trend Line Chart */}
+        {/* Revenue Trend Area Chart */}
         <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.7}>
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold">Revenue Trend</CardTitle>
             <p className="text-xs text-slate-500">Last 6 Months</p>
           </CardHeader>
           <CardContent>
-            <div className="h-48 flex items-end justify-between gap-1">
-              {safeRevenueData.map((month, idx) => {
-                const maxTotal = Math.max(...safeRevenueData.map(m => m.total), 1)
-                const height = (month.total / maxTotal) * 100
-                
-                return (
-                  <div key={month.name} className="flex-1 flex flex-col items-center gap-2">
-                    <div className="w-full flex items-end justify-center" style={{ height: '160px' }}>
-                      <div 
-                        className="w-full bg-blue-500 dark:bg-blue-600 rounded-t transition-all"
-                        style={{ height: `${height}%` }}
-                        title={`₹${month.total.toLocaleString('en-IN')}`}
-                      />
-                    </div>
-                    <span className="text-xs text-slate-500">{month.name}</span>
-                  </div>
-                )
-              })}
-            </div>
+            <AnimatedAreaChart data={safeRevenueData} height={200} delay={0.7} />
           </CardContent>
         </AnimatedCard>
       </div>
