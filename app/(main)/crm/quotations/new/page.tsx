@@ -19,6 +19,7 @@ import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
 import { getTaxTemplates, getTaxTemplate } from "@/app/actions/settings"
 import { getCompanyDetails, getBankDetails } from "@/app/actions/crm"
+import { getItemGroups } from "@/app/actions/invoices"
 
 interface QuotationItem {
   id: number
@@ -36,6 +37,10 @@ export default function NewQuotationPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const opportunityId = searchParams.get('opportunity')
+
+  // Category filter state
+  const [itemGroups, setItemGroups] = useState<string[]>([])
+  const [selectedItemGroup, setSelectedItemGroup] = useState<string>('All')
 
   // Header Fields
   const [quotationTo, setQuotationTo] = useState("Customer") // Customer or Lead
@@ -86,6 +91,10 @@ export default function NewQuotationPage() {
     
     getBankDetails().then(data => {
       if (data) setBankInfo(data)
+    })
+    
+    getItemGroups().then(groups => {
+      setItemGroups(['All', ...groups])
     })
   }, [])
 
@@ -399,11 +408,27 @@ export default function NewQuotationPage() {
 
           {/* Items */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Items</CardTitle>
-              <Button type="button" onClick={addItem} size="sm" className="gap-2">
-                <Plus className="h-4 w-4" /> Add Item
-              </Button>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardTitle>Items</CardTitle>
+                <div className="flex items-center gap-4">
+                  <Label htmlFor="category-filter" className="text-sm font-normal whitespace-nowrap">Filter by Category:</Label>
+                  <Select value={selectedItemGroup} onValueChange={setSelectedItemGroup}>
+                    <SelectTrigger className="w-[200px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All Categories</SelectItem>
+                      {itemGroups.filter(g => g !== 'All').map(group => (
+                        <SelectItem key={group} value={group}>{group}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" onClick={addItem} size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" /> Add Item
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="border-t">
@@ -437,6 +462,7 @@ export default function NewQuotationPage() {
                               updateItem(item.id, 'item_name', code)
                               if (desc) updateItem(item.id, 'description', desc)
                             }}
+                            itemGroup={selectedItemGroup === 'All' ? undefined : selectedItemGroup}
                           />
                         </div>
                         <Input

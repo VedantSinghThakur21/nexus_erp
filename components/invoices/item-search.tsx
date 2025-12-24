@@ -77,6 +77,7 @@ export function ItemSearch({ value, onChange, itemGroup }: ItemSearchProps) {
                     key={item.item_code}
                     value={item.item_code}
                     keywords={[item.item_name, item.item_code]}
+                    className="flex items-center justify-between"
                     onSelect={(currentValue) => {
                       onChange(item.item_code, item.description)
                       setOpen(false)

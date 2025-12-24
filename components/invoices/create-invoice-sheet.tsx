@@ -147,6 +147,25 @@ export function CreateInvoiceSheet() {
         
         <div className="px-6 py-6 space-y-8">
           
+          {/* Category Filter */}
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+            <div className="flex items-center gap-4">
+              <Label htmlFor="category-filter" className="text-sm font-medium whitespace-nowrap">Filter Items by Category:</Label>
+              <Select value={selectedItemGroup} onValueChange={setSelectedItemGroup}>
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Categories</SelectItem>
+                  {itemGroups.filter(g => g !== 'All').map(group => (
+                    <SelectItem key={group} value={group}>{group}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">Items will be filtered by selected category</p>
+            </div>
+          </div>
+
           {/* Section 1: Customer Details */}
           <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 border-b pb-2 border-slate-100 dark:border-slate-800">Billing Details</h3>
