@@ -259,18 +259,45 @@ export async function bookMachine(formData: FormData) {
       throw new Error('Customer not found. Please create customer first.')
     }
 
-    // Calculate total days and amount
+    // Check for overlapping bookings on the same asset
+    const existingBookings = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      filters: JSON.stringify([
+        ['Sales Order Item', 'item_code', '=', itemCode],
+        ['status', 'in', ['Draft', 'To Deliver and Bill', 'To Bill', 'To Deliver', 'On Hold']]
+      ]),
+      fields: JSON.stringify(['name', 'delivery_date', 'transaction_date']),
+      limit_page_length: 0
+    })
+
+    // Check for date overlaps
     const start = new Date(startDate)
     const end = new Date(endDate)
+    
+    for (const booking of existingBookings) {
+      const bookingStart = new Date(booking.transaction_date)
+      const bookingEnd = new Date(booking.delivery_date)
+      
+      // Check if dates overlap
+      if (start <= bookingEnd && end >= bookingStart) {
+        throw new Error(`Equipment ${assetId} is already booked from ${booking.transaction_date} to ${booking.delivery_date}. Please choose different dates.`)
+      }
+    }
+
+    // Calculate total days and amount
     const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
     const totalAmount = days * rate
+
+    // Generate unique PO number with timestamp to avoid duplicates
+    const timestamp = Date.now()
+    const uniquePO = `RENT-${assetId}-${timestamp}`
 
     const bookingDoc = {
         doctype: 'Sales Order',
         customer: customer,
         transaction_date: new Date().toISOString().split('T')[0],
         delivery_date: startDate, 
-        po_no: `RENT-${assetId}`,
+        po_no: uniquePO,
         project: projectName || undefined,
         
         items: [{
