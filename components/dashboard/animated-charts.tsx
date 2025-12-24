@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
 
 interface AnimatedAreaChartProps {
   data: Array<{ name: string; total: number }>;
@@ -11,6 +12,9 @@ interface AnimatedAreaChartProps {
 }
 
 export function AnimatedAreaChart({ data, height = 200, delay = 0 }: AnimatedAreaChartProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -25,25 +29,30 @@ export function AnimatedAreaChart({ data, height = 200, delay = 0 }: AnimatedAre
               <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.1}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.3} />
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            stroke={isDark ? "#334155" : "#e2e8f0"} 
+            opacity={0.3} 
+          />
           <XAxis 
             dataKey="name" 
-            stroke="#64748b"
+            stroke={isDark ? "#94a3b8" : "#64748b"}
             fontSize={12}
             tickLine={false}
           />
           <YAxis 
-            stroke="#64748b"
+            stroke={isDark ? "#94a3b8" : "#64748b"}
             fontSize={12}
             tickLine={false}
             tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              border: "1px solid #e2e8f0",
+              backgroundColor: isDark ? "rgba(15, 23, 42, 0.95)" : "rgba(255, 255, 255, 0.95)",
+              border: `1px solid ${isDark ? "#334155" : "#e2e8f0"}`,
               borderRadius: "8px",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+              color: isDark ? "#e2e8f0" : "#1e293b",
             }}
             formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, "Revenue"]}
           />
@@ -69,6 +78,8 @@ interface AnimatedBarChartProps {
 }
 
 export function AnimatedBarChart({ data, height = 200, delay = 0 }: AnimatedBarChartProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const colors = ['#0ea5e9', '#0ea5e9', '#06b6d4', '#14b8a6', '#22c55e'];
   
   return (
@@ -79,26 +90,31 @@ export function AnimatedBarChart({ data, height = 200, delay = 0 }: AnimatedBarC
     >
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.3} />
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            stroke={isDark ? "#334155" : "#e2e8f0"} 
+            opacity={0.3} 
+          />
           <XAxis 
             dataKey="stage" 
-            stroke="#64748b"
+            stroke={isDark ? "#94a3b8" : "#64748b"}
             fontSize={12}
             tickLine={false}
           />
           <YAxis 
-            stroke="#64748b"
+            stroke={isDark ? "#94a3b8" : "#64748b"}
             fontSize={12}
             tickLine={false}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              border: "1px solid #e2e8f0",
+              backgroundColor: isDark ? "rgba(15, 23, 42, 0.95)" : "rgba(255, 255, 255, 0.95)",
+              border: `1px solid ${isDark ? "#334155" : "#e2e8f0"}`,
               borderRadius: "8px",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+              color: isDark ? "#e2e8f0" : "#1e293b",
             }}
-            cursor={{ fill: 'rgba(14, 165, 233, 0.1)' }}
+            cursor={{ fill: isDark ? 'rgba(14, 165, 233, 0.2)' : 'rgba(14, 165, 233, 0.1)' }}
           />
           <Bar 
             dataKey="count" 

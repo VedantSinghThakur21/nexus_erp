@@ -47,15 +47,15 @@ function SidebarContent() {
   return (
     <div 
       suppressHydrationWarning
-      className="flex h-full flex-col bg-slate-50/50 dark:bg-slate-900/50"
+      className="flex h-full flex-col bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-800/50"
     >
       {/* Logo Area */}
-      <div suppressHydrationWarning className="flex h-14 items-center border-b px-6 shrink-0">
+      <div suppressHydrationWarning className="flex h-14 items-center border-b border-slate-200/50 dark:border-slate-800/50 px-6 shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2">
-            <div suppressHydrationWarning className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">N</span>
+            <div suppressHydrationWarning className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <span className="text-white font-bold text-sm">N</span>
             </div>
-            <span className="text-lg font-bold text-slate-800 dark:text-slate-100">Nexus</span>
+            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Nexus</span>
         </Link>
       </div>
 
@@ -91,7 +91,7 @@ function SidebarContent() {
             href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition-colors"
         >
             <ExternalLink className="h-4 w-4" />
             Classic ERP

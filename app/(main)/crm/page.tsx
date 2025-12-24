@@ -1,7 +1,7 @@
 import { getLeads, getCustomers } from "@/app/actions/crm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Users, TrendingUp, UserCheck, PhoneCall } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { AnimatedButton, AnimatedStatCard, AnimatedCard } from "@/components/ui/animated"
 import Link from "next/link"
 import { LeadsView } from "@/components/crm/leads-view"
 
@@ -11,14 +11,14 @@ export default async function CRMPage() {
 
   // Lead stages/statuses
   const stages = [
-    { name: 'Lead', color: 'bg-gray-100 text-gray-700 border-gray-200', stage: 1 },
-    { name: 'Open', color: 'bg-blue-100 text-blue-700 border-blue-200', stage: 2 },
-    { name: 'Replied', color: 'bg-cyan-100 text-cyan-700 border-cyan-200', stage: 3 },
-    { name: 'Interested', color: 'bg-purple-100 text-purple-700 border-purple-200', stage: 4 },
-    { name: 'Opportunity', color: 'bg-orange-100 text-orange-700 border-orange-200', stage: 5 },
-    { name: 'Quotation', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', stage: 6 },
-    { name: 'Converted', color: 'bg-green-100 text-green-700 border-green-200', stage: 7 },
-    { name: 'Do Not Contact', color: 'bg-red-100 text-red-700 border-red-200', stage: 8 },
+    { name: 'Lead', color: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700', stage: 1 },
+    { name: 'Open', color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700', stage: 2 },
+    { name: 'Replied', color: 'bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700', stage: 3 },
+    { name: 'Interested', color: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700', stage: 4 },
+    { name: 'Opportunity', color: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700', stage: 5 },
+    { name: 'Quotation', color: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700', stage: 6 },
+    { name: 'Converted', color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700', stage: 7 },
+    { name: 'Do Not Contact', color: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700', stage: 8 },
   ]
 
   // Active leads (not converted or do not contact)
@@ -44,33 +44,35 @@ export default async function CRMPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Lead Management</h1>
-          <p className="text-slate-500 dark:text-slate-400">Track and manage your sales leads</p>
+          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent">
+            Lead Management
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">Track and manage your sales leads</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-sm text-slate-500">Active Leads</div>
-            <div className="text-2xl font-bold text-blue-600">{activeLeads.length}</div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">Active Leads</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{activeLeads.length}</div>
           </div>
           <div className="flex gap-2">
             <Link href="/crm/customers">
-              <Button variant="outline" className="gap-2">
+              <AnimatedButton variant="ghost" className="gap-2">
                 <Users className="h-4 w-4" /> Customers ({customers.length})
-              </Button>
+              </AnimatedButton>
             </Link>
             <Link href="/crm/opportunities">
-              <Button variant="outline" className="gap-2">
+              <AnimatedButton variant="ghost" className="gap-2">
                 <TrendingUp className="h-4 w-4" /> Opportunities
-              </Button>
+              </AnimatedButton>
             </Link>
             <Link href="/crm/new">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+              <AnimatedButton variant="neon" className="gap-2">
                 <Plus className="h-4 w-4" /> New Lead
-              </Button>
+              </AnimatedButton>
             </Link>
           </div>
         </div>
@@ -78,45 +80,34 @@ export default async function CRMPage() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
-            <Users className="h-4 w-4 text-slate-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalLeads}</div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Total Leads"
+          value={stats.totalLeads}
+          icon={<Users className="h-5 w-5" />}
+          delay={0}
+        />
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Interested</CardTitle>
-            <PhoneCall className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.interestedLeads}</div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Interested"
+          value={stats.interestedLeads}
+          icon={<PhoneCall className="h-5 w-5" />}
+          variant="neon"
+          delay={0.1}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Opportunities</CardTitle>
-            <TrendingUp className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.opportunityLeads}</div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Opportunities"
+          value={stats.opportunityLeads}
+          icon={<TrendingUp className="h-5 w-5" />}
+          delay={0.2}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Converted</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.convertedLeads}</div>
-          </CardContent>
-        </Card>
+        <AnimatedStatCard
+          title="Converted"
+          value={stats.convertedLeads}
+          icon={<UserCheck className="h-5 w-5" />}
+          delay={0.3}
+        />
       </div>
 
       {/* Leads View Component with Kanban and List */}
