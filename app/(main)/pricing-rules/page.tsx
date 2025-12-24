@@ -83,8 +83,8 @@ export default function PricingRulesPage() {
   const totalDiscountRules = rules.filter(r => r.rate_or_discount.includes("Discount")).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
+      <div suppressHydrationWarning className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

@@ -87,8 +87,8 @@ export default function CreatePricingRulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
+      <div suppressHydrationWarning className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div>
           <Link href="/pricing-rules">
