@@ -17,27 +17,40 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { searchItems } from "@/app/actions/invoices"
+import { Badge } from "@/components/ui/badge"
+import { searchItems, getItemGroups } from "@/app/actions/invoices"
 
 interface ItemSearchProps {
   value: string
   onChange: (value: string, description?: string) => void
+  itemGroup?: string // Optional filter by item group
 }
 
-export function ItemSearch({ value, onChange }: ItemSearchProps) {
+export function ItemSearch({ value, onChange, itemGroup }: ItemSearchProps) {
   const [open, setOpen] = React.useState(false)
-  const [items, setItems] = React.useState<{ item_code: string, item_name: string, description: string }[]>([])
+  const [items, setItems] = React.useState<{ item_code: string, item_name: string, description: string, item_group: string }[]>([])
   const [query, setQuery] = React.useState("")
 
   React.useEffect(() => {
     const fetchItems = async () => {
       const searchQuery = query || "" 
-      const results = await searchItems(searchQuery)
+      const results = await searchItems(searchQuery, itemGroup)
       setItems(results)
     }
     const debounce = setTimeout(fetchItems, 300)
     return () => clearTimeout(debounce)
-  }, [query])
+  }, [query, itemGroup])
+
+  // Group items by item_group
+  const groupedItems = React.useMemo(() => {
+    const groups: Record<string, typeof items> = {}
+    items.forEach(item => {
+      const group = item.item_group || 'Other'
+      if (!groups[group]) groups[group] = []
+      groups[group].push(item)
+    })
+    return groups
+  }, [items])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -52,37 +65,40 @@ export function ItemSearch({ value, onChange }: ItemSearchProps) {
           <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0" align="start">
-        {/* FIX: Added shouldFilter={false} to disable client-side filtering */}
+      <PopoverContent className="w-[400px] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput placeholder="Search items..." onValueChange={setQuery} />
           <CommandList>
             {items.length === 0 && <CommandEmpty>No item found.</CommandEmpty>}
-            <CommandGroup>
-              {items.map((item) => (
-                <CommandItem
-                  key={item.item_code}
-                  value={item.item_code}
-                  keywords={[item.item_name, item.item_code]} // Helps accessibilty
-                  onSelect={(currentValue) => {
-                    // Use item_code directly from the item object to ensure correct casing/ID
-                    onChange(item.item_code, item.description)
-                    setOpen(false)
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === item.item_code ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium">{item.item_code}</span>
-                    <span className="text-xs text-muted-foreground">{item.item_name}</span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {Object.entries(groupedItems).map(([group, groupItems]) => (
+              <CommandGroup key={group} heading={group}>
+                {groupItems.map((item) => (
+                  <CommandItem
+                    key={item.item_code}
+                    value={item.item_code}
+                    keywords={[item.item_name, item.item_code]}
+                    onSelect={(currentValue) => {
+                      onChange(item.item_code, item.description)
+                      setOpen(false)
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === item.item_code ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.item_code}</span>
+                        <Badge variant="outline" className="text-xs">{item.item_group}</Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{item.item_name}</span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
           </CommandList>
         </Command>
       </PopoverContent>

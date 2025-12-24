@@ -21,8 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Plus, Trash2, Loader2, Info } from "lucide-react"
-import { createInvoice } from "@/app/actions/invoices"
+import { createInvoice, getItemGroups } from "@/app/actions/invoices"
 import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { ItemSearch } from "./item-search"
 
 interface InvoiceItem {
   id: number
@@ -37,7 +39,18 @@ interface InvoiceItem {
 export function CreateInvoiceSheet() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [itemGroups, setItemGroups] = useState<string[]>([])
+  const [selectedItemGroup, setSelectedItemGroup] = useState<string>('All')
   const router = useRouter()
+
+  // Load item groups
+  useEffect(() => {
+    const loadGroups = async () => {
+      const groups = await getItemGroups()
+      setItemGroups(['All', ...groups])
+    }
+    if (open) loadGroups()
+  }, [open])
 
   // Header Fields
   const [customer, setCustomer] = useState("")
@@ -190,7 +203,22 @@ export function CreateInvoiceSheet() {
 
           {/* Section 2: Service Details (Items) */}
           <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Service / Equipment Details</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Service / Equipment Details</h3>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-slate-500">Catalogue:</Label>
+                <Select value={selectedItemGroup} onValueChange={setSelectedItemGroup}>
+                  <SelectTrigger className="h-8 w-[200px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {itemGroups.map(group => (
+                      <SelectItem key={group} value={group}>{group}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             
             <div className="border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden">
                 {/* Table Header */}
@@ -212,11 +240,15 @@ export function CreateInvoiceSheet() {
                                 <Trash2 className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer" onClick={() => removeItem(item.id)} />
                             </div>
                             <div className="col-span-4 space-y-1">
-                                <Input 
-                                    placeholder="Item Name" 
-                                    value={item.item_code} 
-                                    onChange={(e) => updateItem(item.id, 'item_code', e.target.value)} 
-                                    className="h-8 text-sm font-medium border-slate-200 dark:border-slate-800 bg-transparent" 
+                                <ItemSearch 
+                                    value={item.item_code}
+                                    itemGroup={selectedItemGroup}
+                                    onChange={(itemCode, description) => {
+                                        updateItem(item.id, 'item_code', itemCode)
+                                        if (description && !item.description) {
+                                            updateItem(item.id, 'description', description)
+                                        }
+                                    }}
                                 />
                                 <Input 
                                     placeholder="Description" 

@@ -68,11 +68,9 @@ export default async function InspectionDetailPage({ params }: { params: Promise
                 <Truck className="h-4 w-4" />
                 Asset / Equipment
               </label>
-              <Link href={`/fleet/${inspection.reference_name}`}>
-                <p className="text-slate-900 dark:text-slate-200 mt-1 hover:text-blue-600 cursor-pointer">
-                  {inspection.reference_name}
-                </p>
-              </Link>
+              <p className="text-slate-900 dark:text-slate-200 mt-1">
+                {inspection.reference_name}
+              </p>
             </div>
             <div>
               <label className="text-sm font-medium text-slate-500 flex items-center gap-2">

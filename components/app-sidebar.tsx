@@ -10,14 +10,14 @@ import {
   ExternalLink, 
   LogOut, 
   FolderKanban, 
-  Truck, 
   Calendar,
   Settings,
   Menu,
   ClipboardCheck,
   TrendingUp,
   Receipt,
-  Wallet
+  Wallet,
+  Package
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -30,8 +30,8 @@ const menuItems = [
   { name: 'Quotations', icon: Receipt, href: '/crm/quotations' },
   { name: 'Invoices', icon: FileText, href: '/invoices' },
   { name: 'Payments', icon: Wallet, href: '/payments' },
+  { name: 'Catalogue', icon: Package, href: '/catalogue' },
   { name: 'Projects', icon: FolderKanban, href: '/projects' },
-  { name: 'Fleet', icon: Truck, href: '/fleet' },
   { name: 'Bookings', icon: Calendar, href: '/bookings' },
   { name: 'Inspections', icon: ClipboardCheck, href: '/inspections' },
   { name: 'AI Agents', icon: Bot, href: '/agents' },

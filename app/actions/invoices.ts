@@ -306,17 +306,155 @@ export async function searchCustomers(query: string) {
 }
 
 // 6. SEARCH ITEMS
-export async function searchItems(query: string) {
+export async function searchItems(query: string, itemGroup?: string) {
   try {
+    let filters = `[["item_code", "like", "%${query}%"]]`
+    
+    // Add item group filter if specified
+    if (itemGroup && itemGroup !== 'All') {
+      filters = `[["item_code", "like", "%${query}%"], ["item_group", "=", "${itemGroup}"]]`
+    }
+    
     const items = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Item',
-        filters: `[["item_code", "like", "%${query}%"]]`,
-        fields: '["item_code", "item_name", "description"]',
-        limit_page_length: 10
+        filters: filters,
+        fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item"]',
+        limit_page_length: 50,
+        order_by: 'item_group asc, item_code asc'
     })
-    return items as { item_code: string, item_name: string, description: string }[]
+    
+    // Enhance items with stock info for stock items
+    const enhancedItems = await Promise.all(items.map(async (item: any) => {
+      if (item.is_stock_item) {
+        try {
+          const stockData = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Bin',
+            filters: `[["item_code", "=", "${item.item_code}"]]`,
+            fields: '["actual_qty"]',
+            limit_page_length: 0
+          })
+          const stockQty = stockData.reduce((sum: number, bin: any) => sum + (bin.actual_qty || 0), 0)
+          return { ...item, stock_qty: stockQty, available: stockQty > 0 }
+        } catch (e) {
+          return { ...item, stock_qty: 0, available: false }
+        }
+      }
+      return { ...item, stock_qty: null, available: true } // Services always available
+    }))
+    
+    return enhancedItems as ({
+      item_code: string
+      item_name: string
+      description: string
+      item_group: string
+      standard_rate?: number
+      stock_qty: number | null
+      available: boolean
+    })[]
   } catch (error) {
     return []
+  }
+}
+
+// Get all item groups
+export async function getItemGroups() {
+  try {
+    const groups = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Item Group',
+      filters: '[["is_group", "=", 0]]',
+      fields: '["name"]',
+      limit_page_length: 0,
+      order_by: 'name asc'
+    })
+    return groups.map((g: any) => g.name) as string[]
+  } catch (error) {
+    return ['Heavy Equipment Rental', 'Construction Services', 'Consulting']
+  }
+}
+
+// Ensure required Item Groups exist in ERPNext
+export async function ensureItemGroups() {
+  const requiredGroups = [
+    { name: 'Heavy Equipment Rental', parent: 'All Item Groups' },
+    { name: 'Construction Services', parent: 'All Item Groups' },
+    { name: 'Consulting', parent: 'All Item Groups' }
+  ]
+
+  try {
+    for (const group of requiredGroups) {
+      try {
+        // Check if exists
+        await frappeRequest('frappe.client.get', 'GET', {
+          doctype: 'Item Group',
+          name: group.name
+        })
+      } catch (e) {
+        // Create if doesn't exist
+        await frappeRequest('frappe.client.insert', 'POST', {
+          doc: {
+            doctype: 'Item Group',
+            item_group_name: group.name,
+            parent_item_group: group.parent,
+            is_group: 0
+          }
+        })
+        console.log(`✅ Created Item Group: ${group.name}`)
+      }
+    }
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to ensure item groups:', error)
+    return { success: false }
+  }
+}
+
+// Get item with stock and pricing info
+export async function getItemDetails(itemCode: string) {
+  try {
+    const item = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Item',
+      name: itemCode
+    })
+    
+    // Get stock balance across all warehouses
+    let stockQty = 0
+    try {
+      const stockData = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Bin',
+        filters: `[["item_code", "=", "${itemCode}"]]`,
+        fields: '["actual_qty", "warehouse"]',
+        limit_page_length: 0
+      })
+      stockQty = stockData.reduce((sum: number, bin: any) => sum + (bin.actual_qty || 0), 0)
+    } catch (e) {
+      // Stock tracking may not be enabled
+    }
+    
+    // Get latest price from Item Price
+    let price = item.standard_rate || 0
+    try {
+      const priceList = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Item Price',
+        filters: `[["item_code", "=", "${itemCode}"]]`,
+        fields: '["price_list_rate"]',
+        order_by: 'modified desc',
+        limit_page_length: 1
+      })
+      if (priceList.length > 0) {
+        price = priceList[0].price_list_rate
+      }
+    } catch (e) {
+      // No price list
+    }
+    
+    return {
+      ...item,
+      stock_qty: stockQty,
+      current_price: price,
+      available: stockQty > 0 || !item.is_stock_item
+    }
+  } catch (error) {
+    return null
   }
 }
 

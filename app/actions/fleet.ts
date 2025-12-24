@@ -179,7 +179,7 @@ export async function createMachine(formData: FormData) {
 
     await ensureMasterData('Item', itemCode, {
         item_code: itemCode,
-        item_group: 'All Item Groups',
+        item_group: 'Heavy Equipment Rental',
         is_stock_item: 1,
         has_serial_no: 1,
         stock_uom: 'Nos',

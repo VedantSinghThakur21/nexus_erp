@@ -51,12 +51,12 @@ export function CreateInspectionForm({ machines }: { machines: any[] }) {
                         <Label>Machine / Asset <span className="text-red-500">*</span></Label>
                         <Select value={machine} onValueChange={setMachine} required>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select Machine" />
+                                <SelectValue placeholder="Select Equipment" />
                             </SelectTrigger>
                             <SelectContent>
                                 {machines.map((m) => (
-                                    <SelectItem key={m.name} value={m.name}>
-                                        {m.item_name || m.item_code} ({m.name})
+                                    <SelectItem key={m.item_code} value={m.item_code}>
+                                        {m.item_name} ({m.item_code})
                                     </SelectItem>
                                 ))}
                             </SelectContent>

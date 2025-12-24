@@ -27,13 +27,178 @@ export async function getBookings() {
         fields: '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]',
         filters: '[["po_no", "like", "RENT-%"]]',
         order_by: 'creation desc',
-        limit_page_length: 50
+        limit_page_length: 0
       }
     )
     return response as Booking[]
   } catch (error) {
     console.error("Failed to fetch bookings:", error)
     return []
+  }
+}
+
+// 1b. Get Customer Booking History
+export async function getCustomerBookingHistory(customerName: string) {
+  try {
+    const bookings = await frappeRequest(
+      'frappe.client.get_list', 
+      'GET', 
+      {
+        doctype: 'Sales Order',
+        fields: '["name", "transaction_date", "delivery_date", "grand_total", "status", "po_no"]',
+        filters: `[["customer_name", "=", "${customerName}"], ["po_no", "like", "RENT-%"]]`,
+        order_by: 'creation desc',
+        limit_page_length: 10
+      }
+    )
+    
+    // Calculate total bookings and total spent
+    const totalBookings = bookings.length
+    const totalSpent = bookings.reduce((sum: number, booking: any) => sum + booking.grand_total, 0)
+    const completedBookings = bookings.filter((b: any) => b.status === 'Completed').length
+    
+    return {
+      bookings,
+      stats: {
+        totalBookings,
+        totalSpent,
+        completedBookings
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch customer booking history:", error)
+    return {
+      bookings: [],
+      stats: {
+        totalBookings: 0,
+        totalSpent: 0,
+        completedBookings: 0
+      }
+    }
+  }
+}
+
+// 1c. Get Item Rental Analytics
+export async function getItemRentalAnalytics(itemCode: string) {
+  try {
+    // Get all Sales Orders with this item
+    const salesOrders = await frappeRequest(
+      'frappe.client.get_list', 
+      'GET', 
+      {
+        doctype: 'Sales Order',
+        fields: '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status"]',
+        filters: `[["po_no", "like", "RENT-${itemCode}%"]]`,
+        order_by: 'creation desc',
+      }
+    )
+    
+    const totalRentals = salesOrders.length
+    const totalRevenue = salesOrders.reduce((sum: number, order: any) => sum + order.grand_total, 0)
+    const averageRentalDays = salesOrders.reduce((sum: number, order: any) => {
+      const start = new Date(order.transaction_date)
+      const end = new Date(order.delivery_date)
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+      return sum + days
+    }, 0) / (totalRentals || 1)
+    
+    return {
+      totalRentals,
+      totalRevenue,
+      averageRentalDays: Math.round(averageRentalDays),
+      recentRentals: salesOrders.slice(0, 5)
+    }
+  } catch (error) {
+    console.error("Failed to fetch item rental analytics:", error)
+    return {
+      totalRentals: 0,
+      totalRevenue: 0,
+      averageRentalDays: 0,
+      recentRentals: []
+    }
+  }
+}
+
+// 1d. CREATE: Book Item/Equipment from Catalogue
+export async function createBooking(formData: FormData) {
+  const itemCode = formData.get('item_code') as string
+  const customer = formData.get('customer') as string
+  const startDate = formData.get('start_date') as string
+  const endDate = formData.get('end_date') as string
+  const rate = parseFloat(formData.get('rate') as string || '0')
+  const projectName = formData.get('project_name') as string
+
+  try {
+    // Verify customer exists
+    const customerDoc = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Customer',
+      name: customer
+    })
+
+    if (!customerDoc) {
+      throw new Error('Customer not found. Please create customer first.')
+    }
+
+    // Check for overlapping bookings on the same item
+    const existingBookings = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      filters: JSON.stringify([
+        ['Sales Order Item', 'item_code', '=', itemCode],
+        ['status', 'in', ['Draft', 'To Deliver and Bill', 'To Bill', 'To Deliver', 'On Hold']]
+      ]),
+      fields: JSON.stringify(['name', 'delivery_date', 'transaction_date']),
+      limit_page_length: 0
+    })
+
+    // Check for date overlaps
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    for (const booking of existingBookings) {
+      const bookingStart = new Date(booking.transaction_date)
+      const bookingEnd = new Date(booking.delivery_date)
+      
+      // Check if dates overlap
+      if (start <= bookingEnd && end >= bookingStart) {
+        throw new Error(`${itemCode} is already booked from ${booking.transaction_date} to ${booking.delivery_date}. Please choose different dates.`)
+      }
+    }
+
+    // Calculate total days and amount
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+    // Generate unique PO number with timestamp
+    const timestamp = Date.now()
+    const uniquePO = `RENT-${itemCode}-${timestamp}`
+
+    const bookingDoc = {
+        doctype: 'Sales Order',
+        customer: customer,
+        transaction_date: startDate,
+        delivery_date: endDate, 
+        po_no: uniquePO,
+        project: projectName || undefined,
+        
+        items: [{
+            item_code: itemCode, 
+            description: `Rental of ${itemCode} from ${startDate} to ${endDate} (${days} days)${projectName ? ` - ${projectName}` : ''}`,
+            qty: days,
+            rate: rate,
+            delivery_date: endDate
+        }],
+        
+        remarks: `Equipment rental booking for ${days} days`,
+        status: 'Draft'
+    }
+
+    const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc })
+    
+    revalidatePath('/bookings')
+    revalidatePath('/catalogue')
+    return { success: true, bookingId: createdBooking.name }
+  } catch (error: any) {
+    console.error("Booking error:", error)
+    return { error: error.message || 'Booking failed' }
   }
 }
 
