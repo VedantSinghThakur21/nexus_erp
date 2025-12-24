@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
 
 const menuItems = [
@@ -86,7 +87,12 @@ function SidebarContent() {
       </div>
 
       {/* Footer Links */}
-      <div suppressHydrationWarning className="border-t p-4 space-y-2 shrink-0">
+      <div suppressHydrationWarning className="border-t p-4 space-y-3 shrink-0">
+        <div className="flex items-center justify-between px-3">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Theme</span>
+          <ThemeToggle />
+        </div>
+        
         <a 
             href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
             target="_blank" 

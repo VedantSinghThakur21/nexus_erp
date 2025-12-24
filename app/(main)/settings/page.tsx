@@ -6,7 +6,8 @@ import { InviteUserDialog } from "@/components/settings/invite-user-dialog"
 import { CreateTaxTemplateDialog } from "@/components/settings/create-tax-template-dialog"
 import { EditCompanyDialog } from "@/components/settings/edit-company-dialog"
 import { CreateBankAccountDialog } from "@/components/settings/create-bank-account-dialog"
-import { Receipt, Building2, Landmark } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Receipt, Building2, Landmark, Palette } from "lucide-react"
 
 export default async function SettingsPage() {
   const profile = await getProfile()
@@ -16,13 +17,32 @@ export default async function SettingsPage() {
   const bankAccounts = await getBankAccounts()
 
   return (
-    <div className="p-8 space-y-8 max-w-5xl mx-auto">
+    <div className="p-6 lg:p-8 space-y-8 max-w-5xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h1>
-          <p className="text-slate-500 dark:text-slate-400">Manage your profile and team</p>
+          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent">Settings</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">Manage your profile and team</p>
         </div>
       </div>
+
+      {/* Appearance Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            Appearance
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-slate-900 dark:text-white">Theme</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Switch between light and dark mode</p>
+            </div>
+            <ThemeToggle />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Profile Section */}
       <Card>

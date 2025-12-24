@@ -1,5 +1,4 @@
 import { AppSidebar } from "@/components/app-sidebar"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function DashboardLayout({
   children,
@@ -14,9 +13,6 @@ export default function DashboardLayout({
       <AppSidebar />
       
       <main className="flex-1 overflow-y-auto">
-        <div className="fixed top-6 right-6 z-50">
-          <ThemeToggle />
-        </div>
         {children}
       </main>
     </div>
