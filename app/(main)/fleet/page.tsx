@@ -68,7 +68,7 @@ export default async function FleetPage() {
       <FleetCalendar assets={fleet} bookings={bookings} />
 
       {/* Asset Grid */}
-      <div className="space-y-4">
+      <div className="space-y-4" suppressHydrationWarning>
         <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">All Machines</h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" suppressHydrationWarning>
             {fleet.length === 0 ? (
@@ -82,7 +82,7 @@ export default async function FleetPage() {
                     <p className="text-slate-500 mt-2 max-w-sm mx-auto">
                         Your fleet is empty. Add your first machine to start tracking inventory.
                     </p>
-                    <div className="mt-6">
+                    <div className="mt-6" suppressHydrationWarning>
                         <Link href="/fleet/new">
                             <Button variant="outline">Register First Machine</Button>
                         </Link>
@@ -93,7 +93,7 @@ export default async function FleetPage() {
                 <Card key={asset.name} className="hover:shadow-lg transition-all group flex flex-col h-full overflow-hidden">
                     <Link href={`/fleet/${asset.name}`} className="flex-1 cursor-pointer">
                         <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
+                            <div className="flex justify-between items-start" suppressHydrationWarning>
                                 <Badge variant="outline" className="font-mono text-xs text-slate-500">
                                     {asset.name}
                                 </Badge>

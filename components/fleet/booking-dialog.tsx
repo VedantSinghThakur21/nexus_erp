@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Calendar, Loader2 } from "lucide-react"
 import { bookMachine } from "@/app/actions/fleet"
-import { searchCustomers } from "@/app/actions/invoices"
+import { searchCustomers, getInvoices } from "@/app/actions/invoices"
 import { useRouter } from "next/navigation"
 
 export function BookingDialog({ asset }: { asset: any }) {
@@ -29,6 +29,8 @@ export function BookingDialog({ asset }: { asset: any }) {
   const [loading, setLoading] = useState(false)
   const [customers, setCustomers] = useState<any[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState('')
+  const [customerInvoices, setCustomerInvoices] = useState<any[]>([])
+  const [selectedInvoice, setSelectedInvoice] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -41,6 +43,22 @@ export function BookingDialog({ asset }: { asset: any }) {
     }
   }, [open])
 
+  // Fetch invoices when customer is selected
+  useEffect(() => {
+    const fetchCustomerInvoices = async () => {
+      if (selectedCustomer) {
+        const allInvoices = await getInvoices()
+        const filtered = allInvoices.filter((inv: any) => inv.customer_name === selectedCustomer)
+        setCustomerInvoices(filtered)
+        setSelectedInvoice('') // Reset invoice selection
+      } else {
+        setCustomerInvoices([])
+        setSelectedInvoice('')
+      }
+    }
+    fetchCustomerInvoices()
+  }, [selectedCustomer])
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -50,6 +68,9 @@ export function BookingDialog({ asset }: { asset: any }) {
     formData.append('asset_id', asset.name)
     formData.append('item_code', asset.item_code)
     formData.append('customer', selectedCustomer)
+    if (selectedInvoice) {
+      formData.append('invoice_ref', selectedInvoice)
+    }
     
     const res = await bookMachine(formData)
     
@@ -130,7 +151,24 @@ export function BookingDialog({ asset }: { asset: any }) {
           {/* Invoice Reference (Optional) */}
           <div className="grid gap-2">
             <Label>Linked Invoice (Optional)</Label>
-            <Input name="invoice_ref" placeholder="e.g. ACC-SINV-2025-00001" />
+            <Select value={selectedInvoice} onValueChange={setSelectedInvoice} disabled={!selectedCustomer}>
+              <SelectTrigger>
+                <SelectValue placeholder={selectedCustomer ? "Select invoice..." : "Select customer first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {customerInvoices.length === 0 ? (
+                  <div className="p-2 text-sm text-slate-500">
+                    {selectedCustomer ? "No invoices found for this customer" : "Select a customer first"}
+                  </div>
+                ) : (
+                  customerInvoices.map((invoice) => (
+                    <SelectItem key={invoice.name} value={invoice.name}>
+                      {invoice.name} - ₹{invoice.grand_total.toLocaleString('en-IN')} ({invoice.status})
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
             <p className="text-xs text-slate-500">Link this booking to an existing invoice</p>
           </div>
           
