@@ -24,12 +24,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* FIX: prevents React from showing warnings when browser extensions 
-        (like Bitdefender, Dark Reader, LastPass) inject extra attributes into the HTML.
-        This is safe and doesn't affect functionality.
-      */}
       <body
-       
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
