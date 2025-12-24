@@ -175,7 +175,34 @@ interface AnimatedStatCardProps {
   delay?: number;
 }
 
-export funcmotion.p
+export function AnimatedStatCard({
+  title,
+  value,
+  change,
+  icon,
+  variant = 'default',
+  delay = 0,
+}: AnimatedStatCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ 
+        delay,
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+      }}
+      className={cn(
+        "rounded-xl p-6 shadow-sm",
+        variant === 'neon'
+          ? "bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/50"
+          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: delay + 0.1 }}
@@ -224,10 +251,21 @@ export funcmotion.p
           )}
         >
           {icon}
-        </motion.  </div>
-          )}
-        </div>
-     motion.div
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}
+
+interface AnimatedListProps {
+  children: React.ReactNode;
+  className?: string;
+  staggerDelay?: number;
+}
+
+export function AnimatedList({ children, className, staggerDelay = 0.1 }: AnimatedListProps) {
+  return (
+    <motion.div
       initial="hidden"
       animate="visible"
       variants={{
@@ -237,7 +275,7 @@ export funcmotion.p
           },
         },
       }}
-      className="space-y-4"
+      className={className}
     >
       {children}
     </motion.div>
@@ -272,24 +310,3 @@ export function AnimatedListItem({ children, className, index = 0 }: AnimatedLis
   );
 }
 
-interface AnimatedListItemProps {
-  children: React.ReactNode;
-  className?: string;
-  index?: number;
-}
-
-export function AnimatedListItem({ children, className, index = 0 }: AnimatedListItemProps) {
-  return (
-    <div
-      style={{
-        animationDelay: `${index * 0.1}s`,
-      }}
-      className={cn(
-        "animate-in fade-in slide-in-from-bottom-4 duration-500",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-}
