@@ -302,7 +302,6 @@ export default function EditPricingRulePage({ params }: { params: Promise<{ name
                       <SelectValue placeholder="All Customers" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Customers</SelectItem>
                       {customerGroups.map((group) => (
                         <SelectItem key={group} value={group}>
                           {group}
@@ -319,7 +318,6 @@ export default function EditPricingRulePage({ params }: { params: Promise<{ name
                       <SelectValue placeholder="All Territories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Territories</SelectItem>
                       {territories.map((terr) => (
                         <SelectItem key={terr} value={terr}>
                           {terr}

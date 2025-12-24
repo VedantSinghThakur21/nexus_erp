@@ -147,10 +147,9 @@ export default function CreatePricingRulePage() {
                     <Label htmlFor="item_group">Item Group</Label>
                     <Select value={itemGroup} onValueChange={setItemGroup}>
                       <SelectTrigger id="item_group">
-                        <SelectValue placeholder="Select item group" />
+                        <SelectValue placeholder="All Groups" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Groups</SelectItem>
                         {itemGroups.map((group) => (
                           <SelectItem key={group} value={group}>
                             {group}
@@ -277,10 +276,9 @@ export default function CreatePricingRulePage() {
                   <Label htmlFor="customer_group">Customer Group</Label>
                   <Select value={customerGroup} onValueChange={setCustomerGroup}>
                     <SelectTrigger id="customer_group">
-                      <SelectValue placeholder="Select customer group" />
+                      <SelectValue placeholder="All Customers" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Customers</SelectItem>
                       {customerGroups.map((group) => (
                         <SelectItem key={group} value={group}>
                           {group}
@@ -294,10 +292,9 @@ export default function CreatePricingRulePage() {
                   <Label htmlFor="territory">Territory</Label>
                   <Select value={territory} onValueChange={setTerritory}>
                     <SelectTrigger id="territory">
-                      <SelectValue placeholder="Select territory" />
+                      <SelectValue placeholder="All Territories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Territories</SelectItem>
                       {territories.map((terr) => (
                         <SelectItem key={terr} value={terr}>
                           {terr}
