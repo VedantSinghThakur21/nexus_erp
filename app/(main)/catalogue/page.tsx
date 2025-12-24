@@ -69,12 +69,10 @@ export default function CataloguePage() {
     async function loadData() {
       try {
         await ensureItemGroups()
-        const [items, groups] = await Promise.all([
-          searchItems(''),
-          getItemGroups()
-        ])
+        const items = await searchItems('')
         setAllItems(items)
-        setItemGroups(['All', ...groups])
+        // Only show our 3 business categories
+        setItemGroups(['All', 'Heavy Equipment Rental', 'Construction Services', 'Consulting'])
       } finally {
         setIsLoading(false)
       }
@@ -180,7 +178,7 @@ export default function CataloguePage() {
           </CardContent>
         </Card>
         
-        {itemGroups.slice(1, 3).map(group => {
+        {['Heavy Equipment Rental', 'Construction Services'].map(group => {
           const Icon = groupIcons[group] || Package
           const stats = getGroupStats(group)
           
@@ -200,8 +198,8 @@ export default function CataloguePage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-4">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Search items by name, code, or description..."
@@ -211,37 +209,43 @@ export default function CataloguePage() {
           />
         </div>
         
-        <div className="flex gap-2">
-          {itemGroups.map(group => (
-            <Button
-              key={group}
-              variant={selectedGroup === group ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedGroup(group)}
-              className="whitespace-nowrap"
-            >
-              {group}
-            </Button>
-          ))}
+        <div className="flex gap-2 flex-wrap">
+          {itemGroups.map(group => {
+            const Icon = group === 'All' ? Package : groupIcons[group] || Package
+            return (
+              <Button
+                key={group}
+                variant={selectedGroup === group ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedGroup(group)}
+                className="whitespace-nowrap"
+              >
+                <Icon className="h-3.5 w-3.5 mr-1.5" />
+                {group}
+              </Button>
+            )
+          })}
         </div>
       </div>
 
       {/* Items Grid */}
       {filteredItems.length === 0 ? (
-        <Card className="p-8 text-center">
-          <p className="text-slate-500">No items found matching your criteria.</p>
+        <Card className="p-12 text-center">
+          <Package className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500 font-medium">No items found matching your criteria.</p>
+          <p className="text-sm text-slate-400 mt-1">Try adjusting your search or filters.</p>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredItems.map(item => (
             <Card key={item.item_code} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-base font-semibold">{item.item_code}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">{item.item_name}</p>
+              <CardHeader className="pb-3">
+                <div className="space-y-2.5">
+                  <div>
+                    <CardTitle className="text-lg font-semibold leading-tight">{item.item_name}</CardTitle>
+                    <p className="text-xs text-muted-foreground font-mono mt-1">{item.item_code}</p>
                   </div>
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className={`text-xs w-fit ${groupColors[item.item_group] || ''}`}>
                     {item.item_group}
                   </Badge>
                 </div>
@@ -264,35 +268,37 @@ export default function CataloguePage() {
                       <CheckCircle className="h-3 w-3 mr-1" /> Service
                     </Badge>
                   )}
-                  {item.standard_rate && (
+                  {item.standard_rate ? (
                     <span className="text-sm font-semibold text-slate-900 dark:text-white ml-auto">
-                      ₹{item.standard_rate.toLocaleString('en-IN')}/day
+                      ₹{Math.round(item.standard_rate).toLocaleString('en-IN')}<span className="text-xs text-slate-500 font-normal">/day</span>
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {item.description && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 min-h-[40px]">
                     {item.description}
                   </p>
                 )}
-                <div className="flex gap-2">
+                <div className="space-y-2">
+                  <div className="w-full">
+                    <CreateBookingDialog 
+                      itemCode={item.item_code} 
+                      itemName={item.item_name}
+                      defaultRate={item.standard_rate || 1000}
+                      available={item.available}
+                    />
+                  </div>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={() => handleQuickView(item.item_code)}
-                    className="flex-1"
+                    className="w-full text-xs"
                   >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Quick View
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    View Details
                   </Button>
-                  <CreateBookingDialog 
-                    itemCode={item.item_code} 
-                    itemName={item.item_name}
-                    defaultRate={item.standard_rate || 1000}
-                    available={item.available}
-                  />
                 </div>
               </CardContent>
             </Card>
