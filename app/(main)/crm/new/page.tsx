@@ -1,53 +1,8 @@
-'use client'
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Loader2 } from "lucide-react"
-import { createLead } from "@/app/actions/crm"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
+import MultiSectionLeadForm from "@/components/crm/multi-section-lead-form"
 
 export default function NewLeadPage() {
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-
-  // Form State
-  const [formData, setFormData] = useState({
-    salutation: "",
-    first_name: "",
-    middle_name: "",
-    last_name: "",
-    job_title: "",
-    gender: "",
-    source: "",
-    email_id: "",
-    mobile_no: "",
-    phone: "",
-    website: "",
-    company_name: "",
-    no_of_employees: "",
-    annual_revenue: "",
-    industry: "",
-    market_segment: "",
-    territory: "",
-    fax: ""
-  })
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
+  return <MultiSectionLeadForm />
+}
     setFormData({ ...formData, [name]: value })
   }
 

@@ -148,17 +148,152 @@ export default function CataloguePage() {
   }
   
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Product Catalogue</h1>
-          <p className="text-slate-500 mt-1">Browse items by business category</p>
+          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Product & Service Catalogue
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">Manage offerings, pricing, and inventory across all channels</p>
         </div>
-        <CreateItemDialog />
+        <Button variant="default" className="gap-2 bg-blue-600 hover:bg-blue-700">
+          <Package className="h-4 w-4" /> Add New Item
+        </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* AI Search Bar */}
+      <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
+        <div className="p-4">
+          <div className="relative">
+            <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Ask AI: 'Show me high margin services' or 'Find items with low stock predicted for next month'..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 text-sm border border-blue-200 dark:border-blue-700 rounded-lg bg-white/50 dark:bg-slate-900/50 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* AI Insight Card */}
+      {selectedGroup === 'All' && (
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+          <div className="p-4 flex items-start gap-4">
+            <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg">
+              <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase">AI INSIGHT</span>
+                <span className="text-xs text-slate-500">Generated 2 mins ago</span>
+              </div>
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                Stock Warning: High Velocity Items
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Based on current sales trends, 3 high-velocity products are predicted to go out of stock next month. 
+                Restocking now can prevent an estimated ₹12k in lost revenue.
+              </p>
+              <div className="flex gap-2 mt-3">
+                <Button size="sm" variant="outline" className="text-xs">
+                  View Recommendations
+                </Button>
+                <Button size="sm" variant="ghost" className="text-xs">
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Main Content */}
+      <div className="grid gap-6 lg:grid-cols-4">
+        {/* Filters Sidebar */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">CATEGORIES</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              {itemGroups.map(group => {
+                const stats = group !== 'All' ? getGroupStats(group) : { total: totalItems, available: availableItems }
+                return (
+                  <label key={group} className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedGroup === group}
+                      onChange={() => setSelectedGroup(group)}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white flex-1">
+                      {group}
+                    </span>
+                    <span className="text-xs text-slate-500">{stats.total}</span>
+                  </label>
+                )
+              })}
+            </div>
+
+            {/* Price Range */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+              <h4 className="text-sm font-semibold mb-3 text-slate-700 dark:text-slate-300">PRICE RANGE</h4>
+              <div className="flex gap-2 mb-3">
+                <Input
+                  type="number"
+                  placeholder="$ 0"
+                  className="text-sm"
+                />
+                <Input
+                  type="number"
+                  placeholder="$ 5000"
+                  className="text-sm"
+                />
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="5000"
+                defaultValue="5000"
+                className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700"
+              />
+            </div>
+
+            {/* Inventory Status */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+              <h4 className="text-sm font-semibold mb-3 text-slate-700 dark:text-slate-300">INVENTORY STATUS</h4>
+              <div className="space-y-2">
+                {[
+                  { name: "In Stock", color: "bg-blue-500" },
+                  { name: "Low Stock", color: "bg-orange-500" },
+                  { name: "Discontinued", color: "bg-slate-500" }
+                ].map(status => (
+                  <label key={status.name} className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      defaultChecked={status.name === "In Stock"}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                      {status.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Items Grid */}
+        <div className="lg:col-span-3 space-y-4">{/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Items</CardTitle>
@@ -181,23 +316,17 @@ export default function CataloguePage() {
           </CardContent>
         </Card>
         
-        {['Heavy Equipment Rental', 'Construction Services'].map(group => {
-          const Icon = groupIcons[group] || Package
-          const stats = getGroupStats(group)
-          
-          return (
-            <Card key={group}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">{group}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.total}</div>
-                <p className="text-xs text-muted-foreground">{stats.available} available</p>
-              </CardContent>
-            </Card>
-          )
-        })}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Filtered Results</CardTitle>
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{filteredItems.length}</div>
+            <p className="text-xs text-muted-foreground">Showing {selectedGroup}</p>
+          </CardContent>
+        </Card>
+      </div>
       </div>
 
       {/* Search and Filters */}
