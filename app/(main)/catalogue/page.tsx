@@ -292,42 +292,42 @@ export default function CataloguePage() {
         </Card>
 
         {/* Items Grid */}
-        <div className="lg:col-span-3 space-y-4">{/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Items</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalItems}</div>
-            <p className="text-xs text-muted-foreground">{itemGroups.length - 1} categories</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Available Now</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{availableItems}</div>
-            <p className="text-xs text-muted-foreground">Ready to book</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Filtered Results</CardTitle>
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredItems.length}</div>
-            <p className="text-xs text-muted-foreground">Showing {selectedGroup}</p>
-          </CardContent>
-        </Card>
-      </div>
-      </div>
+        <div className="lg:col-span-3 space-y-4">
+          {/* Summary Cards */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalItems}</div>
+                <p className="text-xs text-muted-foreground">{itemGroups.length - 1} categories</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Available Now</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{availableItems}</div>
+                <p className="text-xs text-muted-foreground">Ready to book</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Filtered Results</CardTitle>
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{filteredItems.length}</div>
+                <p className="text-xs text-muted-foreground">Showing {selectedGroup}</p>
+              </CardContent>
+            </Card>
+          </div>
 
       {/* Search and Filters */}
       <div className="flex flex-col gap-4">
@@ -440,6 +440,8 @@ export default function CataloguePage() {
           ))}
         </div>
       )}
+        </div>
+      </div>
 
       {/* Quick View Dialog */}
       <Dialog open={!!selectedItem} onOpenChange={() => { setSelectedItem(null); setItemAnalytics(null); }}>
