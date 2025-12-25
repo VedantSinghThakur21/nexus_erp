@@ -1,7 +1,8 @@
 import { getPaymentEntries } from "@/app/actions/invoices"
-import { AnimatedStatCard, AnimatedCard } from "@/components/ui/animated"
+import { AnimatedStatCard, AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Receipt, DollarSign, Calendar, CreditCard } from "lucide-react"
 import Link from "next/link"
 
@@ -129,7 +130,7 @@ export default async function PaymentsPage() {
             </table>
           </div>
         </CardContent>
-      </Card>
+      </AnimatedCard>
     </div>
   )
 }
