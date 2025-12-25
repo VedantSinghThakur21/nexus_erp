@@ -24,7 +24,7 @@ interface LeadsDashboardProps {
 
 export function LeadsDashboard({ leads }: LeadsDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedStatus, setSelectedStatus] = useState<string[]>(["New", "Contacted"])
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([])
   const [selectedAIInsights, setSelectedAIInsights] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -150,10 +150,11 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
               <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">STATUS</h4>
               <div className="space-y-2">
                 {[
-                  { name: "New", count: 12 },
-                  { name: "Contacted", count: 24 },
-                  { name: "Qualified", count: 8 }
-                ].map(status => (
+                  { name: "Open", count: leadsWithScores.filter(l => l.status === "Open").length },
+                  { name: "Contacted", count: leadsWithScores.filter(l => l.status === "Contacted").length },
+                  { name: "Opportunity", count: leadsWithScores.filter(l => l.status === "Opportunity").length },
+                  { name: "Qualified", count: leadsWithScores.filter(l => l.status === "Qualified").length }
+                ].filter(status => status.count > 0).map(status => (
                   <label key={status.name} className="flex items-center gap-2 cursor-pointer group">
                     <input 
                       type="checkbox" 
