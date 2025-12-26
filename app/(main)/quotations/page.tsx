@@ -4,45 +4,12 @@ import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, FileText, CheckCircle, Clock, XCircle, Search, Filter } from "lucide-react"
 import Link from "next/link"
+import { getQuotations, getQuotationStats } from "@/app/actions/quotations"
 
 export default async function QuotationsPage() {
-  // Mock data - replace with actual API calls
-  const quotations = [
-    {
-      id: "QT-9821",
-      customer: "Acme Corporation",
-      date: "Oct 24, 2023",
-      validUntil: "Nov 24, 2023",
-      total: 2640.00,
-      status: "Draft",
-      items: 2
-    },
-    {
-      id: "QT-9822",
-      customer: "BuildTech Solutions",
-      date: "Oct 25, 2023",
-      validUntil: "Nov 25, 2023",
-      total: 15600.00,
-      status: "Sent",
-      items: 5
-    },
-    {
-      id: "QT-9823",
-      customer: "Infrastructure Inc",
-      date: "Oct 26, 2023",
-      validUntil: "Nov 26, 2023",
-      total: 45000.00,
-      status: "Accepted",
-      items: 8
-    }
-  ]
-
-  const stats = {
-    draft: quotations.filter(q => q.status === "Draft").length,
-    sent: quotations.filter(q => q.status === "Sent").length,
-    accepted: quotations.filter(q => q.status === "Accepted").length,
-    totalValue: quotations.reduce((sum, q) => sum + q.total, 0)
-  }
+  // Fetch real data from ERPNext
+  const quotations = await getQuotations()
+  const stats = await getQuotationStats()
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
@@ -141,16 +108,28 @@ export default async function QuotationsPage() {
             </div>
 
             {/* Table Rows */}
-            {quotations.map((quotation, idx) => (
-              <Link key={idx} href={`/quotations/${quotation.id}`}>
+            {quotations.map((quotation) => (
+              <Link key={quotation.name} href={`/quotations/${quotation.name}`}>
                 <div className="grid grid-cols-7 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer">
-                  <div className="font-medium text-blue-600 dark:text-blue-400">{quotation.id}</div>
-                  <div className="text-slate-900 dark:text-white">{quotation.customer}</div>
-                  <div className="text-slate-600 dark:text-slate-400">{quotation.date}</div>
-                  <div className="text-slate-600 dark:text-slate-400">{quotation.validUntil}</div>
-                  <div className="text-slate-600 dark:text-slate-400">{quotation.items} items</div>
+                  <div className="font-medium text-blue-600 dark:text-blue-400">{quotation.name}</div>
+                  <div className="text-slate-900 dark:text-white">{quotation.customer_name || quotation.party_name}</div>
+                  <div className="text-slate-600 dark:text-slate-400">
+                    {new Date(quotation.transaction_date).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </div>
+                  <div className="text-slate-600 dark:text-slate-400">
+                    {new Date(quotation.valid_till).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </div>
+                  <div className="text-slate-600 dark:text-slate-400">{quotation.total_qty || 0} items</div>
                   <div className="font-semibold text-slate-900 dark:text-white">
-                    ₹{quotation.total.toLocaleString()}
+                    {quotation.currency} {quotation.grand_total.toLocaleString()}
                   </div>
                   <div>
                     <Badge
@@ -158,9 +137,11 @@ export default async function QuotationsPage() {
                       className={
                         quotation.status === "Draft"
                           ? "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                          : quotation.status === "Sent"
+                          : ["Sent", "Open"].includes(quotation.status)
                           ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300"
-                          : "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300"
+                          : quotation.status === "Ordered"
+                          ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300"
+                          : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
                       }
                     >
                       {quotation.status}
