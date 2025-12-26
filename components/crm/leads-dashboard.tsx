@@ -31,7 +31,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
   const itemsPerPage = 10
 
   // ERPNext lead statuses
-  const erpNextStatuses = ["Lead", "Contacted", "Qualified", "Lost", "Interested", "Converted", "Do Not Contact"]
+  const erpNextStatuses = ["Lead", "Open", "Replied", "Opportunity", "Quotation", "Lost Quotation", "Interested", "Converted", "Do Not Contact"]
 
   // Calculate AI scores (mock for now)
   const leadsWithScores = leads.map(lead => ({
@@ -433,11 +433,13 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
 
 function getNextAction(status: string): string {
   const actions: Record<string, string> = {
-    "Lead": "Research company",
-    "Contacted": "Send proposal",
-    "Qualified": "Schedule meeting",
-    "Interested": "Follow up call",
-    "Lost": "Archive",
+    "Lead": "Initial research",
+    "Open": "Make first contact",
+    "Replied": "Send follow-up",
+    "Opportunity": "Discuss requirements",
+    "Quotation": "Send quotation",
+    "Lost Quotation": "Review feedback",
+    "Interested": "Schedule meeting",
     "Converted": "Complete",
     "Do Not Contact": "No action"
   }
@@ -446,13 +448,15 @@ function getNextAction(status: string): string {
 
 function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    "Lead": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
-    "Contacted": "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300",
-    "Qualified": "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300",
-    "Interested": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
-    "Lost": "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
-    "Converted": "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300",
-    "Do Not Contact": "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:text-slate-300"
+    "Lead": "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:text-slate-300",
+    "Open": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+    "Replied": "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300",
+    "Opportunity": "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300",
+    "Quotation": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
+    "Lost Quotation": "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
+    "Interested": "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300",
+    "Converted": "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300",
+    "Do Not Contact": "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300"
   }
   return colors[status] || "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300"
 }
