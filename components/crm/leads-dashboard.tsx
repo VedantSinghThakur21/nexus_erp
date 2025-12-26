@@ -27,7 +27,11 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
   const [selectedStatus, setSelectedStatus] = useState<string[]>([])
   const [selectedAIInsights, setSelectedAIInsights] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
   const itemsPerPage = 10
+
+  // ERPNext lead statuses
+  const erpNextStatuses = ["Lead", "Contacted", "Qualified", "Lost", "Interested", "Converted", "Do Not Contact"]
 
   // Calculate AI scores (mock for now)
   const leadsWithScores = leads.map(lead => ({
@@ -73,13 +77,21 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
           <p className="text-slate-600 dark:text-slate-400">Manage your pipeline and track AI-scored opportunities</p>
         </div>
         <div className="flex items-center gap-3">
-          <AnimatedButton variant="outline" className="gap-2">
+          <AnimatedButton 
+            variant={viewMode === "list" ? "default" : "outline"} 
+            className="gap-2"
+            onClick={() => setViewMode("list")}
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             List
           </AnimatedButton>
-          <AnimatedButton variant="outline" className="gap-2">
+          <AnimatedButton 
+            variant={viewMode === "kanban" ? "default" : "outline"} 
+            className="gap-2"
+            onClick={() => setViewMode("kanban")}
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0v10" />
             </svg>
@@ -149,31 +161,29 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
             <div>
               <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">STATUS</h4>
               <div className="space-y-2">
-                {[
-                  { name: "Open", count: leadsWithScores.filter(l => l.status === "Open").length },
-                  { name: "Contacted", count: leadsWithScores.filter(l => l.status === "Contacted").length },
-                  { name: "Opportunity", count: leadsWithScores.filter(l => l.status === "Opportunity").length },
-                  { name: "Qualified", count: leadsWithScores.filter(l => l.status === "Qualified").length }
-                ].filter(status => status.count > 0).map(status => (
-                  <label key={status.name} className="flex items-center gap-2 cursor-pointer group">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedStatus.includes(status.name)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedStatus([...selectedStatus, status.name])
-                        } else {
-                          setSelectedStatus(selectedStatus.filter(s => s !== status.name))
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white flex-1">
-                      {status.name}
-                    </span>
-                    <span className="text-xs text-slate-500">{status.count}</span>
-                  </label>
-                ))}
+                {erpNextStatuses.map(status => {
+                  const count = leadsWithScores.filter(l => l.status === status).length
+                  return (
+                    <label key={status} className="flex items-center gap-2 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedStatus.includes(status)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStatus([...selectedStatus, status])
+                          } else {
+                            setSelectedStatus(selectedStatus.filter(s => s !== status))
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white flex-1">
+                        {status}
+                      </span>
+                      <span className="text-xs text-slate-500">{count}</span>
+                    </label>
+                  )
+                })}
               </div>
             </div>
 
@@ -246,109 +256,174 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-xs text-slate-500 mb-3">
-              Showing 1-{Math.min(itemsPerPage, filteredLeads.length)} of {filteredLeads.length} leads
-            </div>
-            
-            {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 pb-3 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
-              <div className="col-span-3">LEAD NAME</div>
-              <div className="col-span-2">COMPANY</div>
-              <div className="col-span-2 flex items-center gap-1">
-                AI SCORE
-                <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                </svg>
-              </div>
-              <div className="col-span-2">STATUS</div>
-              <div className="col-span-3">NEXT ACTION</div>
-            </div>
+            {viewMode === "list" ? (
+              <>
+                <div className="text-xs text-slate-500 mb-3">
+                  Showing 1-{Math.min(itemsPerPage, filteredLeads.length)} of {filteredLeads.length} leads
+                </div>
+                
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 pb-3 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <div className="col-span-3">LEAD NAME</div>
+                  <div className="col-span-2">COMPANY</div>
+                  <div className="col-span-2 flex items-center gap-1">
+                    AI SCORE
+                    <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                    </svg>
+                  </div>
+                  <div className="col-span-2">STATUS</div>
+                  <div className="col-span-3">NEXT ACTION</div>
+                </div>
 
-            {/* Table Rows */}
-            <div className="space-y-2 mt-3">
-              {paginatedLeads.map((lead, idx) => (
-                <div 
-                  key={idx} 
-                  className="grid grid-cols-12 gap-4 py-3 px-2 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer"
-                >
-                  <div className="col-span-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
-                      {lead.lead_name?.charAt(0) || "?"}
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 dark:text-white">{lead.lead_name || "Unknown"}</p>
-                      <p className="text-xs text-slate-500">{lead.email_id || "No email"}</p>
-                    </div>
-                  </div>
-                  <div className="col-span-2 text-slate-700 dark:text-slate-300">{lead.company}</div>
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full ${
-                            lead.aiScore >= 85 ? 'bg-green-500' : 
-                            lead.aiScore >= 70 ? 'bg-yellow-500' : 
-                            'bg-orange-500'
-                          }`}
-                          style={{ width: `${lead.aiScore}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-semibold text-slate-900 dark:text-white">{lead.aiScore}</span>
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <Badge 
-                      variant="outline" 
-                      className={`${getStatusColor(lead.status)} text-xs`}
+                {/* Table Rows */}
+                <div className="space-y-2 mt-3">
+                  {paginatedLeads.map((lead, idx) => (
+                    <div 
+                      key={idx} 
+                      className="grid grid-cols-12 gap-4 py-3 px-2 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer"
                     >
-                      {lead.status}
-                    </Badge>
-                  </div>
-                  <div className="col-span-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-orange-600 dark:text-orange-400">⚠️</span>
-                      <span className="text-xs text-slate-600 dark:text-slate-400">{lead.nextAction}</span>
+                      <div className="col-span-3 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
+                          {lead.lead_name?.charAt(0) || "?"}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-white">{lead.lead_name || "Unknown"}</p>
+                          <p className="text-xs text-slate-500">{lead.email_id || "No email"}</p>
+                        </div>
+                      </div>
+                      <div className="col-span-2 text-slate-700 dark:text-slate-300">{lead.company}</div>
+                      <div className="col-span-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${
+                                lead.aiScore >= 85 ? 'bg-green-500' : 
+                                lead.aiScore >= 70 ? 'bg-yellow-500' : 
+                                'bg-orange-500'
+                              }`}
+                              style={{ width: `${lead.aiScore}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-semibold text-slate-900 dark:text-white">{lead.aiScore}</span>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <Badge 
+                          variant="outline" 
+                          className={`${getStatusColor(lead.status)} text-xs`}
+                        >
+                          {lead.status}
+                        </Badge>
+                      </div>
+                      <div className="col-span-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-orange-600 dark:text-orange-400">⚠️</span>
+                          <span className="text-xs text-slate-600 dark:text-slate-400">{lead.nextAction}</span>
+                        </div>
+                      </div>
                     </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <div className="text-sm text-slate-600 dark:text-slate-400">
+                    Selected 0 leads
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                    >
+                      Previous
+                    </Button>
+                    {[...Array(Math.min(totalPages, 3))].map((_, i) => (
+                      <Button
+                        key={i}
+                        variant={currentPage === i + 1 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(i + 1)}
+                        className="w-8 h-8"
+                      >
+                        {i + 1}
+                      </Button>
+                    ))}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                    >
+                      Next
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <div className="text-sm text-slate-600 dark:text-slate-400">
-                Selected 0 leads
+              </>
+            ) : (
+              /* Kanban View */
+              <div className="overflow-x-auto">
+                <div className="flex gap-4 pb-4" style={{ minWidth: 'max-content' }}>
+                  {erpNextStatuses.map(status => {
+                    const statusLeads = filteredLeads.filter(l => l.status === status)
+                    return (
+                      <div key={status} className="flex-shrink-0 w-72">
+                        <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 mb-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-sm text-slate-900 dark:text-white">{status}</h3>
+                            <Badge variant="secondary" className="text-xs">{statusLeads.length}</Badge>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          {statusLeads.map((lead, idx) => (
+                            <Card key={idx} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                                  {lead.lead_name?.charAt(0) || "?"}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{lead.lead_name || "Unknown"}</p>
+                                  <p className="text-xs text-slate-500 truncate">{lead.email_id || "No email"}</p>
+                                  {lead.company && (
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">{lead.company}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full ${
+                                          lead.aiScore >= 85 ? 'bg-green-500' : 
+                                          lead.aiScore >= 70 ? 'bg-yellow-500' : 
+                                          'bg-orange-500'
+                                        }`}
+                                        style={{ width: `${lead.aiScore}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs font-semibold text-slate-900 dark:text-white">{lead.aiScore}</span>
+                                  </div>
+                                  {lead.nextAction && (
+                                    <div className="flex items-center gap-1 mt-2">
+                                      <span className="text-xs text-orange-600 dark:text-orange-400">⚠️</span>
+                                      <span className="text-xs text-slate-600 dark:text-slate-400 truncate">{lead.nextAction}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                          {statusLeads.length === 0 && (
+                            <div className="text-center py-8 text-sm text-slate-400">
+                              No leads
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                >
-                  Previous
-                </Button>
-                {[...Array(Math.min(totalPages, 3))].map((_, i) => (
-                  <Button
-                    key={i}
-                    variant={currentPage === i + 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(i + 1)}
-                    className="w-8 h-8"
-                  >
-                    {i + 1}
-                  </Button>
-                ))}
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            )}
           </CardContent>
         </AnimatedCard>
       </div>
@@ -358,23 +433,26 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
 
 function getNextAction(status: string): string {
   const actions: Record<string, string> = {
-    "New": "Call today",
+    "Lead": "Research company",
     "Contacted": "Send proposal",
-    "Qualified": "Meeting 2pm Fri",
-    "Interested": "Follow up email",
-    "Open": "Research company",
-    "Replied": "Schedule call"
+    "Qualified": "Schedule meeting",
+    "Interested": "Follow up call",
+    "Lost": "Archive",
+    "Converted": "Complete",
+    "Do Not Contact": "No action"
   }
   return actions[status] || "No action"
 }
 
 function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    "New": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+    "Lead": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
     "Contacted": "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300",
     "Qualified": "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300",
     "Interested": "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
-    "Open": "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300"
+    "Lost": "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
+    "Converted": "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300",
+    "Do Not Contact": "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:text-slate-300"
   }
   return colors[status] || "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300"
 }

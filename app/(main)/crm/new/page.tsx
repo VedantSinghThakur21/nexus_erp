@@ -1,6 +1,6 @@
-import MultiSectionLeadForm from "@/components/crm/multi-section-lead-form"
+import ERPNextLeadForm from "@/components/crm/erpnext-lead-form"
 
 export default function NewLeadPage() {
-  return <MultiSectionLeadForm />
+  return <ERPNextLeadForm />
 }
 

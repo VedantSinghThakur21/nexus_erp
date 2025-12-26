@@ -1,0 +1,458 @@
+'use client'
+
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
+import { User, Building2, Target, MapPin, FileText, ChevronRight } from "lucide-react"
+import { createLead } from "@/app/actions/crm"
+import { useRouter } from 'next/navigation'
+
+const sections = [
+  { id: 'basic', label: 'Basic Information', icon: User },
+  { id: 'company', label: 'Company Data', icon: Building2 },
+  { id: 'tracking', label: 'Tracking & Assignment', icon: Target },
+  { id: 'address', label: 'Address Details', icon: MapPin },
+  { id: 'notes', label: 'Internal Notes', icon: FileText }
+]
+
+export default function ERPNextLeadForm() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [activeSection, setActiveSection] = useState('basic')
+
+  const [formData, setFormData] = useState({
+    // Basic Information
+    salutation: '',
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    email_id: '',
+    mobile_no: '',
+    phone: '',
+    job_title: '',
+    gender: '',
+    
+    // Company Data
+    company_name: '',
+    website: '',
+    industry: '',
+    annual_revenue: '',
+    no_of_employees: '',
+    
+    // Tracking & Assignment
+    source: '',
+    status: 'Lead',
+    lead_owner: '',
+    
+    // Address Details
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    country: '',
+    pincode: '',
+    
+    // Notes
+    notes: ''
+  })
+
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const result = await createLead(formData)
+      if (result.success) {
+        router.push('/crm')
+      } else {
+        alert(result.error || 'Failed to create lead')
+      }
+    } catch (error) {
+      console.error('Failed to create lead:', error)
+      alert('Failed to create lead')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const renderSectionContent = () => {
+    switch (activeSection) {
+      case 'basic':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>First Name *</Label>
+                <Input
+                  required
+                  placeholder="e.g. Jane"
+                  value={formData.first_name}
+                  onChange={(e) => updateField('first_name', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Last Name *</Label>
+                <Input
+                  placeholder="e.g. Doe"
+                  value={formData.last_name}
+                  onChange={(e) => updateField('last_name', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Email Address *</Label>
+                <Input
+                  type="email"
+                  required
+                  placeholder="jane@company.com"
+                  value={formData.email_id}
+                  onChange={(e) => updateField('email_id', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Job Title</Label>
+                <Input
+                  placeholder="e.g. Purchasing Manager"
+                  value={formData.job_title}
+                  onChange={(e) => updateField('job_title', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Mobile Phone</Label>
+                <Input
+                  placeholder="+1 585-0100"
+                  value={formData.mobile_no}
+                  onChange={(e) => updateField('mobile_no', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Office Phone</Label>
+                <Input
+                  placeholder="+1 585-0101"
+                  value={formData.phone}
+                  onChange={(e) => updateField('phone', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'company':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Company Name</Label>
+                <Input
+                  placeholder="e.g. Acme Corp"
+                  value={formData.company_name}
+                  onChange={(e) => updateField('company_name', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Website</Label>
+                <Input
+                  placeholder="https://example.com"
+                  value={formData.website}
+                  onChange={(e) => updateField('website', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Industry</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.industry}
+                  onChange={(e) => updateField('industry', e.target.value)}
+                >
+                  <option value="">Select Industry</option>
+                  <option value="Construction">Construction</option>
+                  <option value="Manufacturing">Manufacturing</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Retail">Retail</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <Label>Annual Revenue</Label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={formData.annual_revenue}
+                  onChange={(e) => updateField('annual_revenue', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Number of Employees</Label>
+                <Input
+                  type="number"
+                  placeholder="50"
+                  value={formData.no_of_employees}
+                  onChange={(e) => updateField('no_of_employees', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'tracking':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Lead Source</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.source}
+                  onChange={(e) => updateField('source', e.target.value)}
+                >
+                  <option value="">Select Source</option>
+                  <option value="Website">Website</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Cold Call">Cold Call</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="Trade Show">Trade Show</option>
+                  <option value="Partner">Partner</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <Label>Lead Status</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.status}
+                  onChange={(e) => updateField('status', e.target.value)}
+                >
+                  <option value="Lead">Open</option>
+                  <option value="Contacted">Contacted</option>
+                  <option value="Qualified">Qualified</option>
+                  <option value="Lost">Lost</option>
+                  <option value="Interested">Interested</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Assigned To</Label>
+                <Input
+                  placeholder="Alex Morgan"
+                  value={formData.lead_owner}
+                  onChange={(e) => updateField('lead_owner', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'address':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label>Street Address</Label>
+                <Input
+                  placeholder="123 Business Blvd, Suite 200"
+                  value={formData.address_line1}
+                  onChange={(e) => updateField('address_line1', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>City</Label>
+                <Input
+                  placeholder="New York"
+                  value={formData.city}
+                  onChange={(e) => updateField('city', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>State / Province</Label>
+                <Input
+                  placeholder="NY"
+                  value={formData.state}
+                  onChange={(e) => updateField('state', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Zip Code</Label>
+                <Input
+                  placeholder="10001"
+                  value={formData.pincode}
+                  onChange={(e) => updateField('pincode', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label>Country</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.country}
+                  onChange={(e) => updateField('country', e.target.value)}
+                >
+                  <option value="">Select Country</option>
+                  <option value="United States">United States</option>
+                  <option value="India">India</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Australia">Australia</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'notes':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Remarks</Label>
+              <Textarea
+                placeholder="Add any initial notes about the lead, meeting summary, or next steps here..."
+                value={formData.notes}
+                onChange={(e) => updateField('notes', e.target.value)}
+                rows={8}
+                className="mt-1"
+              />
+            </div>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="p-6 lg:p-8 max-w-[1600px] mx-auto">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h1 className="text-2xl lg:text-4xl font-bold text-slate-900 dark:text-white">
+            Create New Lead
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Enter the details below to add a new prospect to the system.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+          >
+            Cancel
+          </Button>
+          <AnimatedButton 
+            type="submit" 
+            variant="neon"
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Save Lead'}
+          </AnimatedButton>
+        </div>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
+        <span>CRM</span>
+        <ChevronRight className="w-4 h-4" />
+        <span>Leads</span>
+        <ChevronRight className="w-4 h-4" />
+        <span className="text-slate-900 dark:text-white">New Lead</span>
+      </div>
+
+      <div className="grid grid-cols-12 gap-6">
+        {/* Sidebar Navigation */}
+        <div className="col-span-12 lg:col-span-3">
+          <AnimatedCard>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                SECTIONS
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="space-y-1">
+                {sections.map((section) => {
+                  const Icon = section.icon
+                  return (
+                    <button
+                      key={section.id}
+                      type="button"
+                      onClick={() => setActiveSection(section.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${
+                        activeSection === section.id
+                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="text-sm font-medium">{section.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </AnimatedCard>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="col-span-12 lg:col-span-9">
+          <AnimatedCard>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {(() => {
+                  const ActiveIcon = sections.find(s => s.id === activeSection)?.icon || User
+                  return <ActiveIcon className="w-5 h-5" />
+                })()}
+                {sections.find(s => s.id === activeSection)?.label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderSectionContent()}
+            </CardContent>
+          </AnimatedCard>
+        </div>
+      </div>
+    </form>
+  )
+}

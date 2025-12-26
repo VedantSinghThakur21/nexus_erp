@@ -62,9 +62,6 @@ export default function QuotationForm() {
     }
   ])
 
-  const [taxEnabled, setTaxEnabled] = useState(false)
-  const taxRate = 0.10 // 10% VAT
-
   // Fetch tax templates on mount
   useEffect(() => {
     const fetchTaxTemplates = async () => {
@@ -143,8 +140,7 @@ export default function QuotationForm() {
   }
 
   const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
-  const totalTax = taxEnabled ? netTotal * taxRate : 0
-  const grandTotal = netTotal + totalTax
+  const grandTotal = netTotal
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -485,27 +481,9 @@ export default function QuotationForm() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="taxEnabled"
-                  checked={taxEnabled}
-                  onChange={(e) => setTaxEnabled(e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="taxEnabled" className="text-sm text-slate-600 dark:text-slate-400">
-                  Apply VAT (10%)
-                </label>
+              <div className="text-xs text-slate-500 mt-2">
+                Taxes will be applied based on selected tax template
               </div>
-
-              {taxEnabled && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">Tax (10%)</span>
-                  <span className="font-medium text-slate-900 dark:text-white">
-                    {formData.currency} {totalTax.toFixed(2)}
-                  </span>
-                </div>
-              )}
 
               <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
                 <div className="flex justify-between">
