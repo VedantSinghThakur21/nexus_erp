@@ -108,65 +108,7 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
   }
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Quotations</h1>
-          <p className="text-slate-500 mt-1">Manage and track all customer quotations</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/crm/opportunities">
-            <Button variant="outline">View Opportunities</Button>
-          </Link>
-          <Link href="/crm">
-            <Button variant="outline">Back to CRM</Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Total Quotations</CardTitle>
-            <FileText className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Open</CardTitle>
-            <FileText className="h-4 w-4 text-blue-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.open}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Ordered</CardTitle>
-            <FileText className="h-4 w-4 text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.ordered}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Total Value</CardTitle>
-            <DollarSign className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{stats.totalValue.toLocaleString('en-IN')}</div>
-          </CardContent>
-        </Card>
-      </div>
-
+    <div className="space-y-6">
       {/* Tabs */}
       <Tabs defaultValue="quotations" className="w-full">
         <TabsList>
