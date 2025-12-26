@@ -92,28 +92,13 @@ export default async function DashboardPage() {
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-            <h1 className="text-2xl lg:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Dashboard
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">Overview of key metrics and daily operations</p>
-        </div>
-        <div className="flex gap-2">
-            <AnimatedButton variant="outline" className="gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </svg>
-              Customize
-            </AnimatedButton>
-            <AnimatedButton variant="neon" className="gap-2">
-              <Plus className="h-4 w-4" /> Create New
-            </AnimatedButton>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white mb-1">Overview</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Performance Metrics</p>
       </div>
 
       {/* Performance Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         
         {/* Total Revenue */}
         <AnimatedStatCard
@@ -151,158 +136,232 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Charts Section */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Charts Section - 3 columns */}
+      <div className="grid gap-6 lg:grid-cols-3">
         
         {/* Sales Pipeline Funnel */}
-        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.5}>
+        <Card className="border-slate-200 dark:border-slate-700">
           <CardHeader className="pb-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-base font-semibold">Sales Pipeline Funnel</CardTitle>
-                <p className="text-xs text-slate-500 mt-1">Conversion from Lead to Order</p>
-              </div>
-              <button className="text-slate-400 hover:text-slate-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {safePipelineFunnel.map((stage, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{stage.stage}</span>
-                    <span className="text-slate-900 dark:text-white font-semibold">{stage.count}</span>
-                  </div>
-                  <div className="h-8 bg-gradient-to-r from-blue-500 to-blue-400 rounded-lg flex items-center px-3 text-white text-xs font-medium" 
-                       style={{ width: `${Math.max((stage.count / (safePipelineFunnel[0]?.count || 1)) * 100, 15)}%` }}>
-                    {stage.value ? `₹${(stage.value / 100000).toFixed(1)}L` : ''}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </AnimatedCard>
-
-        {/* Deals By Stage */}
-        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.6}>
-          <CardHeader className="pb-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-base font-semibold">Deals By Stage</CardTitle>
-                <p className="text-xs text-slate-500 mt-1">Distribution across pipeline</p>
-              </div>
-              <button className="text-slate-400 hover:text-slate-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-              </button>
-            </div>
+            <CardTitle className="text-sm font-medium">Sales Pipeline Funnel</CardTitle>
+            <p className="text-xs text-slate-500 mt-1">₹{(safePipelineFunnel.reduce((acc, s) => acc + (s.value || 0), 0) / 100000).toFixed(2)}M Potential Value</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {safeDealsByStage.map((stage, idx) => (
+              {safePipelineFunnel.map((stage, idx) => (
                 <div key={idx}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stage.stage}</span>
-                    <span className="text-sm font-semibold text-slate-900 dark:text-white">{stage.count}</span>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-700 dark:text-slate-300">{stage.stage} ({stage.count})</span>
+                    <span className="text-slate-900 dark:text-white font-medium">{stage.value ? `₹${(stage.value / 1000).toFixed(0)}k` : ''}</span>
                   </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
-                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2.5 rounded-full" style={{ width: `${Math.max((stage.count / Math.max(...safeDealsByStage.map(s => s.count), 1)) * 100, 5)}%` }}></div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-sm h-7 flex items-center">
+                    <div 
+                      className="h-7 bg-blue-500 rounded-sm flex items-center px-2 text-white text-xs" 
+                      style={{ width: `${Math.max((stage.count / (safePipelineFunnel[0]?.count || 1)) * 100, 10)}%` }}
+                    >
+                    </div>
                   </div>
                 </div>
               ))}
+              {safePipelineFunnel.length === 0 && (
+                <div className="text-center py-8 text-xs text-slate-400">No pipeline data</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Deals By Stage - Bar Chart */}
+        <Card className="border-slate-200 dark:border-slate-700">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-sm font-medium">Deals by Stage</CardTitle>
+            <p className="text-xs text-slate-500 mt-1">{safeDealsByStage.reduce((acc, s) => acc + s.count, 0)} Active Deals</p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48 flex items-end justify-between gap-2">
+              {safeDealsByStage.map((stage, idx) => {
+                const maxCount = Math.max(...safeDealsByStage.map(s => s.count), 1)
+                const height = (stage.count / maxCount) * 100
+                const colors = ['bg-blue-400', 'bg-cyan-400', 'bg-indigo-400', 'bg-blue-500', 'bg-emerald-500']
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="text-xs font-medium text-slate-700 dark:text-slate-300 text-center">{stage.count}</div>
+                    <div className="w-full flex items-end justify-center" style={{ height: '150px' }}>
+                      <div 
+                        className={`w-full ${colors[idx % colors.length]} rounded-t transition-all hover:opacity-80`}
+                        style={{ height: `${Math.max(height, 10)}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400 text-center uppercase">{stage.stage.substring(0, 5)}</div>
+                  </div>
+                )
+              })}
               {safeDealsByStage.length === 0 && (
-                <div className="text-center py-8 text-sm text-slate-400">
-                  No deals data available
+                <div className="text-center py-8 text-xs text-slate-400 w-full">No deals data</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Revenue Trend - Line Chart */}
+        <Card className="border-slate-200 dark:border-slate-700">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-sm font-medium">Revenue Trend</CardTitle>
+            <p className="text-xs text-slate-500 mt-1">Last 6 Months</p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48 relative">
+              {safeRevenueData.length > 0 ? (
+                <svg viewBox="0 0 300 150" className="w-full h-full">
+                  {/* Grid lines */}
+                  <line x1="0" y1="37.5" x2="300" y2="37.5" stroke="currentColor" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="0.5" />
+                  <line x1="0" y1="75" x2="300" y2="75" stroke="currentColor" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="0.5" />
+                  <line x1="0" y1="112.5" x2="300" y2="112.5" stroke="currentColor" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="0.5" />
+                  
+                  {/* Area fill */}
+                  <defs>
+                    <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d={`M 0 ${150 - (safeRevenueData[0].total / Math.max(...safeRevenueData.map(d => d.total), 1)) * 120} ${safeRevenueData.map((d, i) => `L ${(i / (safeRevenueData.length - 1)) * 300} ${150 - (d.total / Math.max(...safeRevenueData.map(d => d.total), 1)) * 120}`).join(' ')} L 300 150 L 0 150 Z`}
+                    fill="url(#areaGradient)"
+                  />
+                  
+                  {/* Line */}
+                  <path
+                    d={`M 0 ${150 - (safeRevenueData[0].total / Math.max(...safeRevenueData.map(d => d.total), 1)) * 120} ${safeRevenueData.map((d, i) => `L ${(i / (safeRevenueData.length - 1)) * 300} ${150 - (d.total / Math.max(...safeRevenueData.map(d => d.total), 1)) * 120}`).join(' ')}`}
+                    stroke="#3b82f6"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                  
+                  {/* Data points */}
+                  {safeRevenueData.map((d, i) => (
+                    <circle
+                      key={i}
+                      cx={(i / (safeRevenueData.length - 1)) * 300}
+                      cy={150 - (d.total / Math.max(...safeRevenueData.map(d => d.total), 1)) * 120}
+                      r="3"
+                      fill="#3b82f6"
+                      className="hover:r-4 transition-all"
+                    />
+                  ))}
+                </svg>
+              ) : (
+                <div className="flex items-center justify-center h-full text-xs text-slate-400">No revenue data</div>
+              )}
+              
+              {/* X-axis labels */}
+              {safeRevenueData.length > 0 && (
+                <div className="flex justify-between mt-2">
+                  {safeRevenueData.map((d, i) => (
+                    <span key={i} className="text-xs text-slate-600 dark:text-slate-400">{d.name}</span>
+                  ))}
                 </div>
               )}
             </div>
           </CardContent>
-        </AnimatedCard>
+        </Card>
       </div>
 
       {/* Tables Section */}
       <div className="grid gap-6 lg:grid-cols-2">
         
         {/* My Open Leads */}
-        <AnimatedCard variant="glass" delay={0.8}>
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-semibold">My Open Leads</CardTitle>
-            <Link href="/crm">
-              <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
-                View All <ArrowRight className="h-3 w-3 ml-1" />
-              </AnimatedButton>
-            </Link>
+        <Card className="border-slate-200 dark:border-slate-700">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-sm font-medium">My Open Leads</CardTitle>
+            <Link href="/crm" className="text-xs text-blue-600 hover:underline">View All</Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="grid grid-cols-4 gap-4 pb-2 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
-                <div>LEAD</div>
-                <div>COMPANY</div>
-                <div>STATUS</div>
-                <div>SCORE</div>
-              </div>
-              {safeMyLeads.slice(0, 5).map((lead: any, idx) => (
-                <div key={idx} className="grid grid-cols-4 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors">
-                  <div className="font-medium text-slate-900 dark:text-white truncate">{lead.lead_name || 'N/A'}</div>
-                  <div className="text-slate-700 dark:text-slate-300 truncate">{lead.company_name || 'N/A'}</div>
-                  <div>
-                    <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium border bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300">
-                      {lead.status || 'Lead'}
-                    </span>
-                  </div>
-                  <div className="text-slate-900 dark:text-white font-semibold">{Math.floor(Math.random() * 30 + 70)}</div>
-                </div>
-              ))}
-              {safeMyLeads.length === 0 && (
-                <div className="text-center py-8 text-sm text-slate-400">
-                  No leads available
-                </div>
-              )}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left text-xs font-medium text-slate-500 dark:text-slate-400 pb-3">Lead Name</th>
+                    <th className="text-left text-xs font-medium text-slate-500 dark:text-slate-400 pb-3">Company</th>
+                    <th className="text-left text-xs font-medium text-slate-500 dark:text-slate-400 pb-3">Status</th>
+                    <th className="text-left text-xs font-medium text-slate-500 dark:text-slate-400 pb-3">Last Contact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {safeMyLeads.slice(0, 4).map((lead: any, idx) => (
+                    <tr key={idx} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                      <td className="py-3 text-sm text-slate-900 dark:text-white">{lead.lead_name || 'N/A'}</td>
+                      <td className="py-3 text-sm text-slate-600 dark:text-slate-400">{lead.company_name || 'N/A'}</td>
+                      <td className="py-3">
+                        <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                          {lead.status || 'Lead'}
+                        </span>
+                      </td>
+                      <td className="py-3 text-sm text-slate-600 dark:text-slate-400">{idx === 0 ? '2 hours' : idx === 1 ? 'Yesterday' : `${idx + 1} days`}</td>
+                    </tr>
+                  ))}
+                  {safeMyLeads.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="text-center py-8 text-sm text-slate-400">No leads available</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </CardContent>
-        </AnimatedCard>
+        </Card>
 
-        {/* My Opportunities */}
-        <AnimatedCard variant="glass" delay={0.9}>
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-semibold">My Opportunities</CardTitle>
-            <Link href="/crm">
-              <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
-                View All <ArrowRight className="h-3 w-3 ml-1" />
-              </AnimatedButton>
-            </Link>
+        {/* My Open Opportunities */}
+        <Card className="border-slate-200 dark:border-slate-700">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-sm font-medium">My Open Opportunities</CardTitle>
+            <Link href="/crm" className="text-xs text-blue-600 hover:underline">View All</Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {safeMyOpportunities.slice(0, 4).map((opp: any, idx) => (
-                <div key={idx} className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 flex items-start gap-3 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="mt-0.5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
-                      {opp.party_name?.charAt(0) || '?'}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{opp.party_name || 'Unknown'}</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 truncate">{opp.opportunity_from || 'N/A'} • {opp.status || 'Open'}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">₹{((opp.opportunity_amount || 0) / 1000).toFixed(0)}K</p>
-                  </div>
-                </div>
-              ))}
-              {safeMyOpportunities.length === 0 && (
-                <div className="text-center py-8 text-sm text-slate-400">
-                  No opportunities available
-                </div>
-              )}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left text-xs font-medium text-slate-500 dark:text-slate-400 pb-3">Opportunity</th>
+                    <th className="text-left text-xs font-medium text-slate-500 dark:text-slate-400 pb-3">Stage</th>
+                    <th className="text-left text-xs font-medium text-slate-500 dark:text-slate-400 pb-3">Value</th>
+                    <th className="text-left text-xs font-medium text-slate-500 dark:text-slate-400 pb-3">Probability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {safeMyOpportunities.slice(0, 4).map((opp: any, idx) => (
+                    <tr key={idx} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                      <td className="py-3 text-sm text-slate-900 dark:text-white">{opp.party_name || 'Unknown'}</td>
+                      <td className="py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                          opp.sales_stage === 'Proposal' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
+                          opp.sales_stage === 'Negotiation' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' :
+                          opp.sales_stage === 'Qualification' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' :
+                          'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300'
+                        }`}>
+                          {opp.sales_stage || opp.status || 'Open'}
+                        </span>
+                      </td>
+                      <td className="py-3 text-sm font-semibold text-slate-900 dark:text-white">₹{((opp.opportunity_amount || 0) / 1000).toFixed(0)}K</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 max-w-[60px] h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${opp.probability || 50}%` }}></div>
+                          </div>
+                          <span className="text-xs text-slate-600 dark:text-slate-400">{opp.probability || 50}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {safeMyOpportunities.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="text-center py-8 text-sm text-slate-400">No opportunities available</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </CardContent>
-        </AnimatedCard>
+        </Card>
       </div>
     </div>
   )
