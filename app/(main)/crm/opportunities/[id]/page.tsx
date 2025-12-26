@@ -45,6 +45,14 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     return 'bg-red-100 text-red-800'
   }
 
+  // Check if opportunity is closed (won or lost)
+  const isClosed = opportunity.status === 'Converted' || opportunity.status === 'Lost'
+  const statusColors: Record<string, string> = {
+    'Open': 'bg-blue-100 text-blue-700',
+    'Converted': 'bg-green-100 text-green-700',
+    'Lost': 'bg-red-100 text-red-700'
+  }
+
   return (
     <div className="p-8 space-y-6">
       {/* Back Button */}
@@ -64,12 +72,23 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         </div>
         <div className="flex gap-2 items-center">
           <EditOpportunityDialog opportunity={opportunity} />
-          <Badge className={stageColors[opportunity.sales_stage] || 'bg-slate-100 text-slate-800'}>
-            {opportunity.sales_stage}
-          </Badge>
-          <Badge className={probabilityColor(opportunity.probability)}>
-            {opportunity.probability}% Probability
-          </Badge>
+          
+          {/* Show status badge for closed opportunities */}
+          {isClosed ? (
+            <Badge className={statusColors[opportunity.status] || 'bg-slate-100 text-slate-800'}>
+              {opportunity.status === 'Converted' ? '✓ Won' : '✗ Lost'}
+            </Badge>
+          ) : (
+            <>
+              {/* Show stage and probability only for open opportunities */}
+              <Badge className={stageColors[opportunity.sales_stage] || 'bg-slate-100 text-slate-800'}>
+                {opportunity.sales_stage}
+              </Badge>
+              <Badge className={probabilityColor(opportunity.probability)}>
+                {opportunity.probability}% Probability
+              </Badge>
+            </>
+          )}
         </div>
       </div>
 

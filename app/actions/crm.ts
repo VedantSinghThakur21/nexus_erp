@@ -869,6 +869,29 @@ export async function markOpportunityAsLost(opportunityId: string, lostReason: s
   }
 }
 
+// Reopen Opportunity (Undo Won/Lost)
+export async function reopenOpportunity(opportunityId: string) {
+  try {
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Opportunity',
+      name: opportunityId,
+      fieldname: {
+        status: 'Open',
+        sales_stage: 'Qualification',
+        probability: 20
+      }
+    })
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/opportunities')
+    revalidatePath(`/crm/opportunities/${opportunityId}`)
+    return { success: true }
+  } catch (error: any) {
+    console.error("Reopen opportunity error:", error)
+    return { error: error.message || 'Failed to reopen opportunity' }
+  }
+}
+
 // 3. UPDATE OPPORTUNITY DETAILS
 export async function updateOpportunity(opportunityId: string, data: {
   opportunity_amount?: number

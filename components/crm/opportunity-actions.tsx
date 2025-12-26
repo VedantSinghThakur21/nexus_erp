@@ -24,10 +24,11 @@ import {
   updateOpportunitySalesStage,
   createQuotationFromOpportunity,
   markOpportunityAsWon,
-  markOpportunityAsLost
+  markOpportunityAsLost,
+  reopenOpportunity
 } from "@/app/actions/crm"
 import { useRouter } from "next/navigation"
-import { ArrowRight, FileText, CheckCircle, XCircle } from "lucide-react"
+import { ArrowRight, FileText, CheckCircle, XCircle, RotateCcw } from "lucide-react"
 
 interface OpportunityActionsProps {
   opportunity: {
@@ -109,9 +110,22 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
     }
   }
 
+  const handleReopenOpportunity = async () => {
+    setIsLoading(true)
+    try {
+      await reopenOpportunity(opportunity.name)
+      router.refresh()
+    } catch (error) {
+      console.error("Reopen failed:", error)
+      alert("Failed to reopen opportunity. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const isOpen = opportunity.status === 'Open'
-  const isWon = opportunity.sales_stage === 'Won'
-  const isLost = opportunity.sales_stage === 'Lost'
+  const isWon = opportunity.status === 'Converted'
+  const isLost = opportunity.status === 'Lost'
 
   return (
     <div className="space-y-3">
@@ -227,21 +241,43 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
         </Dialog>
       )}
 
-      {/* Status badges */}
+      {/* Status badges and reopen action */}
       {isWon && (
-        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
-          <p className="text-sm font-medium text-green-800 dark:text-green-200">
-            🎉 Opportunity Won!
-          </p>
-        </div>
+        <>
+          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+            <p className="text-sm font-medium text-green-800 dark:text-green-200">
+              🎉 Opportunity Won!
+            </p>
+          </div>
+          <Button 
+            className="w-full gap-2" 
+            variant="outline"
+            onClick={handleReopenOpportunity}
+            disabled={isLoading}
+          >
+            <RotateCcw className="h-4 w-4" />
+            {isLoading ? "Reopening..." : "Reopen Opportunity"}
+          </Button>
+        </>
       )}
       
       {isLost && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
-          <p className="text-sm font-medium text-red-800 dark:text-red-200">
-            Opportunity Lost
-          </p>
-        </div>
+        <>
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
+            <p className="text-sm font-medium text-red-800 dark:text-red-200">
+              Opportunity Lost
+            </p>
+          </div>
+          <Button 
+            className="w-full gap-2" 
+            variant="outline"
+            onClick={handleReopenOpportunity}
+            disabled={isLoading}
+          >
+            <RotateCcw className="h-4 w-4" />
+            {isLoading ? "Reopening..." : "Reopen Opportunity"}
+          </Button>
+        </>
       )}
     </div>
   )
