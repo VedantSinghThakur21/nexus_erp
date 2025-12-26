@@ -66,6 +66,70 @@ export default function ERPNextLeadForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validation for mandatory fields
+    if (!formData.first_name) {
+      alert('First name is required')
+      setActiveSection('basic')
+      return
+    }
+    
+    if (!formData.email_id) {
+      alert('Email address is required')
+      setActiveSection('basic')
+      return
+    }
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email_id)) {
+      alert('Please enter a valid email address')
+      setActiveSection('basic')
+      return
+    }
+    
+    if (!formData.mobile_no) {
+      alert('Mobile phone is required')
+      setActiveSection('basic')
+      return
+    }
+    
+    if (!formData.company_name) {
+      alert('Company name is required')
+      setActiveSection('company')
+      return
+    }
+    
+    if (!formData.industry) {
+      alert('Industry is required')
+      setActiveSection('company')
+      return
+    }
+    
+    if (!formData.source) {
+      alert('Lead source is required')
+      setActiveSection('tracking')
+      return
+    }
+    
+    if (!formData.city) {
+      alert('City is required')
+      setActiveSection('address')
+      return
+    }
+    
+    if (!formData.state) {
+      alert('State/Province is required')
+      setActiveSection('address')
+      return
+    }
+    
+    if (!formData.country) {
+      alert('Country is required')
+      setActiveSection('address')
+      return
+    }
+    
     setLoading(true)
 
     try {
@@ -73,11 +137,20 @@ export default function ERPNextLeadForm() {
       if (result.success) {
         router.push('/crm')
       } else {
-        alert(result.error || 'Failed to create lead')
+        // Parse error message for better user experience
+        let errorMsg = result.error || 'Failed to create lead'
+        
+        if (errorMsg.includes('Email Address must be unique')) {
+          errorMsg = 'This email address is already registered in the system. Please use a different email or check existing leads.'
+        } else if (errorMsg.includes('Could not find Source')) {
+          errorMsg = 'Invalid lead source selected. Please choose a valid source from the dropdown.'
+        }
+        
+        alert(errorMsg)
       }
     } catch (error) {
       console.error('Failed to create lead:', error)
-      alert('Failed to create lead')
+      alert('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -112,7 +185,7 @@ export default function ERPNextLeadForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Email Address *</Label>
+                <Label>Email Address * <span className="text-xs text-slate-500">(must be unique)</span></Label>
                 <Input
                   type="email"
                   required
@@ -121,6 +194,7 @@ export default function ERPNextLeadForm() {
                   onChange={(e) => updateField('email_id', e.target.value)}
                   className="mt-1"
                 />
+                <p className="text-xs text-slate-500 mt-1">Each lead must have a unique email address</p>
               </div>
               <div>
                 <Label>Job Title</Label>
@@ -135,8 +209,9 @@ export default function ERPNextLeadForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Mobile Phone</Label>
+                <Label>Mobile Phone *</Label>
                 <Input
+                  required
                   placeholder="+1 585-0100"
                   value={formData.mobile_no}
                   onChange={(e) => updateField('mobile_no', e.target.value)}
@@ -161,8 +236,9 @@ export default function ERPNextLeadForm() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Company Name</Label>
+                <Label>Company Name *</Label>
                 <Input
+                  required
                   placeholder="e.g. Acme Corp"
                   value={formData.company_name}
                   onChange={(e) => updateField('company_name', e.target.value)}
@@ -182,8 +258,9 @@ export default function ERPNextLeadForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Industry</Label>
+                <Label>Industry *</Label>
                 <select
+                  required
                   className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.industry}
                   onChange={(e) => updateField('industry', e.target.value)}
@@ -230,20 +307,24 @@ export default function ERPNextLeadForm() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Lead Source</Label>
+                <Label>Lead Source *</Label>
                 <select
+                  required
                   className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.source}
                   onChange={(e) => updateField('source', e.target.value)}
                 >
                   <option value="">Select Source</option>
-                  <option value="Website">Website</option>
-                  <option value="Referral">Referral</option>
-                  <option value="Cold Call">Cold Call</option>
-                  <option value="LinkedIn">LinkedIn</option>
-                  <option value="Trade Show">Trade Show</option>
-                  <option value="Partner">Partner</option>
-                  <option value="Other">Other</option>
+                  <option value="Existing Customer">Existing Customer</option>
+                  <option value="Reference">Reference</option>
+                  <option value="Advertisement">Advertisement</option>
+                  <option value="Cold Calling">Cold Calling</option>
+                  <option value="Exhibition">Exhibition</option>
+                  <option value="Supplier Reference">Supplier Reference</option>
+                  <option value="Mass Mailing">Mass Mailing</option>
+                  <option value="Customer's Vendor">Customer's Vendor</option>
+                  <option value="Campaign">Campaign</option>
+                  <option value="Walk In">Walk In</option>
                 </select>
               </div>
               <div>
@@ -293,8 +374,9 @@ export default function ERPNextLeadForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>City</Label>
+                <Label>City *</Label>
                 <Input
+                  required
                   placeholder="New York"
                   value={formData.city}
                   onChange={(e) => updateField('city', e.target.value)}
@@ -302,8 +384,9 @@ export default function ERPNextLeadForm() {
                 />
               </div>
               <div>
-                <Label>State / Province</Label>
+                <Label>State / Province *</Label>
                 <Input
+                  required
                   placeholder="NY"
                   value={formData.state}
                   onChange={(e) => updateField('state', e.target.value)}
@@ -323,8 +406,9 @@ export default function ERPNextLeadForm() {
 
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label>Country</Label>
+                <Label>Country *</Label>
                 <select
+                  required
                   className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.country}
                   onChange={(e) => updateField('country', e.target.value)}

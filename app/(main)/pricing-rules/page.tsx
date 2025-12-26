@@ -86,8 +86,8 @@ export default function PricingRulesPage() {
     <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
       <div suppressHydrationWarning className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div suppressHydrationWarning className="flex items-center justify-between">
+          <div suppressHydrationWarning>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
               Pricing Rules
             </h1>
@@ -104,15 +104,15 @@ export default function PricingRulesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Rules</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{activeRulesCount}</div>
-              <p className="text-xs text-slate-500">
+              <div suppressHydrationWarning className="text-2xl font-bold">{activeRulesCount}</div>
+              <p suppressHydrationWarning className="text-xs text-slate-500">
                 {rules.length - activeRulesCount} inactive
               </p>
             </CardContent>
@@ -124,8 +124,8 @@ export default function PricingRulesPage() {
               <TrendingUp className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalDiscountRules}</div>
-              <p className="text-xs text-slate-500">
+              <div suppressHydrationWarning className="text-2xl font-bold">{totalDiscountRules}</div>
+              <p suppressHydrationWarning className="text-xs text-slate-500">
                 {rules.length - totalDiscountRules} rate override
               </p>
             </CardContent>
@@ -137,7 +137,7 @@ export default function PricingRulesPage() {
               <Settings className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{rules.length}</div>
+              <div suppressHydrationWarning className="text-2xl font-bold">{rules.length}</div>
               <p className="text-xs text-slate-500">
                 Across all business types
               </p>
@@ -152,8 +152,8 @@ export default function PricingRulesPage() {
             <CardDescription>Search and filter pricing rules by status or business type</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
+            <div suppressHydrationWarning className="flex flex-col md:flex-row gap-4">
+              <div suppressHydrationWarning className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Search by rule name..."
@@ -192,12 +192,12 @@ export default function PricingRulesPage() {
         {/* Rules List */}
         <Card>
           <CardHeader>
-            <CardTitle>Pricing Rules ({filteredRules.length})</CardTitle>
+            <CardTitle suppressHydrationWarning>Pricing Rules ({filteredRules.length})</CardTitle>
             <CardDescription>Manage and monitor your pricing rules</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center py-12">
+              <div suppressHydrationWarning className="flex items-center justify-center py-12">
                 <div className="text-slate-500">Loading pricing rules...</div>
               </div>
             ) : filteredRules.length === 0 ? (
