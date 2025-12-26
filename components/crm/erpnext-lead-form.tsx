@@ -161,7 +161,22 @@ export default function ERPNextLeadForm() {
       case 'basic':
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Salutation</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.salutation}
+                  onChange={(e) => updateField('salutation', e.target.value)}
+                >
+                  <option value="">Select</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Dr">Dr</option>
+                  <option value="Prof">Prof</option>
+                </select>
+              </div>
               <div>
                 <Label>First Name *</Label>
                 <Input
@@ -185,6 +200,31 @@ export default function ERPNextLeadForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <Label>Gender</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.gender}
+                  onChange={(e) => updateField('gender', e.target.value)}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <Label>Job Title</Label>
+                <Input
+                  placeholder="e.g. Purchasing Manager"
+                  value={formData.job_title}
+                  onChange={(e) => updateField('job_title', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <Label>Email Address * <span className="text-xs text-slate-500">(must be unique)</span></Label>
                 <Input
                   type="email"
@@ -195,15 +235,6 @@ export default function ERPNextLeadForm() {
                   className="mt-1"
                 />
                 <p className="text-xs text-slate-500 mt-1">Each lead must have a unique email address</p>
-              </div>
-              <div>
-                <Label>Job Title</Label>
-                <Input
-                  placeholder="e.g. Purchasing Manager"
-                  value={formData.job_title}
-                  onChange={(e) => updateField('job_title', e.target.value)}
-                  className="mt-1"
-                />
               </div>
             </div>
 
@@ -266,13 +297,38 @@ export default function ERPNextLeadForm() {
                   onChange={(e) => updateField('industry', e.target.value)}
                 >
                   <option value="">Select Industry</option>
-                  <option value="Construction">Construction</option>
-                  <option value="Manufacturing">Manufacturing</option>
-                  <option value="Technology">Technology</option>
-                  <option value="Healthcare">Healthcare</option>
+                  <option value="Aerospace">Aerospace</option>
+                  <option value="Agriculture">Agriculture</option>
+                  <option value="Airline">Airline</option>
+                  <option value="Automobile">Automobile</option>
+                  <option value="Banking">Banking</option>
+                  <option value="Biotechnology">Biotechnology</option>
+                  <option value="Chemicals">Chemicals</option>
+                  <option value="Consulting">Consulting</option>
+                  <option value="Consumer Goods">Consumer Goods</option>
+                  <option value="Education">Education</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Energy">Energy</option>
+                  <option value="Engineering">Engineering</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Environmental">Environmental</option>
                   <option value="Finance">Finance</option>
+                  <option value="Food and Beverage">Food and Beverage</option>
+                  <option value="Government">Government</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Hospitality">Hospitality</option>
+                  <option value="Insurance">Insurance</option>
+                  <option value="Machinery">Machinery</option>
+                  <option value="Manufacturing">Manufacturing</option>
+                  <option value="Media">Media</option>
+                  <option value="Not For Profit">Not For Profit</option>
+                  <option value="Recreation">Recreation</option>
                   <option value="Retail">Retail</option>
-                  <option value="Other">Other</option>
+                  <option value="Shipping">Shipping</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Telecommunications">Telecommunications</option>
+                  <option value="Transportation">Transportation</option>
+                  <option value="Utilities">Utilities</option>
                 </select>
               </div>
               <div>
@@ -290,13 +346,19 @@ export default function ERPNextLeadForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Number of Employees</Label>
-                <Input
-                  type="number"
-                  placeholder="50"
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.no_of_employees}
                   onChange={(e) => updateField('no_of_employees', e.target.value)}
-                  className="mt-1"
-                />
+                >
+                  <option value="">Select Range</option>
+                  <option value="1-10">1-10</option>
+                  <option value="11-50">11-50</option>
+                  <option value="51-200">51-200</option>
+                  <option value="201-500">201-500</option>
+                  <option value="501-1000">501-1000</option>
+                  <option value="1000+">1000+</option>
+                </select>
               </div>
             </div>
           </div>
@@ -334,11 +396,15 @@ export default function ERPNextLeadForm() {
                   value={formData.status}
                   onChange={(e) => updateField('status', e.target.value)}
                 >
-                  <option value="Lead">Open</option>
-                  <option value="Contacted">Contacted</option>
-                  <option value="Qualified">Qualified</option>
-                  <option value="Lost">Lost</option>
+                  <option value="Lead">Lead</option>
+                  <option value="Open">Open</option>
+                  <option value="Replied">Replied</option>
+                  <option value="Opportunity">Opportunity</option>
+                  <option value="Quotation">Quotation</option>
+                  <option value="Lost Quotation">Lost Quotation</option>
                   <option value="Interested">Interested</option>
+                  <option value="Converted">Converted</option>
+                  <option value="Do Not Contact">Do Not Contact</option>
                 </select>
               </div>
             </div>
