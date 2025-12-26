@@ -44,7 +44,7 @@ export async function getSalesOrders() {
       'GET',
       {
         doctype: 'Sales Order',
-        fields: '["name", "customer", "customer_name", "status", "transaction_date", "delivery_date", "grand_total", "currency", "total_qty", "per_delivered", "per_billed", "quotation_no"]',
+        fields: '["name", "customer", "customer_name", "status", "transaction_date", "delivery_date", "grand_total", "currency", "total_qty", "per_delivered", "per_billed"]',
         order_by: 'creation desc',
         limit_page_length: 100
       }
