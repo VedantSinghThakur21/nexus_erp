@@ -30,6 +30,7 @@ import { useState } from 'react'
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { name: 'Leads', icon: Users, href: '/crm' },
+  { name: 'Opportunities', icon: TrendingUp, href: '/crm/opportunities' },
   { name: 'Quotations', icon: Receipt, href: '/quotations' },
   { name: 'Sales Orders', icon: Package, href: '/sales-orders' },
   { name: 'Invoices', icon: FileText, href: '/invoices' },
