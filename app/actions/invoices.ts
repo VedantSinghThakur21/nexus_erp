@@ -221,23 +221,40 @@ async function ensureTaxTemplate(templateName: string) {
     }
 }
 
-// 2. CREATE: Create a new Invoice with Tax Template Support
+// 2. CREATE: Create a new Invoice with Tax Template Support and Rental Data
 export async function createInvoice(data: any) {
+  // Process items to preserve rental data if coming from Sales Order
+  const processedItems = (data.items || []).map((item: any) => {
+    const baseItem: any = {
+      item_code: item.item_code || 'Service',
+      description: item.description,
+      qty: parseFloat(item.qty),
+      rate: parseFloat(item.rate),
+      gst_hsn_code: item.hsn_sac,
+      uom: item.uom || "Nos"
+    }
+
+    // Preserve rental data if present
+    if (item.custom_rental_data || item.custom_is_rental) {
+      baseItem.custom_rental_data = item.custom_rental_data
+      baseItem.custom_is_rental = item.custom_is_rental
+      baseItem.custom_rental_type = item.custom_rental_type
+      baseItem.custom_rental_duration = item.custom_rental_duration
+      baseItem.custom_rental_start_date = item.custom_rental_start_date
+      baseItem.custom_rental_end_date = item.custom_rental_end_date
+      baseItem.custom_operator_included = item.custom_operator_included
+      baseItem.custom_total_rental_cost = item.custom_total_rental_cost
+    }
+
+    return baseItem
+  })
+
   const invoiceDoc: any = {
     doctype: 'Sales Invoice',
     customer: data.customer,
     posting_date: data.posting_date,
     due_date: data.due_date,
-    
-    items: data.items.map((item: any) => ({
-        item_code: item.item_code || 'Service',
-        description: item.description,
-        qty: parseFloat(item.qty),
-        rate: parseFloat(item.rate),
-        gst_hsn_code: item.hsn_sac, 
-        uom: "Nos" 
-    })),
-    
+    items: processedItems,
     docstatus: 0 // Draft mode
   }
 
@@ -248,6 +265,11 @@ export async function createInvoice(data: any) {
 
   if (data.company) {
     invoiceDoc.company = data.company
+  }
+
+  // Link to Sales Order if provided (preserves rental context)
+  if (data.sales_order) {
+    invoiceDoc.sales_order = data.sales_order
   }
 
   // If tax template is specified, fetch and add tax rows

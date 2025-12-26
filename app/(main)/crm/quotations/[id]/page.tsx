@@ -2,7 +2,7 @@ import { getQuotation } from "@/app/actions/crm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, FileText, Building2, Pencil } from "lucide-react"
+import { ArrowLeft, Calendar, FileText, Building2, Pencil, Printer } from "lucide-react"
 import Link from "next/link"
 import { DeleteQuotationButton } from "@/components/crm/delete-quotation-button"
 
@@ -62,6 +62,12 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
           </p>
         </div>
         <div className="flex gap-2 items-center">
+          <Link href={`/print/quotation/${encodeURIComponent(quotation.name)}`} target="_blank">
+            <Button variant="outline" className="gap-2">
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+          </Link>
           {(quotation.status === 'Draft' || quotation.status === 'Open') && (
             <Link href={`/crm/quotations/${encodeURIComponent(quotation.name)}/edit`}>
               <Button className="gap-2">

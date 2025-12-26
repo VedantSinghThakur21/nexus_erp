@@ -130,6 +130,41 @@ Interested, Converted, Do Not Contact
 | `warehouse` | Link | No | Source warehouse |
 | `delivery_date` | Date | No | Expected delivery |
 
+### Rental Pricing Custom Fields (Quotation Item)
+
+**Note**: These custom fields must be added to ERPNext using the setup script in [ERPNEXT_CUSTOM_FIELDS_SETUP.md](./ERPNEXT_CUSTOM_FIELDS_SETUP.md)
+
+| Field | Type | Required | Options/Notes |
+|-------|------|----------|---------------|
+| `custom_is_rental` | Check | No | Indicates if this is a rental item |
+| `custom_rental_type` | Select | Conditional | "Hours", "Days", or "Months" (required if is_rental=1) |
+| `custom_rental_duration` | Int | Conditional | Calculated duration (required if is_rental=1) |
+| `custom_rental_start_date` | Date | Conditional | Rental start date (required if is_rental=1) |
+| `custom_rental_end_date` | Date | Conditional | Rental end date (required if is_rental=1) |
+| `custom_rental_start_time` | Time | Conditional | Start time (required for hourly rentals) |
+| `custom_rental_end_time` | Time | Conditional | End time (required for hourly rentals) |
+| `custom_operator_included` | Check | No | Whether operator is included in rental |
+| `custom_total_rental_cost` | Currency | Read-only | Total calculated rental cost |
+| `custom_rental_data` | Long Text | No | JSON string with complete breakdown (hidden field) |
+
+**Rental Data JSON Structure**:
+```json
+{
+  "baseRentalCost": 50000.00,
+  "accommodationCost": 15000.00,
+  "fuelCost": 8000.00,
+  "usageCost": 5000.00,
+  "elongationCost": 2000.00,
+  "riskCost": 3000.00,
+  "commercialCost": 4000.00,
+  "incidentalCost": 1500.00,
+  "otherCost": 500.00,
+  "totalCost": 89000.00,
+  "duration": 15,
+  "durationType": "Days"
+}
+```
+
 ### Taxes and Charges
 
 | Field | Type | Required | Options/Notes |
@@ -181,6 +216,93 @@ Interested, Converted, Do Not Contact
 | Field | Type | Required | Options/Notes |
 |-------|------|----------|---------------|
 | `status` | Select | Read-only | Draft, To Deliver and Bill, To Bill, To Deliver, Completed, Cancelled, Closed, On Hold |
+
+### Item Table (Sales Order Item Child Table)
+
+| Field | Type | Required | Options/Notes |
+|-------|------|----------|---------------|
+| `item_code` | Link | **Yes** | Links to Item |
+| `item_name` | Data | No | Auto-fetched |
+| `description` | Text Editor | No | Auto-fetched |
+| `qty` | Float | **Yes** | Quantity |
+| `uom` | Link | **Yes** | Unit of Measure |
+| `rate` | Currency | **Yes** | Selling rate |
+| `amount` | Currency | Read-only | qty * rate |
+| `warehouse` | Link | No | Source warehouse |
+| `delivery_date` | Date | No | Expected delivery |
+
+### Rental Pricing Custom Fields (Sales Order Item)
+
+**Note**: These custom fields are automatically copied from Quotation Items during conversion. They must be added to Sales Order Item doctype in ERPNext.
+
+| Field | Type | Required | Options/Notes |
+|-------|------|----------|---------------|
+| `custom_is_rental` | Check | No | Copied from Quotation Item |
+| `custom_rental_type` | Select | Conditional | "Hours", "Days", or "Months" |
+| `custom_rental_duration` | Int | Conditional | Duration in selected unit |
+| `custom_rental_start_date` | Date | Conditional | Rental start date |
+| `custom_rental_end_date` | Date | Conditional | Rental end date |
+| `custom_rental_start_time` | Time | Conditional | Start time (hourly rentals) |
+| `custom_rental_end_time` | Time | Conditional | End time (hourly rentals) |
+| `custom_operator_included` | Check | No | Operator included flag |
+| `custom_total_rental_cost` | Currency | Read-only | Total rental cost |
+| `custom_rental_data` | Long Text | No | JSON breakdown (hidden) |
+
+---
+
+## 🔵 Sales Invoice Doctype Fields
+
+### Header Fields
+
+| Field | Type | Required | Options/Notes |
+|-------|------|----------|---------------|
+| `customer` | Link | **Yes** | Links to Customer |
+| `customer_name` | Data | No | Auto-fetched |
+| `posting_date` | Date | **Yes** | Invoice date (default: Today) |
+| `due_date` | Date | No | Payment due date |
+| `currency` | Link | **Yes** | Default: Company currency |
+| `selling_price_list` | Link | No | Price list |
+| `sales_order` | Link | No | Links to Sales Order (for tracking) |
+
+### Item Table (Sales Invoice Item Child Table)
+
+| Field | Type | Required | Options/Notes |
+|-------|------|----------|---------------|
+| `item_code` | Link | **Yes** | Links to Item |
+| `item_name` | Data | No | Auto-fetched |
+| `description` | Text Editor | No | Auto-fetched |
+| `qty` | Float | **Yes** | Quantity |
+| `uom` | Link | **Yes** | Unit of Measure |
+| `rate` | Currency | **Yes** | Selling rate |
+| `amount` | Currency | Read-only | qty * rate |
+| `sales_order` | Link | No | Reference to Sales Order Item |
+| `so_detail` | Data | No | Sales Order Item row ID |
+
+### Rental Pricing Custom Fields (Sales Invoice Item)
+
+**Note**: These custom fields are automatically copied from Sales Order Items during invoice creation. They must be added to Sales Invoice Item doctype in ERPNext.
+
+| Field | Type | Required | Options/Notes |
+|-------|------|----------|---------------|
+| `custom_is_rental` | Check | No | Copied from Sales Order Item |
+| `custom_rental_type` | Select | Conditional | "Hours", "Days", or "Months" |
+| `custom_rental_duration` | Int | Conditional | Duration in selected unit |
+| `custom_rental_start_date` | Date | Conditional | Rental start date |
+| `custom_rental_end_date` | Date | Conditional | Rental end date |
+| `custom_rental_start_time` | Time | Conditional | Start time (hourly rentals) |
+| `custom_rental_end_time` | Time | Conditional | End time (hourly rentals) |
+| `custom_operator_included` | Check | No | Operator included flag |
+| `custom_total_rental_cost` | Currency | Read-only | Total rental cost |
+| `custom_rental_data` | Long Text | No | JSON breakdown (hidden) |
+
+**Data Flow for Rental Items**:
+```
+Quotation Item (rental fields) 
+    → Sales Order Item (rental fields copied)
+        → Sales Invoice Item (rental fields copied)
+```
+
+This ensures rental pricing breakdown is preserved throughout the sales cycle and appears on customer invoices.
 
 ---
 

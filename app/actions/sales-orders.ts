@@ -73,13 +73,41 @@ export async function getSalesOrder(id: string) {
 // 3. CREATE: Create New Sales Order
 export async function createSalesOrder(data: any) {
   try {
+    // Process items to preserve rental data if present
+    const processedItems = (data.items || []).map((item: any) => {
+      const baseItem: any = {
+        item_code: item.item_code,
+        item_name: item.item_name,
+        description: item.description,
+        qty: item.qty,
+        uom: item.uom || 'Nos',
+        rate: item.rate,
+        amount: item.amount,
+        delivery_date: item.delivery_date || data.delivery_date
+      }
+
+      // Preserve rental data from quotation if present
+      if (item.custom_rental_data || item.custom_is_rental) {
+        baseItem.custom_rental_data = item.custom_rental_data
+        baseItem.custom_is_rental = item.custom_is_rental
+        baseItem.custom_rental_type = item.custom_rental_type
+        baseItem.custom_rental_duration = item.custom_rental_duration
+        baseItem.custom_rental_start_date = item.custom_rental_start_date
+        baseItem.custom_rental_end_date = item.custom_rental_end_date
+        baseItem.custom_operator_included = item.custom_operator_included
+        baseItem.custom_total_rental_cost = item.custom_total_rental_cost
+      }
+
+      return baseItem
+    })
+
     const orderData: any = {
       doctype: 'Sales Order',
       customer: data.customer,
       transaction_date: data.transaction_date || new Date().toISOString().split('T')[0],
       delivery_date: data.delivery_date,
       currency: data.currency || 'USD',
-      items: data.items || []
+      items: processedItems
     }
 
     // Add optional fields
@@ -89,6 +117,7 @@ export async function createSalesOrder(data: any) {
     if (data.contact_email) orderData.contact_email = data.contact_email
     if (data.territory) orderData.territory = data.territory
     if (data.terms) orderData.terms = data.terms
+    if (data.po_no) orderData.po_no = data.po_no
 
     const result = await frappeRequest('frappe.client.insert', 'POST', orderData)
     

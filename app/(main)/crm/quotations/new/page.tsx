@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Loader2, ArrowLeft, Calendar as CalendarIcon, Building2 } from "lucide-react"
+import { Plus, Trash2, Loader2, ArrowLeft, Calendar as CalendarIcon, Building2, Package, Wrench } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
@@ -23,15 +23,35 @@ import { getItemGroups } from "@/app/actions/invoices"
 import { PricingRulesIndicator } from "@/components/pricing-rules/pricing-rules-indicator"
 import { AppliedRulesSummary } from "@/components/pricing-rules/applied-rules-summary"
 import { applyPricingRules } from "@/app/actions/apply-pricing-rules"
+import { RentalPricingForm } from "@/components/crm/rental-pricing-form"
+import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
+import { RentalItem, RentalPricingComponents, calculateTotalRentalCost, calculateRentalDuration } from "@/types/rental-pricing"
 
 interface QuotationItem {
   id: number
   item_code: string
   item_name: string
   description: string
+  item_category?: string
+  
+  // Standard pricing
   qty: number
   rate: number
   amount: number
+  
+  // Rental pricing fields
+  is_rental?: boolean
+  rental_type?: 'hours' | 'days' | 'months'
+  rental_duration?: number
+  rental_start_date?: string
+  rental_end_date?: string
+  rental_start_time?: string
+  rental_end_time?: string
+  requires_operator?: boolean
+  operator_included?: boolean
+  operator_name?: string
+  pricing_components?: RentalPricingComponents
+  total_rental_cost?: number
 }
 
 export default function NewQuotationPage() {
@@ -47,6 +67,10 @@ export default function NewQuotationPage() {
 
   // Pricing rules state
   const [appliedPricingRules, setAppliedPricingRules] = useState<any[]>([])
+  
+  // Rental mode state
+  const [isRentalMode, setIsRentalMode] = useState(false)
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null)
 
   // Header Fields
   const [quotationTo, setQuotationTo] = useState("Customer") // Customer or Lead
@@ -71,7 +95,27 @@ export default function NewQuotationPage() {
 
   // Items State
   const [items, setItems] = useState<QuotationItem[]>([
-    { id: 1, item_code: "", item_name: "", description: "", qty: 1, rate: 0, amount: 0 }
+    { 
+      id: 1, 
+      item_code: "", 
+      item_name: "", 
+      description: "", 
+      qty: 1, 
+      rate: 0, 
+      amount: 0,
+      is_rental: false,
+      pricing_components: {
+        base_cost: 0,
+        accommodation_charges: 0,
+        usage_charges: 0,
+        fuel_charges: 0,
+        elongation_charges: 0,
+        risk_charges: 0,
+        commercial_charges: 0,
+        incidental_charges: 0,
+        other_charges: 0,
+      }
+    }
   ])
 
   // Additional Fields
@@ -246,7 +290,27 @@ export default function NewQuotationPage() {
 
   const addItem = () => {
     const newId = Math.max(...items.map(i => i.id), 0) + 1
-    setItems([...items, { id: newId, item_code: "", item_name: "", description: "", qty: 1, rate: 0, amount: 0 }])
+    setItems([...items, { 
+      id: newId, 
+      item_code: \"\", 
+      item_name: \"\", 
+      description: \"\", 
+      qty: 1, 
+      rate: 0, 
+      amount: 0,
+      is_rental: false,
+      pricing_components: {
+        base_cost: 0,
+        accommodation_charges: 0,
+        usage_charges: 0,
+        fuel_charges: 0,
+        elongation_charges: 0,
+        risk_charges: 0,
+        commercial_charges: 0,
+        incidental_charges: 0,
+        other_charges: 0,
+      }
+    }])
   }
 
   const removeItem = (id: number) => {
@@ -304,14 +368,34 @@ export default function NewQuotationPage() {
         valid_till: validTill,
         currency: currency,
         order_type: orderType,
-        items: items.map(item => ({
-          item_code: item.item_code || item.description || 'MISC',
-          item_name: item.item_name || item.description || item.item_code || 'Miscellaneous',
-          description: item.description || item.item_name || item.item_code,
-          qty: item.qty,
-          rate: item.rate,
-          amount: item.amount
-        }))
+        items: items.map(item => {
+          const baseItem: any = {
+            item_code: item.item_code || item.description || 'MISC',
+            item_name: item.item_name || item.description || item.item_code || 'Miscellaneous',
+            description: item.description || item.item_name || item.item_code,
+            qty: item.qty,
+            rate: item.rate,
+            amount: item.amount
+          }
+          
+          // Add rental fields if this is a rental item
+          if (item.is_rental) {
+            baseItem.is_rental = true
+            baseItem.rental_type = item.rental_type
+            baseItem.rental_duration = item.rental_duration
+            baseItem.rental_start_date = item.rental_start_date
+            baseItem.rental_end_date = item.rental_end_date
+            if (item.rental_start_time) baseItem.rental_start_time = item.rental_start_time
+            if (item.rental_end_time) baseItem.rental_end_time = item.rental_end_time
+            baseItem.requires_operator = item.requires_operator
+            baseItem.operator_included = item.operator_included
+            if (item.operator_name) baseItem.operator_name = item.operator_name
+            baseItem.pricing_components = item.pricing_components
+            baseItem.total_rental_cost = item.total_rental_cost
+          }
+          
+          return baseItem
+        })
       }
 
       // Only add optional fields if they have values
@@ -504,7 +588,28 @@ export default function NewQuotationPage() {
           <Card>
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <CardTitle>Items</CardTitle>
+                <div className="flex items-center gap-3">
+                  <CardTitle>Items</CardTitle>
+                  <Button
+                    type="button"
+                    variant={isRentalMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsRentalMode(!isRentalMode)}
+                    className="gap-2"
+                  >
+                    {isRentalMode ? (
+                      <>
+                        <Wrench className="h-4 w-4" />
+                        Rental Mode
+                      </>
+                    ) : (
+                      <>
+                        <Package className="h-4 w-4" />
+                        Standard Mode
+                      </>
+                    )}
+                  </Button>
+                </div>
                 <div className="flex items-center gap-4">
                   <Label htmlFor="category-filter" className="text-sm font-normal whitespace-nowrap">Filter by Category:</Label>
                   <Select value={selectedItemGroup} onValueChange={setSelectedItemGroup}>
@@ -539,59 +644,140 @@ export default function NewQuotationPage() {
                 {/* Item Rows */}
                 <div className="divide-y">
                   {items.map((item, index) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 dark:hover:bg-slate-900/50 group">
-                      <div className="col-span-1 pt-2 text-center text-sm text-slate-400">
-                        <span className="group-hover:hidden">{index + 1}</span>
-                        <Trash2 
-                          className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer" 
-                          onClick={() => removeItem(item.id)} 
-                        />
-                      </div>
-                      <div className="col-span-4 space-y-1">
-                        <div className="h-8">
-                          <ItemSearch
-                            value={item.item_code}
-                            onChange={(code, desc) => {
-                              updateItem(item.id, 'item_code', code)
-                              updateItem(item.id, 'item_name', code)
-                              if (desc) updateItem(item.id, 'description', desc)
-                            }}
-                            itemGroup={selectedItemGroup === 'All' ? undefined : selectedItemGroup}
+                    <div key={item.id} className="space-y-3">
+                      {/* Main Item Row */}
+                      <div className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 dark:hover:bg-slate-900/50 group">
+                        <div className="col-span-1 pt-2 text-center text-sm text-slate-400">
+                          <span className="group-hover:hidden">{index + 1}</span>
+                          <Trash2 
+                            className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer" 
+                            onClick={() => removeItem(item.id)} 
                           />
                         </div>
-                        <Input
-                          placeholder="Description"
-                          value={item.description}
-                          onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                          className="h-7 text-xs text-muted-foreground border-dashed border-slate-200 dark:border-slate-800 bg-transparent"
-                        />
+                        <div className="col-span-4 space-y-1">
+                          <div className="h-8">
+                            <ItemSearch
+                              value={item.item_code}
+                              onChange={(code, desc) => {
+                                updateItem(item.id, 'item_code', code)
+                                updateItem(item.id, 'item_name', code)
+                                if (desc) updateItem(item.id, 'description', desc)
+                              }}
+                              itemGroup={selectedItemGroup === 'All' ? undefined : selectedItemGroup}
+                            />
+                          </div>
+                          <Input
+                            placeholder="Description"
+                            value={item.description}
+                            onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                            className="h-7 text-xs text-muted-foreground border-dashed border-slate-200 dark:border-slate-800 bg-transparent"
+                          />
+                        </div>
+                        <div className="col-span-1">
+                          <Input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={item.qty}
+                            onChange={(e) => updateItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
+                            className="h-8 text-sm text-right"
+                            disabled={isRentalMode && item.is_rental}
+                            required
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.rate}
+                            onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                            className="h-8 text-sm text-right"
+                            disabled={isRentalMode && item.is_rental}
+                            required
+                          />
+                        </div>
+                        <div className="col-span-2 pt-2 text-right text-sm font-medium">
+                          ₹{item.amount.toLocaleString('en-IN')}
+                        </div>
+                        <div className="col-span-2 pt-1 flex items-center justify-end gap-2">
+                          {isRentalMode && (
+                            <Button
+                              type="button"
+                              variant={item.is_rental ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                const updated = { ...item, is_rental: !item.is_rental }
+                                if (updated.is_rental) {
+                                  setExpandedItemId(item.id)
+                                } else {
+                                  setExpandedItemId(null)
+                                }
+                                updateItem(item.id, 'is_rental', !item.is_rental)
+                              }}
+                              className="h-7 text-xs gap-1"
+                            >
+                              <Wrench className="h-3 w-3" />
+                              {item.is_rental ? 'Rental' : 'Enable Rental'}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="col-span-1">
-                        <Input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          value={item.qty}
-                          onChange={(e) => updateItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
-                          className="h-8 text-sm text-right"
-                          required
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.rate}
-                          onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
-                          className="h-8 text-sm text-right"
-                          required
-                        />
-                      </div>
-                      <div className="col-span-2 pt-2 text-right text-sm font-medium">
-                        ₹{item.amount.toLocaleString('en-IN')}
-                      </div>
-                      <div className="col-span-2"></div>
+
+                      {/* Rental Pricing Form (Expanded) */}
+                      {isRentalMode && item.is_rental && expandedItemId === item.id && (
+                        <div className="px-4 pb-4">
+                          <RentalPricingForm
+                            item={item as Partial<RentalItem>}
+                            onChange={(updates) => {
+                              const rentalUpdates: Partial<QuotationItem> = {
+                                ...updates,
+                                rate: updates.total_rental_cost || item.rate,
+                                amount: (item.qty || 1) * (updates.total_rental_cost || item.rate)
+                              }
+                              
+                              // Calculate duration if dates are provided
+                              if (updates.rental_start_date && updates.rental_end_date && updates.rental_type) {
+                                const duration = calculateRentalDuration(
+                                  updates.rental_start_date,
+                                  updates.rental_end_date,
+                                  updates.rental_start_time,
+                                  updates.rental_end_time,
+                                  updates.rental_type
+                                )
+                                rentalUpdates.rental_duration = duration
+                              }
+                              
+                              setItems(items.map(i => i.id === item.id ? { ...i, ...rentalUpdates } : i))
+                            }}
+                            itemCategory={item.item_category || selectedItemGroup}
+                          />
+                        </div>
+                      )}
+
+                      {/* Rental Breakdown Summary (Collapsed) */}
+                      {isRentalMode && item.is_rental && expandedItemId !== item.id && item.total_rental_cost && item.total_rental_cost > 0 && (
+                        <div className="px-4 pb-2">
+                          <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-2 text-xs text-blue-900 dark:text-blue-100">
+                              <Wrench className="h-3 w-3" />
+                              <span>
+                                Rental: {item.rental_duration} {item.rental_type}
+                                {item.operator_included && ' • Operator Included'}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpandedItemId(item.id)}
+                              className="h-6 text-xs"
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
