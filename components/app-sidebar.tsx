@@ -144,17 +144,6 @@ function SidebarContent({ isCollapsed = false, onToggle }: { isCollapsed?: boole
             </Button>
           </div>
         )}
-        >
-            <ExternalLink className="h-4 w-4" />
-            Classic ERP
-        </a>
-
-        <Button variant="outline" className="w-full gap-2 justify-start" asChild>
-          <Link href="/login">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Link>
-        </Button>
       </div>
     </div>
   )
