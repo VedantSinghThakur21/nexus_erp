@@ -5,11 +5,19 @@ import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, FileText, CheckCircle, Clock, XCircle, Search, Filter } from "lucide-react"
 import Link from "next/link"
 import { getQuotations, getQuotationStats } from "@/app/actions/quotations"
+import { getOpportunities } from "@/app/actions/crm"
+import { QuotationsView } from "@/components/crm/quotations-view"
 
 export default async function QuotationsPage() {
   // Fetch real data from ERPNext
   const quotations = await getQuotations()
   const stats = await getQuotationStats()
+  const opportunities = await getOpportunities()
+  
+  // Filter opportunities ready for quotation (Proposal/Price Quote stage)
+  const proposalOpportunities = opportunities.filter(opp => 
+    opp.status === 'Open' && opp.sales_stage === 'Proposal/Price Quote'
+  )
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
@@ -23,11 +31,6 @@ export default async function QuotationsPage() {
             Create and manage quotations for customers and leads
           </p>
         </div>
-        <Link href="/quotations/new">
-          <AnimatedButton variant="neon" className="gap-2">
-            <Plus className="h-4 w-4" /> New Quotation
-          </AnimatedButton>
-        </Link>
       </div>
 
       {/* Stats Cards */}
@@ -77,82 +80,8 @@ export default async function QuotationsPage() {
         </AnimatedCard>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search quotations..."
-            className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900"
-          />
-        </div>
-        <Button variant="outline" className="gap-2">
-          <Filter className="h-4 w-4" /> Filter
-        </Button>
-      </div>
-
-      {/* Quotations Table */}
-      <AnimatedCard variant="glass" delay={0.4}>
-        <CardContent className="p-6">
-          <div className="space-y-3">
-            {/* Table Header */}
-            <div className="grid grid-cols-7 gap-4 pb-3 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
-              <div>QUOTATION ID</div>
-              <div>CUSTOMER</div>
-              <div>DATE</div>
-              <div>VALID UNTIL</div>
-              <div>ITEMS</div>
-              <div>AMOUNT</div>
-              <div>STATUS</div>
-            </div>
-
-            {/* Table Rows */}
-            {quotations.map((quotation) => (
-              <Link key={quotation.name} href={`/quotations/${quotation.name}`}>
-                <div className="grid grid-cols-7 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer">
-                  <div className="font-medium text-blue-600 dark:text-blue-400">{quotation.name}</div>
-                  <div className="text-slate-900 dark:text-white">{quotation.customer_name || quotation.party_name}</div>
-                  <div className="text-slate-600 dark:text-slate-400">
-                    {new Date(quotation.transaction_date).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })}
-                  </div>
-                  <div className="text-slate-600 dark:text-slate-400">
-                    {new Date(quotation.valid_till).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })}
-                  </div>
-                  <div className="text-slate-600 dark:text-slate-400">{quotation.total_qty || 0} items</div>
-                  <div className="font-semibold text-slate-900 dark:text-white">
-                    {quotation.currency} {quotation.grand_total.toLocaleString()}
-                  </div>
-                  <div>
-                    <Badge
-                      variant="outline"
-                      className={
-                        quotation.status === "Draft"
-                          ? "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                          : ["Sent", "Open"].includes(quotation.status)
-                          ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300"
-                          : quotation.status === "Ordered"
-                          ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300"
-                          : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                      }
-                    >
-                      {quotation.status}
-                    </Badge>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </AnimatedCard>
+      {/* Quotations View with Tabs */}
+      <QuotationsView quotations={quotations} proposalOpportunities={proposalOpportunities} />
     </div>
   )
 }
