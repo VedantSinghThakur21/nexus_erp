@@ -11,8 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, Trash2, Barcode, Calendar, FileText, DollarSign, Percent } from "lucide-react"
 import { createQuotation } from "@/app/actions/quotations"
+import { getTaxTemplates, applyItemPricingRules } from "@/app/actions/common"
 import { useRouter } from 'next/navigation'
-import { frappeRequest } from "@/app/lib/api"
 
 interface QuotationItem {
   item_code: string
@@ -68,16 +68,8 @@ export default function QuotationForm() {
   // Fetch tax templates on mount
   useEffect(() => {
     const fetchTaxTemplates = async () => {
-      try {
-        const templates = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Sales Taxes and Charges Template',
-          fields: '["name", "title"]',
-          limit_page_length: 50
-        })
-        setTaxTemplates(templates || [])
-      } catch (error) {
-        console.error('Failed to fetch tax templates:', error)
-      }
+      const templates = await getTaxTemplates()
+      setTaxTemplates(templates)
     }
     fetchTaxTemplates()
   }, [])
@@ -86,25 +78,20 @@ export default function QuotationForm() {
   const applyPricingRules = async (index: number, itemCode: string, qty: number) => {
     if (!itemCode || !formData.party_name) return
 
-    try {
-      const result = await frappeRequest('erpnext.stock.get_item_details.get_item_details', 'POST', {
-        item_code: itemCode,
-        company: 'ASP Cranes', // Replace with your company name
-        customer: formData.party_name,
-        qty: qty,
-        transaction_date: formData.transaction_date
-      })
+    const result = await applyItemPricingRules({
+      item_code: itemCode,
+      customer: formData.party_name,
+      qty: qty,
+      transaction_date: formData.transaction_date
+    })
 
-      if (result) {
-        const newItems = [...items]
-        if (result.price_list_rate) newItems[index].rate = result.price_list_rate
-        if (result.discount_percentage) newItems[index].discount_percentage = result.discount_percentage
-        if (result.pricing_rules) newItems[index].pricing_rules = result.pricing_rules
-        newItems[index].amount = calculateItemAmount(newItems[index])
-        setItems(newItems)
-      }
-    } catch (error) {
-      console.error('Failed to apply pricing rules:', error)
+    if (result.success && result.data) {
+      const newItems = [...items]
+      if (result.data.price_list_rate) newItems[index].rate = result.data.price_list_rate
+      if (result.data.discount_percentage) newItems[index].discount_percentage = result.data.discount_percentage
+      if (result.data.pricing_rules) newItems[index].pricing_rules = result.data.pricing_rules
+      newItems[index].amount = calculateItemAmount(newItems[index])
+      setItems(newItems)
     }
   }
 

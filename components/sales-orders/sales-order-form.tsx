@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, Trash2, FileText, DollarSign, Percent, Package, Calendar } from "lucide-react"
 import { createSalesOrder } from "@/app/actions/sales-orders"
+import { getTaxTemplates, getWarehouses, applyItemPricingRules } from "@/app/actions/common"
 import { useRouter } from 'next/navigation'
-import { frappeRequest } from "@/app/lib/api"
 
 interface SalesOrderItem {
   item_code: string
@@ -72,25 +72,12 @@ export default function SalesOrderForm() {
   // Fetch tax templates and warehouses on mount
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        // Fetch tax templates
-        const templates = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Sales Taxes and Charges Template',
-          fields: '["name", "title"]',
-          limit_page_length: 50
-        })
-        setTaxTemplates(templates || [])
-
-        // Fetch warehouses
-        const warehouseList = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Warehouse',
-          fields: '["name"]',
-          limit_page_length: 50
-        })
-        setWarehouses(warehouseList?.map((w: any) => w.name) || [])
-      } catch (error) {
-        console.error('Failed to fetch data:', error)
-      }
+      const [templates, warehouseList] = await Promise.all([
+        getTaxTemplates(),
+        getWarehouses()
+      ])
+      setTaxTemplates(templates)
+      setWarehouses(warehouseList)
     }
     fetchData()
   }, [])
@@ -99,28 +86,23 @@ export default function SalesOrderForm() {
   const applyPricingRules = async (index: number, itemCode: string, qty: number) => {
     if (!itemCode || !formData.customer) return
 
-    try {
-      const result = await frappeRequest('erpnext.stock.get_item_details.get_item_details', 'POST', {
-        item_code: itemCode,
-        company: 'ASP Cranes', // Replace with your company name
-        customer: formData.customer,
-        qty: qty,
-        transaction_date: formData.transaction_date
-      })
+    const result = await applyItemPricingRules({
+      item_code: itemCode,
+      customer: formData.customer,
+      qty: qty,
+      transaction_date: formData.transaction_date
+    })
 
-      if (result) {
-        const newItems = [...items]
-        if (result.price_list_rate) newItems[index].rate = result.price_list_rate
-        if (result.discount_percentage) newItems[index].discount_percentage = result.discount_percentage
-        if (result.pricing_rules) newItems[index].pricing_rules = result.pricing_rules
-        if (result.uom) newItems[index].uom = result.uom
-        if (result.item_name) newItems[index].item_name = result.item_name
-        if (result.description) newItems[index].description = result.description
-        newItems[index].amount = calculateItemAmount(newItems[index])
-        setItems(newItems)
-      }
-    } catch (error) {
-      console.error('Failed to apply pricing rules:', error)
+    if (result.success && result.data) {
+      const newItems = [...items]
+      if (result.data.price_list_rate) newItems[index].rate = result.data.price_list_rate
+      if (result.data.discount_percentage) newItems[index].discount_percentage = result.data.discount_percentage
+      if (result.data.pricing_rules) newItems[index].pricing_rules = result.data.pricing_rules
+      if (result.data.uom) newItems[index].uom = result.data.uom
+      if (result.data.item_name) newItems[index].item_name = result.data.item_name
+      if (result.data.description) newItems[index].description = result.data.description
+      newItems[index].amount = calculateItemAmount(newItems[index])
+      setItems(newItems)
     }
   }
 
