@@ -292,9 +292,9 @@ export default function NewQuotationPage() {
     const newId = Math.max(...items.map(i => i.id), 0) + 1
     setItems([...items, { 
       id: newId, 
-      item_code: \"\", 
-      item_name: \"\", 
-      description: \"\", 
+      item_code: "", 
+      item_name: "", 
+      description: "", 
       qty: 1, 
       rate: 0, 
       amount: 0,
