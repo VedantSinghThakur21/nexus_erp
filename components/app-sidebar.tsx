@@ -26,18 +26,19 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
 
 const menuItems = [
-  { name: 'Workspace', icon: LayoutDashboard, href: '/dashboard' },
-  { name: 'CRM & Leads', icon: Users, href: '/crm' },
-  { name: 'Opportunities', icon: TrendingUp, href: '/crm/opportunities' },
-  { name: 'Quotations', icon: Receipt, href: '/crm/quotations' },
+  { name: 'Mission Control', icon: LayoutDashboard, href: '/dashboard' },
+  { name: 'Leads', icon: Users, href: '/crm' },
+  { name: 'Quotations', icon: Receipt, href: '/quotations' },
+  { name: 'Sales Orders', icon: Package, href: '/sales-orders' },
   { name: 'Invoices', icon: FileText, href: '/invoices' },
   { name: 'Payments', icon: Wallet, href: '/payments' },
   { name: 'Catalogue', icon: Package, href: '/catalogue' },
   { name: 'Pricing Rules', icon: Percent, href: '/pricing-rules' },
   { name: 'Projects', icon: FolderKanban, href: '/projects' },
   { name: 'Bookings', icon: Calendar, href: '/bookings' },
+  { name: 'Fleet', icon: TrendingUp, href: '/fleet' },
   { name: 'Inspections', icon: ClipboardCheck, href: '/inspections' },
-  { name: 'AI Agents', icon: Bot, href: '/agents' },
+  { name: 'Operators', icon: Users, href: '/operators' },
   { name: 'Settings', icon: Settings, href: '/settings' },
 ]
 
