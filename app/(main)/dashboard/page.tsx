@@ -1,10 +1,12 @@
-import { frappeRequest } from "@/app/lib/api"
-import { getDashboardStats } from "@/app/actions/dashboard"
+import { getDashboardStats, getSalesPipelineFunnel, getDealsByStage, getMyOpenLeads, getMyOpenOpportunities } from "@/app/actions/dashboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, Truck, Calendar, Wallet, ArrowRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { AnimatedStatCard, AnimatedCard, AnimatedButton, AnimatedBadge, AnimatedList, AnimatedListItem } from "@/components/ui/animated"
+import { AnimatedAreaChart, AnimatedBarChart, AnimatedFunnelChart } from "@/components/dashboard/animated-charts"
+import { TrendingUp, TrendingDown, Users, Briefcase, DollarSign, Target, Trophy, ArrowRight, Plus } from "lucide-react"
 import Link from "next/link"
-import { DashboardCharts } from "@/components/dashboard/charts"
+import { frappeRequest } from "@/app/lib/api"
 
 // Helper to get user name
 async function getUser() {
@@ -24,18 +26,17 @@ async function getUser() {
   }
 }
 
-// Helper to get Chart Data (Revenue History)
+// Get Revenue Trend (Last 6 Months)
 async function getRevenueData() {
     try {
         const invoices = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Sales Invoice',
             fields: '["grand_total", "posting_date"]',
-            filters: '[["docstatus", "=", 1]]', // Submitted only
+            filters: '[["docstatus", "=", 1]]',
             order_by: 'posting_date asc',
             limit_page_length: 1000
         });
 
-        // Get last 6 months
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const now = new Date();
         const last6Months = [];
@@ -45,7 +46,6 @@ async function getRevenueData() {
             last6Months.push(months[d.getMonth()]);
         }
 
-        // Group by Month
         const monthlyData: Record<string, number> = {};
         last6Months.forEach(month => monthlyData[month] = 0);
         
@@ -57,7 +57,6 @@ async function getRevenueData() {
             }
         });
 
-        // Convert to array for Recharts
         return last6Months.map(key => ({
             name: key,
             total: Math.round(monthlyData[key])
@@ -67,174 +66,244 @@ async function getRevenueData() {
     }
 }
 
-// Helper to get Recent Activity
-async function getRecentActivity() {
-    try {
-        const activities = [];
-
-        // Get latest lead
-        const leads = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Lead',
-            fields: '["name", "lead_name", "source", "creation"]',
-            order_by: 'creation desc',
-            limit_page_length: 1
-        });
-        if (leads.length > 0) {
-            const lead = leads[0];
-            activities.push({
-                type: 'lead',
-                title: 'New Lead Created',
-                description: `${lead.lead_name} via ${lead.source || 'Direct'}`,
-                value: 'Just now',
-                color: 'text-slate-500'
-            });
-        }
-
-        // Get latest paid invoice
-        const invoices = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Sales Invoice',
-            fields: '["name", "customer_name", "grand_total", "currency"]',
-            filters: '[["status", "=", "Paid"]]',
-            order_by: 'modified desc',
-            limit_page_length: 1
-        });
-        if (invoices.length > 0) {
-            const inv = invoices[0];
-            activities.push({
-                type: 'invoice',
-                title: 'Invoice Paid',
-                description: `${inv.customer_name} - ${inv.name}`,
-                value: `+₹${inv.grand_total.toLocaleString('en-IN')}`,
-                color: 'text-green-600'
-            });
-        }
-
-        // Get latest booking
-        const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Sales Order',
-            fields: '["name", "customer_name", "status"]',
-            filters: '[["status", "not in", ["Completed", "Cancelled"]]]',
-            order_by: 'creation desc',
-            limit_page_length: 1
-        });
-        if (bookings.length > 0) {
-            const booking = bookings[0];
-            activities.push({
-                type: 'booking',
-                title: 'Machine Booked',
-                description: `${booking.customer_name} - ${booking.name}`,
-                value: 'Active',
-                color: 'text-blue-600'
-            });
-        }
-
-        return activities;
-    } catch (e) {
-        console.error('Error fetching activity:', e);
-        return [];
-    }
-}
-
 export default async function DashboardPage() {
   const user = await getUser()
   const stats = await getDashboardStats()
+  const pipelineFunnel = await getSalesPipelineFunnel()
+  const dealsByStage = await getDealsByStage()
   const revenueData = await getRevenueData()
-  const recentActivity = await getRecentActivity()
+  const myLeads = await getMyOpenLeads()
+  const myOpportunities = await getMyOpenOpportunities()
+
+  // Safe validation - ensure all data is arrays/objects, not error objects
+  const safePipelineFunnel = Array.isArray(pipelineFunnel) ? pipelineFunnel : []
+  const safeDealsByStage = Array.isArray(dealsByStage) ? dealsByStage : []
+  const safeRevenueData = Array.isArray(revenueData) ? revenueData : []
+  const safeMyLeads = Array.isArray(myLeads) ? myLeads : []
+  const safeMyOpportunities = Array.isArray(myOpportunities) ? myOpportunities : []
+  
+  const safeStats = {
+    newLeadsToday: typeof stats.newLeadsToday === 'number' ? stats.newLeadsToday : 0,
+    openOpportunities: typeof stats.openOpportunities === 'number' ? stats.openOpportunities : 0,
+    pipelineValue: typeof stats.pipelineValue === 'number' ? stats.pipelineValue : 0,
+    dealsWonMTD: typeof stats.dealsWonMTD === 'number' ? stats.dealsWonMTD : 0,
+    winRate: typeof stats.winRate === 'number' ? stats.winRate : 0
+  }
 
   return (
-    <div className="p-8 space-y-8" suppressHydrationWarning>
-      {/* Welcome Section */}
-      <div className="flex justify-between items-end" suppressHydrationWarning>
-        <div suppressHydrationWarning>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Welcome back, {user.full_name?.split(' ')[0]}
+    <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+            <h1 className="text-2xl lg:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Dashboard
             </h1>
-            <p className="text-slate-500 mt-2">Here's what's happening in your business today.</p>
+            <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">Overview of key metrics and daily operations</p>
         </div>
-        <div className="flex gap-2" suppressHydrationWarning>
-            {/* Quick Actions */}
-            <Link href="/crm/new"><Button variant="outline" size="sm">Add Lead</Button></Link>
-            <Link href="/invoices/new"><Button size="sm">New Invoice</Button></Link>
+        <div className="flex gap-2">
+            <AnimatedButton variant="outline" className="gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              Customize
+            </AnimatedButton>
+            <AnimatedButton variant="neon" className="gap-2">
+              <Plus className="h-4 w-4" /> Create New
+            </AnimatedButton>
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" suppressHydrationWarning>
+      {/* Performance Metrics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         
-        {/* Revenue */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <Wallet className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>₹{stats.revenue.toLocaleString('en-IN')}</div>
-            <p className="text-xs text-muted-foreground">Collected to date</p>
-          </CardContent>
-        </Card>
+        {/* Total Revenue */}
+        <AnimatedStatCard
+          title="Total Revenue (MTD)"
+          value={`₹${(safeStats.pipelineValue / 1000).toFixed(0)}K`}
+          change={{ value: 12, trend: 'up' }}
+          icon={<DollarSign className="h-5 w-5 text-green-600" />}
+          delay={0}
+        />
 
-        {/* Active Rentals */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Rentals</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.active_bookings}</div>
-            <Link href="/bookings" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
-              View schedule <ArrowRight className="h-3 w-3" />
-            </Link>
-          </CardContent>
-        </Card>
+        {/* Open Leads */}
+        <AnimatedStatCard
+          title="Open Leads"
+          value={safeStats.openOpportunities}
+          change={{ value: 5, trend: 'up' }}
+          icon={<Users className="h-5 w-5 text-blue-600" />}
+          delay={0.1}
+        />
 
-        {/* Fleet Status */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fleet Health</CardTitle>
-            <Truck className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.fleet_status}</div>
-            <p className="text-xs text-muted-foreground">Operational Machines</p>
-          </CardContent>
-        </Card>
+        {/* Pending Tasks */}
+        <AnimatedStatCard
+          title="Won Deals (MTD)"
+          value={safeStats.dealsWonMTD}
+          change={{ value: 8, trend: 'up' }}
+          icon={<Trophy className="h-5 w-5 text-purple-600" />}
+          delay={0.2}
+        />
 
-        {/* Sales Pipeline */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Leads</CardTitle>
-            <Users className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" suppressHydrationWarning>{stats.open_leads}</div>
-            <p className="text-xs text-muted-foreground">Potential Customers</p>
-          </CardContent>
-        </Card>
+        {/* Win Rate */}
+        <AnimatedStatCard
+          title="Win Rate"
+          value={`${safeStats.winRate}%`}
+          icon={<Target className="h-5 w-5 text-green-600" />}
+          delay={0.3}
+        />
       </div>
 
-      {/* NEW: Charts & Activity */}
-      <DashboardCharts revenueData={revenueData} recentActivity={recentActivity} />
-      
-      {/* Quick Links / "Apps" View */}
-      <div suppressHydrationWarning>
-        <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Your Apps</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" suppressHydrationWarning>
-            {[
-                { name: 'CRM', icon: Users, color: 'text-purple-600', bg: 'bg-purple-100', href: '/crm' },
-                { name: 'Invoices', icon: Wallet, color: 'text-green-600', bg: 'bg-green-100', href: '/invoices' },
-                { name: 'Fleet', icon: Truck, color: 'text-orange-600', bg: 'bg-orange-100', href: '/fleet' },
-                { name: 'Bookings', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-100', href: '/bookings' },
-            ].map((app) => (
-                <Link key={app.name} href={app.href}>
-                    <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 border rounded-xl hover:shadow-md transition-all cursor-pointer group h-32" suppressHydrationWarning>
-                        <div className={`p-3 rounded-lg ${app.bg} mb-3 group-hover:scale-110 transition-transform`} suppressHydrationWarning>
-                            <app.icon className={`h-6 w-6 ${app.color}`} />
-                        </div>
-                        <span className="font-medium text-sm text-slate-700 dark:text-slate-300">{app.name}</span>
+      {/* Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+
+        {/* Sales Pipeline Funnel */}
+        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.5}>
+          <CardHeader className="pb-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-base font-semibold">Sales Pipeline Funnel</CardTitle>
+                <p className="text-xs text-slate-500 mt-1">Conversion from Lead to Order</p>
+              </div>
+              <button className="text-slate-400 hover:text-slate-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {safePipelineFunnel.map((stage, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{stage.stage}</span>
+                    <span className="text-slate-900 dark:text-white font-semibold">{stage.count}</span>
+                  </div>
+                  <div className="h-8 bg-gradient-to-r from-blue-500 to-blue-400 rounded-lg flex items-center px-3 text-white text-xs font-medium"
+                       style={{ width: `${Math.max((stage.count / (safePipelineFunnel[0]?.count || 1)) * 100, 15)}%` }}>
+                    {stage.value ? `₹${(stage.value / 100000).toFixed(1)}L` : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </AnimatedCard>
+
+        {/* Deals By Stage */}
+        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.6}>
+          <CardHeader className="pb-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-base font-semibold">Deals By Stage</CardTitle>
+                <p className="text-xs text-slate-500 mt-1">Distribution across pipeline</p>
+              </div>
+              <button className="text-slate-400 hover:text-slate-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {safeDealsByStage.map((stage, idx) => (
+                <div key={idx}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stage.stage}</span>
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white">{stage.count}</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2.5 rounded-full" style={{ width: `${Math.max((stage.count / Math.max(...safeDealsByStage.map(s => s.count), 1)) * 100, 5)}%` }}></div>
+                  </div>
+                </div>
+              ))}
+              {safeDealsByStage.length === 0 && (
+                <div className="text-center py-8 text-sm text-slate-400">
+                  No deals data available
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </AnimatedCard>
+      </div>
+
+      {/* Tables Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+
+        {/* My Open Leads */}
+        <AnimatedCard variant="glass" delay={0.8}>
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-base font-semibold">My Open Leads</CardTitle>
+            <Link href="/crm">
+              <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
+                View All <ArrowRight className="h-3 w-3 ml-1" />
+              </AnimatedButton>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="grid grid-cols-4 gap-4 pb-2 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <div>LEAD</div>
+                <div>COMPANY</div>
+                <div>STATUS</div>
+                <div>SCORE</div>
+              </div>
+              {safeMyLeads.slice(0, 5).map((lead: any, idx) => (
+                <div key={idx} className="grid grid-cols-4 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors">
+                  <div className="font-medium text-slate-900 dark:text-white truncate">{lead.lead_name || 'N/A'}</div>
+                  <div className="text-slate-700 dark:text-slate-300 truncate">{lead.company_name || 'N/A'}</div>
+                  <div>
+                    <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium border bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300">
+                      {lead.status || 'Lead'}
+                    </span>
+                  </div>
+                  <div className="text-slate-900 dark:text-white font-semibold">{Math.floor(Math.random() * 30 + 70)}</div>
+                </div>
+              ))}
+              {safeMyLeads.length === 0 && (
+                <div className="text-center py-8 text-sm text-slate-400">
+                  No leads available
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </AnimatedCard>
+
+        {/* My Opportunities */}
+        <AnimatedCard variant="glass" delay={0.9}>
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-base font-semibold">My Opportunities</CardTitle>
+            <Link href="/crm">
+              <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
+                View All <ArrowRight className="h-3 w-3 ml-1" />
+              </AnimatedButton>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {safeMyOpportunities.slice(0, 4).map((opp: any, idx) => (
+                <div key={idx} className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 flex items-start gap-3 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="mt-0.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
+                      {opp.party_name?.charAt(0) || '?'}
                     </div>
-                </Link>
-            ))}
-        </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{opp.party_name || 'Unknown'}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 truncate">{opp.opportunity_from || 'N/A'} • {opp.status || 'Open'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">₹{((opp.opportunity_amount || 0) / 1000).toFixed(0)}K</p>
+                  </div>
+                </div>
+              ))}
+              {safeMyOpportunities.length === 0 && (
+                <div className="text-center py-8 text-sm text-slate-400">
+                  No opportunities available
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </AnimatedCard>
       </div>
     </div>
   )

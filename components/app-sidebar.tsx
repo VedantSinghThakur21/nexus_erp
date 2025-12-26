@@ -18,8 +18,7 @@ import {
   Receipt,
   Wallet,
   Package,
-  Percent,
-  Truck
+  Percent
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -35,7 +34,6 @@ const menuItems = [
   { name: 'Payments', icon: Wallet, href: '/payments' },
   { name: 'Catalogue', icon: Package, href: '/catalogue' },
   { name: 'Pricing Rules', icon: Percent, href: '/pricing-rules' },
-  { name: 'Fleet', icon: Truck, href: '/fleet' },
   { name: 'Projects', icon: FolderKanban, href: '/projects' },
   { name: 'Bookings', icon: Calendar, href: '/bookings' },
   { name: 'Inspections', icon: ClipboardCheck, href: '/inspections' },
