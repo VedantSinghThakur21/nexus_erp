@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Search, Filter, Download, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { updateLeadStatus } from "@/app/actions/crm"
+import { useRouter } from "next/navigation"
 
 interface Lead {
   name: string
@@ -23,15 +25,42 @@ interface LeadsDashboardProps {
 }
 
 export function LeadsDashboard({ leads }: LeadsDashboardProps) {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState<string[]>([])
   const [selectedAIInsights, setSelectedAIInsights] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
+  const [draggedLead, setDraggedLead] = useState<any>(null)
   const itemsPerPage = 10
 
   // ERPNext lead statuses
   const erpNextStatuses = ["Lead", "Open", "Replied", "Opportunity", "Quotation", "Lost Quotation", "Interested", "Converted", "Do Not Contact"]
+
+  // Drag and drop handlers
+  const handleDragStart = (lead: any) => {
+    setDraggedLead(lead)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = async (newStatus: string) => {
+    if (!draggedLead || draggedLead.status === newStatus) {
+      setDraggedLead(null)
+      return
+    }
+    
+    // Update lead status via API
+    const result = await updateLeadStatus(draggedLead.name, newStatus)
+    if (result.success) {
+      router.refresh()
+    } else {
+      alert('Failed to update lead status')
+    }
+    setDraggedLead(null)
+  }
 
   // Calculate AI scores (mock for now)
   const leadsWithScores = leads.map(lead => ({
@@ -77,26 +106,34 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
           <p className="text-slate-600 dark:text-slate-400">Manage your pipeline and track AI-scored opportunities</p>
         </div>
         <div className="flex items-center gap-3">
-          <AnimatedButton 
-            variant={viewMode === "list" ? "default" : "outline"} 
-            className="gap-2"
-            onClick={() => setViewMode("list")}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            List
-          </AnimatedButton>
-          <AnimatedButton 
-            variant={viewMode === "kanban" ? "default" : "outline"} 
-            className="gap-2"
-            onClick={() => setViewMode("kanban")}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0v10" />
-            </svg>
-            Kanban
-          </AnimatedButton>
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-1 bg-slate-100 dark:bg-slate-800">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                viewMode === "list"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              List
+            </button>
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                viewMode === "kanban"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0v10" />
+              </svg>
+              Kanban
+            </button>
+          </div>
           <Link href="/crm/new">
             <AnimatedButton variant="neon" className="gap-2">
               <Plus className="h-4 w-4" /> Add New Lead
@@ -369,16 +406,26 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                   {erpNextStatuses.map(status => {
                     const statusLeads = filteredLeads.filter(l => l.status === status)
                     return (
-                      <div key={status} className="flex-shrink-0 w-72">
+                      <div 
+                        key={status} 
+                        className="flex-shrink-0 w-72"
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop(status)}
+                      >
                         <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 mb-3">
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold text-sm text-slate-900 dark:text-white">{status}</h3>
                             <Badge variant="secondary" className="text-xs">{statusLeads.length}</Badge>
                           </div>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-3 min-h-[200px]">
                           {statusLeads.map((lead, idx) => (
-                            <Card key={idx} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
+                            <Card 
+                              key={idx} 
+                              className="p-3 hover:shadow-md transition-shadow cursor-move"
+                              draggable
+                              onDragStart={() => handleDragStart(lead)}
+                            >
                               <div className="flex items-start gap-3">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
                                   {lead.lead_name?.charAt(0) || "?"}

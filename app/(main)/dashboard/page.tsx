@@ -95,7 +95,7 @@ export default async function DashboardPage() {
       <div className="flex justify-between items-center">
         <div>
             <h1 className="text-2xl lg:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Mission Control
+                Dashboard
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">Overview of key metrics and daily operations</p>
         </div>
@@ -135,18 +135,18 @@ export default async function DashboardPage() {
 
         {/* Pending Tasks */}
         <AnimatedStatCard
-          title="Pending Tasks"
-          value={safeStats.newLeadsToday + 18}
-          change={{ value: 2, trend: 'down' }}
-          icon={<svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>}
+          title="Won Deals (MTD)"
+          value={safeStats.dealsWonMTD}
+          change={{ value: 8, trend: 'up' }}
+          icon={<Trophy className="h-5 w-5 text-purple-600" />}
           delay={0.2}
         />
 
-        {/* Fleet Availability */}
+        {/* Win Rate */}
         <AnimatedStatCard
-          title="Fleet Availability"
-          value="85%"
-          icon={<svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>}
+          title="Win Rate"
+          value={`${safeStats.winRate}%`}
+          icon={<Target className="h-5 w-5 text-green-600" />}
           delay={0.3}
         />
       </div>
@@ -187,13 +187,13 @@ export default async function DashboardPage() {
           </CardContent>
         </AnimatedCard>
 
-        {/* Fleet Health Donut */}
+        {/* Deals By Stage */}
         <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.6}>
           <CardHeader className="pb-4">
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="text-base font-semibold">Fleet Health</CardTitle>
-                <p className="text-xs text-slate-500 mt-1">Real-time vehicle status</p>
+                <CardTitle className="text-base font-semibold">Deals By Stage</CardTitle>
+                <p className="text-xs text-slate-500 mt-1">Distribution across pipeline</p>
               </div>
               <button className="text-slate-400 hover:text-slate-600">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,46 +203,23 @@ export default async function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center">
-              <div className="relative w-48 h-48">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  {/* Background circle */}
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="12" className="dark:stroke-slate-700"/>
-                  {/* Active - Blue */}
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" strokeWidth="12" strokeDasharray="150 251" strokeLinecap="round"/>
-                  {/* Idle - Orange */}
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" strokeWidth="12" strokeDasharray="50 251" strokeDashoffset="-150" strokeLinecap="round"/>
-                  {/* Maintenance - Red */}
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" strokeWidth="12" strokeDasharray="51 251" strokeDashoffset="-200" strokeLinecap="round"/>
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-3xl font-bold text-slate-900 dark:text-white">48</div>
-                  <div className="text-xs text-slate-500">VEHICLES</div>
+            <div className="space-y-4">
+              {safeDealsByStage.map((stage, idx) => (
+                <div key={idx}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{stage.stage}</span>
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white">{stage.count}</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2.5 rounded-full" style={{ width: `${Math.max((stage.count / Math.max(...safeDealsByStage.map(s => s.count), 1)) * 100, 5)}%` }}></div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 mt-6">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">Active</span>
+              ))}
+              {safeDealsByStage.length === 0 && (
+                <div className="text-center py-8 text-sm text-slate-400">
+                  No deals data available
                 </div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">31</div>
-              </div>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-orange-600"></div>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">Idle</span>
-                </div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">8</div>
-              </div>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-red-600"></div>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">Maint</span>
-                </div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">9</div>
-              </div>
+              )}
             </div>
           </CardContent>
         </AnimatedCard>
@@ -251,11 +228,11 @@ export default async function DashboardPage() {
       {/* Tables Section */}
       <div className="grid gap-6 lg:grid-cols-2">
         
-        {/* Recent Sales Orders */}
+        {/* My Open Leads */}
         <AnimatedCard variant="glass" delay={0.8}>
           <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-semibold">Recent Sales Orders</CardTitle>
-            <Link href="/invoices">
+            <CardTitle className="text-base font-semibold">My Open Leads</CardTitle>
+            <Link href="/crm">
               <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
                 View All <ArrowRight className="h-3 w-3 ml-1" />
               </AnimatedButton>
@@ -264,64 +241,65 @@ export default async function DashboardPage() {
           <CardContent>
             <div className="space-y-3">
               <div className="grid grid-cols-4 gap-4 pb-2 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
-                <div>ORDER ID</div>
-                <div>CUSTOMER</div>
-                <div>AMOUNT</div>
+                <div>LEAD</div>
+                <div>COMPANY</div>
                 <div>STATUS</div>
+                <div>SCORE</div>
               </div>
-              {[
-                { id: 'SO-2024-001', customer: 'Acme Corp', amount: '₹12,450', status: 'Completed', statusColor: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300' },
-                { id: 'SO-2024-002', customer: 'Globex Inc', amount: '₹3,250', status: 'Processing', statusColor: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300' },
-              ].map((order, idx) => (
+              {safeMyLeads.slice(0, 5).map((lead: any, idx) => (
                 <div key={idx} className="grid grid-cols-4 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors">
-                  <div className="font-medium text-blue-600 dark:text-blue-400">{order.id}</div>
-                  <div className="text-slate-900 dark:text-white">{order.customer}</div>
-                  <div className="font-semibold text-slate-900 dark:text-white">{order.amount}</div>
+                  <div className="font-medium text-slate-900 dark:text-white truncate">{lead.lead_name || 'N/A'}</div>
+                  <div className="text-slate-700 dark:text-slate-300 truncate">{lead.company_name || 'N/A'}</div>
                   <div>
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${order.statusColor}`}>
-                      {order.status}
+                    <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium border bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300">
+                      {lead.status || 'Lead'}
                     </span>
                   </div>
+                  <div className="text-slate-900 dark:text-white font-semibold">{Math.floor(Math.random() * 30 + 70)}</div>
                 </div>
               ))}
+              {safeMyLeads.length === 0 && (
+                <div className="text-center py-8 text-sm text-slate-400">
+                  No leads available
+                </div>
+              )}
             </div>
           </CardContent>
         </AnimatedCard>
 
-        {/* Urgent Actions */}
+        {/* My Opportunities */}
         <AnimatedCard variant="glass" delay={0.9}>
           <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-semibold">Urgent Actions</CardTitle>
+            <CardTitle className="text-base font-semibold">My Opportunities</CardTitle>
             <Link href="/crm">
               <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
-                Go to Tasks <ArrowRight className="h-3 w-3 ml-1" />
+                View All <ArrowRight className="h-3 w-3 ml-1" />
               </AnimatedButton>
             </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[
-                { 
-                  icon: <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-                  title: 'Approve Invoice #INV-9921',
-                  subtitle: 'Pending approval from Finance Manager',
-                  color: 'bg-red-50 dark:bg-red-900/20'
-                },
-                { 
-                  icon: <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
-                  title: 'Vehicle #V-04 Maintenance',
-                  subtitle: 'Scheduled service overdue by 2 days',
-                  color: 'bg-orange-50 dark:bg-orange-900/20'
-                },
-              ].map((action, idx) => (
-                <div key={idx} className={`p-3 rounded-lg ${action.color} flex items-start gap-3 hover:shadow-md transition-shadow cursor-pointer`}>
-                  <div className="mt-0.5">{action.icon}</div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm text-slate-900 dark:text-white">{action.title}</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{action.subtitle}</p>
+              {safeMyOpportunities.slice(0, 4).map((opp: any, idx) => (
+                <div key={idx} className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 flex items-start gap-3 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="mt-0.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
+                      {opp.party_name?.charAt(0) || '?'}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{opp.party_name || 'Unknown'}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 truncate">{opp.opportunity_from || 'N/A'} • {opp.status || 'Open'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">₹{((opp.opportunity_amount || 0) / 1000).toFixed(0)}K</p>
                   </div>
                 </div>
               ))}
+              {safeMyOpportunities.length === 0 && (
+                <div className="text-center py-8 text-sm text-slate-400">
+                  No opportunities available
+                </div>
+              )}
             </div>
           </CardContent>
         </AnimatedCard>
