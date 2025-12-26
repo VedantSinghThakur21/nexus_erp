@@ -310,7 +310,8 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                     </svg>
                   </div>
                   <div className="col-span-2">STATUS</div>
-                  <div className="col-span-3">NEXT ACTION</div>
+                  <div className="col-span-2">NEXT ACTION</div>
+                  <div className="col-span-1">VIEW</div>
                 </div>
 
                 {/* Table Rows */}
@@ -318,7 +319,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                   {paginatedLeads.map((lead, idx) => (
                     <div 
                       key={idx} 
-                      className="grid grid-cols-12 gap-4 py-3 px-2 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer"
+                      className="grid grid-cols-12 gap-4 py-3 px-2 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors"
                     >
                       <div className="col-span-3 flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
@@ -346,18 +347,38 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                         </div>
                       </div>
                       <div className="col-span-2">
-                        <Badge 
-                          variant="outline" 
-                          className={`${getStatusColor(lead.status)} text-xs`}
+                        <select
+                          className="w-full text-xs px-2 py-1 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                          value={lead.status}
+                          onChange={async (e) => {
+                            const result = await updateLeadStatus(lead.name, e.target.value)
+                            if (result.success) {
+                              router.refresh()
+                            } else {
+                              alert('Failed to update status')
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {lead.status}
-                        </Badge>
+                          {erpNextStatuses.map(status => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-orange-600 dark:text-orange-400">⚠️</span>
                           <span className="text-xs text-slate-600 dark:text-slate-400">{lead.nextAction}</span>
                         </div>
+                      </div>
+                      <div className="col-span-1">
+                        <Link href={`/crm/${lead.name}`}>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   ))}
