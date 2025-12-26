@@ -67,7 +67,7 @@ export default async function SalesOrdersPage() {
             <div>
               <p className="text-sm text-slate-600 dark:text-slate-400">Total Value</p>
               <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">
-                ${stats.totalValue.toLocaleString()}
+                ₹{stats.totalValue.toLocaleString()}
               </p>
             </div>
             <TrendingUp className="h-5 w-5 text-purple-500" />

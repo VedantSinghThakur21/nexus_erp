@@ -5,16 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
-import { Plus, Trash2, Barcode, Calendar, FileText, DollarSign, Percent } from "lucide-react"
-import { createQuotation } from "@/app/actions/quotations"
+import { Plus, Trash2, FileText, DollarSign, Percent, Package, Calendar } from "lucide-react"
+import { createSalesOrder } from "@/app/actions/sales-orders"
 import { useRouter } from 'next/navigation'
 import { frappeRequest } from "@/app/lib/api"
 
-interface QuotationItem {
+interface SalesOrderItem {
   item_code: string
   item_name: string
   description: string
@@ -23,6 +22,8 @@ interface QuotationItem {
   rate: number
   discount_percentage: number
   amount: number
+  delivery_date?: string
+  warehouse?: string
   pricing_rules?: string
 }
 
@@ -31,24 +32,28 @@ interface TaxTemplate {
   title: string
 }
 
-export default function QuotationForm() {
+export default function SalesOrderForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [taxTemplates, setTaxTemplates] = useState<TaxTemplate[]>([])
+  const [warehouses, setWarehouses] = useState<string[]>([])
+  
   const [formData, setFormData] = useState({
-    quotation_to: 'Customer',
-    party_name: '',
+    customer: '',
     customer_name: '',
     transaction_date: new Date().toISOString().split('T')[0],
-    valid_till: '',
+    delivery_date: '',
     currency: 'INR',
     terms: '',
     contact_email: '',
     territory: '',
-    taxes_and_charges: ''
+    taxes_and_charges: '',
+    quotation_no: '',
+    po_no: '',
+    po_date: ''
   })
 
-  const [items, setItems] = useState<QuotationItem[]>([
+  const [items, setItems] = useState<SalesOrderItem[]>([
     {
       item_code: '',
       item_name: '',
@@ -58,39 +63,47 @@ export default function QuotationForm() {
       rate: 0,
       discount_percentage: 0,
       amount: 0,
+      delivery_date: '',
+      warehouse: '',
       pricing_rules: ''
     }
   ])
 
-  const [taxEnabled, setTaxEnabled] = useState(false)
-  const taxRate = 0.10 // 10% VAT
-
-  // Fetch tax templates on mount
+  // Fetch tax templates and warehouses on mount
   useEffect(() => {
-    const fetchTaxTemplates = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch tax templates
         const templates = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Sales Taxes and Charges Template',
           fields: '["name", "title"]',
           limit_page_length: 50
         })
         setTaxTemplates(templates || [])
+
+        // Fetch warehouses
+        const warehouseList = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Warehouse',
+          fields: '["name"]',
+          limit_page_length: 50
+        })
+        setWarehouses(warehouseList?.map((w: any) => w.name) || [])
       } catch (error) {
-        console.error('Failed to fetch tax templates:', error)
+        console.error('Failed to fetch data:', error)
       }
     }
-    fetchTaxTemplates()
+    fetchData()
   }, [])
 
   // Apply pricing rules when item details change
   const applyPricingRules = async (index: number, itemCode: string, qty: number) => {
-    if (!itemCode || !formData.party_name) return
+    if (!itemCode || !formData.customer) return
 
     try {
       const result = await frappeRequest('erpnext.stock.get_item_details.get_item_details', 'POST', {
         item_code: itemCode,
         company: 'ASP Cranes', // Replace with your company name
-        customer: formData.party_name,
+        customer: formData.customer,
         qty: qty,
         transaction_date: formData.transaction_date
       })
@@ -100,6 +113,9 @@ export default function QuotationForm() {
         if (result.price_list_rate) newItems[index].rate = result.price_list_rate
         if (result.discount_percentage) newItems[index].discount_percentage = result.discount_percentage
         if (result.pricing_rules) newItems[index].pricing_rules = result.pricing_rules
+        if (result.uom) newItems[index].uom = result.uom
+        if (result.item_name) newItems[index].item_name = result.item_name
+        if (result.description) newItems[index].description = result.description
         newItems[index].amount = calculateItemAmount(newItems[index])
         setItems(newItems)
       }
@@ -108,13 +124,13 @@ export default function QuotationForm() {
     }
   }
 
-  const calculateItemAmount = (item: QuotationItem) => {
+  const calculateItemAmount = (item: SalesOrderItem) => {
     const subtotal = item.qty * item.rate
     const discount = subtotal * (item.discount_percentage / 100)
     return subtotal - discount
   }
 
-  const updateItem = (index: number, field: keyof QuotationItem, value: any) => {
+  const updateItem = (index: number, field: keyof SalesOrderItem, value: any) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
     
@@ -145,6 +161,8 @@ export default function QuotationForm() {
       rate: 0,
       discount_percentage: 0,
       amount: 0,
+      delivery_date: formData.delivery_date || '',
+      warehouse: '',
       pricing_rules: ''
     }])
   }
@@ -156,15 +174,14 @@ export default function QuotationForm() {
   }
 
   const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
-  const totalTax = taxEnabled ? netTotal * taxRate : 0
-  const grandTotal = netTotal + totalTax
+  const totalQty = items.reduce((sum, item) => sum + item.qty, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const quotationData = {
+      const orderData = {
         ...formData,
         items: items.map(item => ({
           item_code: item.item_code,
@@ -174,20 +191,22 @@ export default function QuotationForm() {
           uom: item.uom,
           rate: item.rate,
           discount_percentage: item.discount_percentage,
-          amount: item.amount
+          amount: item.amount,
+          delivery_date: item.delivery_date || formData.delivery_date,
+          warehouse: item.warehouse
         }))
       }
 
-      const result = await createQuotation(quotationData)
+      const result = await createSalesOrder(orderData)
 
       if (result.success) {
-        router.push('/quotations')
+        router.push('/sales-orders')
       } else {
-        alert(result.error || 'Failed to create quotation')
+        alert(result.error || 'Failed to create sales order')
       }
     } catch (error) {
-      console.error('Failed to create quotation:', error)
-      alert('Failed to create quotation')
+      console.error('Failed to create sales order:', error)
+      alert('Failed to create sales order')
     } finally {
       setLoading(false)
     }
@@ -199,10 +218,10 @@ export default function QuotationForm() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl lg:text-4xl font-bold text-slate-900 dark:text-white">
-            New Quotation
+            New Sales Order
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Create a new quotation for customer or lead
+            Create a new sales order for customer
           </p>
         </div>
         <div className="flex gap-2">
@@ -218,7 +237,7 @@ export default function QuotationForm() {
             variant="neon"
             disabled={loading}
           >
-            {loading ? 'Saving...' : 'Save Quotation'}
+            {loading ? 'Saving...' : 'Save Sales Order'}
           </AnimatedButton>
         </div>
       </div>
@@ -234,23 +253,12 @@ export default function QuotationForm() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label>Quotation To</Label>
-              <select
-                className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
-                value={formData.quotation_to}
-                onChange={(e) => setFormData({ ...formData, quotation_to: e.target.value })}
-              >
-                <option value="Customer">Customer</option>
-                <option value="Lead">Lead</option>
-              </select>
-            </div>
-            <div>
-              <Label>Party Name *</Label>
+              <Label>Customer ID *</Label>
               <Input
                 required
-                placeholder="Enter customer/lead ID"
-                value={formData.party_name}
-                onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
+                placeholder="Enter customer ID"
+                value={formData.customer}
+                onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
                 className="mt-1"
               />
             </div>
@@ -263,11 +271,21 @@ export default function QuotationForm() {
                 className="mt-1"
               />
             </div>
+            <div>
+              <Label>Contact Email</Label>
+              <Input
+                type="email"
+                placeholder="customer@example.com"
+                value={formData.contact_email}
+                onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                className="mt-1"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label>Date *</Label>
+              <Label>Order Date *</Label>
               <Input
                 type="date"
                 required
@@ -277,12 +295,12 @@ export default function QuotationForm() {
               />
             </div>
             <div>
-              <Label>Valid Until *</Label>
+              <Label>Delivery Date *</Label>
               <Input
                 type="date"
                 required
-                value={formData.valid_till}
-                onChange={(e) => setFormData({ ...formData, valid_till: e.target.value })}
+                value={formData.delivery_date}
+                onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
                 className="mt-1"
               />
             </div>
@@ -310,7 +328,37 @@ export default function QuotationForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Quotation Reference</Label>
+              <Input
+                placeholder="QTN-2024-001"
+                value={formData.quotation_no}
+                onChange={(e) => setFormData({ ...formData, quotation_no: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Customer PO No</Label>
+              <Input
+                placeholder="Customer purchase order number"
+                value={formData.po_no}
+                onChange={(e) => setFormData({ ...formData, po_no: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>PO Date</Label>
+              <Input
+                type="date"
+                value={formData.po_date}
+                onChange={(e) => setFormData({ ...formData, po_date: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <div>
               <Label>Tax Template</Label>
               <select
@@ -329,16 +377,6 @@ export default function QuotationForm() {
                 Select a tax template to apply taxes automatically
               </p>
             </div>
-            <div>
-              <Label>Contact Email</Label>
-              <Input
-                type="email"
-                placeholder="customer@example.com"
-                value={formData.contact_email}
-                onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                className="mt-1"
-              />
-            </div>
           </div>
         </CardContent>
       </AnimatedCard>
@@ -348,19 +386,24 @@ export default function QuotationForm() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Items & Pricing
+              <Package className="w-5 h-5" />
+              Order Items
             </CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addItem}
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
-            </Button>
+            <div className="flex gap-2">
+              <Badge variant="secondary" className="text-sm">
+                Total Qty: {totalQty}
+              </Badge>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addItem}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Item
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -370,6 +413,8 @@ export default function QuotationForm() {
                 <tr className="border-b border-slate-200 dark:border-slate-700">
                   <th className="text-left py-2 px-2 text-xs font-medium text-slate-600 dark:text-slate-400">ITEM CODE *</th>
                   <th className="text-left py-2 px-2 text-xs font-medium text-slate-600 dark:text-slate-400">DESCRIPTION</th>
+                  <th className="text-left py-2 px-2 text-xs font-medium text-slate-600 dark:text-slate-400">WAREHOUSE</th>
+                  <th className="text-left py-2 px-2 text-xs font-medium text-slate-600 dark:text-slate-400">DELIVERY</th>
                   <th className="text-right py-2 px-2 text-xs font-medium text-slate-600 dark:text-slate-400">QTY *</th>
                   <th className="text-left py-2 px-2 text-xs font-medium text-slate-600 dark:text-slate-400">UOM</th>
                   <th className="text-right py-2 px-2 text-xs font-medium text-slate-600 dark:text-slate-400">RATE *</th>
@@ -395,6 +440,26 @@ export default function QuotationForm() {
                         placeholder="Description"
                         value={item.description}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
+                        className="text-sm"
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <select
+                        className="w-full px-2 py-1 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+                        value={item.warehouse}
+                        onChange={(e) => updateItem(index, 'warehouse', e.target.value)}
+                      >
+                        <option value="">Select</option>
+                        {warehouses.map((wh) => (
+                          <option key={wh} value={wh}>{wh}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-2 px-2">
+                      <Input
+                        type="date"
+                        value={item.delivery_date}
+                        onChange={(e) => updateItem(index, 'delivery_date', e.target.value)}
                         className="text-sm"
                       />
                     </td>
@@ -440,7 +505,7 @@ export default function QuotationForm() {
                       {item.pricing_rules && (
                         <Badge variant="secondary" className="mt-1 text-xs">
                           <Percent className="w-3 h-3 mr-1" />
-                          Pricing Rule Applied
+                          Rule
                         </Badge>
                       )}
                     </td>
@@ -488,45 +553,43 @@ export default function QuotationForm() {
         <div>
           <AnimatedCard>
             <CardHeader>
-              <CardTitle>Summary</CardTitle>
+              <CardTitle>Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">Net Total</span>
+                <span className="text-slate-600 dark:text-slate-400">Total Items</span>
                 <span className="font-medium text-slate-900 dark:text-white">
-                  {formData.currency} {netTotal.toFixed(2)}
+                  {items.length}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="taxEnabled"
-                  checked={taxEnabled}
-                  onChange={(e) => setTaxEnabled(e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="taxEnabled" className="text-sm text-slate-600 dark:text-slate-400">
-                  Apply VAT (10%)
-                </label>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600 dark:text-slate-400">Total Quantity</span>
+                <span className="font-medium text-slate-900 dark:text-white">
+                  {totalQty}
+                </span>
               </div>
 
-              {taxEnabled && (
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">Tax (10%)</span>
+                  <span className="text-slate-600 dark:text-slate-400">Net Total</span>
                   <span className="font-medium text-slate-900 dark:text-white">
-                    {formData.currency} {totalTax.toFixed(2)}
+                    {formData.currency} {netTotal.toFixed(2)}
                   </span>
                 </div>
-              )}
+              </div>
 
               <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
                 <div className="flex justify-between">
                   <span className="font-semibold text-slate-900 dark:text-white">Grand Total</span>
                   <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                    {formData.currency} {grandTotal.toFixed(2)}
+                    {formData.currency} {netTotal.toFixed(2)}
                   </span>
                 </div>
+              </div>
+
+              <div className="text-xs text-slate-500 mt-2">
+                Taxes will be applied based on selected tax template
               </div>
             </CardContent>
           </AnimatedCard>

@@ -57,7 +57,7 @@ export default function LoginPage() {
 
           <div className="mt-16">
             <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
-              Powering $1B+ in<br />closed deals globally.
+              Powering ₹1B+ in<br />closed deals globally.
             </h1>
             <p className="text-lg text-slate-400 mb-12 max-w-md">
               Securely access your pipeline, manage leads, and close deals faster with our AI-driven insights.
@@ -75,7 +75,7 @@ export default function LoginPage() {
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-2">
                   <DollarSign className="h-5 w-5 text-green-400" />
-                  <span className="text-2xl font-bold text-white">$1B+</span>
+                  <span className="text-2xl font-bold text-white">₹1B+</span>
                 </div>
                 <p className="text-sm text-slate-400">Revenue Tracked</p>
               </div>

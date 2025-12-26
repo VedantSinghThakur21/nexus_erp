@@ -73,7 +73,7 @@ const HeroSection = () => {
                 {/* Top Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   {[
-                    { label: "Revenue", value: "$847,291", change: "+12.5%" },
+                    { label: "Revenue", value: "₹847,291", change: "+12.5%" },
                     { label: "Orders", value: "1,284", change: "+8.2%" },
                     { label: "Customers", value: "3,847", change: "+15.3%" },
                     { label: "AI Tasks", value: "2,156", change: "+32.1%" },
@@ -119,7 +119,7 @@ const HeroSection = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900 dark:text-white">Payment Collected</p>
-                  <p className="text-xs text-slate-500">$12,450 from Acme Corp</p>
+                  <p className="text-xs text-slate-500">₹12,450 from Acme Corp</p>
                 </div>
               </div>
             </div>
