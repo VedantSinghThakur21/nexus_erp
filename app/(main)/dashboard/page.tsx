@@ -173,22 +173,22 @@ export default async function DashboardPage() {
 
         {/* Deals by Stage Bar Chart */}
         <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.6}>
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">Deals by Stage</CardTitle>
             <p className="text-xs text-slate-500">{safeStats.openOpportunities} Active Deals</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-2">
             <AnimatedBarChart data={safeDealsByStage} height={200} delay={0.6} />
           </CardContent>
         </AnimatedCard>
 
         {/* Revenue Trend Area Chart */}
         <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.7}>
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">Revenue Trend</CardTitle>
             <p className="text-xs text-slate-500">Last 6 Months</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-2">
             <AnimatedAreaChart data={safeRevenueData} height={200} delay={0.7} />
           </CardContent>
         </AnimatedCard>

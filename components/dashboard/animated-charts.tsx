@@ -20,9 +20,10 @@ export function AnimatedAreaChart({ data, height = 200, delay = 0 }: AnimatedAre
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay, duration: 0.5, ease: "easeOut" }}
+      className="-mb-4"
     >
       <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={data}>
+        <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
@@ -39,11 +40,13 @@ export function AnimatedAreaChart({ data, height = 200, delay = 0 }: AnimatedAre
             stroke={isDark ? "#94a3b8" : "#64748b"}
             fontSize={12}
             tickLine={false}
+            axisLine={false}
           />
           <YAxis 
             stroke={isDark ? "#94a3b8" : "#64748b"}
             fontSize={12}
             tickLine={false}
+            axisLine={false}
             tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
           />
           <Tooltip
@@ -87,9 +90,10 @@ export function AnimatedBarChart({ data, height = 200, delay = 0 }: AnimatedBarC
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay, duration: 0.5, ease: "easeOut" }}
+      className="-mb-4"
     >
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data}>
+        <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
           <CartesianGrid 
             strokeDasharray="3 3" 
             stroke={isDark ? "#334155" : "#e2e8f0"} 
@@ -100,11 +104,13 @@ export function AnimatedBarChart({ data, height = 200, delay = 0 }: AnimatedBarC
             stroke={isDark ? "#94a3b8" : "#64748b"}
             fontSize={12}
             tickLine={false}
+            axisLine={false}
           />
           <YAxis 
             stroke={isDark ? "#94a3b8" : "#64748b"}
             fontSize={12}
             tickLine={false}
+            axisLine={false}
           />
           <Tooltip
             contentStyle={{

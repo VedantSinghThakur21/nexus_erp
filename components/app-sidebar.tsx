@@ -18,7 +18,9 @@ import {
   Receipt,
   Wallet,
   Package,
-  Percent
+  Percent,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -42,7 +44,7 @@ const menuItems = [
 ]
 
 // 1. Reusable Sidebar Content
-function SidebarContent() {
+function SidebarContent({ isCollapsed = false, onToggle }: { isCollapsed?: boolean; onToggle?: () => void }) {
   const pathname = usePathname()
   
   return (
@@ -51,13 +53,23 @@ function SidebarContent() {
       className="flex h-full flex-col bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-800/50"
     >
       {/* Logo Area */}
-      <div suppressHydrationWarning className="flex h-14 items-center border-b border-slate-200/50 dark:border-slate-800/50 px-6 shrink-0">
+      <div suppressHydrationWarning className="flex h-14 items-center border-b border-slate-200/50 dark:border-slate-800/50 px-6 shrink-0 justify-between">
         <Link href="/dashboard" className="flex items-center gap-2">
             <div suppressHydrationWarning className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <span className="text-white font-bold text-sm">N</span>
             </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Nexus</span>
+            {!isCollapsed && <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Nexus</span>}
         </Link>
+        {onToggle && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onToggle}
+            className="h-7 w-7 hidden md:flex"
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        )}
       </div>
 
       {/* Navigation Links */}
@@ -76,10 +88,11 @@ function SidebarContent() {
                   ${isActive 
                     ? 'bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-900' 
                     : 'text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-50'
-                  }`}
+                  } ${isCollapsed ? 'justify-center' : ''}`}
+                title={isCollapsed ? item.name : ''}
               >
-                <item.icon className="h-4 w-4" />
-                {item.name}
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>{item.name}</span>}
               </Link>
             )
           })}
@@ -88,16 +101,49 @@ function SidebarContent() {
 
       {/* Footer Links */}
       <div suppressHydrationWarning className="border-t p-4 space-y-3 shrink-0">
-        <div className="flex items-center justify-between px-3">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Theme</span>
-          <ThemeToggle />
-        </div>
-        
-        <a 
-            href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition-colors"
+        {!isCollapsed ? (
+          <>
+            <div className="flex items-center justify-between px-3">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Theme</span>
+              <ThemeToggle />
+            </div>
+            
+            <a 
+                href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition-colors"
+            >
+                <ExternalLink className="h-4 w-4" />
+                Classic ERP
+            </a>
+
+            <Button variant="outline" className="w-full gap-2 justify-start" asChild>
+              <Link href="/login">
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <div className="flex flex-col gap-2 items-center">
+            <ThemeToggle />
+            <a 
+                href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition-colors"
+                title="Classic ERP"
+            >
+                <ExternalLink className="h-4 w-4" />
+            </a>
+            <Button variant="outline" size="icon" asChild>
+              <Link href="/login" title="Sign Out">
+                <LogOut className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        )}
         >
             <ExternalLink className="h-4 w-4" />
             Classic ERP
@@ -117,6 +163,7 @@ function SidebarContent() {
 // 2. Main Responsive Component
 export function AppSidebar() {
   const [open, setOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   return (
     <>
@@ -136,14 +183,15 @@ export function AppSidebar() {
         </Sheet>
       </div>
 
-      {/* Desktop Sidebar (Fixed) */}
+      {/* Desktop Sidebar (Fixed with collapse) */}
       <div 
         suppressHydrationWarning
-        className="hidden md:flex h-screen w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
+        className={`hidden md:flex h-screen flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 transition-all duration-300 ${
+          isCollapsed ? 'w-[72px]' : 'w-64'
+        }`}
       >
-        <SidebarContent />
+        <SidebarContent isCollapsed={isCollapsed} onToggle={() => setIsCollapsed(!isCollapsed)} />
       </div>
     </>
   )
 }
-
