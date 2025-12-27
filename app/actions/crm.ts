@@ -680,9 +680,11 @@ export async function deleteQuotation(quotationId: string) {
 }
 
 export async function updateQuotationStatus(quotationId: string, newStatus: string) {
+  'use server'
+  
   try {
     // Update the quotation status in ERPNext
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    const result = await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Quotation',
       name: quotationId,
       fieldname: 'status',
@@ -691,6 +693,7 @@ export async function updateQuotationStatus(quotationId: string, newStatus: stri
 
     revalidatePath('/crm')
     revalidatePath('/crm/quotations')
+    revalidatePath('/quotations')
     return { success: true }
   } catch (error: any) {
     console.error("Update quotation status error:", error)

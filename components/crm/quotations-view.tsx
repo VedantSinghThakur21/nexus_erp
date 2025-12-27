@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AnimatedCard } from "@/components/ui/animated"
 import { FileText, Calendar, DollarSign, TrendingUp, Search, SlidersHorizontal, Plus, Package, CheckCircle, Clock } from "lucide-react"
 import Link from "next/link"
 import { updateQuotationStatus } from "@/app/actions/crm"
@@ -126,55 +127,55 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Total Quotations</p>
-                <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{stats.total}</p>
-              </div>
-              <FileText className="h-5 w-5 text-slate-400" />
+        <AnimatedCard className="p-6" variant="glass" delay={0}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Quotations</p>
+              <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">{stats.total}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <FileText className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+            </div>
+          </div>
+        </AnimatedCard>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Open</p>
-                <p className="text-2xl font-bold mt-1 text-blue-600">{stats.open}</p>
-              </div>
-              <Clock className="h-5 w-5 text-blue-400" />
+        <AnimatedCard className="p-6" variant="glass" delay={0.1}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Open</p>
+              <p className="text-3xl font-bold mt-2 text-blue-600 dark:text-blue-400">{stats.open}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl">
+              <Clock className="h-6 w-6 text-blue-500" />
+            </div>
+          </div>
+        </AnimatedCard>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Ordered</p>
-                <p className="text-2xl font-bold mt-1 text-green-600">{stats.ordered}</p>
-              </div>
-              <CheckCircle className="h-5 w-5 text-green-400" />
+        <AnimatedCard className="p-6" variant="glass" delay={0.2}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Ordered</p>
+              <p className="text-3xl font-bold mt-2 text-green-600 dark:text-green-400">{stats.ordered}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-xl">
+              <CheckCircle className="h-6 w-6 text-green-500" />
+            </div>
+          </div>
+        </AnimatedCard>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Total Value</p>
-                <p className="text-2xl font-bold mt-1 text-purple-600">
-                  ₹{stats.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </p>
-              </div>
-              <DollarSign className="h-5 w-5 text-purple-400" />
+        <AnimatedCard className="p-6" variant="glass" delay={0.3}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Value</p>
+              <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                ₹{stats.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-3 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl">
+              <DollarSign className="h-6 w-6 text-purple-500" />
+            </div>
+          </div>
+        </AnimatedCard>
       </div>
 
       {/* Tabs */}
@@ -267,60 +268,79 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
                     const displayStatus = expired && quotation.status === 'Open' ? 'Expired' : quotation.status
 
                     return (
-                      <div key={quotation.name} className="border rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-                        <div className="flex justify-between items-start">
+                      <div key={quotation.name} className="group relative border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-900/50">
+                        <div className="flex justify-between items-start gap-4">
                           <Link 
                             href={`/crm/quotations/${encodeURIComponent(quotation.name)}`}
-                            className="flex-1"
+                            className="flex-1 min-w-0"
                           >
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-lg text-slate-900 dark:text-white">
+                            <div className="flex items-center gap-3 mb-3">
+                              <h3 className="font-semibold text-lg text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                 {quotation.name}
                               </h3>
-                              <Badge className={statusColors[displayStatus] || 'bg-slate-100 text-slate-800'}>
+                              <Badge className={`${statusColors[displayStatus] || 'bg-slate-100 text-slate-800'} font-medium px-3 py-1`}>
                                 {displayStatus}
                               </Badge>
                             </div>
                             
                             <div className="grid md:grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <span className="text-slate-500">Customer: </span>
-                                <span className="font-medium">{quotation.customer_name || quotation.party_name}</span>
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                                  <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                  <span className="text-xs text-slate-500 dark:text-slate-400">Customer</span>
+                                  <p className="font-medium text-slate-900 dark:text-white">{quotation.customer_name || quotation.party_name}</p>
+                                </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-slate-400" />
-                                <span className="text-slate-500">Valid till: </span>
-                                <span className={`font-medium ${expired ? 'text-red-600' : ''}`}>
-                                  {new Date(quotation.valid_till).toLocaleDateString('en-IN')}
-                                </span>
+                                <div className="p-1.5 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                                  <Calendar className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                                </div>
+                                <div>
+                                  <span className="text-xs text-slate-500 dark:text-slate-400">Valid till</span>
+                                  <p className={`font-medium ${expired ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'}`}>
+                                    {new Date(quotation.valid_till).toLocaleDateString('en-IN')}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-slate-500">Amount: </span>
-                                <span className="font-bold text-slate-900 dark:text-white">
-                                  ₹{(quotation.grand_total || 0).toLocaleString('en-IN')}
-                                </span>
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                                  <DollarSign className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div>
+                                  <span className="text-xs text-slate-500 dark:text-slate-400">Amount</span>
+                                  <p className="font-bold text-slate-900 dark:text-white">
+                                    ₹{(quotation.grand_total || 0).toLocaleString('en-IN')}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </Link>
                           
                           {/* Status Update Dropdown */}
                           {quotation.status !== 'Ordered' && quotation.status !== 'Lost' && (
-                            <div className="ml-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="ml-4 shrink-0" onClick={(e) => e.stopPropagation()}>
                               <Select 
                                 value={quotation.status} 
                                 onValueChange={(newStatus) => handleStatusUpdate(quotation.name, newStatus)}
                                 disabled={updatingStatus === quotation.name}
                               >
-                                <SelectTrigger className="w-[140px] h-8 text-xs">
+                                <SelectTrigger className="w-[160px] h-10 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl font-medium transition-colors">
                                   <SelectValue placeholder="Update Status" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Draft">Draft</SelectItem>
-                                  <SelectItem value="Open">Open</SelectItem>
-                                  <SelectItem value="Ordered">Ordered</SelectItem>
-                                  <SelectItem value="Lost">Lost</SelectItem>
+                                <SelectContent className="rounded-xl border-2">
+                                  <SelectItem value="Draft" className="rounded-lg cursor-pointer">📝 Draft</SelectItem>
+                                  <SelectItem value="Open" className="rounded-lg cursor-pointer">🔓 Open</SelectItem>
+                                  <SelectItem value="Ordered" className="rounded-lg cursor-pointer">✅ Ordered</SelectItem>
+                                  <SelectItem value="Lost" className="rounded-lg cursor-pointer">❌ Lost</SelectItem>
                                 </SelectContent>
                               </Select>
+                              {updatingStatus === quotation.name && (
+                                <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 rounded-xl flex items-center justify-center">
+                                  <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
