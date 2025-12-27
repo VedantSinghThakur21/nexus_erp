@@ -13,21 +13,42 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Loader2, ArrowLeft, Building2 } from "lucide-react"
+import { Plus, Trash2, Loader2, ArrowLeft, Building2, ChevronDown, ChevronUp } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
 import { getTaxTemplates, getTaxTemplate } from "@/app/actions/settings"
 import { getCompanyDetails, getBankDetails } from "@/app/actions/crm"
+import { Switch } from "@/components/ui/switch"
+import { RentalPricingForm } from "@/components/crm/rental-pricing-form"
+import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
+import { RentalItem, RentalPricingComponents, calculateTotalRentalCost, calculateRentalDuration } from "@/types/rental-pricing"
 
 interface QuotationItem {
   id: number
   item_code: string
   item_name: string
   description: string
+  item_category?: string
+  
+  // Standard pricing
   qty: number
   rate: number
   amount: number
+  
+  // Rental pricing fields
+  is_rental?: boolean
+  rental_type?: 'hours' | 'days' | 'months'
+  rental_duration?: number
+  rental_start_date?: string
+  rental_end_date?: string
+  rental_start_time?: string
+  rental_end_time?: string
+  requires_operator?: boolean
+  operator_included?: boolean
+  operator_name?: string
+  pricing_components?: RentalPricingComponents
+  total_rental_cost?: number
 }
 
 export default function EditQuotationPage() {
@@ -36,6 +57,10 @@ export default function EditQuotationPage() {
   const router = useRouter()
   const params = useParams()
   const quotationId = decodeURIComponent(params.id as string)
+
+  // Rental mode state
+  const [isRentalMode, setIsRentalMode] = useState(false)
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null)
 
   // Header Fields
   const [quotationTo, setQuotationTo] = useState("Customer")
@@ -48,7 +73,27 @@ export default function EditQuotationPage() {
 
   // Items State
   const [items, setItems] = useState<QuotationItem[]>([
-    { id: 1, item_code: "", item_name: "", description: "", qty: 1, rate: 0, amount: 0 }
+    { 
+      id: 1, 
+      item_code: "", 
+      item_name: "", 
+      description: "", 
+      qty: 1, 
+      rate: 0, 
+      amount: 0,
+      is_rental: false,
+      pricing_components: {
+        base_cost: 0,
+        accommodation_charges: 0,
+        usage_charges: 0,
+        fuel_charges: 0,
+        elongation_charges: 0,
+        risk_charges: 0,
+        commercial_charges: 0,
+        incidental_charges: 0,
+        other_charges: 0,
+      }
+    }
   ])
 
   // Additional Fields
@@ -107,16 +152,61 @@ export default function EditQuotationPage() {
           
           // Set items
           if (q.items && q.items.length > 0) {
-            const loadedItems = q.items.map((item: any, index: number) => ({
-              id: index + 1,
-              item_code: item.item_code || '',
-              item_name: item.item_name || item.item_code || '',
-              description: item.description || item.item_name || '',
-              qty: item.qty || 1,
-              rate: item.rate || 0,
-              amount: (item.qty || 1) * (item.rate || 0)
-            }))
+            const loadedItems = q.items.map((item: any, index: number) => {
+              // Parse rental data
+              const rentalData = item.custom_rental_data ? 
+                (typeof item.custom_rental_data === 'string' ? JSON.parse(item.custom_rental_data) : item.custom_rental_data) : 
+                null
+              
+              const isRental = item.custom_is_rental || item.is_rental || false
+              
+              return {
+                id: index + 1,
+                item_code: item.item_code || '',
+                item_name: item.item_name || item.item_code || '',
+                description: item.description || item.item_name || '',
+                item_category: item.item_group,
+                qty: item.qty || 1,
+                rate: item.rate || 0,
+                amount: (item.qty || 1) * (item.rate || 0),
+                is_rental: isRental,
+                rental_type: item.custom_rental_type || item.rental_type,
+                rental_duration: item.custom_rental_duration || item.rental_duration,
+                rental_start_date: item.custom_rental_start_date || item.rental_start_date,
+                rental_end_date: item.custom_rental_end_date || item.rental_end_date,
+                rental_start_time: item.custom_rental_start_time || item.rental_start_time,
+                rental_end_time: item.custom_rental_end_time || item.rental_end_time,
+                operator_included: item.custom_operator_included || item.operator_included || false,
+                total_rental_cost: item.custom_total_rental_cost || item.total_rental_cost || 0,
+                pricing_components: rentalData ? {
+                  base_cost: rentalData.baseRentalCost || 0,
+                  accommodation_charges: rentalData.accommodationCost || 0,
+                  usage_charges: rentalData.usageCost || 0,
+                  fuel_charges: rentalData.fuelCost || 0,
+                  elongation_charges: rentalData.elongationCost || 0,
+                  risk_charges: rentalData.riskCost || 0,
+                  commercial_charges: rentalData.commercialCost || 0,
+                  incidental_charges: rentalData.incidentalCost || 0,
+                  other_charges: rentalData.otherCost || 0,
+                } : {
+                  base_cost: 0,
+                  accommodation_charges: 0,
+                  usage_charges: 0,
+                  fuel_charges: 0,
+                  elongation_charges: 0,
+                  risk_charges: 0,
+                  commercial_charges: 0,
+                  incidental_charges: 0,
+                  other_charges: 0,
+                }
+              }
+            })
             setItems(loadedItems)
+            
+            // Enable rental mode if any item is rental
+            if (loadedItems.some((item: QuotationItem) => item.is_rental)) {
+              setIsRentalMode(true)
+            }
           }
           
           // Set additional fields
@@ -388,60 +478,135 @@ export default function EditQuotationPage() {
                 </div>
 
                 {/* Item Rows */}
-                <div className="divide-y">
+                <div className="space-y-4">
                   {items.map((item, index) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 dark:hover:bg-slate-900/50 group">
-                      <div className="col-span-1 pt-2 text-center text-sm text-slate-400">
-                        <span className="group-hover:hidden">{index + 1}</span>
-                        <Trash2 
-                          className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer" 
-                          onClick={() => removeItem(item.id)} 
-                        />
-                      </div>
-                      <div className="col-span-4 space-y-1">
-                        <div className="h-8">
-                          <ItemSearch
-                            value={item.item_code}
-                            onChange={(code, desc) => {
-                              updateItem(item.id, 'item_code', code)
-                              updateItem(item.id, 'item_name', code)
-                              if (desc) updateItem(item.id, 'description', desc)
-                            }}
-                          />
+                    <div key={item.id} className="border rounded-lg overflow-hidden">
+                      {/* Item Header */}
+                      <div className="bg-slate-50 dark:bg-slate-900 p-4 border-b">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm text-slate-500">#{index + 1}</span>
+                              {item.is_rental && (
+                                <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                  Rental Item
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <Label className="text-xs text-slate-500">Item Code</Label>
+                                <ItemSearch
+                                  value={item.item_code}
+                                  onChange={(code, desc, name) => {
+                                    updateItem(item.id, 'item_code', code)
+                                    updateItem(item.id, 'item_name', name || code)
+                                    if (desc) updateItem(item.id, 'description', desc)
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs text-slate-500">Description</Label>
+                                <Input
+                                  placeholder="Description"
+                                  value={item.description}
+                                  onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                                  className="text-sm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(item.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Input
-                          placeholder="Description"
-                          value={item.description}
-                          onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                          className="h-7 text-xs text-muted-foreground border-dashed border-slate-200 dark:border-slate-800 bg-transparent"
-                        />
                       </div>
-                      <div className="col-span-1">
-                        <Input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          value={item.qty}
-                          onChange={(e) => updateItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
-                          className="h-8 text-sm text-right"
-                          required
-                        />
+
+                      {/* Item Details */}
+                      <div className="p-4">
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                          <div>
+                            <Label className="text-xs text-slate-500">Quantity *</Label>
+                            <Input
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              value={item.qty}
+                              onChange={(e) => updateItem(item.id, 'qty', parseFloat(e.target.value) || 0)}
+                              className="text-sm"
+                              required
+                              disabled={item.is_rental}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-slate-500">Rate *</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.rate}
+                              onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                              className="text-sm"
+                              required
+                              disabled={item.is_rental}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-slate-500">Amount</Label>
+                            <div className="h-9 flex items-center text-sm font-medium">
+                              ₹{item.amount.toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Rental Pricing Breakdown */}
+                        {item.is_rental && item.pricing_components && (
+                          <div className="border-t pt-4 mt-4">
+                            <div className="mb-4">
+                              <h4 className="font-semibold text-sm mb-2">Rental Details</h4>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div>
+                                  <p className="text-xs text-slate-500">Type</p>
+                                  <p className="font-medium capitalize">{item.rental_type || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-slate-500">Duration</p>
+                                  <p className="font-medium">{item.rental_duration || 'N/A'} {item.rental_type || ''}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-slate-500">Start Date</p>
+                                  <p className="font-medium">
+                                    {item.rental_start_date ? new Date(item.rental_start_date).toLocaleDateString('en-IN') : 'N/A'}
+                                    {item.rental_start_time && <span className="text-xs ml-1">{item.rental_start_time}</span>}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-slate-500">End Date</p>
+                                  <p className="font-medium">
+                                    {item.rental_end_date ? new Date(item.rental_end_date).toLocaleDateString('en-IN') : 'N/A'}
+                                    {item.rental_end_time && <span className="text-xs ml-1">{item.rental_end_time}</span>}
+                                  </p>
+                                </div>
+                              </div>
+                              {item.operator_included && (
+                                <p className="text-sm text-slate-600 mt-2 flex items-center gap-1">
+                                  <Badge variant="outline" className="text-xs">Operator Included</Badge>
+                                </p>
+                              )}
+                            </div>
+                            <RentalPricingBreakdown
+                              components={item.pricing_components}
+                              totalCost={item.total_rental_cost || 0}
+                            />
+                          </div>
+                        )}
                       </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.rate}
-                          onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
-                          className="h-8 text-sm text-right"
-                          required
-                        />
-                      </div>
-                      <div className="col-span-2 pt-2 text-right text-sm font-medium">
-                        ₹{item.amount.toLocaleString('en-IN')}
-                      </div>
-                      <div className="col-span-2"></div>
                     </div>
                   ))}
                 </div>
