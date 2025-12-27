@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AnimatedCard } from "@/components/ui/animated"
-import { FileText, Calendar, DollarSign, TrendingUp, Search, SlidersHorizontal, Plus, Package, CheckCircle, Clock } from "lucide-react"
+import { FileText, Calendar, IndianRupee, TrendingUp, Search, SlidersHorizontal, Plus, Package, CheckCircle, Clock, Send } from "lucide-react"
 import Link from "next/link"
-import { updateQuotationStatus } from "@/app/actions/crm"
+import { submitQuotation } from "@/app/actions/crm"
 
 interface Quotation {
   name: string
@@ -46,33 +46,42 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
   const [sortBy, setSortBy] = useState<"date" | "value">("date")
   const [dateFilter, setDateFilter] = useState<string>("all")
   const [creatingQuotation, setCreatingQuotation] = useState<string | null>(null)
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [submittingQuotation, setSubmittingQuotation] = useState<string | null>(null)
 
   const handleCreateQuotation = (opportunityName: string) => {
     // Redirect to new quotation page with opportunity ID
     window.location.href = `/crm/quotations/new?opportunity=${encodeURIComponent(opportunityName)}`
   }
 
-  const handleStatusUpdate = async (quotationName: string, newStatus: string) => {
-    setUpdatingStatus(quotationName)
+  const handleSubmitQuotation = async (quotationName: string) => {
+    if (!confirm('Submit this quotation? It will be ready for Sales Order creation.')) {
+      return
+    }
+    
+    setSubmittingQuotation(quotationName)
     try {
-      await updateQuotationStatus(quotationName, newStatus)
-      window.location.reload()
+      const result = await submitQuotation(quotationName)
+      if (result.error) {
+        alert(result.error)
+      } else {
+        window.location.reload()
+      }
     } catch (error) {
-      console.error('Failed to update status:', error)
-      alert('Failed to update status')
+      console.error('Failed to submit quotation:', error)
+      alert('Failed to submit quotation')
     } finally {
-      setUpdatingStatus(null)
+      setSubmittingQuotation(null)
     }
   }
 
   // Status colors
   const statusColors: Record<string, string> = {
-    'Draft': 'bg-slate-100 text-slate-800',
-    'Open': 'bg-blue-100 text-blue-800',
-    'Ordered': 'bg-green-100 text-green-800',
-    'Lost': 'bg-red-100 text-red-800',
-    'Expired': 'bg-orange-100 text-orange-800'
+    'Draft': 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300',
+    'Open': 'bg-blue-100 text-blue-800 dark:bg-blue-950/30 dark:text-blue-300',
+    'Submitted': 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-300',
+    'Ordered': 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-300',
+    'Lost': 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-300',
+    'Expired': 'bg-orange-100 text-orange-800 dark:bg-orange-950/30 dark:text-orange-300'
   }
 
   // Check if expired
@@ -172,7 +181,7 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
               </p>
             </div>
             <div className="p-3 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl">
-              <DollarSign className="h-6 w-6 text-purple-500" />
+              <IndianRupee className="h-6 w-6 text-purple-500" />
             </div>
           </div>
         </AnimatedCard>
@@ -306,7 +315,7 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
                               </div>
                               <div className="flex items-center gap-2">
                                 <div className="p-1.5 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                                  <DollarSign className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                                  <IndianRupee className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                                 </div>
                                 <div>
                                   <span className="text-xs text-slate-500 dark:text-slate-400">Amount</span>
@@ -318,29 +327,26 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
                             </div>
                           </Link>
                           
-                          {/* Status Update Dropdown */}
-                          {quotation.status !== 'Ordered' && quotation.status !== 'Lost' && (
+                          {/* Submit Button for Draft Quotations */}
+                          {quotation.status === 'Draft' && (
                             <div className="ml-4 shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <Select 
-                                value={quotation.status} 
-                                onValueChange={(newStatus) => handleStatusUpdate(quotation.name, newStatus)}
-                                disabled={updatingStatus === quotation.name}
+                              <Button
+                                onClick={() => handleSubmitQuotation(quotation.name)}
+                                disabled={submittingQuotation === quotation.name}
+                                className="h-10 px-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                <SelectTrigger className="w-[160px] h-10 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl font-medium transition-colors">
-                                  <SelectValue placeholder="Update Status" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-2">
-                                  <SelectItem value="Draft" className="rounded-lg cursor-pointer">📝 Draft</SelectItem>
-                                  <SelectItem value="Open" className="rounded-lg cursor-pointer">🔓 Open</SelectItem>
-                                  <SelectItem value="Ordered" className="rounded-lg cursor-pointer">✅ Ordered</SelectItem>
-                                  <SelectItem value="Lost" className="rounded-lg cursor-pointer">❌ Lost</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {updatingStatus === quotation.name && (
-                                <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 rounded-xl flex items-center justify-center">
-                                  <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                                </div>
-                              )}
+                                {submittingQuotation === quotation.name ? (
+                                  <>
+                                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                    Submitting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Mark Ready
+                                  </>
+                                )}
+                              </Button>
                             </div>
                           )}
                         </div>

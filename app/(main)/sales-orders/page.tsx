@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Package, Clock, CheckCircle, XCircle, Search, Filter, TrendingUp, Calendar, FileText } from "lucide-react"
+import { Plus, Package, Clock, CheckCircle, XCircle, Search, Filter, IndianRupee, Calendar, FileText } from "lucide-react"
 import Link from "next/link"
 import { getSalesOrders, getSalesOrderStats } from "@/app/actions/sales-orders"
 import { getQuotations } from "@/app/actions/crm"
@@ -16,8 +16,8 @@ export default async function SalesOrdersPage() {
     getQuotations()
   ])
   
-  // Filter quotations ready for sales order (Ordered status)
-  const orderedQuotations = quotations.filter(q => q.status === 'Ordered')
+  // Filter quotations ready for sales order (Submitted status or docstatus=1)
+  const orderedQuotations = quotations.filter(q => q.status === 'Submitted' || q.docstatus === 1)
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
@@ -73,7 +73,7 @@ export default async function SalesOrdersPage() {
                 ₹{stats.totalValue.toLocaleString()}
               </p>
             </div>
-            <TrendingUp className="h-5 w-5 text-purple-500" />
+            <IndianRupee className="h-5 w-5 text-purple-500" />
           </div>
         </AnimatedCard>
       </div>

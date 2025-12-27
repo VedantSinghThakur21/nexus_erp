@@ -679,6 +679,27 @@ export async function deleteQuotation(quotationId: string) {
   }
 }
 
+export async function submitQuotation(quotationId: string) {
+  'use server'
+  
+  try {
+    // Submit the quotation in ERPNext (changes docstatus from 0 to 1)
+    await frappeRequest('frappe.client.submit', 'POST', {
+      doctype: 'Quotation',
+      name: quotationId
+    })
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/quotations')
+    revalidatePath('/quotations')
+    revalidatePath('/sales-orders')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Submit quotation error:', error)
+    return { error: error.message || 'Failed to submit quotation' }
+  }
+}
+
 export async function updateQuotationStatus(quotationId: string, newStatus: string) {
   'use server'
   
