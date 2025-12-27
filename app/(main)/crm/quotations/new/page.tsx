@@ -493,7 +493,7 @@ export default function NewQuotationPage() {
               <CardTitle>Customer / Lead Information</CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-4">
-              <div className="grid gap-2">
+              <div suppressHydrationWarning className="grid gap-2">
                 <Label htmlFor="quotationTo">Quotation To *</Label>
                 <Select value={quotationTo} onValueChange={setQuotationTo} disabled={!!opportunityId}>
                   <SelectTrigger>
@@ -506,7 +506,7 @@ export default function NewQuotationPage() {
                 </Select>
               </div>
 
-              <div className="grid gap-2">
+              <div suppressHydrationWarning className="grid gap-2">
                 <Label htmlFor="partyName">{quotationTo} Name *</Label>
                 <Input
                   id="partyName"
@@ -518,7 +518,7 @@ export default function NewQuotationPage() {
                 />
               </div>
 
-              <div className="grid gap-2">
+              <div suppressHydrationWarning className="grid gap-2">
                 <Label htmlFor="transactionDate">Transaction Date *</Label>
                 <Input
                   id="transactionDate"
@@ -529,7 +529,7 @@ export default function NewQuotationPage() {
                 />
               </div>
 
-              <div className="grid gap-2">
+              <div suppressHydrationWarning className="grid gap-2">
                 <Label htmlFor="validTill">Valid Till *</Label>
                 <Input
                   id="validTill"
@@ -540,7 +540,7 @@ export default function NewQuotationPage() {
                 />
               </div>
 
-              <div className="grid gap-2">
+              <div suppressHydrationWarning className="grid gap-2">
                 <Label htmlFor="orderType">Order Type</Label>
                 <Select value={orderType} onValueChange={setOrderType}>
                   <SelectTrigger>
@@ -554,7 +554,7 @@ export default function NewQuotationPage() {
                 </Select>
               </div>
 
-              <div className="grid gap-2">
+              <div suppressHydrationWarning className="grid gap-2">
                 <Label htmlFor="currency">Currency</Label>
                 <Select value={currency} onValueChange={setCurrency}>
                   <SelectTrigger>

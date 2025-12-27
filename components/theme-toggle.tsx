@@ -16,13 +16,14 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="h-9 w-9 rounded-lg bg-slate-200 dark:bg-slate-800 animate-pulse" />
+      <div suppressHydrationWarning className="h-9 w-9 rounded-lg bg-slate-200 dark:bg-slate-800 animate-pulse" />
     );
   }
 
   const isDark = theme === "dark";
 
   return (
+    <div suppressHydrationWarning>
     <motion.button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       whileHover={{ scale: 1.05 }}
@@ -62,5 +63,6 @@ export function ThemeToggle() {
         )}
       </motion.div>
     </motion.button>
+    </div>
   );
 }
