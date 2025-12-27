@@ -182,53 +182,78 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
 
                     {/* Rental Details */}
                     {isRental && (
-                      <div suppressHydrationWarning className="border-t bg-slate-50/50 dark:bg-slate-900/50 p-4">
-                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
+                      <div suppressHydrationWarning className="border-t bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-900/80 dark:to-blue-950/30 p-6">
+                        <h4 className="font-semibold text-base mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                          <Clock className="h-5 w-5 text-blue-600" />
                           Rental Details
                         </h4>
-                        <div suppressHydrationWarning className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                          <div suppressHydrationWarning>
-                            <p className="text-xs text-slate-500">Rental Type</p>
-                            <p className="font-medium capitalize">{item.custom_rental_type || item.rental_type || 'N/A'}</p>
+                        <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                          <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Rental Type</p>
+                            <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                              {(item.custom_rental_type || item.rental_type || 'N/A').charAt(0).toUpperCase() + (item.custom_rental_type || item.rental_type || 'N/A').slice(1)}
+                            </Badge>
                           </div>
-                          <div suppressHydrationWarning>
-                            <p className="text-xs text-slate-500">Duration</p>
-                            <p className="font-medium">{item.custom_rental_duration || item.rental_duration || 'N/A'} {item.custom_rental_type || item.rental_type || ''}</p>
+                          <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Duration</p>
+                            <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                              {item.custom_rental_duration || item.rental_duration || 'N/A'}{' '}
+                              <span className="text-sm font-normal text-slate-600 dark:text-slate-400">
+                                {(item.custom_rental_type || item.rental_type || '').charAt(0).toUpperCase() + (item.custom_rental_type || item.rental_type || '').slice(1)}
+                              </span>
+                            </p>
                           </div>
-                          <div suppressHydrationWarning>
-                            <p className="text-xs text-slate-500">Start Date</p>
-                            <p className="font-medium">
+                          <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Start Date</p>
+                            <p className="font-semibold text-slate-900 dark:text-white">
                               {item.custom_rental_start_date || item.rental_start_date ? 
-                                new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN') : 
+                                new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric' 
+                                }) : 
                                 'N/A'}
-                              {(item.custom_rental_start_time || item.rental_start_time) && (
-                                <span className="text-xs ml-1">{item.custom_rental_start_time || item.rental_start_time}</span>
-                              )}
                             </p>
+                            {(item.custom_rental_start_time || item.rental_start_time) && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                {(item.custom_rental_start_time || item.rental_start_time).substring(0, 5)}
+                              </p>
+                            )}
                           </div>
-                          <div suppressHydrationWarning>
-                            <p className="text-xs text-slate-500">End Date</p>
-                            <p className="font-medium">
+                          <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">End Date</p>
+                            <p className="font-semibold text-slate-900 dark:text-white">
                               {item.custom_rental_end_date || item.rental_end_date ? 
-                                new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN') : 
+                                new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric' 
+                                }) : 
                                 'N/A'}
-                              {(item.custom_rental_end_time || item.rental_end_time) && (
-                                <span className="text-xs ml-1">{item.custom_rental_end_time || item.rental_end_time}</span>
-                              )}
                             </p>
+                            {(item.custom_rental_end_time || item.rental_end_time) && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                {(item.custom_rental_end_time || item.rental_end_time).substring(0, 5)}
+                              </p>
+                            )}
                           </div>
+                        </div>
                         </div>
 
                         {(item.custom_operator_included || item.operator_included) && (
-                          <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
-                            <User className="h-4 w-4" />
-                            <span>Operator Included</span>
+                          <div className="mt-4 bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-green-200 dark:border-green-800 flex items-center gap-3">
+                            <User className="h-5 w-5 text-green-600" />
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white">Operator Included</p>
+                              {(item.custom_operator_name || item.operator_name) && (
+                                <p className="text-xs text-slate-600 dark:text-slate-400">Assigned: {item.custom_operator_name || item.operator_name}</p>
+                              )}
+                            </div>
                           </div>
                         )}
 
                         {/* Rental Cost Breakdown - Always show for rental items */}
-                        <div suppressHydrationWarning className="mt-4">
+                        <div suppressHydrationWarning className="mt-6">
                           <RentalPricingBreakdown 
                             item={{
                               pricing_components: {

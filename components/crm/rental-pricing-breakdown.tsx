@@ -30,80 +30,89 @@ export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
   ].filter(c => c.value > 0)
 
   return (
-    <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/30">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">
+    <Card className="border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50 via-white to-blue-50/50 dark:from-blue-950/40 dark:via-slate-900 dark:to-blue-950/40 shadow-sm">
+      <CardHeader className="pb-4 border-b border-blue-200 dark:border-blue-800">
+        <CardTitle className="text-base font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-blue-600" />
           Rental Pricing Breakdown
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5 pt-5">
         {/* Duration Info */}
-        <div className="flex items-start gap-3 text-sm">
-          <Calendar className="h-4 w-4 text-blue-600 mt-0.5" />
-          <div>
-            <p className="font-medium text-slate-900 dark:text-white">Rental Period</p>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              {item.rental_start_date && new Date(item.rental_start_date).toLocaleDateString('en-IN', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric' 
-              })}
-              {item.rental_start_time && ` ${item.rental_start_time}`}
-              {' → '}
-              {item.rental_end_date && new Date(item.rental_end_date).toLocaleDateString('en-IN', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric' 
-              })}
-              {item.rental_end_time && ` ${item.rental_end_time}`}
-            </p>
-            <Badge variant="outline" className="mt-1 text-xs">
-              <Clock className="h-3 w-3 mr-1" />
-              {item.rental_duration} {item.rental_type}
-            </Badge>
+        <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-3">
+            <Calendar className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="font-semibold text-sm text-slate-900 dark:text-white mb-2">Rental Period</p>
+              <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <span>
+                  {item.rental_start_date && new Date(item.rental_start_date).toLocaleDateString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric' 
+                  })}
+                  {item.rental_start_time && ` ${item.rental_start_time.substring(0, 5)}`}
+                </span>
+                <span className="text-slate-400">\u2192</span>
+                <span>
+                  {item.rental_end_date && new Date(item.rental_end_date).toLocaleDateString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric' 
+                  })}
+                  {item.rental_end_time && ` ${item.rental_end_time.substring(0, 5)}`}
+                </span>
+              </div>
+              <Badge variant="outline" className="mt-2 text-xs border-blue-300 dark:border-blue-700">
+                <Clock className="h-3 w-3 mr-1" />
+                {item.rental_duration} {item.rental_type ? item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1) : ''}
+              </Badge>
+            </div>
           </div>
         </div>
 
         {/* Operator Info */}
         {item.requires_operator && (
-          <div className="flex items-start gap-3 text-sm">
-            <User className="h-4 w-4 text-blue-600 mt-0.5" />
-            <div>
-              <p className="font-medium text-slate-900 dark:text-white">Operator</p>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge 
-                  variant={item.operator_included ? "default" : "secondary"}
-                  className="text-xs"
-                >
-                  {item.operator_included ? (
-                    <>
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Included
-                    </>
-                  ) : (
-                    'Not Included'
+          <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-green-200 dark:border-green-800">
+            <div className="flex items-start gap-3">
+              <User className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-slate-900 dark:text-white mb-2">Operator</p>
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant={item.operator_included ? "default" : "secondary"}
+                    className={item.operator_included ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : ""}
+                  >
+                    {item.operator_included ? (
+                      <>
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Included
+                      </>
+                    ) : (
+                      'Not Included'
+                    )}
+                  </Badge>
+                  {item.operator_included && item.operator_name && (
+                    <span className="text-xs text-slate-600 dark:text-slate-400">
+                      {item.operator_name}
+                    </span>
                   )}
-                </Badge>
-                {item.operator_included && item.operator_name && (
-                  <span className="text-xs text-slate-600 dark:text-slate-400">
-                    {item.operator_name}
-                  </span>
-                )}
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {/* Cost Components */}
-        <div className="border-t pt-3">
-          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+        <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-3">
             Cost Components
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {componentDetails.map((component, idx) => (
-              <div key={idx} className="flex justify-between items-center text-xs">
-                <span className="text-slate-600 dark:text-slate-400">{component.label}</span>
-                <span className={`font-medium ${component.color}`}>
+              <div key={idx} className="flex justify-between items-center py-1.5 px-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <span className="text-sm text-slate-600 dark:text-slate-400">{component.label}</span>
+                <span className={`font-semibold text-sm ${component.color}`}>
                   ₹{component.value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -112,10 +121,10 @@ export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
         </div>
 
         {/* Total */}
-        <div className="border-t pt-3">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-lg p-4 shadow-md">
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-slate-900 dark:text-white">Total Rental Cost</span>
-            <span className="text-lg font-bold text-blue-600">
+            <span className="font-bold text-white">Total Rental Cost</span>
+            <span className="text-2xl font-bold text-white">
               ₹{(item.total_rental_cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
