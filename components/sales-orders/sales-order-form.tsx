@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,7 @@ import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, Trash2, FileText, DollarSign, Percent, Package, Calendar } from "lucide-react"
 import { createSalesOrder } from "@/app/actions/sales-orders"
 import { getTaxTemplates, getWarehouses, applyItemPricingRules } from "@/app/actions/common"
+import { getQuotation } from "@/app/actions/crm"
 import { useRouter } from 'next/navigation'
 
 interface SalesOrderItem {
@@ -34,7 +36,11 @@ interface TaxTemplate {
 
 export default function SalesOrderForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const quotationParam = searchParams.get('quotation')
+  
   const [loading, setLoading] = useState(false)
+  const [fetchingQuotation, setFetchingQuotation] = useState(false)
   const [taxTemplates, setTaxTemplates] = useState<TaxTemplate[]>([])
   const [warehouses, setWarehouses] = useState<string[]>([])
   
@@ -81,6 +87,59 @@ export default function SalesOrderForm() {
     }
     fetchData()
   }, [])
+
+  // Fetch quotation data if quotation parameter exists
+  useEffect(() => {
+    const fetchQuotation = async () => {
+      if (!quotationParam) return
+      
+      setFetchingQuotation(true)
+      try {
+        const quotation = await getQuotation(quotationParam)
+        if (quotation) {
+          // Populate form with quotation data
+          setFormData({
+            customer: quotation.party_name || '',
+            customer_name: quotation.customer_name || quotation.party_name || '',
+            transaction_date: new Date().toISOString().split('T')[0],
+            delivery_date: quotation.valid_till || '',
+            currency: quotation.currency || 'INR',
+            terms: quotation.terms || '',
+            contact_email: quotation.contact_email || '',
+            territory: quotation.territory || '',
+            taxes_and_charges: quotation.taxes_and_charges || '',
+            quotation_no: quotation.name || '',
+            po_no: '',
+            po_date: ''
+          })
+
+          // Populate items from quotation
+          if (quotation.items && quotation.items.length > 0) {
+            const quotationItems = quotation.items.map((item: any) => ({
+              item_code: item.item_code || '',
+              item_name: item.item_name || '',
+              description: item.description || '',
+              qty: item.qty || 1,
+              uom: item.uom || 'Nos',
+              rate: item.rate || 0,
+              discount_percentage: item.discount_percentage || 0,
+              amount: item.amount || 0,
+              delivery_date: item.delivery_date || '',
+              warehouse: item.warehouse || '',
+              pricing_rules: item.pricing_rule || ''
+            }))
+            setItems(quotationItems)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch quotation:', error)
+      } finally {
+        setFetchingQuotation(false)
+      }
+    }
+
+    fetchQuotation()
+  }, [quotationParam])
 
   // Apply pricing rules when item details change
   const applyPricingRules = async (index: number, itemCode: string, qty: number) => {
