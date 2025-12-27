@@ -23,11 +23,6 @@ export default async function SalesOrdersPage() {
             Manage sales orders and track fulfillment
           </p>
         </div>
-        <Link href="/sales-orders/new">
-          <AnimatedButton variant="neon" className="gap-2">
-            <Plus className="h-4 w-4" /> New Sales Order
-          </AnimatedButton>
-        </Link>
       </div>
 
       {/* Stats Cards */}

@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, Calendar, DollarSign, TrendingUp, Search, SlidersHorizontal, Plus } from "lucide-react"
+import { FileText, Calendar, DollarSign, TrendingUp, Search, SlidersHorizontal, Plus, Package, CheckCircle, Clock } from "lucide-react"
 import Link from "next/link"
+import { updateQuotationStatus } from "@/app/actions/crm"
 
 interface Quotation {
   name: string
@@ -44,10 +45,24 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
   const [sortBy, setSortBy] = useState<"date" | "value">("date")
   const [dateFilter, setDateFilter] = useState<string>("all")
   const [creatingQuotation, setCreatingQuotation] = useState<string | null>(null)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   const handleCreateQuotation = (opportunityName: string) => {
     // Redirect to new quotation page with opportunity ID
     window.location.href = `/crm/quotations/new?opportunity=${encodeURIComponent(opportunityName)}`
+  }
+
+  const handleStatusUpdate = async (quotationName: string, newStatus: string) => {
+    setUpdatingStatus(quotationName)
+    try {
+      await updateQuotationStatus(quotationName, newStatus)
+      window.location.reload()
+    } catch (error) {
+      console.error('Failed to update status:', error)
+      alert('Failed to update status')
+    } finally {
+      setUpdatingStatus(null)
+    }
   }
 
   // Status colors
@@ -109,6 +124,59 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
 
   return (
     <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Total Quotations</p>
+                <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{stats.total}</p>
+              </div>
+              <FileText className="h-5 w-5 text-slate-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Open</p>
+                <p className="text-2xl font-bold mt-1 text-blue-600">{stats.open}</p>
+              </div>
+              <Clock className="h-5 w-5 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Ordered</p>
+                <p className="text-2xl font-bold mt-1 text-green-600">{stats.ordered}</p>
+              </div>
+              <CheckCircle className="h-5 w-5 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Total Value</p>
+                <p className="text-2xl font-bold mt-1 text-purple-600">
+                  ₹{stats.totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </p>
+              </div>
+              <DollarSign className="h-5 w-5 text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Tabs */}
       <Tabs defaultValue="quotations" className="w-full">
         <TabsList>
@@ -117,6 +185,9 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
           </TabsTrigger>
           <TabsTrigger value="proposals">
             Ready for Quotation ({proposalOpportunities.length})
+          </TabsTrigger>
+          <TabsTrigger value="ordered">
+            Ready for Sales Order ({quotations.filter(q => q.status === 'Ordered').length})
           </TabsTrigger>
         </TabsList>
 
@@ -199,46 +270,64 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
                     const displayStatus = expired && quotation.status === 'Open' ? 'Expired' : quotation.status
 
                     return (
-                      <Link 
-                        key={quotation.name} 
-                        href={`/crm/quotations/${encodeURIComponent(quotation.name)}`}
-                        className="block"
-                      >
-                        <div className="border rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="font-semibold text-lg text-slate-900 dark:text-white">
-                                  {quotation.name}
-                                </h3>
-                                <Badge className={statusColors[displayStatus] || 'bg-slate-100 text-slate-800'}>
-                                  {displayStatus}
-                                </Badge>
+                      <div key={quotation.name} className="border rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+                        <div className="flex justify-between items-start">
+                          <Link 
+                            href={`/crm/quotations/${encodeURIComponent(quotation.name)}`}
+                            className="flex-1"
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold text-lg text-slate-900 dark:text-white">
+                                {quotation.name}
+                              </h3>
+                              <Badge className={statusColors[displayStatus] || 'bg-slate-100 text-slate-800'}>
+                                {displayStatus}
+                              </Badge>
+                            </div>
+                            
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <span className="text-slate-500">Customer: </span>
+                                <span className="font-medium">{quotation.customer_name || quotation.party_name}</span>
                               </div>
-                              
-                              <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                <div>
-                                  <span className="text-slate-500">Customer: </span>
-                                  <span className="font-medium">{quotation.customer_name || quotation.party_name}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4 text-slate-400" />
-                                  <span className="text-slate-500">Valid till: </span>
-                                  <span className={`font-medium ${expired ? 'text-red-600' : ''}`}>
-                                    {new Date(quotation.valid_till).toLocaleDateString('en-IN')}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-slate-500">Amount: </span>
-                                  <span className="font-bold text-slate-900 dark:text-white">
-                                    ₹{(quotation.grand_total || 0).toLocaleString('en-IN')}
-                                  </span>
-                                </div>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-slate-400" />
+                                <span className="text-slate-500">Valid till: </span>
+                                <span className={`font-medium ${expired ? 'text-red-600' : ''}`}>
+                                  {new Date(quotation.valid_till).toLocaleDateString('en-IN')}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Amount: </span>
+                                <span className="font-bold text-slate-900 dark:text-white">
+                                  ₹{(quotation.grand_total || 0).toLocaleString('en-IN')}
+                                </span>
                               </div>
                             </div>
-                          </div>
+                          </Link>
+                          
+                          {/* Status Update Dropdown */}
+                          {quotation.status !== 'Ordered' && quotation.status !== 'Lost' && (
+                            <div className="ml-4" onClick={(e) => e.stopPropagation()}>
+                              <Select 
+                                value={quotation.status} 
+                                onValueChange={(newStatus) => handleStatusUpdate(quotation.name, newStatus)}
+                                disabled={updatingStatus === quotation.name}
+                              >
+                                <SelectTrigger className="w-[140px] h-8 text-xs">
+                                  <SelectValue placeholder="Update Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Draft">Draft</SelectItem>
+                                  <SelectItem value="Open">Open</SelectItem>
+                                  <SelectItem value="Ordered">Ordered</SelectItem>
+                                  <SelectItem value="Lost">Lost</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
                         </div>
-                      </Link>
+                      </div>
                     )
                   })}
                 </div>
@@ -319,6 +408,83 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
                               {creatingQuotation === opp.name ? 'Creating...' : 'Create Quotation'}
                             </Button>
                             <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}>
+                              <Button variant="outline">
+                                View Details
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Ready for Sales Order Tab */}
+        <TabsContent value="ordered" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quotations Ready for Sales Order</CardTitle>
+              <CardDescription>
+                These quotations have been marked as "Ordered". Create sales orders from them.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {quotations.filter(q => q.status === 'Ordered').length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <Package className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                  <p className="font-medium text-lg mb-2">No ordered quotations</p>
+                  <p className="text-sm mt-2 mb-4">Mark quotations as "Ordered" to create sales orders from them</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {quotations.filter(q => q.status === 'Ordered').map((quotation) => (
+                    <div 
+                      key={quotation.name}
+                      className="border rounded-lg p-4 hover:shadow-md transition-all bg-green-50/50 dark:bg-green-950/20"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg text-slate-900 dark:text-white">
+                              {quotation.name}
+                            </h3>
+                            <Badge className="bg-green-100 text-green-800">
+                              Ordered
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid md:grid-cols-3 gap-4 text-sm mb-4">
+                            <div>
+                              <span className="text-slate-500">Customer: </span>
+                              <span className="font-medium">{quotation.customer_name || quotation.party_name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-slate-400" />
+                              <span className="text-slate-500">Valid till: </span>
+                              <span className="font-medium">
+                                {new Date(quotation.valid_till).toLocaleDateString('en-IN')}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Value: </span>
+                              <span className="font-bold text-green-700 dark:text-green-400">
+                                ₹{(quotation.grand_total || 0).toLocaleString('en-IN')}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Link href={`/sales-orders/new?quotation=${encodeURIComponent(quotation.name)}`}>
+                              <Button className="gap-2 bg-green-600 hover:bg-green-700">
+                                <Package className="h-4 w-4" />
+                                Create Sales Order
+                              </Button>
+                            </Link>
+                            <Link href={`/crm/quotations/${encodeURIComponent(quotation.name)}`}>
                               <Button variant="outline">
                                 View Details
                               </Button>

@@ -679,6 +679,25 @@ export async function deleteQuotation(quotationId: string) {
   }
 }
 
+export async function updateQuotationStatus(quotationId: string, newStatus: string) {
+  try {
+    // Update the quotation status in ERPNext
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Quotation',
+      name: quotationId,
+      fieldname: 'status',
+      value: newStatus
+    })
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/quotations')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update quotation status error:", error)
+    return { error: error.message || 'Failed to update status' }
+  }
+}
+
 // ========== COMPANY & BANK DETAILS ==========
 
 // Get Company Details (for displaying on quotations/invoices)
