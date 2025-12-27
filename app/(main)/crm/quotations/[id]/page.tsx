@@ -238,7 +238,6 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                             )}
                           </div>
                         </div>
-                        </div>
 
                         {(item.custom_operator_included || item.operator_included) && (
                           <div className="mt-4 bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-green-200 dark:border-green-800 flex items-center gap-3">
