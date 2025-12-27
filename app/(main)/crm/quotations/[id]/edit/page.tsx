@@ -566,44 +566,221 @@ export default function EditQuotationPage() {
                           </div>
                         </div>
 
-                        {/* Rental Pricing Breakdown */}
-                        {item.is_rental && item.pricing_components && (
-                          <div className="border-t pt-4 mt-4">
-                            <div className="mb-4">
-                              <h4 className="font-semibold text-sm mb-2">Rental Details</h4>
+                        {/* Rental Pricing Details & Components */}
+                        {item.is_rental && (
+                          <div className="border-t pt-4 mt-4 space-y-4">
+                            {/* Rental Period Info */}
+                            <div>
+                              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                                <span>Rental Period</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {item.rental_type ? item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1) : 'N/A'}
+                                </Badge>
+                              </h4>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <div>
-                                  <p className="text-xs text-slate-500">Type</p>
-                                  <p className="font-medium capitalize">{item.rental_type || 'N/A'}</p>
+                                  <p className="text-xs text-slate-500 mb-1">Duration</p>
+                                  <p className="font-medium">{item.rental_duration || 'N/A'} {item.rental_type ? item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1) : ''}</p>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-slate-500">Duration</p>
-                                  <p className="font-medium">{item.rental_duration || 'N/A'} {item.rental_type || ''}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-slate-500">Start Date</p>
+                                  <p className="text-xs text-slate-500 mb-1">Start Date</p>
                                   <p className="font-medium">
-                                    {item.rental_start_date ? new Date(item.rental_start_date).toLocaleDateString('en-IN') : 'N/A'}
-                                    {item.rental_start_time && <span className="text-xs ml-1">{item.rental_start_time}</span>}
+                                    {item.rental_start_date ? new Date(item.rental_start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                                   </p>
+                                  {item.rental_start_time && <p className="text-xs text-slate-400">{item.rental_start_time}</p>}
                                 </div>
                                 <div>
-                                  <p className="text-xs text-slate-500">End Date</p>
+                                  <p className="text-xs text-slate-500 mb-1">End Date</p>
                                   <p className="font-medium">
-                                    {item.rental_end_date ? new Date(item.rental_end_date).toLocaleDateString('en-IN') : 'N/A'}
-                                    {item.rental_end_time && <span className="text-xs ml-1">{item.rental_end_time}</span>}
+                                    {item.rental_end_date ? new Date(item.rental_end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                                   </p>
+                                  {item.rental_end_time && <p className="text-xs text-slate-400">{item.rental_end_time}</p>}
+                                </div>
+                                <div>
+                                  <p className="text-xs text-slate-500 mb-1">Operator</p>
+                                  {item.operator_included ? (
+                                    <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Included</Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs">Not Included</Badge>
+                                  )}
                                 </div>
                               </div>
-                              {item.operator_included && (
-                                <p className="text-sm text-slate-600 mt-2 flex items-center gap-1">
-                                  <Badge variant="outline" className="text-xs">Operator Included</Badge>
-                                </p>
-                              )}
                             </div>
-                            <RentalPricingBreakdown
-                              item={item as RentalItem}
-                            />
+
+                            {/* Editable Pricing Components */}
+                            <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                              <h4 className="font-semibold text-sm mb-3 text-blue-900 dark:text-blue-100">Rental Cost Components</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div>
+                                  <Label className="text-xs text-blue-700 dark:text-blue-300">Base Cost</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.base_cost || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, base_cost: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-green-700 dark:text-green-300">Accommodation</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.accommodation_charges || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, accommodation_charges: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-purple-700 dark:text-purple-300">Usage</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.usage_charges || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, usage_charges: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-orange-700 dark:text-orange-300">Fuel</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.fuel_charges || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, fuel_charges: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-pink-700 dark:text-pink-300">Elongation</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.elongation_charges || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, elongation_charges: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-red-700 dark:text-red-300">Risk</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.risk_charges || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, risk_charges: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-indigo-700 dark:text-indigo-300">Commercial</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.commercial_charges || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, commercial_charges: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-teal-700 dark:text-teal-300">Incidental</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.incidental_charges || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, incidental_charges: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-700 dark:text-slate-300">Other</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.pricing_components?.other_charges || 0}
+                                    onChange={(e) => {
+                                      const newComponents = { ...item.pricing_components, other_charges: parseFloat(e.target.value) || 0 }
+                                      const total = Object.values(newComponents).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
+                                      updateItem(item.id, 'pricing_components', newComponents)
+                                      updateItem(item.id, 'total_rental_cost', total)
+                                      updateItem(item.id, 'rate', total)
+                                      updateItem(item.id, 'amount', item.qty * total)
+                                    }}
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                              </div>
+                              <div className="mt-4 pt-3 border-t border-blue-200 dark:border-blue-700 flex justify-between items-center">
+                                <span className="font-semibold text-sm text-slate-900 dark:text-white">Total Rental Cost</span>
+                                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                  ₹{(item.total_rental_cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>

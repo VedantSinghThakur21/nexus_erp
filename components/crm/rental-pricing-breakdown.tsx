@@ -116,7 +116,7 @@ export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
           <div className="flex justify-between items-center">
             <span className="font-semibold text-slate-900 dark:text-white">Total Rental Cost</span>
             <span className="text-lg font-bold text-blue-600">
-              ₹{item.total_rental_cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              ₹{(item.total_rental_cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>
