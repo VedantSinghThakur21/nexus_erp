@@ -626,20 +626,12 @@ export async function updateQuotation(quotationId: string, quotationData: {
 // 4. UPDATE: Submit Quotation (make it official)
 export async function submitQuotation(quotationId: string) {
   try {
-    // Fetch latest document
-    const doc = await frappeRequest('frappe.client.get', 'GET', {
+    // Submit the quotation by setting docstatus to 1
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Quotation',
-      name: quotationId
-    })
-
-    // Submit with latest modified timestamp
-    await frappeRequest('frappe.client.submit', 'POST', {
-      doc: {
-        doctype: 'Quotation',
-        name: quotationId,
-        docstatus: 1,
-        modified: doc.modified
-      }
+      name: quotationId,
+      fieldname: 'docstatus',
+      value: 1
     })
 
     revalidatePath('/crm')
