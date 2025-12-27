@@ -2,9 +2,10 @@ import { getQuotation } from "@/app/actions/crm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, FileText, Building2, Pencil, Printer } from "lucide-react"
+import { ArrowLeft, Calendar, FileText, Building2, Pencil, Printer, Clock, User } from "lucide-react"
 import Link from "next/link"
 import { DeleteQuotationButton } from "@/components/crm/delete-quotation-button"
+import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
 
 export default async function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -135,32 +136,124 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
         </CardHeader>
         <CardContent>
           {quotation.items && quotation.items.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-slate-50 dark:bg-slate-900">
-                  <tr>
-                    <th className="text-left p-3 text-sm font-medium text-slate-500">Item Code</th>
-                    <th className="text-left p-3 text-sm font-medium text-slate-500">Description</th>
-                    <th className="text-right p-3 text-sm font-medium text-slate-500">Qty</th>
-                    <th className="text-right p-3 text-sm font-medium text-slate-500">Rate</th>
-                    <th className="text-right p-3 text-sm font-medium text-slate-500">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quotation.items.map((item: Record<string, any>, idx: number) => (
-                    <tr key={idx} className="border-t">
-                      <td className="p-3 text-sm font-medium">{item.item_code || 'N/A'}</td>
-                      <td className="p-3 text-sm text-slate-600">{item.item_name || item.description || 'N/A'}</td>
-                      <td className="p-3 text-sm text-right">{item.qty || 0}</td>
-                      <td className="p-3 text-sm text-right">₹{(item.rate || 0).toLocaleString('en-IN')}</td>
-                      <td className="p-3 text-sm text-right font-medium">₹{(item.amount || 0).toLocaleString('en-IN')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              {quotation.items.map((item: Record<string, any>, idx: number) => {
+                const isRental = item.custom_is_rental || item.is_rental
+                const rentalData = item.custom_rental_data ? 
+                  (typeof item.custom_rental_data === 'string' ? JSON.parse(item.custom_rental_data) : item.custom_rental_data) : 
+                  null
+                
+                return (
+                  <div key={idx} className="border rounded-lg overflow-hidden">
+                    {/* Item Header */}
+                    <div className="bg-slate-50 dark:bg-slate-900 p-4 border-b">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-lg">{item.item_name || item.item_code || 'N/A'}</h3>
+                          <p className="text-sm text-slate-500 mt-1">{item.description || 'No description'}</p>
+                        </div>
+                        {isRental && (
+                          <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                            Rental
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Standard Item Details */}
+                    <div className="p-4 grid grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-xs text-slate-500">Item Code</p>
+                        <p className="font-medium">{item.item_code || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Quantity</p>
+                        <p className="font-medium">{item.qty || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Rate</p>
+                        <p className="font-medium">₹{(item.rate || 0).toLocaleString('en-IN')}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Amount</p>
+                        <p className="font-medium text-lg">₹{(item.amount || 0).toLocaleString('en-IN')}</p>
+                      </div>
+                    </div>
+
+                    {/* Rental Details */}
+                    {isRental && (
+                      <div className="border-t bg-slate-50/50 dark:bg-slate-900/50 p-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Rental Details
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <p className="text-xs text-slate-500">Rental Type</p>
+                            <p className="font-medium capitalize">{item.custom_rental_type || item.rental_type || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Duration</p>
+                            <p className="font-medium">{item.custom_rental_duration || item.rental_duration || 'N/A'} {item.custom_rental_type || item.rental_type || ''}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Start Date</p>
+                            <p className="font-medium">
+                              {item.custom_rental_start_date || item.rental_start_date ? 
+                                new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN') : 
+                                'N/A'}
+                              {(item.custom_rental_start_time || item.rental_start_time) && (
+                                <span className="text-xs ml-1">{item.custom_rental_start_time || item.rental_start_time}</span>
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">End Date</p>
+                            <p className="font-medium">
+                              {item.custom_rental_end_date || item.rental_end_date ? 
+                                new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN') : 
+                                'N/A'}
+                              {(item.custom_rental_end_time || item.rental_end_time) && (
+                                <span className="text-xs ml-1">{item.custom_rental_end_time || item.rental_end_time}</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        {(item.custom_operator_included || item.operator_included) && (
+                          <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+                            <User className="h-4 w-4" />
+                            <span>Operator Included</span>
+                          </div>
+                        )}
+
+                        {/* Rental Cost Breakdown */}
+                        {rentalData && rentalData.baseRentalCost !== undefined && (
+                          <div className="mt-4">
+                            <RentalPricingBreakdown 
+                              components={{
+                                base_cost: rentalData.baseRentalCost || 0,
+                                accommodation_charges: rentalData.accommodationCost || 0,
+                                usage_charges: rentalData.usageCost || 0,
+                                fuel_charges: rentalData.fuelCost || 0,
+                                elongation_charges: rentalData.elongationCost || 0,
+                                risk_charges: rentalData.riskCost || 0,
+                                commercial_charges: rentalData.commercialCost || 0,
+                                incidental_charges: rentalData.incidentalCost || 0,
+                                other_charges: rentalData.otherCost || 0,
+                              }}
+                              totalCost={rentalData.totalCost || item.custom_total_rental_cost || item.total_rental_cost || 0}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
 
               {/* Totals */}
-              <div className="border-t bg-slate-50 dark:bg-slate-900 p-4">
+              <div className="border rounded-lg bg-slate-50 dark:bg-slate-900 p-4">
                 <div className="flex justify-end gap-12">
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between gap-8">

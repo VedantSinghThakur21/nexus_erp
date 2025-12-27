@@ -55,7 +55,7 @@ export default function EditQuotationPage() {
   const [paymentTermsTemplate, setPaymentTermsTemplate] = useState("")
   const [termsAndConditions, setTermsAndConditions] = useState("")
   const [taxTemplate, setTaxTemplate] = useState("")
-  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>>([])
+  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>([])
   const [selectedTaxTemplateDetails, setSelectedTaxTemplateDetails] = useState<any>(null)
   // Company and Bank Info (for display only)
   const [companyInfo, setCompanyInfo] = useState<{ name: string, gstin: string } | null>(null)
