@@ -144,6 +144,15 @@ Interested, Converted, Do Not Contact
 | `custom_rental_start_time` | Time | Conditional | Start time (required for hourly rentals) |
 | `custom_rental_end_time` | Time | Conditional | End time (required for hourly rentals) |
 | `custom_operator_included` | Check | No | Whether operator is included in rental |
+| `custom_base_rental_cost` | Currency | Conditional | Base rental cost component |
+| `custom_accommodation_charges` | Currency | Conditional | Accommodation charges for operators |
+| `custom_usage_charges` | Currency | Conditional | Usage-based charges |
+| `custom_fuel_charges` | Currency | Conditional | Fuel cost component |
+| `custom_elongation_charges` | Currency | Conditional | Charges for extended usage |
+| `custom_risk_charges` | Currency | Conditional | Risk/insurance charges |
+| `custom_commercial_charges` | Currency | Conditional | Commercial overhead |
+| `custom_incidental_charges` | Currency | Conditional | Incidental expenses |
+| `custom_other_charges` | Currency | Conditional | Other miscellaneous charges |
 | `custom_total_rental_cost` | Currency | Read-only | Total calculated rental cost |
 | `custom_rental_data` | Long Text | No | JSON string with complete breakdown (hidden field) |
 

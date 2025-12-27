@@ -206,9 +206,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.base_cost}
+                value={components.base_cost || ''}
                 onChange={(e) => updateComponent('base_cost', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
                 required
               />
             </div>
@@ -219,9 +220,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.accommodation_charges}
+                value={components.accommodation_charges || ''}
                 onChange={(e) => updateComponent('accommodation_charges', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
               />
             </div>
 
@@ -231,9 +233,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.usage_charges}
+                value={components.usage_charges || ''}
                 onChange={(e) => updateComponent('usage_charges', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
               />
             </div>
 
@@ -243,9 +246,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.fuel_charges}
+                value={components.fuel_charges || ''}
                 onChange={(e) => updateComponent('fuel_charges', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
               />
             </div>
 
@@ -255,9 +259,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.elongation_charges}
+                value={components.elongation_charges || ''}
                 onChange={(e) => updateComponent('elongation_charges', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
               />
             </div>
 
@@ -267,9 +272,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.risk_charges}
+                value={components.risk_charges || ''}
                 onChange={(e) => updateComponent('risk_charges', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
               />
             </div>
 
@@ -279,9 +285,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.commercial_charges}
+                value={components.commercial_charges || ''}
                 onChange={(e) => updateComponent('commercial_charges', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
               />
             </div>
 
@@ -291,9 +298,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.incidental_charges}
+                value={components.incidental_charges || ''}
                 onChange={(e) => updateComponent('incidental_charges', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
               />
             </div>
 
@@ -303,9 +311,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 type="number"
                 min="0"
                 step="0.01"
-                value={components.other_charges}
+                value={components.other_charges || ''}
                 onChange={(e) => updateComponent('other_charges', parseFloat(e.target.value) || 0)}
                 className="h-9 text-sm"
+                placeholder="0"
               />
             </div>
           </div>

@@ -242,7 +242,20 @@ export async function createInvoice(data: any) {
       baseItem.custom_rental_duration = item.custom_rental_duration
       baseItem.custom_rental_start_date = item.custom_rental_start_date
       baseItem.custom_rental_end_date = item.custom_rental_end_date
+      baseItem.custom_rental_start_time = item.custom_rental_start_time
+      baseItem.custom_rental_end_time = item.custom_rental_end_time
       baseItem.custom_operator_included = item.custom_operator_included
+      
+      // Preserve all pricing components for invoice
+      baseItem.custom_base_rental_cost = item.custom_base_rental_cost
+      baseItem.custom_accommodation_charges = item.custom_accommodation_charges
+      baseItem.custom_usage_charges = item.custom_usage_charges
+      baseItem.custom_fuel_charges = item.custom_fuel_charges
+      baseItem.custom_elongation_charges = item.custom_elongation_charges
+      baseItem.custom_risk_charges = item.custom_risk_charges
+      baseItem.custom_commercial_charges = item.custom_commercial_charges
+      baseItem.custom_incidental_charges = item.custom_incidental_charges
+      baseItem.custom_other_charges = item.custom_other_charges
       baseItem.custom_total_rental_cost = item.custom_total_rental_cost
     }
 

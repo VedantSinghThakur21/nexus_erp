@@ -49,31 +49,50 @@ export async function POST(request: NextRequest) {
       // Add rental fields as custom fields if present
       // In ERPNext, custom fields are stored directly on the child table row
       if (item.is_rental) {
-        // Store rental data in a JSON field or separate custom fields
-        // ERPNext supports storing JSON data in Long Text fields
+        // Store complete rental data in JSON field for backup/reference
         baseItem.custom_rental_data = JSON.stringify({
-          is_rental: true,
-          rental_type: item.rental_type,
-          rental_duration: item.rental_duration,
-          rental_start_date: item.rental_start_date,
-          rental_end_date: item.rental_end_date,
-          rental_start_time: item.rental_start_time,
-          rental_end_time: item.rental_end_time,
-          requires_operator: item.requires_operator,
-          operator_included: item.operator_included,
-          operator_name: item.operator_name,
-          pricing_components: item.pricing_components,
-          total_rental_cost: item.total_rental_cost
+          baseRentalCost: item.pricing_components?.base_cost || 0,
+          accommodationCost: item.pricing_components?.accommodation_charges || 0,
+          usageCost: item.pricing_components?.usage_charges || 0,
+          fuelCost: item.pricing_components?.fuel_charges || 0,
+          elongationCost: item.pricing_components?.elongation_charges || 0,
+          riskCost: item.pricing_components?.risk_charges || 0,
+          commercialCost: item.pricing_components?.commercial_charges || 0,
+          incidentalCost: item.pricing_components?.incidental_charges || 0,
+          otherCost: item.pricing_components?.other_charges || 0,
+          totalCost: item.total_rental_cost || 0,
+          duration: item.rental_duration,
+          durationType: item.rental_type
         })
         
-        // Also store key rental fields as separate custom fields for easier filtering/reporting
+        // Store rental metadata as separate custom fields
         baseItem.custom_is_rental = 1
         baseItem.custom_rental_type = item.rental_type
         baseItem.custom_rental_duration = item.rental_duration
         baseItem.custom_rental_start_date = item.rental_start_date
         baseItem.custom_rental_end_date = item.rental_end_date
+        
+        // Store time fields if present
+        if (item.rental_start_time) {
+          baseItem.custom_rental_start_time = item.rental_start_time
+        }
+        if (item.rental_end_time) {
+          baseItem.custom_rental_end_time = item.rental_end_time
+        }
+        
         baseItem.custom_operator_included = item.operator_included ? 1 : 0
-        baseItem.custom_total_rental_cost = item.total_rental_cost
+        
+        // Store ALL pricing components as individual custom fields for ERPNext reporting
+        baseItem.custom_base_rental_cost = item.pricing_components?.base_cost || 0
+        baseItem.custom_accommodation_charges = item.pricing_components?.accommodation_charges || 0
+        baseItem.custom_usage_charges = item.pricing_components?.usage_charges || 0
+        baseItem.custom_fuel_charges = item.pricing_components?.fuel_charges || 0
+        baseItem.custom_elongation_charges = item.pricing_components?.elongation_charges || 0
+        baseItem.custom_risk_charges = item.pricing_components?.risk_charges || 0
+        baseItem.custom_commercial_charges = item.pricing_components?.commercial_charges || 0
+        baseItem.custom_incidental_charges = item.pricing_components?.incidental_charges || 0
+        baseItem.custom_other_charges = item.pricing_components?.other_charges || 0
+        baseItem.custom_total_rental_cost = item.total_rental_cost || 0
       }
 
       return baseItem

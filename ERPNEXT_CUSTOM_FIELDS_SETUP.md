@@ -28,6 +28,15 @@ Add the following custom fields:
 | **Rental Start Time** | `custom_rental_start_time` | Time | Depends On: `eval:doc.custom_rental_type=='Hours'` |
 | **Rental End Time** | `custom_rental_end_time` | Time | Depends On: `eval:doc.custom_rental_type=='Hours'` |
 | **Operator Included** | `custom_operator_included` | Check | Default: 0, Depends On: `eval:doc.custom_is_rental==1` |
+| **Base Rental Cost** | `custom_base_rental_cost` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
+| **Accommodation Charges** | `custom_accommodation_charges` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
+| **Usage Charges** | `custom_usage_charges` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
+| **Fuel Charges** | `custom_fuel_charges` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
+| **Elongation Charges** | `custom_elongation_charges` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
+| **Risk Charges** | `custom_risk_charges` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
+| **Commercial Charges** | `custom_commercial_charges` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
+| **Incidental Charges** | `custom_incidental_charges` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
+| **Other Charges** | `custom_other_charges` | Currency | Depends On: `eval:doc.custom_is_rental==1` |
 | **Total Rental Cost** | `custom_total_rental_cost` | Currency | Read Only: 1, Depends On: `eval:doc.custom_is_rental==1` |
 | **Rental Data (JSON)** | `custom_rental_data` | Long Text | Hidden: 1 |
 
@@ -102,10 +111,73 @@ def create_rental_custom_fields():
             'depends_on': 'eval:doc.custom_is_rental==1'
         },
         {
+            'fieldname': 'custom_base_rental_cost',
+            'label': 'Base Rental Cost',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_operator_included',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
+            'fieldname': 'custom_accommodation_charges',
+            'label': 'Accommodation Charges',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_base_rental_cost',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
+            'fieldname': 'custom_usage_charges',
+            'label': 'Usage Charges',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_accommodation_charges',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
+            'fieldname': 'custom_fuel_charges',
+            'label': 'Fuel Charges',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_usage_charges',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
+            'fieldname': 'custom_elongation_charges',
+            'label': 'Elongation Charges',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_fuel_charges',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
+            'fieldname': 'custom_risk_charges',
+            'label': 'Risk Charges',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_elongation_charges',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
+            'fieldname': 'custom_commercial_charges',
+            'label': 'Commercial Charges',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_risk_charges',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
+            'fieldname': 'custom_incidental_charges',
+            'label': 'Incidental Charges',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_commercial_charges',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
+            'fieldname': 'custom_other_charges',
+            'label': 'Other Charges',
+            'fieldtype': 'Currency',
+            'insert_after': 'custom_incidental_charges',
+            'depends_on': 'eval:doc.custom_is_rental==1'
+        },
+        {
             'fieldname': 'custom_total_rental_cost',
             'label': 'Total Rental Cost',
             'fieldtype': 'Currency',
-            'insert_after': 'custom_operator_included',
+            'insert_after': 'custom_other_charges',
             'read_only': 1,
             'depends_on': 'eval:doc.custom_is_rental==1'
         },
