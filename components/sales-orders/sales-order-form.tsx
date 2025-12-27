@@ -112,11 +112,17 @@ export default function SalesOrderForm() {
   // Fetch quotation data if quotation parameter exists
   useEffect(() => {
     const fetchQuotation = async () => {
-      if (!quotationParam) return
+      if (!quotationParam) {
+        console.log('No quotation parameter found')
+        return
+      }
       
+      console.log('Fetching quotation:', quotationParam)
       setFetchingQuotation(true)
       try {
         const quotation = await getQuotation(quotationParam)
+        console.log('Fetched quotation:', quotation)
+        
         if (quotation) {
           // Determine correct customer ID based on quotation_to
           const customerId = quotation.quotation_to === 'Customer' 

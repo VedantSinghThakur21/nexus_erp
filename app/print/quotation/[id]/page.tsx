@@ -3,6 +3,7 @@ import { frappeRequest } from "@/app/lib/api"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Printer } from "lucide-react"
+import { PrintButton } from "./print-button"
 
 // Helper: Fetch Quotation
 async function getQuotation(id: string) {
@@ -64,9 +65,7 @@ export default async function PrintQuotationPage({ params }: { params: Promise<{
         <Link href={`/crm/quotations/${id}`} className="text-sm text-slate-500 hover:underline">
           &larr; Back to Quotation
         </Link>
-        <Button onClick={() => window.print()} className="gap-2">
-          <Printer className="h-4 w-4" /> Print Quotation
-        </Button>
+        <PrintButton />
       </div>
 
       {/* A4 Printable Document */}
