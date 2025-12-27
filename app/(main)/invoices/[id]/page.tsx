@@ -1,9 +1,11 @@
 import { frappeRequest } from "@/app/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Building2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Building2, Clock, User } from "lucide-react"
 import Link from "next/link"
 import { InvoiceActions } from "@/components/invoices/invoice-actions"
+import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
 
 // Fetch single invoice with child items
 async function getInvoice(id: string) {
@@ -100,20 +102,98 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                         <div className="col-span-3 text-right">Amount</div>
                     </div>
                     <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {invoice.items?.map((item: any, idx: number) => (
-                            <div key={idx} className="grid grid-cols-12 gap-2 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                <div className="col-span-1 text-slate-500">{idx + 1}</div>
-                                <div className="col-span-5">
-                                    <div className="font-medium">{item.item_name || item.item_code}</div>
-                                    {item.description && (
-                                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{item.description}</div>
+                        {invoice.items?.map((item: any, idx: number) => {
+                            const isRental = item.custom_is_rental || item.is_rental
+                            const rentalData = item.custom_rental_data ? 
+                                (typeof item.custom_rental_data === 'string' ? JSON.parse(item.custom_rental_data) : item.custom_rental_data) : 
+                                null
+
+                            return (
+                                <div key={idx} className="px-4 py-3">
+                                    {/* Item Header */}
+                                    <div className="grid grid-cols-12 gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                        <div className="col-span-1 text-slate-500">{idx + 1}</div>
+                                        <div className="col-span-5">
+                                            <div className="flex items-center gap-2">
+                                                <div className="font-medium">{item.item_name || item.item_code}</div>
+                                                {isRental && (
+                                                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">
+                                                        Rental
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {item.description && (
+                                                <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{item.description}</div>
+                                            )}
+                                        </div>
+                                        <div className="col-span-2 text-xs text-slate-500 flex items-center">{item.gst_hsn_code || "—"}</div>
+                                        <div className="col-span-1 text-right">{item.qty}</div>
+                                        <div className="col-span-3 text-right font-medium">{item.amount.toLocaleString()}</div>
+                                    </div>
+
+                                    {/* Rental Details */}
+                                    {isRental && (
+                                        <div className="mt-3 ml-8 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                                            <h5 className="font-semibold text-xs mb-2 flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                                                <Clock className="h-3 w-3" />
+                                                Rental Details
+                                            </h5>
+                                            <div className="grid grid-cols-4 gap-3 mb-3 text-xs">
+                                                <div>
+                                                    <p className="text-slate-500">Type</p>
+                                                    <p className="font-medium capitalize">{item.custom_rental_type || item.rental_type || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500">Duration</p>
+                                                    <p className="font-medium">{item.custom_rental_duration || item.rental_duration || 'N/A'} {item.custom_rental_type || item.rental_type || ''}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500">Start Date</p>
+                                                    <p className="font-medium">
+                                                        {item.custom_rental_start_date || item.rental_start_date ? 
+                                                            new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 
+                                                            'N/A'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500">End Date</p>
+                                                    <p className="font-medium">
+                                                        {item.custom_rental_end_date || item.rental_end_date ? 
+                                                            new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 
+                                                            'N/A'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {(item.custom_operator_included || item.operator_included) && (
+                                                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-2">
+                                                    <User className="h-3 w-3" />
+                                                    <span>Operator Included</span>
+                                                </div>
+                                            )}
+
+                                            {/* Rental Cost Breakdown */}
+                                            <div className="mt-2">
+                                                <RentalPricingBreakdown 
+                                                    components={{
+                                                        base_cost: item.custom_base_rental_cost || (rentalData?.baseRentalCost) || 0,
+                                                        accommodation_charges: item.custom_accommodation_charges || (rentalData?.accommodationCost) || 0,
+                                                        usage_charges: item.custom_usage_charges || (rentalData?.usageCost) || 0,
+                                                        fuel_charges: item.custom_fuel_charges || (rentalData?.fuelCost) || 0,
+                                                        elongation_charges: item.custom_elongation_charges || (rentalData?.elongationCost) || 0,
+                                                        risk_charges: item.custom_risk_charges || (rentalData?.riskCost) || 0,
+                                                        commercial_charges: item.custom_commercial_charges || (rentalData?.commercialCost) || 0,
+                                                        incidental_charges: item.custom_incidental_charges || (rentalData?.incidentalCost) || 0,
+                                                        other_charges: item.custom_other_charges || (rentalData?.otherCost) || 0,
+                                                    }}
+                                                    totalCost={item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0}
+                                                />
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
-                                <div className="col-span-2 text-xs text-slate-500 flex items-center">{item.gst_hsn_code || "—"}</div>
-                                <div className="col-span-1 text-right">{item.qty}</div>
-                                <div className="col-span-3 text-right font-medium">{item.amount.toLocaleString()}</div>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 </div>
 

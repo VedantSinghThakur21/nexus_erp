@@ -227,25 +227,23 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                           </div>
                         )}
 
-                        {/* Rental Cost Breakdown */}
-                        {rentalData && rentalData.baseRentalCost !== undefined && (
-                          <div className="mt-4">
-                            <RentalPricingBreakdown 
-                              components={{
-                                base_cost: rentalData.baseRentalCost || 0,
-                                accommodation_charges: rentalData.accommodationCost || 0,
-                                usage_charges: rentalData.usageCost || 0,
-                                fuel_charges: rentalData.fuelCost || 0,
-                                elongation_charges: rentalData.elongationCost || 0,
-                                risk_charges: rentalData.riskCost || 0,
-                                commercial_charges: rentalData.commercialCost || 0,
-                                incidental_charges: rentalData.incidentalCost || 0,
-                                other_charges: rentalData.otherCost || 0,
-                              }}
-                              totalCost={rentalData.totalCost || item.custom_total_rental_cost || item.total_rental_cost || 0}
-                            />
-                          </div>
-                        )}
+                        {/* Rental Cost Breakdown - Always show for rental items */}
+                        <div className="mt-4">
+                          <RentalPricingBreakdown 
+                            components={{
+                              base_cost: item.custom_base_rental_cost || (rentalData?.baseRentalCost) || 0,
+                              accommodation_charges: item.custom_accommodation_charges || (rentalData?.accommodationCost) || 0,
+                              usage_charges: item.custom_usage_charges || (rentalData?.usageCost) || 0,
+                              fuel_charges: item.custom_fuel_charges || (rentalData?.fuelCost) || 0,
+                              elongation_charges: item.custom_elongation_charges || (rentalData?.elongationCost) || 0,
+                              risk_charges: item.custom_risk_charges || (rentalData?.riskCost) || 0,
+                              commercial_charges: item.custom_commercial_charges || (rentalData?.commercialCost) || 0,
+                              incidental_charges: item.custom_incidental_charges || (rentalData?.incidentalCost) || 0,
+                              other_charges: item.custom_other_charges || (rentalData?.otherCost) || 0,
+                            }}
+                            totalCost={item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
