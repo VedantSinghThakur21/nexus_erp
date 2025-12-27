@@ -10,18 +10,23 @@ interface RentalPricingBreakdownProps {
 }
 
 export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
+  // Add null check for pricing_components
+  if (!item?.pricing_components) {
+    return null
+  }
+
   const components = item.pricing_components
 
   const componentDetails = [
-    { label: 'Base Cost', value: components.base_cost, color: 'text-blue-600' },
-    { label: 'Accommodation', value: components.accommodation_charges, color: 'text-green-600' },
-    { label: 'Usage', value: components.usage_charges, color: 'text-purple-600' },
-    { label: 'Fuel', value: components.fuel_charges, color: 'text-orange-600' },
-    { label: 'Elongation', value: components.elongation_charges, color: 'text-pink-600' },
-    { label: 'Risk', value: components.risk_charges, color: 'text-red-600' },
-    { label: 'Commercial', value: components.commercial_charges, color: 'text-indigo-600' },
-    { label: 'Incidental', value: components.incidental_charges, color: 'text-teal-600' },
-    { label: 'Other', value: components.other_charges, color: 'text-slate-600' },
+    { label: 'Base Cost', value: components.base_cost || 0, color: 'text-blue-600' },
+    { label: 'Accommodation', value: components.accommodation_charges || 0, color: 'text-green-600' },
+    { label: 'Usage', value: components.usage_charges || 0, color: 'text-purple-600' },
+    { label: 'Fuel', value: components.fuel_charges || 0, color: 'text-orange-600' },
+    { label: 'Elongation', value: components.elongation_charges || 0, color: 'text-pink-600' },
+    { label: 'Risk', value: components.risk_charges || 0, color: 'text-red-600' },
+    { label: 'Commercial', value: components.commercial_charges || 0, color: 'text-indigo-600' },
+    { label: 'Incidental', value: components.incidental_charges || 0, color: 'text-teal-600' },
+    { label: 'Other', value: components.other_charges || 0, color: 'text-slate-600' },
   ].filter(c => c.value > 0)
 
   return (
