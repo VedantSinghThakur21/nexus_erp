@@ -44,7 +44,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
   const isExpired = quotation.valid_till && new Date(quotation.valid_till) < new Date()
 
   return (
-    <div className="p-8 space-y-6">
+    <div suppressHydrationWarning className="p-8 space-y-6">
       {/* Back Button */}
       <Link href="/crm/quotations">
         <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-blue-600">
@@ -53,8 +53,8 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
       </Link>
 
       {/* Header Section */}
-      <div className="flex justify-between items-start">
-        <div>
+      <div suppressHydrationWarning className="flex justify-between items-start">
+        <div suppressHydrationWarning>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             {quotation.name}
           </h1>
@@ -62,7 +62,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
             {quotation.quotation_to === 'Customer' ? 'Customer' : 'Lead'}: {quotation.customer_name || quotation.party_name}
           </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div suppressHydrationWarning className="flex gap-2 items-center">
           <Link href={`/print/quotation/${encodeURIComponent(quotation.name)}`} target="_blank">
             <Button variant="outline" className="gap-2">
               <Printer className="h-4 w-4" />
@@ -91,7 +91,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
       </div>
 
       {/* Info Cards */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div suppressHydrationWarning className="grid md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-500">Transaction Date</CardTitle>
@@ -112,7 +112,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
             <Calendar className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className={`text-lg font-semibold ${isExpired ? 'text-red-600' : ''}`}>
+            <div suppressHydrationWarning className={`text-lg font-semibold ${isExpired ? 'text-red-600' : ''}`}>
               {quotation.valid_till ? new Date(quotation.valid_till).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
             </div>
           </CardContent>
@@ -124,7 +124,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
             <Building2 className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-semibold">{quotation.currency || 'INR'}</div>
+            <div suppressHydrationWarning className="text-lg font-semibold">{quotation.currency || 'INR'}</div>
           </CardContent>
         </Card>
       </div>
@@ -136,7 +136,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
         </CardHeader>
         <CardContent>
           {quotation.items && quotation.items.length > 0 ? (
-            <div className="space-y-4">
+            <div suppressHydrationWarning className="space-y-4">
               {quotation.items.map((item: Record<string, any>, idx: number) => {
                 const isRental = item.custom_is_rental || item.is_rental
                 const rentalData = item.custom_rental_data ? 
@@ -144,11 +144,11 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                   null
                 
                 return (
-                  <div key={idx} className="border rounded-lg overflow-hidden">
+                  <div suppressHydrationWarning key={idx} className="border rounded-lg overflow-hidden">
                     {/* Item Header */}
-                    <div className="bg-slate-50 dark:bg-slate-900 p-4 border-b">
-                      <div className="flex justify-between items-start">
-                        <div>
+                    <div suppressHydrationWarning className="bg-slate-50 dark:bg-slate-900 p-4 border-b">
+                      <div suppressHydrationWarning className="flex justify-between items-start">
+                        <div suppressHydrationWarning>
                           <h3 className="font-semibold text-lg">{item.item_name || item.item_code || 'N/A'}</h3>
                           <p className="text-sm text-slate-500 mt-1">{item.description || 'No description'}</p>
                         </div>
@@ -161,20 +161,20 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                     </div>
 
                     {/* Standard Item Details */}
-                    <div className="p-4 grid grid-cols-4 gap-4">
-                      <div>
+                    <div suppressHydrationWarning className="p-4 grid grid-cols-4 gap-4">
+                      <div suppressHydrationWarning>
                         <p className="text-xs text-slate-500">Item Code</p>
                         <p className="font-medium">{item.item_code || 'N/A'}</p>
                       </div>
-                      <div>
+                      <div suppressHydrationWarning>
                         <p className="text-xs text-slate-500">Quantity</p>
                         <p className="font-medium">{item.qty || 0}</p>
                       </div>
-                      <div>
+                      <div suppressHydrationWarning>
                         <p className="text-xs text-slate-500">Rate</p>
                         <p className="font-medium">₹{(item.rate || 0).toLocaleString('en-IN')}</p>
                       </div>
-                      <div>
+                      <div suppressHydrationWarning>
                         <p className="text-xs text-slate-500">Amount</p>
                         <p className="font-medium text-lg">₹{(item.amount || 0).toLocaleString('en-IN')}</p>
                       </div>
@@ -182,21 +182,21 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
 
                     {/* Rental Details */}
                     {isRental && (
-                      <div className="border-t bg-slate-50/50 dark:bg-slate-900/50 p-4">
+                      <div suppressHydrationWarning className="border-t bg-slate-50/50 dark:bg-slate-900/50 p-4">
                         <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                           <Clock className="h-4 w-4" />
                           Rental Details
                         </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                          <div>
+                        <div suppressHydrationWarning className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div suppressHydrationWarning>
                             <p className="text-xs text-slate-500">Rental Type</p>
                             <p className="font-medium capitalize">{item.custom_rental_type || item.rental_type || 'N/A'}</p>
                           </div>
-                          <div>
+                          <div suppressHydrationWarning>
                             <p className="text-xs text-slate-500">Duration</p>
                             <p className="font-medium">{item.custom_rental_duration || item.rental_duration || 'N/A'} {item.custom_rental_type || item.rental_type || ''}</p>
                           </div>
-                          <div>
+                          <div suppressHydrationWarning>
                             <p className="text-xs text-slate-500">Start Date</p>
                             <p className="font-medium">
                               {item.custom_rental_start_date || item.rental_start_date ? 
@@ -207,7 +207,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                               )}
                             </p>
                           </div>
-                          <div>
+                          <div suppressHydrationWarning>
                             <p className="text-xs text-slate-500">End Date</p>
                             <p className="font-medium">
                               {item.custom_rental_end_date || item.rental_end_date ? 
@@ -228,20 +228,31 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                         )}
 
                         {/* Rental Cost Breakdown - Always show for rental items */}
-                        <div className="mt-4">
+                        <div suppressHydrationWarning className="mt-4">
                           <RentalPricingBreakdown 
-                            components={{
-                              base_cost: item.custom_base_rental_cost || (rentalData?.baseRentalCost) || 0,
-                              accommodation_charges: item.custom_accommodation_charges || (rentalData?.accommodationCost) || 0,
-                              usage_charges: item.custom_usage_charges || (rentalData?.usageCost) || 0,
-                              fuel_charges: item.custom_fuel_charges || (rentalData?.fuelCost) || 0,
-                              elongation_charges: item.custom_elongation_charges || (rentalData?.elongationCost) || 0,
-                              risk_charges: item.custom_risk_charges || (rentalData?.riskCost) || 0,
-                              commercial_charges: item.custom_commercial_charges || (rentalData?.commercialCost) || 0,
-                              incidental_charges: item.custom_incidental_charges || (rentalData?.incidentalCost) || 0,
-                              other_charges: item.custom_other_charges || (rentalData?.otherCost) || 0,
-                            }}
-                            totalCost={item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0}
+                            item={{
+                              pricing_components: {
+                                base_cost: item.custom_base_rental_cost || (rentalData?.baseRentalCost) || 0,
+                                accommodation_charges: item.custom_accommodation_charges || (rentalData?.accommodationCost) || 0,
+                                usage_charges: item.custom_usage_charges || (rentalData?.usageCost) || 0,
+                                fuel_charges: item.custom_fuel_charges || (rentalData?.fuelCost) || 0,
+                                elongation_charges: item.custom_elongation_charges || (rentalData?.elongationCost) || 0,
+                                risk_charges: item.custom_risk_charges || (rentalData?.riskCost) || 0,
+                                commercial_charges: item.custom_commercial_charges || (rentalData?.commercialCost) || 0,
+                                incidental_charges: item.custom_incidental_charges || (rentalData?.incidentalCost) || 0,
+                                other_charges: item.custom_other_charges || (rentalData?.otherCost) || 0,
+                              },
+                              rental_type: item.custom_rental_type || item.rental_type,
+                              rental_duration: item.custom_rental_duration || item.rental_duration,
+                              rental_start_date: item.custom_rental_start_date || item.rental_start_date,
+                              rental_end_date: item.custom_rental_end_date || item.rental_end_date,
+                              rental_start_time: item.custom_rental_start_time || item.rental_start_time,
+                              rental_end_time: item.custom_rental_end_time || item.rental_end_time,
+                              requires_operator: item.custom_requires_operator || item.requires_operator,
+                              operator_included: item.custom_operator_included || item.operator_included,
+                              operator_name: item.custom_operator_name || item.operator_name,
+                              total_rental_cost: item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0,
+                            } as any}
                           />
                         </div>
                       </div>
@@ -251,20 +262,20 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
               })}
 
               {/* Totals */}
-              <div className="border rounded-lg bg-slate-50 dark:bg-slate-900 p-4">
-                <div className="flex justify-end gap-12">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between gap-8">
+              <div suppressHydrationWarning className="border rounded-lg bg-slate-50 dark:bg-slate-900 p-4">
+                <div suppressHydrationWarning className="flex justify-end gap-12">
+                  <div suppressHydrationWarning className="space-y-2 text-sm">
+                    <div suppressHydrationWarning className="flex justify-between gap-8">
                       <span className="text-slate-500">Net Total:</span>
                       <span className="font-medium">₹{(quotation.net_total || 0).toLocaleString('en-IN')}</span>
                     </div>
                     {(quotation.total_taxes_and_charges || 0) > 0 && (
-                      <div className="flex justify-between gap-8">
+                      <div suppressHydrationWarning className="flex justify-between gap-8">
                         <span className="text-slate-500">Taxes:</span>
                         <span className="font-medium">₹{(quotation.total_taxes_and_charges || 0).toLocaleString('en-IN')}</span>
                       </div>
                     )}
-                    <div className="flex justify-between gap-8 text-lg font-bold border-t pt-2">
+                    <div suppressHydrationWarning className="flex justify-between gap-8 text-lg font-bold border-t pt-2">
                       <span>Grand Total:</span>
                       <span className="text-slate-900 dark:text-white">₹{(quotation.grand_total || 0).toLocaleString('en-IN')}</span>
                     </div>

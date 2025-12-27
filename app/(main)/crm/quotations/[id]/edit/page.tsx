@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, Loader2, ArrowLeft, Building2, ChevronDown, ChevronUp } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
@@ -601,8 +602,7 @@ export default function EditQuotationPage() {
                               )}
                             </div>
                             <RentalPricingBreakdown
-                              components={item.pricing_components}
-                              totalCost={item.total_rental_cost || 0}
+                              item={item as RentalItem}
                             />
                           </div>
                         )}
