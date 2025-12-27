@@ -16,8 +16,8 @@ export default async function SalesOrdersPage() {
     getQuotations()
   ])
   
-  // Filter quotations ready for sales order (Submitted status or docstatus=1)
-  const orderedQuotations = quotations.filter(q => q.status === 'Submitted' || q.docstatus === 1)
+  // Filter quotations ready for sales order (docstatus=1 means submitted)
+  const orderedQuotations = quotations.filter(q => q.docstatus === 1)
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
