@@ -626,12 +626,10 @@ export async function updateQuotation(quotationId: string, quotationData: {
 // 4. UPDATE: Submit Quotation (make it official)
 export async function submitQuotation(quotationId: string) {
   try {
-    // Submit the quotation by setting docstatus to 1
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    // Submit the quotation using ERPNext's workflow method
+    await frappeRequest('frappe.client.submit_doc', 'POST', {
       doctype: 'Quotation',
-      name: quotationId,
-      fieldname: 'docstatus',
-      value: 1
+      name: quotationId
     })
 
     revalidatePath('/crm')
