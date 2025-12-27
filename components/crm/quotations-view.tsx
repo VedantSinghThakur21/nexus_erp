@@ -186,9 +186,6 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
           <TabsTrigger value="proposals">
             Ready for Quotation ({proposalOpportunities.length})
           </TabsTrigger>
-          <TabsTrigger value="ordered">
-            Ready for Sales Order ({quotations.filter(q => q.status === 'Ordered').length})
-          </TabsTrigger>
         </TabsList>
 
         {/* Quotations Tab */}
@@ -408,83 +405,6 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
                               {creatingQuotation === opp.name ? 'Creating...' : 'Create Quotation'}
                             </Button>
                             <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}>
-                              <Button variant="outline">
-                                View Details
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Ready for Sales Order Tab */}
-        <TabsContent value="ordered" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quotations Ready for Sales Order</CardTitle>
-              <CardDescription>
-                These quotations have been marked as "Ordered". Create sales orders from them.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {quotations.filter(q => q.status === 'Ordered').length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
-                  <Package className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                  <p className="font-medium text-lg mb-2">No ordered quotations</p>
-                  <p className="text-sm mt-2 mb-4">Mark quotations as "Ordered" to create sales orders from them</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {quotations.filter(q => q.status === 'Ordered').map((quotation) => (
-                    <div 
-                      key={quotation.name}
-                      className="border rounded-lg p-4 hover:shadow-md transition-all bg-green-50/50 dark:bg-green-950/20"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-lg text-slate-900 dark:text-white">
-                              {quotation.name}
-                            </h3>
-                            <Badge className="bg-green-100 text-green-800">
-                              Ordered
-                            </Badge>
-                          </div>
-                          
-                          <div className="grid md:grid-cols-3 gap-4 text-sm mb-4">
-                            <div>
-                              <span className="text-slate-500">Customer: </span>
-                              <span className="font-medium">{quotation.customer_name || quotation.party_name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-slate-400" />
-                              <span className="text-slate-500">Valid till: </span>
-                              <span className="font-medium">
-                                {new Date(quotation.valid_till).toLocaleDateString('en-IN')}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">Value: </span>
-                              <span className="font-bold text-green-700 dark:text-green-400">
-                                ₹{(quotation.grand_total || 0).toLocaleString('en-IN')}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Link href={`/sales-orders/new?quotation=${encodeURIComponent(quotation.name)}`}>
-                              <Button className="gap-2 bg-green-600 hover:bg-green-700">
-                                <Package className="h-4 w-4" />
-                                Create Sales Order
-                              </Button>
-                            </Link>
-                            <Link href={`/crm/quotations/${encodeURIComponent(quotation.name)}`}>
                               <Button variant="outline">
                                 View Details
                               </Button>
