@@ -27,6 +27,27 @@ interface SalesOrderItem {
   delivery_date?: string
   warehouse?: string
   pricing_rules?: string
+  // Rental-specific fields
+  rental_type?: 'hours' | 'days' | 'months'
+  rental_duration?: number
+  rental_start_date?: string
+  rental_end_date?: string
+  rental_start_time?: string
+  rental_end_time?: string
+  requires_operator?: boolean
+  operator_included?: boolean
+  operator_name?: string
+  // Rental pricing components
+  base_cost?: number
+  accommodation_charges?: number
+  usage_charges?: number
+  fuel_charges?: number
+  elongation_charges?: number
+  risk_charges?: number
+  commercial_charges?: number
+  incidental_charges?: number
+  other_charges?: number
+  total_rental_cost?: number
 }
 
 interface TaxTemplate {
@@ -97,37 +118,75 @@ export default function SalesOrderForm() {
       try {
         const quotation = await getQuotation(quotationParam)
         if (quotation) {
+          // Determine correct customer ID based on quotation_to
+          const customerId = quotation.quotation_to === 'Customer' 
+            ? quotation.party_name 
+            : quotation.customer || quotation.party_name
+          
           // Populate form with quotation data
           setFormData({
-            customer: quotation.party_name || '',
+            customer: customerId || '',
             customer_name: quotation.customer_name || quotation.party_name || '',
             transaction_date: new Date().toISOString().split('T')[0],
-            delivery_date: quotation.valid_till || '',
+            delivery_date: quotation.delivery_date || quotation.valid_till || '',
             currency: quotation.currency || 'INR',
             terms: quotation.terms || '',
             contact_email: quotation.contact_email || '',
             territory: quotation.territory || '',
             taxes_and_charges: quotation.taxes_and_charges || '',
             quotation_no: quotation.name || '',
-            po_no: '',
-            po_date: ''
+            po_no: quotation.po_no || '',
+            po_date: quotation.po_date || ''
           })
 
           // Populate items from quotation
           if (quotation.items && quotation.items.length > 0) {
-            const quotationItems = quotation.items.map((item: any) => ({
-              item_code: item.item_code || '',
-              item_name: item.item_name || '',
-              description: item.description || '',
-              qty: item.qty || 1,
-              uom: item.uom || 'Nos',
-              rate: item.rate || 0,
-              discount_percentage: item.discount_percentage || 0,
-              amount: item.amount || 0,
-              delivery_date: item.delivery_date || '',
-              warehouse: item.warehouse || '',
-              pricing_rules: item.pricing_rule || ''
-            }))
+            const quotationItems = quotation.items.map((item: any) => {
+              // Base item structure
+              const baseItem = {
+                item_code: item.item_code || '',
+                item_name: item.item_name || '',
+                description: item.description || '',
+                qty: item.qty || 1,
+                uom: item.uom || 'Nos',
+                rate: item.rate || 0,
+                discount_percentage: item.discount_percentage || 0,
+                amount: item.amount || 0,
+                delivery_date: item.delivery_date || '',
+                warehouse: item.warehouse || '',
+                pricing_rules: item.pricing_rule || ''
+              }
+
+              // If this is a rental item, preserve rental details
+              if (item.rental_type || item.rental_duration) {
+                return {
+                  ...baseItem,
+                  // Rental-specific fields
+                  rental_type: item.rental_type || 'days',
+                  rental_duration: item.rental_duration || 0,
+                  rental_start_date: item.rental_start_date || '',
+                  rental_end_date: item.rental_end_date || '',
+                  rental_start_time: item.rental_start_time || '',
+                  rental_end_time: item.rental_end_time || '',
+                  requires_operator: item.requires_operator || false,
+                  operator_included: item.operator_included || false,
+                  operator_name: item.operator_name || '',
+                  // Pricing components for rental
+                  base_cost: item.base_cost || 0,
+                  accommodation_charges: item.accommodation_charges || 0,
+                  usage_charges: item.usage_charges || 0,
+                  fuel_charges: item.fuel_charges || 0,
+                  elongation_charges: item.elongation_charges || 0,
+                  risk_charges: item.risk_charges || 0,
+                  commercial_charges: item.commercial_charges || 0,
+                  incidental_charges: item.incidental_charges || 0,
+                  other_charges: item.other_charges || 0,
+                  total_rental_cost: item.total_rental_cost || item.rate || 0
+                }
+              }
+
+              return baseItem
+            })
             setItems(quotationItems)
           }
         }
