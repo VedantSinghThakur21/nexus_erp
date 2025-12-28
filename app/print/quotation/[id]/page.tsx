@@ -177,63 +177,65 @@ export default async function PrintQuotationPage({ params }: { params: Promise<{
                   
                   {/* Rental Pricing Breakdown */}
                   {isRental && hasRentalBreakdown && (
-                    <tr className="bg-blue-50/50">
-                      <td colSpan={7} className="py-3 px-3">
-                        <div className="text-xs">
-                          <p className="font-semibold text-slate-700 mb-2">💰 Pricing Breakdown:</p>
-                          <div className="grid grid-cols-3 gap-x-6 gap-y-1">
+                    <tr className="border-t border-slate-200">
+                      <td colSpan={7} className="py-4 px-3">
+                        <div className="pl-8">
+                          <p className="text-xs font-semibold text-slate-800 uppercase tracking-wide mb-3 border-b border-slate-300 pb-2">
+                            Rate Breakdown
+                          </p>
+                          <div className="grid grid-cols-3 gap-x-8 gap-y-2">
                             {item.custom_base_rental_cost > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Base Cost:</span>
-                                <span className="font-medium">₹{item.custom_base_rental_cost.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Base Cost</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_base_rental_cost.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             {item.custom_accommodation_charges > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Accommodation:</span>
-                                <span className="font-medium">₹{item.custom_accommodation_charges.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Accommodation</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_accommodation_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             {item.custom_usage_charges > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Usage:</span>
-                                <span className="font-medium">₹{item.custom_usage_charges.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Usage Charges</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_usage_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             {item.custom_fuel_charges > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Fuel:</span>
-                                <span className="font-medium">₹{item.custom_fuel_charges.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Fuel Charges</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_fuel_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             {item.custom_elongation_charges > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Elongation:</span>
-                                <span className="font-medium">₹{item.custom_elongation_charges.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Elongation Charges</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_elongation_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             {item.custom_risk_charges > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Risk:</span>
-                                <span className="font-medium">₹{item.custom_risk_charges.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Risk Charges</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_risk_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             {item.custom_commercial_charges > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Commercial:</span>
-                                <span className="font-medium">₹{item.custom_commercial_charges.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Commercial Charges</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_commercial_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             {item.custom_incidental_charges > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Incidental:</span>
-                                <span className="font-medium">₹{item.custom_incidental_charges.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Incidental Charges</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_incidental_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                             {item.custom_other_charges > 0 && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">Other:</span>
-                                <span className="font-medium">₹{item.custom_other_charges.toLocaleString('en-IN')}</span>
+                              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                <span className="text-xs text-slate-600">Other Charges</span>
+                                <span className="text-xs font-semibold text-slate-900">₹{item.custom_other_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                           </div>
