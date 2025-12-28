@@ -163,31 +163,31 @@ export default function SalesOrderForm() {
                 pricing_rules: item.pricing_rule || ''
               }
 
-              // If this is a rental item, preserve rental details
-              if (item.rental_type || item.rental_duration) {
+              // If this is a rental item, preserve rental details (using ERPNext custom field names)
+              if (item.custom_rental_type || item.custom_rental_duration || item.custom_is_rental) {
                 return {
                   ...baseItem,
                   // Rental-specific fields
-                  rental_type: item.rental_type || 'days',
-                  rental_duration: item.rental_duration || 0,
-                  rental_start_date: item.rental_start_date || '',
-                  rental_end_date: item.rental_end_date || '',
-                  rental_start_time: item.rental_start_time || '',
-                  rental_end_time: item.rental_end_time || '',
-                  requires_operator: item.requires_operator || false,
-                  operator_included: item.operator_included || false,
-                  operator_name: item.operator_name || '',
-                  // Pricing components for rental
-                  base_cost: item.base_cost || 0,
-                  accommodation_charges: item.accommodation_charges || 0,
-                  usage_charges: item.usage_charges || 0,
-                  fuel_charges: item.fuel_charges || 0,
-                  elongation_charges: item.elongation_charges || 0,
-                  risk_charges: item.risk_charges || 0,
-                  commercial_charges: item.commercial_charges || 0,
-                  incidental_charges: item.incidental_charges || 0,
-                  other_charges: item.other_charges || 0,
-                  total_rental_cost: item.total_rental_cost || item.rate || 0
+                  rental_type: item.custom_rental_type || 'days',
+                  rental_duration: item.custom_rental_duration || 0,
+                  rental_start_date: item.custom_rental_start_date || '',
+                  rental_end_date: item.custom_rental_end_date || '',
+                  rental_start_time: item.custom_rental_start_time || '',
+                  rental_end_time: item.custom_rental_end_time || '',
+                  requires_operator: item.custom_requires_operator || false,
+                  operator_included: item.custom_operator_included || false,
+                  operator_name: item.custom_operator_name || '',
+                  // Pricing components for rental (from ERPNext custom fields)
+                  base_cost: item.custom_base_rental_cost || 0,
+                  accommodation_charges: item.custom_accommodation_charges || 0,
+                  usage_charges: item.custom_usage_charges || 0,
+                  fuel_charges: item.custom_fuel_charges || 0,
+                  elongation_charges: item.custom_elongation_charges || 0,
+                  risk_charges: item.custom_risk_charges || 0,
+                  commercial_charges: item.custom_commercial_charges || 0,
+                  incidental_charges: item.custom_incidental_charges || 0,
+                  other_charges: item.custom_other_charges || 0,
+                  total_rental_cost: item.custom_total_rental_cost || item.rate || 0
                 }
               }
 
@@ -289,18 +289,45 @@ export default function SalesOrderForm() {
     try {
       const orderData = {
         ...formData,
-        items: items.map(item => ({
-          item_code: item.item_code,
-          item_name: item.item_name || item.item_code,
-          description: item.description,
-          qty: item.qty,
-          uom: item.uom,
-          rate: item.rate,
-          discount_percentage: item.discount_percentage,
-          amount: item.amount,
-          delivery_date: item.delivery_date || formData.delivery_date,
-          warehouse: item.warehouse
-        }))
+        items: items.map(item => {
+          const baseItem: any = {
+            item_code: item.item_code,
+            item_name: item.item_name || item.item_code,
+            description: item.description,
+            qty: item.qty,
+            uom: item.uom,
+            rate: item.rate,
+            discount_percentage: item.discount_percentage,
+            amount: item.amount,
+            delivery_date: item.delivery_date || formData.delivery_date,
+            warehouse: item.warehouse
+          }
+          
+          // Include rental pricing components if this is a rental item
+          if (item.rental_type || item.rental_duration) {
+            baseItem.rental_type = item.rental_type
+            baseItem.rental_duration = item.rental_duration
+            baseItem.rental_start_date = item.rental_start_date
+            baseItem.rental_end_date = item.rental_end_date
+            baseItem.rental_start_time = item.rental_start_time
+            baseItem.rental_end_time = item.rental_end_time
+            baseItem.requires_operator = item.requires_operator
+            baseItem.operator_included = item.operator_included
+            baseItem.operator_name = item.operator_name
+            baseItem.base_cost = item.base_cost
+            baseItem.accommodation_charges = item.accommodation_charges
+            baseItem.usage_charges = item.usage_charges
+            baseItem.fuel_charges = item.fuel_charges
+            baseItem.elongation_charges = item.elongation_charges
+            baseItem.risk_charges = item.risk_charges
+            baseItem.commercial_charges = item.commercial_charges
+            baseItem.incidental_charges = item.incidental_charges
+            baseItem.other_charges = item.other_charges
+            baseItem.total_rental_cost = item.total_rental_cost
+          }
+          
+          return baseItem
+        })
       }
 
       const result = await createSalesOrder(orderData)

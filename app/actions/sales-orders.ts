@@ -86,29 +86,32 @@ export async function createSalesOrder(data: any) {
         delivery_date: item.delivery_date || data.delivery_date
       }
 
-      // Preserve rental data from quotation if present
-      if (item.custom_rental_data || item.custom_is_rental) {
-        baseItem.custom_rental_data = item.custom_rental_data
-        baseItem.custom_is_rental = item.custom_is_rental
-        baseItem.custom_rental_type = item.custom_rental_type
-        baseItem.custom_rental_duration = item.custom_rental_duration
-        baseItem.custom_rental_start_date = item.custom_rental_start_date
-        baseItem.custom_rental_end_date = item.custom_rental_end_date
-        baseItem.custom_rental_start_time = item.custom_rental_start_time
-        baseItem.custom_rental_end_time = item.custom_rental_end_time
-        baseItem.custom_operator_included = item.custom_operator_included
+      // Map rental data to ERPNext custom fields if present (from frontend or quotation)
+      if (item.rental_type || item.rental_duration || item.custom_is_rental || item.custom_rental_type) {
+        baseItem.custom_is_rental = 1
+        baseItem.custom_rental_type = item.rental_type || item.custom_rental_type
+        baseItem.custom_rental_duration = item.rental_duration || item.custom_rental_duration
+        baseItem.custom_rental_start_date = item.rental_start_date || item.custom_rental_start_date
+        baseItem.custom_rental_end_date = item.rental_end_date || item.custom_rental_end_date
+        baseItem.custom_rental_start_time = item.rental_start_time || item.custom_rental_start_time
+        baseItem.custom_rental_end_time = item.rental_end_time || item.custom_rental_end_time
+        baseItem.custom_requires_operator = item.requires_operator || item.custom_requires_operator ? 1 : 0
+        baseItem.custom_operator_included = item.operator_included || item.custom_operator_included ? 1 : 0
+        if (item.operator_name || item.custom_operator_name) {
+          baseItem.custom_operator_name = item.operator_name || item.custom_operator_name
+        }
         
-        // Preserve all pricing components
-        baseItem.custom_base_rental_cost = item.custom_base_rental_cost
-        baseItem.custom_accommodation_charges = item.custom_accommodation_charges
-        baseItem.custom_usage_charges = item.custom_usage_charges
-        baseItem.custom_fuel_charges = item.custom_fuel_charges
-        baseItem.custom_elongation_charges = item.custom_elongation_charges
-        baseItem.custom_risk_charges = item.custom_risk_charges
-        baseItem.custom_commercial_charges = item.custom_commercial_charges
-        baseItem.custom_incidental_charges = item.custom_incidental_charges
-        baseItem.custom_other_charges = item.custom_other_charges
-        baseItem.custom_total_rental_cost = item.custom_total_rental_cost
+        // Map pricing components to ERPNext custom fields
+        baseItem.custom_base_rental_cost = item.base_cost || item.custom_base_rental_cost || 0
+        baseItem.custom_accommodation_charges = item.accommodation_charges || item.custom_accommodation_charges || 0
+        baseItem.custom_usage_charges = item.usage_charges || item.custom_usage_charges || 0
+        baseItem.custom_fuel_charges = item.fuel_charges || item.custom_fuel_charges || 0
+        baseItem.custom_elongation_charges = item.elongation_charges || item.custom_elongation_charges || 0
+        baseItem.custom_risk_charges = item.risk_charges || item.custom_risk_charges || 0
+        baseItem.custom_commercial_charges = item.commercial_charges || item.custom_commercial_charges || 0
+        baseItem.custom_incidental_charges = item.incidental_charges || item.custom_incidental_charges || 0
+        baseItem.custom_other_charges = item.other_charges || item.custom_other_charges || 0
+        baseItem.custom_total_rental_cost = item.total_rental_cost || item.custom_total_rental_cost || 0
       }
 
       return baseItem
@@ -131,6 +134,35 @@ export async function createSalesOrder(data: any) {
     if (data.territory) orderData.territory = data.territory
     if (data.terms) orderData.terms = data.terms
     if (data.po_no) orderData.po_no = data.po_no
+    if (data.po_date) orderData.po_date = data.po_date
+    
+    // Add tax template if specified
+    if (data.taxes_and_charges) {
+      orderData.taxes_and_charges = data.taxes_and_charges
+      
+      try {
+        // Fetch the tax template to get the tax rows
+        const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
+          doctype: 'Sales Taxes and Charges Template',
+          name: data.taxes_and_charges
+        })
+        
+        // Add the tax rows to the sales order
+        if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
+          orderData.taxes = taxTemplate.taxes.map((tax: any, idx: number) => ({
+            idx: idx + 1,
+            doctype: 'Sales Taxes and Charges',
+            charge_type: tax.charge_type,
+            account_head: tax.account_head,
+            description: tax.description,
+            rate: tax.rate
+          }))
+        }
+      } catch (taxError) {
+        console.error('Error fetching tax template:', taxError)
+        // Continue without taxes if template fetch fails
+      }
+    }
 
     const result = await frappeRequest('frappe.client.insert', 'POST', orderData)
     
