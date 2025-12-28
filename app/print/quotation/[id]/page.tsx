@@ -112,19 +112,19 @@ export default async function PrintQuotationPage({ params }: { params: Promise<{
           </thead>
           <tbody className="divide-y divide-slate-200">
             {quotation.items.map((item: any, idx: number) => {
-              const isRental = item.is_rental || item.rental_duration || item.rental_type
+              const isRental = item.custom_is_rental || item.custom_rental_duration || item.custom_rental_type
               
-              // Check for pricing components - they might be directly on the item or nested
+              // Check for pricing components using ERPNext custom field names
               const hasRentalBreakdown = (
-                item.base_cost > 0 ||
-                item.accommodation_charges > 0 ||
-                item.usage_charges > 0 ||
-                item.fuel_charges > 0 ||
-                item.elongation_charges > 0 ||
-                item.risk_charges > 0 ||
-                item.commercial_charges > 0 ||
-                item.incidental_charges > 0 ||
-                item.other_charges > 0
+                (item.custom_base_rental_cost && item.custom_base_rental_cost > 0) ||
+                (item.custom_accommodation_charges && item.custom_accommodation_charges > 0) ||
+                (item.custom_usage_charges && item.custom_usage_charges > 0) ||
+                (item.custom_fuel_charges && item.custom_fuel_charges > 0) ||
+                (item.custom_elongation_charges && item.custom_elongation_charges > 0) ||
+                (item.custom_risk_charges && item.custom_risk_charges > 0) ||
+                (item.custom_commercial_charges && item.custom_commercial_charges > 0) ||
+                (item.custom_incidental_charges && item.custom_incidental_charges > 0) ||
+                (item.custom_other_charges && item.custom_other_charges > 0)
               )
 
               return (
@@ -138,17 +138,17 @@ export default async function PrintQuotationPage({ params }: { params: Promise<{
                     <td className="py-3 px-3 align-top text-sm">
                       {isRental ? (
                         <div className="text-xs">
-                          <p className="font-medium">{item.rental_duration} {item.rental_type}</p>
-                          {item.rental_start_date && (
+                          <p className="font-medium">{item.custom_rental_duration} {item.custom_rental_type}</p>
+                          {item.custom_rental_start_date && (
                             <p className="text-slate-500 mt-0.5">
-                              {new Date(item.rental_start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                              {item.rental_start_time && ` ${item.rental_start_time}`}
+                              {new Date(item.custom_rental_start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              {item.custom_rental_start_time && ` ${item.custom_rental_start_time}`}
                             </p>
                           )}
-                          {item.rental_end_date && (
+                          {item.custom_rental_end_date && (
                             <p className="text-slate-500">
-                              to {new Date(item.rental_end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                              {item.rental_end_time && ` ${item.rental_end_time}`}
+                              to {new Date(item.custom_rental_end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              {item.custom_rental_end_time && ` ${item.custom_rental_end_time}`}
                             </p>
                           )}
                         </div>
@@ -157,11 +157,11 @@ export default async function PrintQuotationPage({ params }: { params: Promise<{
                       )}
                     </td>
                     <td className="py-3 px-3 align-top text-center text-xs">
-                      {item.requires_operator ? (
-                        item.operator_included ? (
+                      {item.custom_requires_operator ? (
+                        item.custom_operator_included ? (
                           <div>
                             <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">Included</span>
-                            {item.operator_name && <p className="text-slate-600 mt-1">{item.operator_name}</p>}
+                            {item.custom_operator_name && <p className="text-slate-600 mt-1">{item.custom_operator_name}</p>}
                           </div>
                         ) : (
                           <span className="text-slate-400">Required</span>
@@ -182,58 +182,58 @@ export default async function PrintQuotationPage({ params }: { params: Promise<{
                         <div className="text-xs">
                           <p className="font-semibold text-slate-700 mb-2">💰 Pricing Breakdown:</p>
                           <div className="grid grid-cols-3 gap-x-6 gap-y-1">
-                            {item.base_cost > 0 && (
+                            {item.custom_base_rental_cost > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Base Cost:</span>
-                                <span className="font-medium">₹{item.base_cost.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_base_rental_cost.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.accommodation_charges > 0 && (
+                            {item.custom_accommodation_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Accommodation:</span>
-                                <span className="font-medium">₹{item.accommodation_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_accommodation_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.usage_charges > 0 && (
+                            {item.custom_usage_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Usage:</span>
-                                <span className="font-medium">₹{item.usage_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_usage_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.fuel_charges > 0 && (
+                            {item.custom_fuel_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Fuel:</span>
-                                <span className="font-medium">₹{item.fuel_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_fuel_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.elongation_charges > 0 && (
+                            {item.custom_elongation_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Elongation:</span>
-                                <span className="font-medium">₹{item.elongation_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_elongation_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.risk_charges > 0 && (
+                            {item.custom_risk_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Risk:</span>
-                                <span className="font-medium">₹{item.risk_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_risk_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.commercial_charges > 0 && (
+                            {item.custom_commercial_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Commercial:</span>
-                                <span className="font-medium">₹{item.commercial_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_commercial_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.incidental_charges > 0 && (
+                            {item.custom_incidental_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Incidental:</span>
-                                <span className="font-medium">₹{item.incidental_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_incidental_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.other_charges > 0 && (
+                            {item.custom_other_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Other:</span>
-                                <span className="font-medium">₹{item.other_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.custom_other_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                           </div>
