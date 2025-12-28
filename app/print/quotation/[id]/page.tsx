@@ -112,8 +112,20 @@ export default async function PrintQuotationPage({ params }: { params: Promise<{
           </thead>
           <tbody className="divide-y divide-slate-200">
             {quotation.items.map((item: any, idx: number) => {
-              const isRental = item.is_rental || item.rental_duration
-              const hasRentalBreakdown = item.pricing_components && Object.values(item.pricing_components).some((v: any) => v > 0)
+              const isRental = item.is_rental || item.rental_duration || item.rental_type
+              
+              // Check for pricing components - they might be directly on the item or nested
+              const hasRentalBreakdown = (
+                item.base_cost > 0 ||
+                item.accommodation_charges > 0 ||
+                item.usage_charges > 0 ||
+                item.fuel_charges > 0 ||
+                item.elongation_charges > 0 ||
+                item.risk_charges > 0 ||
+                item.commercial_charges > 0 ||
+                item.incidental_charges > 0 ||
+                item.other_charges > 0
+              )
 
               return (
                 <React.Fragment key={idx}>
@@ -168,60 +180,60 @@ export default async function PrintQuotationPage({ params }: { params: Promise<{
                     <tr className="bg-blue-50/50">
                       <td colSpan={7} className="py-3 px-3">
                         <div className="text-xs">
-                          <p className="font-semibold text-slate-700 mb-2">Pricing Breakdown:</p>
+                          <p className="font-semibold text-slate-700 mb-2">💰 Pricing Breakdown:</p>
                           <div className="grid grid-cols-3 gap-x-6 gap-y-1">
-                            {item.pricing_components.base_cost > 0 && (
+                            {item.base_cost > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Base Cost:</span>
-                                <span className="font-medium">₹{item.pricing_components.base_cost.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.base_cost.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.pricing_components.accommodation_charges > 0 && (
+                            {item.accommodation_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Accommodation:</span>
-                                <span className="font-medium">₹{item.pricing_components.accommodation_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.accommodation_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.pricing_components.usage_charges > 0 && (
+                            {item.usage_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Usage:</span>
-                                <span className="font-medium">₹{item.pricing_components.usage_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.usage_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.pricing_components.fuel_charges > 0 && (
+                            {item.fuel_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Fuel:</span>
-                                <span className="font-medium">₹{item.pricing_components.fuel_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.fuel_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.pricing_components.elongation_charges > 0 && (
+                            {item.elongation_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Elongation:</span>
-                                <span className="font-medium">₹{item.pricing_components.elongation_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.elongation_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.pricing_components.risk_charges > 0 && (
+                            {item.risk_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Risk:</span>
-                                <span className="font-medium">₹{item.pricing_components.risk_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.risk_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.pricing_components.commercial_charges > 0 && (
+                            {item.commercial_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Commercial:</span>
-                                <span className="font-medium">₹{item.pricing_components.commercial_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.commercial_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.pricing_components.incidental_charges > 0 && (
+                            {item.incidental_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Incidental:</span>
-                                <span className="font-medium">₹{item.pricing_components.incidental_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.incidental_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
-                            {item.pricing_components.other_charges > 0 && (
+                            {item.other_charges > 0 && (
                               <div className="flex justify-between">
                                 <span className="text-slate-600">Other:</span>
-                                <span className="font-medium">₹{item.pricing_components.other_charges.toLocaleString('en-IN')}</span>
+                                <span className="font-medium">₹{item.other_charges.toLocaleString('en-IN')}</span>
                               </div>
                             )}
                           </div>
