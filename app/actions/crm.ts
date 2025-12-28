@@ -410,6 +410,57 @@ export async function createQuotation(quotationData: {
   taxes_and_charges?: string
 }) {
   try {
+    // Map frontend rental fields to ERPNext custom fields
+    const mappedItems = quotationData.items.map((item: any) => {
+      const mappedItem: any = {
+        item_code: item.item_code,
+        item_name: item.item_name || item.item_code,
+        description: item.description,
+        qty: item.qty,
+        uom: item.uom || 'Nos',
+        rate: item.rate,
+        amount: item.amount
+      }
+
+      // Add discount if present
+      if (item.discount_percentage) {
+        mappedItem.discount_percentage = item.discount_percentage
+      }
+
+      // Map rental fields to custom fields if this is a rental item
+      if (item.is_rental || item.rental_type || item.rental_duration) {
+        mappedItem.custom_is_rental = 1
+        
+        if (item.rental_type) mappedItem.custom_rental_type = item.rental_type
+        if (item.rental_duration) mappedItem.custom_rental_duration = item.rental_duration
+        if (item.rental_start_date) mappedItem.custom_rental_start_date = item.rental_start_date
+        if (item.rental_end_date) mappedItem.custom_rental_end_date = item.rental_end_date
+        if (item.rental_start_time) mappedItem.custom_rental_start_time = item.rental_start_time
+        if (item.rental_end_time) mappedItem.custom_rental_end_time = item.rental_end_time
+        
+        if (item.requires_operator) mappedItem.custom_requires_operator = 1
+        if (item.operator_included) mappedItem.custom_operator_included = 1
+        if (item.operator_name) mappedItem.custom_operator_name = item.operator_name
+        
+        // Map pricing components
+        if (item.pricing_components) {
+          mappedItem.custom_base_rental_cost = item.pricing_components.base_cost || 0
+          mappedItem.custom_accommodation_charges = item.pricing_components.accommodation_charges || 0
+          mappedItem.custom_usage_charges = item.pricing_components.usage_charges || 0
+          mappedItem.custom_fuel_charges = item.pricing_components.fuel_charges || 0
+          mappedItem.custom_elongation_charges = item.pricing_components.elongation_charges || 0
+          mappedItem.custom_risk_charges = item.pricing_components.risk_charges || 0
+          mappedItem.custom_commercial_charges = item.pricing_components.commercial_charges || 0
+          mappedItem.custom_incidental_charges = item.pricing_components.incidental_charges || 0
+          mappedItem.custom_other_charges = item.pricing_components.other_charges || 0
+        }
+        
+        if (item.total_rental_cost) mappedItem.custom_total_rental_cost = item.total_rental_cost
+      }
+
+      return mappedItem
+    })
+
     const doc: any = {
       doctype: 'Quotation',
       quotation_to: quotationData.quotation_to,
@@ -418,7 +469,7 @@ export async function createQuotation(quotationData: {
       valid_till: quotationData.valid_till,
       currency: quotationData.currency,
       order_type: quotationData.order_type,
-      items: quotationData.items
+      items: mappedItems
     }
 
     // Add optional fields

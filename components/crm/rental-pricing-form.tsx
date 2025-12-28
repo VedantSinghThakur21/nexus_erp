@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { RentalPricingComponents, RentalItem, calculateTotalRentalCost, formatRentalPeriod, TIME_BASED_CATEGORIES } from "@/types/rental-pricing"
+import { RentalPricingComponents, RentalItem, calculateTotalRentalCost, calculateRentalDuration, formatRentalPeriod, TIME_BASED_CATEGORIES } from "@/types/rental-pricing"
 import { Calendar, Clock, User, IndianRupee } from "lucide-react"
 
 interface RentalPricingFormProps {
@@ -38,6 +38,20 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
 
   // Check if this category supports time selection
   const supportsTimeSelection = itemCategory ? TIME_BASED_CATEGORIES.includes(itemCategory) : false
+
+  // Calculate rental duration whenever dates or rental type change
+  useEffect(() => {
+    if (item.rental_start_date && item.rental_end_date && item.rental_type) {
+      const duration = calculateRentalDuration(
+        item.rental_start_date,
+        item.rental_end_date,
+        item.rental_start_time,
+        item.rental_end_time,
+        item.rental_type
+      )
+      onChange({ rental_duration: duration })
+    }
+  }, [item.rental_start_date, item.rental_end_date, item.rental_start_time, item.rental_end_time, item.rental_type])
 
   const updateComponent = (field: keyof RentalPricingComponents, value: number) => {
     const updated = { ...components, [field]: value }
