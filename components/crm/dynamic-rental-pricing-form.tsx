@@ -60,6 +60,8 @@ export function DynamicRentalPricingForm({
     } else {
       next[key] = value
     }
+    console.log('[DynamicRentalPricing] Updating component:', key, '=', value)
+    console.log('[DynamicRentalPricing] New components:', next)
     onChange(next)
   }
 

@@ -49,7 +49,13 @@ export async function POST(request: NextRequest) {
       // Add rental fields as custom fields if present
       // In ERPNext, custom fields are stored directly on the child table row
       if (item.is_rental) {
-        console.log('Processing rental item:', JSON.stringify(item, null, 2))
+        console.log('=== Processing rental item ===')
+        console.log('Item:', item.item_code)
+        console.log('rental_type:', item.rental_type, 'type:', typeof item.rental_type)
+        console.log('rental_duration:', item.rental_duration)
+        console.log('rental_start_date:', item.rental_start_date)
+        console.log('rental_end_date:', item.rental_end_date)
+        console.log('pricing_components:', JSON.stringify(item.pricing_components, null, 2))
         
         // Store complete rental data in JSON field for backup/reference
         baseItem.custom_rental_data = JSON.stringify({
@@ -73,6 +79,8 @@ export async function POST(request: NextRequest) {
         baseItem.custom_rental_duration = item.rental_duration || 0
         baseItem.custom_rental_start_date = item.rental_start_date || null
         baseItem.custom_rental_end_date = item.rental_end_date || null
+        
+        console.log('Stored custom_rental_type:', baseItem.custom_rental_type)
         
         // Store time fields if present
         if (item.rental_start_time) {

@@ -101,7 +101,11 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 onValueChange={(value) => onChange({ rental_type: value as 'hours' | 'days' | 'months' })}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select type">
+                    {item.rental_type ? (
+                      item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1)
+                    ) : 'Days'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {supportsTimeSelection && <SelectItem value="hours">Hours</SelectItem>}
@@ -222,8 +226,10 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
       <DynamicRentalPricingForm
         components={components}
         onChange={(newComponents) => {
+          console.log('[RentalPricingForm] Received new components from DynamicRentalPricingForm:', newComponents)
           setComponents(newComponents)
           const totalCost = calculateTotalRentalCost(newComponents)
+          console.log('[RentalPricingForm] Total cost calculated:', totalCost)
           onChange({ 
             pricing_components: newComponents,
             total_rental_cost: totalCost,

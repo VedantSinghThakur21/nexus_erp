@@ -740,6 +740,7 @@ export default function NewQuotationPage() {
                           <RentalPricingForm
                             item={item as Partial<RentalItem>}
                             onChange={(updates) => {
+                              console.log('[QuotationPage] Received updates from RentalPricingForm:', updates)
                               const rentalUpdates: Partial<QuotationItem> = {
                                 ...updates,
                                 rate: updates.total_rental_cost || item.rate,
