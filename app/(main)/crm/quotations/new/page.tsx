@@ -105,8 +105,7 @@ export default function NewQuotationPage() {
       amount: 0,
       is_rental: false,
       pricing_components: {
-        // Start with only required component to keep the form clean
-        base_cost: 0,
+        // Start empty; base cost will be added/filled by user
       }
     }
   ])
@@ -293,8 +292,7 @@ export default function NewQuotationPage() {
       amount: 0,
       is_rental: false,
       pricing_components: {
-        // Default to only base cost; user can add more via the dynamic selector
-        base_cost: 0,
+        // Start empty; base cost will be added/filled by user
       }
     }])
   }

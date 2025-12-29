@@ -55,11 +55,14 @@ export function DynamicRentalPricingForm({
     comp => !activeComponentKeys.includes(comp.key as keyof RentalPricingComponents) && !comp.required
   )
 
-  const updateComponent = (key: keyof RentalPricingComponents, value: number) => {
-    onChange({
-      ...components,
-      [key]: value
-    })
+  const updateComponent = (key: keyof RentalPricingComponents, value: number | undefined) => {
+    const next: RentalPricingComponents = { ...components }
+    if (value === undefined) {
+      delete next[key]
+    } else {
+      next[key] = value
+    }
+    onChange(next)
   }
 
   const removeComponent = (key: keyof RentalPricingComponents) => {
@@ -71,7 +74,7 @@ export function DynamicRentalPricingForm({
   const addComponent = (key: keyof RentalPricingComponents) => {
     onChange({
       ...components,
-      [key]: 0
+      [key]: undefined
     })
     setShowComponentSelector(false)
   }
@@ -135,7 +138,8 @@ export function DynamicRentalPricingForm({
             comp => activeComponentKeys.includes(comp.key as keyof RentalPricingComponents) || comp.required
           ).map((comp) => {
             const isRequired = comp.required
-            const value = components[comp.key as keyof RentalPricingComponents] || 0
+            const rawValue = components[comp.key as keyof RentalPricingComponents]
+            const value = rawValue === undefined || rawValue === null ? '' : rawValue
 
             return (
               <div key={comp.key} className="flex items-center gap-2">
@@ -163,17 +167,26 @@ export function DynamicRentalPricingForm({
                     min="0"
                     step="0.01"
                     value={value}
-                    onChange={(e) => updateComponent(
-                      comp.key as keyof RentalPricingComponents,
-                      parseFloat(e.target.value) || 0
-                    )}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === '') {
+                        updateComponent(comp.key as keyof RentalPricingComponents, undefined)
+                        return
+                      }
+                      const parsed = parseFloat(val)
+                      if (isNaN(parsed)) {
+                        updateComponent(comp.key as keyof RentalPricingComponents, undefined)
+                        return
+                      }
+                      updateComponent(comp.key as keyof RentalPricingComponents, parsed)
+                    }}
                     placeholder="0.00"
                     className="h-9 text-sm"
                     required={isRequired}
                   />
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-5 min-w-[80px] text-right">
-                  {currency}{value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {currency}{Number(rawValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             )

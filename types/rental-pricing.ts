@@ -98,16 +98,17 @@ export function calculateRentalDuration(
 
 // Helper function to calculate total rental cost
 export function calculateTotalRentalCost(components: RentalPricingComponents): number {
+  const safe = (val?: number) => typeof val === 'number' ? val : 0
   return (
-    components.base_cost +
-    components.accommodation_charges +
-    components.usage_charges +
-    components.fuel_charges +
-    components.elongation_charges +
-    components.risk_charges +
-    components.commercial_charges +
-    components.incidental_charges +
-    components.other_charges
+    safe(components.base_cost) +
+    safe(components.accommodation_charges) +
+    safe(components.usage_charges) +
+    safe(components.fuel_charges) +
+    safe(components.elongation_charges) +
+    safe(components.risk_charges) +
+    safe(components.commercial_charges) +
+    safe(components.incidental_charges) +
+    safe(components.other_charges)
   )
 }
 
