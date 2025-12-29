@@ -292,7 +292,7 @@ export default function NewQuotationPage() {
       amount: 0,
       is_rental: false,
       pricing_components: {
-        // Start empty; base cost will be added/filled by user
+        base_cost: 0 // Initialize with base_cost
       }
     }])
   }
@@ -400,6 +400,12 @@ export default function NewQuotationPage() {
       }
 
       console.log('Submitting quotation data:', quotationData)
+      
+      // Log rental items specifically
+      const rentalItems = quotationData.items.filter((i: any) => i.is_rental)
+      if (rentalItems.length > 0) {
+        console.log('Rental items being submitted:', JSON.stringify(rentalItems, null, 2))
+      }
 
       const response = await fetch('/api/quotations/create-new', {
         method: 'POST',
@@ -614,19 +620,19 @@ export default function NewQuotationPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="border-t">
+              <div suppressHydrationWarning className="border-t">
                 {/* Header Row */}
-                <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b">
-                  <div className="col-span-1 text-center">#</div>
-                  <div className="col-span-4">Item / Description</div>
-                  <div className="col-span-1 text-right">Qty *</div>
-                  <div className="col-span-2 text-right">Rate *</div>
-                  <div className="col-span-2 text-right">Amount</div>
-                  <div className="col-span-2"></div>
+                <div suppressHydrationWarning className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b">
+                  <div suppressHydrationWarning className="col-span-1 text-center">#</div>
+                  <div suppressHydrationWarning className="col-span-4">Item / Description</div>
+                  <div suppressHydrationWarning className="col-span-1 text-right">Qty *</div>
+                  <div suppressHydrationWarning className="col-span-2 text-right">Rate *</div>
+                  <div suppressHydrationWarning className="col-span-2 text-right">Amount</div>
+                  <div suppressHydrationWarning className="col-span-2"></div>
                 </div>
 
                 {/* Item Rows */}
-                <div className="divide-y">
+                <div suppressHydrationWarning className="divide-y">
                   {items.map((item, index) => (
                     <div key={item.id} className="space-y-3">
                       {/* Main Item Row */}
@@ -691,13 +697,24 @@ export default function NewQuotationPage() {
                               variant={item.is_rental ? "default" : "outline"}
                               size="sm"
                               onClick={() => {
-                                const updated = { ...item, is_rental: !item.is_rental }
-                                if (updated.is_rental) {
+                                const newIsRental = !item.is_rental
+                                if (newIsRental) {
+                                  // Initialize rental fields
+                                  const today = new Date().toISOString().split('T')[0]
+                                  const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]
+                                  updateItem(item.id, 'is_rental', true)
+                                  updateItem(item.id, 'rental_type', 'days')
+                                  updateItem(item.id, 'rental_start_date', today)
+                                  updateItem(item.id, 'rental_end_date', tomorrow)
+                                  updateItem(item.id, 'rental_duration', 1)
+                                  if (!item.pricing_components?.base_cost) {
+                                    updateItem(item.id, 'pricing_components', { base_cost: 0 })
+                                  }
                                   setExpandedItemId(item.id)
                                 } else {
+                                  updateItem(item.id, 'is_rental', false)
                                   setExpandedItemId(null)
                                 }
-                                updateItem(item.id, 'is_rental', !item.is_rental)
                               }}
                               className="h-7 text-xs gap-1"
                             >

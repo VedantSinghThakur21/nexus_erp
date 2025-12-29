@@ -23,11 +23,14 @@ interface RentalPricingFormProps {
 }
 
 export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricingFormProps) {
-  const [components, setComponents] = useState<RentalPricingComponents>(
-    item.pricing_components || {
-      base_cost: 0,
+  const [components, setComponents] = useState<RentalPricingComponents>(() => {
+    // Initialize with base_cost if not present
+    const initial = item.pricing_components || {}
+    if (!('base_cost' in initial)) {
+      return { base_cost: 0, ...initial }
     }
-  )
+    return initial
+  })
 
   // Check if this category supports time selection
   const supportsTimeSelection = itemCategory ? TIME_BASED_CATEGORIES.includes(itemCategory) : false
@@ -42,7 +45,18 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
         item.rental_end_time,
         item.rental_type
       )
-      onChange({ rental_duration: duration })
+      
+      console.log('Calculated rental duration:', {
+        start: item.rental_start_date,
+        end: item.rental_end_date,
+        type: item.rental_type,
+        duration
+      })
+      
+      // Only update if duration actually changed
+      if (duration !== item.rental_duration) {
+        onChange({ rental_duration: duration })
+      }
     }
   }, [item.rental_start_date, item.rental_end_date, item.rental_start_time, item.rental_end_time, item.rental_type])
 
@@ -209,9 +223,12 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
         components={components}
         onChange={(newComponents) => {
           setComponents(newComponents)
+          const totalCost = calculateTotalRentalCost(newComponents)
           onChange({ 
             pricing_components: newComponents,
-            total_rental_cost: calculateTotalRentalCost(newComponents)
+            total_rental_cost: totalCost,
+            rate: totalCost,
+            amount: (item.qty || 1) * totalCost
           })
         }}
         currency="₹"
