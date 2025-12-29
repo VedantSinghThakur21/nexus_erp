@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,9 @@ import { Plus, Trash2, FileText, DollarSign, Percent, Package, Calendar } from "
 import { createSalesOrder } from "@/app/actions/sales-orders"
 import { getTaxTemplates, getWarehouses, applyItemPricingRules } from "@/app/actions/common"
 import { getQuotation } from "@/app/actions/crm"
+import { frappeRequest } from "@/app/lib/api"
 import { useRouter } from 'next/navigation'
+import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
 
 interface SalesOrderItem {
   item_code: string
@@ -122,6 +124,19 @@ export default function SalesOrderForm() {
       try {
         const quotation = await getQuotation(quotationParam)
         console.log('Fetched quotation:', quotation)
+        console.log('Quotation items:', quotation?.items)
+        console.log('Quotation taxes_and_charges:', quotation?.taxes_and_charges)
+        if (quotation?.items && quotation.items.length > 0) {
+          quotation.items.forEach((item: any, idx: number) => {
+            console.log(`Item ${idx}:`, {
+              item_code: item.item_code,
+              custom_rental_type: item.custom_rental_type,
+              custom_rental_duration: item.custom_rental_duration,
+              custom_base_rental_cost: item.custom_base_rental_cost,
+              custom_accommodation_charges: item.custom_accommodation_charges
+            })
+          })
+        }
         
         if (quotation) {
           // Determine correct customer ID based on quotation_to
@@ -281,6 +296,41 @@ export default function SalesOrderForm() {
 
   const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
   const totalQty = items.reduce((sum, item) => sum + item.qty, 0)
+  
+  // Calculate tax based on selected tax template
+  const [taxAmount, setTaxAmount] = useState(0)
+  const [taxRate, setTaxRate] = useState(0)
+  
+  useEffect(() => {
+    const fetchTaxRate = async () => {
+      if (formData.taxes_and_charges && netTotal > 0) {
+        try {
+          const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
+            doctype: 'Sales Taxes and Charges Template',
+            name: formData.taxes_and_charges
+          })
+          if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
+            const totalRate = taxTemplate.taxes.reduce((sum: number, tax: any) => sum + (tax.rate || 0), 0)
+            setTaxRate(totalRate)
+            setTaxAmount((netTotal * totalRate) / 100)
+          } else {
+            setTaxRate(0)
+            setTaxAmount(0)
+          }
+        } catch (error) {
+          console.error('Error fetching tax template:', error)
+          setTaxRate(0)
+          setTaxAmount(0)
+        }
+      } else {
+        setTaxRate(0)
+        setTaxAmount(0)
+      }
+    }
+    fetchTaxRate()
+  }, [formData.taxes_and_charges, netTotal])
+  
+  const grandTotal = netTotal + taxAmount
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -557,8 +607,21 @@ export default function SalesOrderForm() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, index) => (
-                  <tr key={index} className="border-b border-slate-100 dark:border-slate-800">
+                {items.map((item, index) => {
+                  const isRental = item.rental_type || item.rental_duration || item.base_cost
+                  const hasBreakdown = (item.base_cost && item.base_cost > 0) || 
+                                      (item.accommodation_charges && item.accommodation_charges > 0) ||
+                                      (item.usage_charges && item.usage_charges > 0) ||
+                                      (item.fuel_charges && item.fuel_charges > 0) ||
+                                      (item.elongation_charges && item.elongation_charges > 0) ||
+                                      (item.risk_charges && item.risk_charges > 0) ||
+                                      (item.commercial_charges && item.commercial_charges > 0) ||
+                                      (item.incidental_charges && item.incidental_charges > 0) ||
+                                      (item.other_charges && item.other_charges > 0)
+                  
+                  return (
+                    <React.Fragment key={index}>
+                      <tr className="border-b border-slate-100 dark:border-slate-800">
                     <td className="py-2 px-2">
                       <Input
                         required
@@ -658,7 +721,40 @@ export default function SalesOrderForm() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  
+                  {/* Rental Pricing Breakdown Row */}
+                  {isRental && hasBreakdown && (
+                    <tr className="bg-slate-50 dark:bg-slate-900/50">
+                      <td colSpan={10} className="py-3 px-4">
+                        <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          <Package className="w-3 h-3" />
+                          <span>Rental Pricing Breakdown</span>
+                          {item.rental_type && (
+                            <Badge variant="outline" className="text-xs">
+                              {item.rental_duration} {item.rental_type}
+                            </Badge>
+                          )}
+                        </div>
+                        <RentalPricingBreakdown
+                          components={{
+                            base_cost: item.base_cost || 0,
+                            accommodation_charges: item.accommodation_charges || 0,
+                            usage_charges: item.usage_charges || 0,
+                            fuel_charges: item.fuel_charges || 0,
+                            elongation_charges: item.elongation_charges || 0,
+                            risk_charges: item.risk_charges || 0,
+                            commercial_charges: item.commercial_charges || 0,
+                            incidental_charges: item.incidental_charges || 0,
+                            other_charges: item.other_charges || 0,
+                          }}
+                          totalCost={item.total_rental_cost || item.rate || 0}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
               </tbody>
             </table>
           </div>
@@ -712,17 +808,22 @@ export default function SalesOrderForm() {
                 </div>
               </div>
 
+              {taxAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">Taxes ({taxRate}%)</span>
+                  <span className="font-medium text-slate-900 dark:text-white">
+                    {formData.currency} {taxAmount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
               <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
                 <div className="flex justify-between">
                   <span className="font-semibold text-slate-900 dark:text-white">Grand Total</span>
                   <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                    {formData.currency} {netTotal.toFixed(2)}
+                    {formData.currency} {grandTotal.toFixed(2)}
                   </span>
                 </div>
-              </div>
-
-              <div className="text-xs text-slate-500 mt-2">
-                Taxes will be applied based on selected tax template
               </div>
             </CardContent>
           </AnimatedCard>
