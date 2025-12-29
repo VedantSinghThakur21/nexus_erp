@@ -45,10 +45,8 @@ export function DynamicRentalPricingForm({
 }: DynamicRentalPricingFormProps) {
   const [showComponentSelector, setShowComponentSelector] = useState(false)
 
-  // Get active components (components that have values or are required)
-  const activeComponentKeys = Object.keys(components).filter(
-    key => components[key as keyof RentalPricingComponents] !== undefined
-  ) as Array<keyof RentalPricingComponents>
+  // Get active components (explicitly added or required)
+  const activeComponentKeys = Object.keys(components) as Array<keyof RentalPricingComponents>
 
   // Get available components that can be added
   const availableToAdd = AVAILABLE_COMPONENTS.filter(

@@ -11,6 +11,62 @@ interface PricingRuleMatch {
   apply_on: string;
 }
 
+type PricingRuleDoc = {
+  name: string;
+  title?: string;
+  apply_on?: string;
+  item_group?: string;
+  rate_or_discount?: string;
+  discount_percentage?: number;
+  discount_amount?: number;
+  rate?: number;
+  customer?: string;
+  customer_group?: string;
+  territory?: string;
+  min_qty?: number;
+  max_qty?: number;
+  valid_from?: string;
+  valid_upto?: string;
+  priority?: number;
+  disable?: number;
+};
+
+async function fetchActivePricingRules(): Promise<PricingRuleDoc[]> {
+  try {
+    const list = await frappeRequest(
+      "frappe.client.get_list",
+      "GET",
+      {
+        doctype: "Pricing Rule",
+        fields: JSON.stringify(["name"]),
+        filters: JSON.stringify([["disable", "=", 0]]),
+        limit_page_length: 200,
+      }
+    );
+
+    if (!Array.isArray(list)) return [];
+
+    const rules = await Promise.all(
+      list.map(async (entry) => {
+        try {
+          return await frappeRequest("frappe.client.get", "GET", {
+            doctype: "Pricing Rule",
+            name: entry.name,
+          });
+        } catch (err) {
+          console.error(`Failed to fetch pricing rule ${entry.name}:`, err);
+          return null;
+        }
+      })
+    );
+
+    return rules.filter((rule): rule is PricingRuleDoc => Boolean(rule));
+  } catch (error) {
+    console.error("Failed to fetch pricing rules list:", error);
+    return [];
+  }
+}
+
 // Apply pricing rules to quotation items
 export async function applyPricingRules(params: {
   customer?: string;
@@ -34,36 +90,7 @@ export async function applyPricingRules(params: {
   applied_rules: PricingRuleMatch[];
 }> {
   try {
-    // Get all active pricing rules
-    const response = await frappeRequest<{ data: any[] }>({
-      method: "GET",
-      endpoint: "/api/resource/Pricing Rule",
-      params: {
-        fields: JSON.stringify([
-          "name",
-          "title",
-          "apply_on",
-          "item_group",
-          "items",
-          "rate_or_discount",
-          "discount_percentage",
-          "discount_amount",
-          "rate",
-          "customer",
-          "customer_group",
-          "territory",
-          "min_qty",
-          "max_qty",
-          "valid_from",
-          "valid_upto",
-          "priority",
-        ]),
-        filters: JSON.stringify([["disable", "=", 0]]),
-        limit_page_length: 999,
-      },
-    });
-
-    const rules = response.data || [];
+    const rules = await fetchActivePricingRules();
     const appliedRules: PricingRuleMatch[] = [];
     const processedItems = params.items.map((item) => {
       // Find matching rules for this item
@@ -159,35 +186,7 @@ export async function getApplicablePricingRules(params: {
   item_groups?: string[];
 }): Promise<PricingRuleMatch[]> {
   try {
-    const rules = await frappeRequest(
-      "frappe.client.get_list",
-      "GET",
-      {
-        doctype: "Pricing Rule",
-        fields: JSON.stringify([
-          "name",
-          "title",
-          "apply_on",
-          "item_group",
-          "rate_or_discount",
-          "discount_percentage",
-          "discount_amount",
-          "rate",
-          "customer",
-          "customer_group",
-          "territory",
-          "valid_from",
-          "valid_upto",
-          "disable",
-        ]),
-        filters: JSON.stringify([["disable", "=", 0]]),
-        limit_page_length: 999,
-      }
-    )
-
-    if (!Array.isArray(rules)) {
-      return []
-    }
+    const rules = await fetchActivePricingRules();
     
     return rules
       .filter((rule) => {
