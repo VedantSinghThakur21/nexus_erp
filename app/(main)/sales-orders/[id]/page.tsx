@@ -18,6 +18,19 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
     if (!order) {
       throw new Error("Sales Order not found")
     }
+    
+    // Debug: Log sales order data
+    console.log('=== SALES ORDER DETAIL PAGE ===')
+    console.log('Sales Order items:', order.items?.length)
+    order.items?.forEach((item: any, idx: number) => {
+      console.log(`\nItem ${idx + 1}:`, item.item_code)
+      console.log('  custom_is_rental:', item.custom_is_rental)
+      console.log('  custom_rental_type:', item.custom_rental_type)
+      console.log('  custom_rental_duration:', item.custom_rental_duration)
+      console.log('  custom_base_rental_cost:', item.custom_base_rental_cost)
+      console.log('  custom_accommodation_charges:', item.custom_accommodation_charges)
+      console.log('  custom_total_rental_cost:', item.custom_total_rental_cost)
+    })
   } catch (e) {
     console.error("Error fetching sales order:", e)
     return (
