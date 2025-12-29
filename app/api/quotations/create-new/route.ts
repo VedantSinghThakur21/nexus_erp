@@ -34,88 +34,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Process items to handle rental fields properly
-    const processedItems = items.map((item: any) => {
-      const baseItem: any = {
-        item_code: item.item_code || 'MISC',
-        item_name: item.item_name || item.description || 'Miscellaneous',
-        description: item.description || item.item_name || '',
-        qty: item.qty || 1,
-        uom: item.uom || 'Nos',
-        rate: item.rate || 0,
-        amount: item.amount || 0
-      }
-
-      // Add rental fields as custom fields if present
-      // In ERPNext, custom fields are stored directly on the child table row
+    // Log items for debugging
+    console.log('=== API Route: Items received ===')
+    items.forEach((item: any) => {
       if (item.is_rental) {
-        console.log('=== Processing rental item ===')
-        console.log('Item:', item.item_code)
-        console.log('rental_type:', item.rental_type, 'type:', typeof item.rental_type)
-        console.log('rental_duration:', item.rental_duration)
-        console.log('rental_start_date:', item.rental_start_date)
-        console.log('rental_end_date:', item.rental_end_date)
-        console.log('pricing_components:', JSON.stringify(item.pricing_components, null, 2))
-        
-        // Store complete rental data in JSON field for backup/reference
-        baseItem.custom_rental_data = JSON.stringify({
-          baseRentalCost: item.pricing_components?.base_cost || 0,
-          accommodationCost: item.pricing_components?.accommodation_charges || 0,
-          usageCost: item.pricing_components?.usage_charges || 0,
-          fuelCost: item.pricing_components?.fuel_charges || 0,
-          elongationCost: item.pricing_components?.elongation_charges || 0,
-          riskCost: item.pricing_components?.risk_charges || 0,
-          commercialCost: item.pricing_components?.commercial_charges || 0,
-          incidentalCost: item.pricing_components?.incidental_charges || 0,
-          otherCost: item.pricing_components?.other_charges || 0,
-          totalCost: item.total_rental_cost || 0,
-          duration: item.rental_duration,
-          durationType: item.rental_type
-        })
-        
-        // Store rental metadata as separate custom fields
-        baseItem.custom_is_rental = 1
-        baseItem.custom_rental_type = item.rental_type || 'days'
-        baseItem.custom_rental_duration = item.rental_duration || 0
-        baseItem.custom_rental_start_date = item.rental_start_date || null
-        baseItem.custom_rental_end_date = item.rental_end_date || null
-        
-        console.log('Stored custom_rental_type:', baseItem.custom_rental_type)
-        
-        // Store time fields if present
-        if (item.rental_start_time) {
-          baseItem.custom_rental_start_time = item.rental_start_time
-        }
-        if (item.rental_end_time) {
-          baseItem.custom_rental_end_time = item.rental_end_time
-        }
-        
-        // Operator fields
-        baseItem.custom_requires_operator = item.requires_operator ? 1 : 0
-        baseItem.custom_operator_included = item.operator_included ? 1 : 0
-        if (item.operator_name) {
-          baseItem.custom_operator_name = item.operator_name
-        }
-        
-        // Store ALL pricing components as individual custom fields for ERPNext reporting
-        baseItem.custom_base_rental_cost = item.pricing_components?.base_cost || 0
-        baseItem.custom_accommodation_charges = item.pricing_components?.accommodation_charges || 0
-        baseItem.custom_usage_charges = item.pricing_components?.usage_charges || 0
-        baseItem.custom_fuel_charges = item.pricing_components?.fuel_charges || 0
-        baseItem.custom_elongation_charges = item.pricing_components?.elongation_charges || 0
-        baseItem.custom_risk_charges = item.pricing_components?.risk_charges || 0
-        baseItem.custom_commercial_charges = item.pricing_components?.commercial_charges || 0
-        baseItem.custom_incidental_charges = item.pricing_components?.incidental_charges || 0
-        baseItem.custom_other_charges = item.pricing_components?.other_charges || 0
-        baseItem.custom_total_rental_cost = item.total_rental_cost || 0
-        
-        console.log('Mapped to ERPNext fields:', JSON.stringify(baseItem, null, 2))
+        console.log('Rental item:', item.item_code)
+        console.log('  rental_type:', item.rental_type)
+        console.log('  rental_duration:', item.rental_duration)
+        console.log('  pricing_components:', item.pricing_components)
       }
-
-      return baseItem
     })
 
-    // Create the quotation using the action
+    // Create the quotation using the action - pass items as-is with frontend field names
+    // The createQuotation action will handle mapping to custom_* fields
     const quotationPayload: any = {
       quotation_to,
       party_name,
@@ -123,7 +54,7 @@ export async function POST(request: NextRequest) {
       valid_till,
       currency: currency || 'INR',
       order_type: order_type || 'Sales',
-      items: processedItems
+      items: items  // Pass original items, not processedItems
     }
 
     // Only add optional fields if they have valid values
