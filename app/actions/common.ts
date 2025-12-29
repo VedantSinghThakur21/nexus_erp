@@ -16,6 +16,19 @@ export async function getTaxTemplates() {
   }
 }
 
+export async function getTaxTemplateDetails(templateName: string) {
+  try {
+    const template = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Taxes and Charges Template',
+      name: templateName
+    })
+    return template
+  } catch (error) {
+    console.error('Failed to fetch tax template details:', error)
+    return null
+  }
+}
+
 export async function getWarehouses() {
   try {
     const warehouseList = await frappeRequest('frappe.client.get_list', 'GET', {

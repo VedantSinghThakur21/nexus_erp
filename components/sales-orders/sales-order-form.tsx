@@ -11,9 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, Trash2, FileText, DollarSign, Percent, Package, Calendar } from "lucide-react"
 import { createSalesOrder } from "@/app/actions/sales-orders"
-import { getTaxTemplates, getWarehouses, applyItemPricingRules } from "@/app/actions/common"
+import { getTaxTemplates, getTaxTemplateDetails, getWarehouses, applyItemPricingRules } from "@/app/actions/common"
 import { getQuotation } from "@/app/actions/crm"
-import { frappeRequest } from "@/app/lib/api"
 import { useRouter } from 'next/navigation'
 import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
 
@@ -305,10 +304,7 @@ export default function SalesOrderForm() {
     const fetchTaxRate = async () => {
       if (formData.taxes_and_charges && netTotal > 0) {
         try {
-          const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
-            doctype: 'Sales Taxes and Charges Template',
-            name: formData.taxes_and_charges
-          })
+          const taxTemplate = await getTaxTemplateDetails(formData.taxes_and_charges)
           if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
             const totalRate = taxTemplate.taxes.reduce((sum: number, tax: any) => sum + (tax.rate || 0), 0)
             setTaxRate(totalRate)
