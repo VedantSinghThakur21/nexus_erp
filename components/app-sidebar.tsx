@@ -160,8 +160,8 @@ export function AppSidebar() {
       {/* Mobile Sidebar (Drawer) */}
       <div suppressHydrationWarning className="md:hidden fixed top-4 left-4 z-50">
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm shadow-sm border-slate-200 dark:bg-slate-900/80 dark:border-slate-800">
+          <SheetTrigger asChild suppressHydrationWarning>
+            <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm shadow-sm border-slate-200 dark:bg-slate-900/80 dark:border-slate-800" suppressHydrationWarning>
               <Menu className="h-4 w-4" />
             </Button>
           </SheetTrigger>

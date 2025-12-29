@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Calendar, FileText, Building2, Pencil, Clock, User } from "lucide-react"
 import Link from "next/link"
 import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
+import { PrintButton } from "@/app/print/sales-order/[id]/print-button"
 
 export default async function SalesOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -61,6 +62,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
           </p>
         </div>
         <div className="flex gap-2 items-center">
+          <PrintButton orderId={order.name} />
           <Badge className={statusColors[order.status] || 'bg-slate-100 text-slate-800'}>
             {order.status}
           </Badge>

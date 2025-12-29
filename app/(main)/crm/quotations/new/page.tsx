@@ -699,20 +699,29 @@ export default function NewQuotationPage() {
                               onClick={() => {
                                 const newIsRental = !item.is_rental
                                 if (newIsRental) {
-                                  // Initialize rental fields
+                                  // Initialize rental fields - batch all updates
                                   const today = new Date().toISOString().split('T')[0]
                                   const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]
-                                  updateItem(item.id, 'is_rental', true)
-                                  updateItem(item.id, 'rental_type', 'days')
-                                  updateItem(item.id, 'rental_start_date', today)
-                                  updateItem(item.id, 'rental_end_date', tomorrow)
-                                  updateItem(item.id, 'rental_duration', 1)
-                                  if (!item.pricing_components?.base_cost) {
-                                    updateItem(item.id, 'pricing_components', { base_cost: 0 })
-                                  }
+                                  
+                                  setItems(items.map(i => {
+                                    if (i.id === item.id) {
+                                      return {
+                                        ...i,
+                                        is_rental: true,
+                                        rental_type: 'days',
+                                        rental_start_date: today,
+                                        rental_end_date: tomorrow,
+                                        rental_duration: 1,
+                                        pricing_components: i.pricing_components?.base_cost ? i.pricing_components : { base_cost: 0 },
+                                        requires_operator: false,
+                                        operator_included: false
+                                      }
+                                    }
+                                    return i
+                                  }))
                                   setExpandedItemId(item.id)
                                 } else {
-                                  updateItem(item.id, 'is_rental', false)
+                                  setItems(items.map(i => i.id === item.id ? { ...i, is_rental: false } : i))
                                   setExpandedItemId(null)
                                 }
                               }}

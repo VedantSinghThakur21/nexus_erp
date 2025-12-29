@@ -1,3 +1,4 @@
+import React from "react"
 import { frappeRequest } from "@/app/lib/api"
 import { Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -132,6 +133,8 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
                 <tr className="bg-slate-100 border-y border-slate-300">
                     <th className="py-2 px-3 text-left font-semibold">#</th>
                     <th className="py-2 px-3 text-left font-semibold">Description</th>
+                    <th className="py-2 px-3 text-left font-semibold">Duration</th>
+                    <th className="py-2 px-3 text-center font-semibold">Operator</th>
                     <th className="py-2 px-3 text-left font-semibold">HSN/SAC</th>
                     <th className="py-2 px-3 text-right font-semibold">Qty</th>
                     <th className="py-2 px-3 text-right font-semibold">Rate</th>
@@ -139,19 +142,139 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
                 </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-                {invoice.items.map((item: any, idx: number) => (
-                    <tr key={idx}>
-                        <td className="py-3 px-3 align-top">{idx + 1}</td>
-                        <td className="py-3 px-3 align-top">
-                            <p className="font-medium">{item.item_name || item.item_code}</p>
-                            <p className="text-slate-500 text-xs mt-1">{item.description}</p>
-                        </td>
-                        <td className="py-3 px-3 align-top">{item.gst_hsn_code || "—"}</td>
-                        <td className="py-3 px-3 align-top text-right">{item.qty}</td>
-                        <td className="py-3 px-3 align-top text-right">{item.rate.toLocaleString()}</td>
-                        <td className="py-3 px-3 align-top text-right font-bold">{item.amount.toLocaleString()}</td>
-                    </tr>
-                ))}
+                {invoice.items.map((item: any, idx: number) => {
+                    const isRental = item.custom_is_rental
+                    const hasBreakdown = (
+                        (item.custom_base_rental_cost && item.custom_base_rental_cost > 0) ||
+                        (item.custom_accommodation_charges && item.custom_accommodation_charges > 0) ||
+                        (item.custom_usage_charges && item.custom_usage_charges > 0) ||
+                        (item.custom_fuel_charges && item.custom_fuel_charges > 0) ||
+                        (item.custom_elongation_charges && item.custom_elongation_charges > 0) ||
+                        (item.custom_risk_charges && item.custom_risk_charges > 0) ||
+                        (item.custom_commercial_charges && item.custom_commercial_charges > 0) ||
+                        (item.custom_incidental_charges && item.custom_incidental_charges > 0) ||
+                        (item.custom_other_charges && item.custom_other_charges > 0)
+                    )
+
+                    return (
+                        <React.Fragment key={idx}>
+                            <tr>
+                                <td className="py-3 px-3 align-top">{idx + 1}</td>
+                                <td className="py-3 px-3 align-top">
+                                    <p className="font-medium">{item.item_name || item.item_code}</p>
+                                    <p className="text-slate-500 text-xs mt-1">{item.description}</p>
+                                </td>
+                                <td className="py-3 px-3 align-top text-sm">
+                                    {isRental ? (
+                                        <div className="text-xs">
+                                            <p className="font-medium">{item.custom_rental_duration} {item.custom_rental_type}</p>
+                                            {item.custom_rental_start_date && (
+                                                <p className="text-slate-500 mt-0.5">
+                                                    {new Date(item.custom_rental_start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                                    {item.custom_rental_start_time && ` ${item.custom_rental_start_time}`}
+                                                </p>
+                                            )}
+                                            {item.custom_rental_end_date && (
+                                                <p className="text-slate-500">
+                                                    to {new Date(item.custom_rental_end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                                    {item.custom_rental_end_time && ` ${item.custom_rental_end_time}`}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="text-slate-400 text-xs">—</span>
+                                    )}
+                                </td>
+                                <td className="py-3 px-3 align-top text-center text-xs">
+                                    {item.custom_requires_operator ? (
+                                        item.custom_operator_included ? (
+                                            <div>
+                                                <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">Included</span>
+                                                {item.custom_operator_name && <p className="text-slate-600 mt-1">{item.custom_operator_name}</p>}
+                                            </div>
+                                        ) : (
+                                            <span className="text-slate-400">Required</span>
+                                        )
+                                    ) : (
+                                        <span className="text-slate-400">—</span>
+                                    )}
+                                </td>
+                                <td className="py-3 px-3 align-top">{item.gst_hsn_code || "—"}</td>
+                                <td className="py-3 px-3 align-top text-right">{item.qty}</td>
+                                <td className="py-3 px-3 align-top text-right">{item.rate.toLocaleString()}</td>
+                                <td className="py-3 px-3 align-top text-right font-bold">{item.amount.toLocaleString()}</td>
+                            </tr>
+
+                            {isRental && hasBreakdown && (
+                                <tr className="border-t border-slate-200">
+                                    <td colSpan={8} className="py-4 px-3">
+                                        <div className="pl-8">
+                                            <p className="text-xs font-semibold text-slate-800 uppercase tracking-wide mb-3 border-b border-slate-300 pb-2">
+                                                Rate Breakdown
+                                            </p>
+                                            <div className="grid grid-cols-3 gap-x-8 gap-y-2">
+                                                {item.custom_base_rental_cost > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Base Cost</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_base_rental_cost.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                                {item.custom_accommodation_charges > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Accommodation</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_accommodation_charges.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                                {item.custom_usage_charges > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Usage Charges</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_usage_charges.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                                {item.custom_fuel_charges > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Fuel</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_fuel_charges.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                                {item.custom_elongation_charges > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Elongation</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_elongation_charges.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                                {item.custom_risk_charges > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Risk</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_risk_charges.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                                {item.custom_commercial_charges > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Commercial</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_commercial_charges.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                                {item.custom_incidental_charges > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Incidental</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_incidental_charges.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                                {item.custom_other_charges > 0 && (
+                                                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                                                        <span className="text-xs text-slate-600">Other</span>
+                                                        <span className="text-xs font-semibold text-slate-900">₹{item.custom_other_charges.toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </React.Fragment>
+                    )
+                })}
             </tbody>
         </table>
 
