@@ -431,7 +431,10 @@ export async function createQuotation(quotationData: {
       if (item.is_rental || item.rental_type || item.rental_duration) {
         mappedItem.custom_is_rental = 1
         
-        if (item.rental_type) mappedItem.custom_rental_type = item.rental_type
+        // Capitalize rental_type for ERPNext Select field (days -> Days, hours -> Hours, months -> Months)
+        if (item.rental_type) {
+          mappedItem.custom_rental_type = item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1)
+        }
         if (item.rental_duration) mappedItem.custom_rental_duration = item.rental_duration
         if (item.rental_start_date) mappedItem.custom_rental_start_date = item.rental_start_date
         if (item.rental_end_date) mappedItem.custom_rental_end_date = item.rental_end_date
