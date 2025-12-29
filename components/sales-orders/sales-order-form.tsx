@@ -9,12 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
-import { Plus, Trash2, FileText, DollarSign, Percent, Package, Calendar } from "lucide-react"
+import { Plus, Trash2, FileText, DollarSign, Percent, Package, Calendar, ChevronDown, ChevronUp } from "lucide-react"
 import { createSalesOrder } from "@/app/actions/sales-orders"
 import { getTaxTemplates, getTaxTemplateDetails, getWarehouses, applyItemPricingRules } from "@/app/actions/common"
 import { getQuotation } from "@/app/actions/crm"
 import { useRouter } from 'next/navigation'
-import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
 
 interface SalesOrderItem {
   item_code: string
@@ -65,6 +64,7 @@ export default function SalesOrderForm() {
   const [fetchingQuotation, setFetchingQuotation] = useState(false)
   const [taxTemplates, setTaxTemplates] = useState<TaxTemplate[]>([])
   const [warehouses, setWarehouses] = useState<string[]>([])
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
   
   const [formData, setFormData] = useState({
     customer: '',
@@ -259,6 +259,25 @@ export default function SalesOrderForm() {
       newItems[index].amount = calculateItemAmount(newItems[index])
     }
     
+    // Recalculate total rental cost when pricing components change
+    if (field.includes('_cost') || field.includes('_charges')) {
+      const item = newItems[index]
+      const totalRentalCost = (
+        (item.base_cost || 0) +
+        (item.accommodation_charges || 0) +
+        (item.usage_charges || 0) +
+        (item.fuel_charges || 0) +
+        (item.elongation_charges || 0) +
+        (item.risk_charges || 0) +
+        (item.commercial_charges || 0) +
+        (item.incidental_charges || 0) +
+        (item.other_charges || 0)
+      )
+      newItems[index].total_rental_cost = totalRentalCost
+      newItems[index].rate = totalRentalCost
+      newItems[index].amount = calculateItemAmount(newItems[index])
+    }
+    
     setItems(newItems)
 
     // Apply pricing rules when item_code or qty changes
@@ -269,6 +288,16 @@ export default function SalesOrderForm() {
         applyPricingRules(index, itemCode, qty)
       }
     }
+  }
+
+  const toggleItemExpansion = (index: number) => {
+    const newExpanded = new Set(expandedItems)
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index)
+    } else {
+      newExpanded.add(index)
+    }
+    setExpandedItems(newExpanded)
   }
 
   const addItem = () => {
@@ -718,35 +747,164 @@ export default function SalesOrderForm() {
                     </td>
                   </tr>
                   
-                  {/* Rental Pricing Breakdown Row */}
-                  {isRental && hasBreakdown && (
-                    <tr className="bg-slate-50 dark:bg-slate-900/50">
-                      <td colSpan={10} className="py-3 px-4">
-                        <RentalPricingBreakdown
-                          item={{
-                            rental_type: item.rental_type || '',
-                            rental_duration: item.rental_duration || 0,
-                            rental_start_date: item.rental_start_date || '',
-                            rental_end_date: item.rental_end_date || '',
-                            rental_start_time: item.rental_start_time || '',
-                            rental_end_time: item.rental_end_time || '',
-                            requires_operator: item.requires_operator || false,
-                            operator_included: item.operator_included || false,
-                            operator_name: item.operator_name || '',
-                            pricing_components: {
-                              base_cost: item.base_cost || 0,
-                              accommodation_charges: item.accommodation_charges || 0,
-                              usage_charges: item.usage_charges || 0,
-                              fuel_charges: item.fuel_charges || 0,
-                              elongation_charges: item.elongation_charges || 0,
-                              risk_charges: item.risk_charges || 0,
-                              commercial_charges: item.commercial_charges || 0,
-                              incidental_charges: item.incidental_charges || 0,
-                              other_charges: item.other_charges || 0,
-                            },
-                            total_rental_cost: item.total_rental_cost || item.rate || 0
-                          }}
-                        />
+                  {/* Rental Pricing Breakdown Row - Editable */}
+                  {isRental && (
+                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+                      <td colSpan={10} className="py-2 px-2">
+                        <div className="space-y-2">
+                          {/* Toggle Button */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleItemExpansion(index)}
+                            className="w-full flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Package className="w-3.5 h-3.5" />
+                              <span>Rental Pricing Components</span>
+                              {item.rental_type && (
+                                <Badge variant="outline" className="text-xs">
+                                  {item.rental_duration} {item.rental_type}
+                                </Badge>
+                              )}
+                              {hasBreakdown && (
+                                <Badge variant="secondary" className="text-xs">
+                                  ₹{(item.total_rental_cost || 0).toLocaleString('en-IN')}
+                                </Badge>
+                              )}
+                            </div>
+                            {expandedItems.has(index) ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </Button>
+                          
+                          {/* Editable Pricing Components */}
+                          {expandedItems.has(index) && (
+                            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                              <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Base Cost *</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.base_cost || 0}
+                                    onChange={(e) => updateItem(index, 'base_cost', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Accommodation</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.accommodation_charges || 0}
+                                    onChange={(e) => updateItem(index, 'accommodation_charges', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Usage Charges</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.usage_charges || 0}
+                                    onChange={(e) => updateItem(index, 'usage_charges', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Fuel Charges</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.fuel_charges || 0}
+                                    onChange={(e) => updateItem(index, 'fuel_charges', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Elongation</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.elongation_charges || 0}
+                                    onChange={(e) => updateItem(index, 'elongation_charges', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Risk Charges</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.risk_charges || 0}
+                                    onChange={(e) => updateItem(index, 'risk_charges', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Commercial</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.commercial_charges || 0}
+                                    onChange={(e) => updateItem(index, 'commercial_charges', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Incidental</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.incidental_charges || 0}
+                                    onChange={(e) => updateItem(index, 'incidental_charges', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Other Charges</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.other_charges || 0}
+                                    onChange={(e) => updateItem(index, 'other_charges', parseFloat(e.target.value) || 0)}
+                                    className="mt-1 text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+                              
+                              {/* Total Display */}
+                              <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Total Rental Cost</span>
+                                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                  ₹{(item.total_rental_cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )}
