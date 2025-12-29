@@ -89,7 +89,11 @@ export async function createSalesOrder(data: any) {
       // Map rental data to ERPNext custom fields if present (from frontend or quotation)
       if (item.rental_type || item.rental_duration || item.custom_is_rental || item.custom_rental_type) {
         baseItem.custom_is_rental = 1
-        baseItem.custom_rental_type = item.rental_type || item.custom_rental_type
+        // Capitalize rental_type for ERPNext Select field (days -> Days, hours -> Hours, months -> Months)
+        const rentalType = item.rental_type || item.custom_rental_type
+        if (rentalType && typeof rentalType === 'string') {
+          baseItem.custom_rental_type = rentalType.charAt(0).toUpperCase() + rentalType.slice(1)
+        }
         baseItem.custom_rental_duration = item.rental_duration || item.custom_rental_duration
         baseItem.custom_rental_start_date = item.rental_start_date || item.custom_rental_start_date
         baseItem.custom_rental_end_date = item.rental_end_date || item.custom_rental_end_date

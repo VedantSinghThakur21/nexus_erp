@@ -348,8 +348,8 @@ export default function SalesOrderForm() {
   return (
     <form onSubmit={handleSubmit} className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
+      <div suppressHydrationWarning className="flex justify-between items-start">
+        <div suppressHydrationWarning>
           <h1 className="text-2xl lg:text-4xl font-bold text-slate-900 dark:text-white">
             New Sales Order
           </h1>
@@ -357,7 +357,7 @@ export default function SalesOrderForm() {
             Create a new sales order for customer
           </p>
         </div>
-        <div className="flex gap-2">
+        <div suppressHydrationWarning className="flex gap-2">
           <Button
             type="button"
             variant="outline"
