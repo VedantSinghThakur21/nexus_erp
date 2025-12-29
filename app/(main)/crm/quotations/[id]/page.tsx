@@ -19,6 +19,21 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
     if (!quotation) {
       throw new Error("Quotation not found")
     }
+    
+    // Debug: Log the quotation data to see what we're receiving
+    console.log('=== QUOTATION DETAIL PAGE ===')
+    console.log('Quotation items:', quotation.items?.length)
+    quotation.items?.forEach((item: any, idx: number) => {
+      console.log(`\nItem ${idx + 1}:`, item.item_code)
+      console.log('  custom_is_rental:', item.custom_is_rental)
+      console.log('  custom_rental_type:', item.custom_rental_type)
+      console.log('  custom_rental_duration:', item.custom_rental_duration)
+      console.log('  custom_rental_start_date:', item.custom_rental_start_date)
+      console.log('  custom_rental_end_date:', item.custom_rental_end_date)
+      console.log('  custom_base_rental_cost:', item.custom_base_rental_cost)
+      console.log('  custom_accommodation_charges:', item.custom_accommodation_charges)
+      console.log('  custom_rental_data:', item.custom_rental_data)
+    })
   } catch (e) {
     console.error("Error fetching quotation:", e)
     return (
