@@ -138,10 +138,52 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
           {quotation.items && quotation.items.length > 0 ? (
             <div suppressHydrationWarning className="space-y-4">
               {quotation.items.map((item: Record<string, any>, idx: number) => {
-                const isRental = item.custom_is_rental || item.is_rental
-                const rentalData = item.custom_rental_data ? 
-                  (typeof item.custom_rental_data === 'string' ? JSON.parse(item.custom_rental_data) : item.custom_rental_data) : 
-                  null
+                const rentalData = (() => {
+                  try {
+                    if (item.custom_rental_data) {
+                      return typeof item.custom_rental_data === 'string'
+                        ? JSON.parse(item.custom_rental_data)
+                        : item.custom_rental_data
+                    }
+                  } catch (err) {
+                    console.error('Failed to parse rental data', err)
+                  }
+                  return null
+                })()
+
+                const parseNumber = (val: any) => {
+                  const num = Number(val)
+                  return Number.isFinite(num) ? num : 0
+                }
+
+                const pricingComponents = {
+                  base_cost: parseNumber(item.custom_base_rental_cost ?? rentalData?.baseRentalCost ?? rentalData?.base_cost ?? item.pricing_components?.base_cost),
+                  accommodation_charges: parseNumber(item.custom_accommodation_charges ?? rentalData?.accommodationCost ?? rentalData?.accommodation_charges ?? item.pricing_components?.accommodation_charges),
+                  usage_charges: parseNumber(item.custom_usage_charges ?? rentalData?.usageCost ?? rentalData?.usage_charges ?? item.pricing_components?.usage_charges),
+                  fuel_charges: parseNumber(item.custom_fuel_charges ?? rentalData?.fuelCost ?? rentalData?.fuel_charges ?? item.pricing_components?.fuel_charges),
+                  elongation_charges: parseNumber(item.custom_elongation_charges ?? rentalData?.elongationCost ?? rentalData?.elongation_charges ?? item.pricing_components?.elongation_charges),
+                  risk_charges: parseNumber(item.custom_risk_charges ?? rentalData?.riskCost ?? rentalData?.risk_charges ?? item.pricing_components?.risk_charges),
+                  commercial_charges: parseNumber(item.custom_commercial_charges ?? rentalData?.commercialCost ?? rentalData?.commercial_charges ?? item.pricing_components?.commercial_charges),
+                  incidental_charges: parseNumber(item.custom_incidental_charges ?? rentalData?.incidentalCost ?? rentalData?.incidental_charges ?? item.pricing_components?.incidental_charges),
+                  other_charges: parseNumber(item.custom_other_charges ?? rentalData?.otherCost ?? rentalData?.other_charges ?? item.pricing_components?.other_charges),
+                }
+
+                const hasPricingComponents = Object.values(pricingComponents).some((val) => val > 0)
+                const isRental = (
+                  item.custom_is_rental ||
+                  item.is_rental ||
+                  item.custom_rental_type ||
+                  item.rental_type ||
+                  item.custom_rental_duration ||
+                  item.rental_duration ||
+                  hasPricingComponents
+                )
+                const totalRentalCost = parseNumber(
+                  item.custom_total_rental_cost ??
+                  rentalData?.totalCost ??
+                  item.total_rental_cost ??
+                  item.rate
+                )
                 
                 return (
                   <div suppressHydrationWarning key={idx} className="border rounded-lg overflow-hidden">
@@ -255,17 +297,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                         <div suppressHydrationWarning className="mt-6">
                           <RentalPricingBreakdown 
                             item={{
-                              pricing_components: {
-                                base_cost: item.custom_base_rental_cost || (rentalData?.baseRentalCost) || 0,
-                                accommodation_charges: item.custom_accommodation_charges || (rentalData?.accommodationCost) || 0,
-                                usage_charges: item.custom_usage_charges || (rentalData?.usageCost) || 0,
-                                fuel_charges: item.custom_fuel_charges || (rentalData?.fuelCost) || 0,
-                                elongation_charges: item.custom_elongation_charges || (rentalData?.elongationCost) || 0,
-                                risk_charges: item.custom_risk_charges || (rentalData?.riskCost) || 0,
-                                commercial_charges: item.custom_commercial_charges || (rentalData?.commercialCost) || 0,
-                                incidental_charges: item.custom_incidental_charges || (rentalData?.incidentalCost) || 0,
-                                other_charges: item.custom_other_charges || (rentalData?.otherCost) || 0,
-                              },
+                              pricing_components: pricingComponents,
                               rental_type: item.custom_rental_type || item.rental_type,
                               rental_duration: item.custom_rental_duration || item.rental_duration,
                               rental_start_date: item.custom_rental_start_date || item.rental_start_date,
@@ -275,7 +307,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                               requires_operator: item.custom_requires_operator || item.requires_operator,
                               operator_included: item.custom_operator_included || item.operator_included,
                               operator_name: item.custom_operator_name || item.operator_name,
-                              total_rental_cost: item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0,
+                              total_rental_cost: totalRentalCost,
                             } as any}
                           />
                         </div>
