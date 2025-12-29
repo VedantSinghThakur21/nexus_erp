@@ -58,7 +58,6 @@ export default async function PrintSalesOrderPage({ params }: { params: Promise<
         </Link>
         <PrintButton />
       </div>
-      </div>
 
       <div className="w-[210mm] min-h-[297mm] bg-white p-12 shadow-lg print:shadow-none print:p-0">
         <div className="flex justify-between items-start mb-8">
