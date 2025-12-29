@@ -50,6 +50,14 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
       // Improved Error Parsing for Frappe
       let errorMessage = 'API Error';
       
+      // Log full response for debugging
+      console.error('ERPNext API Response:', {
+        status: res.status,
+        statusText: res.statusText,
+        data: data,
+        url: url
+      })
+      
       // Safely extract error message
       if (typeof data.message === 'string') {
         errorMessage = data.message;

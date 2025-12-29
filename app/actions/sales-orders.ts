@@ -168,6 +168,7 @@ export async function createSalesOrder(data: any) {
       }
     }
 
+    console.log('Creating Sales Order with data:', JSON.stringify(orderData, null, 2))
     const result = await frappeRequest('frappe.client.insert', 'POST', orderData)
     
     revalidatePath('/sales-orders')
