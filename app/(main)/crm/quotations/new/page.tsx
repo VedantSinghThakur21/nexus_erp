@@ -105,15 +105,8 @@ export default function NewQuotationPage() {
       amount: 0,
       is_rental: false,
       pricing_components: {
+        // Start with only required component to keep the form clean
         base_cost: 0,
-        accommodation_charges: 0,
-        usage_charges: 0,
-        fuel_charges: 0,
-        elongation_charges: 0,
-        risk_charges: 0,
-        commercial_charges: 0,
-        incidental_charges: 0,
-        other_charges: 0,
       }
     }
   ])
@@ -300,15 +293,8 @@ export default function NewQuotationPage() {
       amount: 0,
       is_rental: false,
       pricing_components: {
+        // Default to only base cost; user can add more via the dynamic selector
         base_cost: 0,
-        accommodation_charges: 0,
-        usage_charges: 0,
-        fuel_charges: 0,
-        elongation_charges: 0,
-        risk_charges: 0,
-        commercial_charges: 0,
-        incidental_charges: 0,
-        other_charges: 0,
       }
     }])
   }

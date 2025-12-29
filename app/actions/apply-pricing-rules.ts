@@ -159,10 +159,11 @@ export async function getApplicablePricingRules(params: {
   item_groups?: string[];
 }): Promise<PricingRuleMatch[]> {
   try {
-    const response = await frappeRequest<{ data: any[] }>({
-      method: "GET",
-      endpoint: "/api/resource/Pricing Rule",
-      params: {
+    const rules = await frappeRequest(
+      "frappe.client.get_list",
+      "GET",
+      {
+        doctype: "Pricing Rule",
         fields: JSON.stringify([
           "name",
           "title",
@@ -172,13 +173,21 @@ export async function getApplicablePricingRules(params: {
           "discount_percentage",
           "discount_amount",
           "rate",
+          "customer",
+          "customer_group",
+          "territory",
+          "valid_from",
+          "valid_upto",
+          "disable",
         ]),
         filters: JSON.stringify([["disable", "=", 0]]),
         limit_page_length: 999,
-      },
-    });
+      }
+    )
 
-    const rules = response.data || [];
+    if (!Array.isArray(rules)) {
+      return []
+    }
     
     return rules
       .filter((rule) => {
