@@ -2,10 +2,11 @@ import { getSalesOrder } from "@/app/actions/sales-orders"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, FileText, Building2, Pencil, Clock, User } from "lucide-react"
+import { ArrowLeft, Calendar, FileText, Building2, Pencil, Clock, User, Package } from "lucide-react"
 import Link from "next/link"
 import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
 import { PrintButton } from "@/app/print/sales-order/[id]/print-button"
+import { SalesOrderActions } from "@/components/sales-orders/sales-order-actions"
 
 export default async function SalesOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -75,6 +76,11 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
           </p>
         </div>
         <div className="flex gap-2 items-center">
+          <SalesOrderActions 
+            orderId={order.name} 
+            currentStatus={order.status}
+            canCreateInvoice={order.status === 'To Bill' || order.status === 'To Deliver and Bill'}
+          />
           <PrintButton orderId={order.name} />
           <Badge className={statusColors[order.status] || 'bg-slate-100 text-slate-800'}>
             {order.status}
@@ -235,8 +241,45 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                             }}
                             totalCost={item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0}
                           />
-                        </div>
-                      </div>
+                        </div>                        
+                        {/* Rental Pricing Breakdown */}
+                        {(item.custom_base_rental_cost > 0 || item.custom_accommodation_charges > 0 ||
+                          item.custom_usage_charges > 0 || item.custom_fuel_charges > 0 ||
+                          item.custom_elongation_charges > 0 || item.custom_risk_charges > 0 ||
+                          item.custom_commercial_charges > 0 || item.custom_incidental_charges > 0 ||
+                          item.custom_other_charges > 0) && (
+                          <div className="mt-4">
+                            <h5 className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                              <Package className="w-3.5 h-3.5" />
+                              Rental Pricing Breakdown
+                            </h5>
+                            <RentalPricingBreakdown
+                              item={{
+                                rental_type: item.custom_rental_type || '',
+                                rental_duration: item.custom_rental_duration || 0,
+                                rental_start_date: item.custom_rental_start_date || '',
+                                rental_end_date: item.custom_rental_end_date || '',
+                                rental_start_time: item.custom_rental_start_time || '',
+                                rental_end_time: item.custom_rental_end_time || '',
+                                requires_operator: item.custom_requires_operator || false,
+                                operator_included: item.custom_operator_included || false,
+                                operator_name: item.custom_operator_name || '',
+                                pricing_components: {
+                                  base_cost: item.custom_base_rental_cost || 0,
+                                  accommodation_charges: item.custom_accommodation_charges || 0,
+                                  usage_charges: item.custom_usage_charges || 0,
+                                  fuel_charges: item.custom_fuel_charges || 0,
+                                  elongation_charges: item.custom_elongation_charges || 0,
+                                  risk_charges: item.custom_risk_charges || 0,
+                                  commercial_charges: item.custom_commercial_charges || 0,
+                                  incidental_charges: item.custom_incidental_charges || 0,
+                                  other_charges: item.custom_other_charges || 0
+                                },
+                                total_rental_cost: item.custom_total_rental_cost || 0
+                              }}
+                            />
+                          </div>
+                        )}                      </div>
                     )}
                   </div>
                 )

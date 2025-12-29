@@ -265,3 +265,22 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
     return { error: error.message || 'Failed to create sales order from quotation' }
   }
 }
+
+// 9. UPDATE: Update Sales Order Status
+export async function updateSalesOrderStatus(orderId: string, status: string) {
+  try {
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Sales Order',
+      name: orderId,
+      fieldname: 'status',
+      value: status
+    })
+    
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${orderId}`)
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to update sales order status:", error)
+    return { error: error.message || 'Failed to update sales order status' }
+  }
+}
