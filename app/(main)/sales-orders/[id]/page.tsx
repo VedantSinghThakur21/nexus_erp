@@ -57,7 +57,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6" suppressHydrationWarning>
       {/* Back Button */}
       <Link href="/sales-orders">
         <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-blue-600">
@@ -89,7 +89,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
       </div>
 
       {/* Info Cards */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-500">Transaction Date</CardTitle>
@@ -125,7 +125,76 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             <div className="text-lg font-semibold">{order.currency || 'INR'}</div>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-500">Grand Total</CardTitle>
+            <Building2 className="h-4 w-4 text-slate-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-semibold text-blue-600">
+              {order.currency} {order.grand_total?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Additional Details */}
+      {(order.po_no || order.territory || order.contact_email || order.quotation_no || order.taxes_and_charges) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Additional Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4" suppressHydrationWarning>
+              {order.quotation_no && (
+                <div>
+                  <p className="text-sm text-slate-500">Quotation Reference</p>
+                  <p className="font-medium">{order.quotation_no}</p>
+                </div>
+              )}
+              {order.po_no && (
+                <div>
+                  <p className="text-sm text-slate-500">PO Number</p>
+                  <p className="font-medium">{order.po_no}</p>
+                </div>
+              )}
+              {order.po_date && (
+                <div>
+                  <p className="text-sm text-slate-500">PO Date</p>
+                  <p className="font-medium">{new Date(order.po_date).toLocaleDateString('en-IN')}</p>
+                </div>
+              )}
+              {order.territory && (
+                <div>
+                  <p className="text-sm text-slate-500">Territory</p>
+                  <p className="font-medium">{order.territory}</p>
+                </div>
+              )}
+              {order.contact_email && (
+                <div>
+                  <p className="text-sm text-slate-500">Contact Email</p>
+                  <p className="font-medium text-blue-600">{order.contact_email}</p>
+                </div>
+              )}
+              {order.taxes_and_charges && (
+                <div>
+                  <p className="text-sm text-slate-500">Tax Template</p>
+                  <p className="font-medium">{order.taxes_and_charges}</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Terms */}
+            {order.terms && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <p className="text-sm text-slate-500 mb-2">Terms & Conditions</p>
+                <p className="text-sm whitespace-pre-wrap">{order.terms}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Items Table */}
       <Card>

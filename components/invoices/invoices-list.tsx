@@ -38,9 +38,9 @@ function getStatusColor(status: string): string {
 
 export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
   return (
-    <>
+    <div suppressHydrationWarning>
       {/* Stats Row */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3" suppressHydrationWarning>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -121,7 +121,7 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
           </div>
         </CardContent>
       </Card>
-    </>
+    </div>
   )
 }
 

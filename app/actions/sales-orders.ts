@@ -284,3 +284,33 @@ export async function updateSalesOrderStatus(orderId: string, status: string) {
     return { error: error.message || 'Failed to update sales order status' }
   }
 }
+
+// 10. READ: Get Sales Orders Ready for Invoice
+export async function getSalesOrdersReadyForInvoice() {
+  try {
+    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      filters: JSON.stringify([
+        ['status', 'in', ['To Bill', 'To Deliver and Bill']]
+      ]),
+      fields: JSON.stringify([
+        'name',
+        'customer',
+        'customer_name',
+        'transaction_date',
+        'delivery_date',
+        'grand_total',
+        'status',
+        'per_billed',
+        'currency'
+      ]),
+      limit_page_length: 50,
+      order_by: 'transaction_date desc'
+    })
+    
+    return orders || []
+  } catch (error: any) {
+    console.error("Failed to fetch sales orders ready for invoice:", error)
+    return []
+  }
+}
