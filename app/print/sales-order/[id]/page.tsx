@@ -1,6 +1,7 @@
 import React from "react"
 import { frappeRequest } from "@/app/lib/api"
 import Link from "next/link"
+import { PrintButton } from "./print-page-button"
 
 async function getSalesOrder(id: string) {
   try {
@@ -55,9 +56,8 @@ export default async function PrintSalesOrderPage({ params }: { params: Promise<
         <Link href={`/sales-orders/${id}`} className="text-sm text-slate-500 hover:underline">
           &larr; Back to Sales Order
         </Link>
-        <button onClick={() => window.print()} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-          Print Order
-        </button>
+        <PrintButton />
+      </div>
       </div>
 
       <div className="w-[210mm] min-h-[297mm] bg-white p-12 shadow-lg print:shadow-none print:p-0">

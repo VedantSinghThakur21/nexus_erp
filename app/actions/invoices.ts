@@ -100,6 +100,20 @@ export async function getInvoices() {
   }
 }
 
+// 2. READ: Get single invoice
+export async function getInvoice(invoiceId: string) {
+  try {
+    const invoice = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Invoice',
+      name: invoiceId
+    })
+    return invoice
+  } catch (error: any) {
+    console.error("Failed to fetch invoice:", error)
+    return null
+  }
+}
+
 // --- HELPER: Create Tax Account if it doesn't exist ---
 async function createTaxAccount(accountName: string, company: string) {
     try {

@@ -1,8 +1,7 @@
 import React from "react"
 import { frappeRequest } from "@/app/lib/api"
-import { Printer } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { PrintButton } from "./print-button"
 
 // Helper: Fetch Invoice
 async function getInvoice(id: string) {
@@ -65,15 +64,7 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
         <Link href={`/invoices/${id}`} className="text-sm text-slate-500 hover:underline">
             &larr; Back to Dashboard
         </Link>
-        <div className="flex gap-2">
-            <Button 
-                // We use a simple script approach for print to avoid client component issues here
-                // or you can import the PrintButton component if you created it
-                className="bg-blue-600 text-white gap-2 pointer-events-auto cursor-pointer"
-            >
-                <Printer className="h-4 w-4" /> Press Ctrl+P to Print
-            </Button>
-        </div>
+        <PrintButton />
       </div>
 
       {/* A4 Paper Container */}

@@ -175,18 +175,29 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                                             {/* Rental Cost Breakdown */}
                                             <div className="mt-2">
                                                 <RentalPricingBreakdown 
-                                                    components={{
-                                                        base_cost: item.custom_base_rental_cost || (rentalData?.baseRentalCost) || 0,
-                                                        accommodation_charges: item.custom_accommodation_charges || (rentalData?.accommodationCost) || 0,
-                                                        usage_charges: item.custom_usage_charges || (rentalData?.usageCost) || 0,
-                                                        fuel_charges: item.custom_fuel_charges || (rentalData?.fuelCost) || 0,
-                                                        elongation_charges: item.custom_elongation_charges || (rentalData?.elongationCost) || 0,
-                                                        risk_charges: item.custom_risk_charges || (rentalData?.riskCost) || 0,
-                                                        commercial_charges: item.custom_commercial_charges || (rentalData?.commercialCost) || 0,
-                                                        incidental_charges: item.custom_incidental_charges || (rentalData?.incidentalCost) || 0,
-                                                        other_charges: item.custom_other_charges || (rentalData?.otherCost) || 0,
+                                                    item={{
+                                                        rental_type: item.custom_rental_type || item.rental_type || '',
+                                                        rental_duration: item.custom_rental_duration || item.rental_duration || 0,
+                                                        rental_start_date: item.custom_rental_start_date || item.rental_start_date || '',
+                                                        rental_end_date: item.custom_rental_end_date || item.rental_end_date || '',
+                                                        rental_start_time: item.custom_rental_start_time || item.rental_start_time || '',
+                                                        rental_end_time: item.custom_rental_end_time || item.rental_end_time || '',
+                                                        requires_operator: item.custom_requires_operator || item.requires_operator || false,
+                                                        operator_included: item.custom_operator_included || item.operator_included || false,
+                                                        operator_name: item.custom_operator_name || item.operator_name || '',
+                                                        pricing_components: {
+                                                            base_cost: item.custom_base_rental_cost || (rentalData?.baseRentalCost) || 0,
+                                                            accommodation_charges: item.custom_accommodation_charges || (rentalData?.accommodationCost) || 0,
+                                                            usage_charges: item.custom_usage_charges || (rentalData?.usageCost) || 0,
+                                                            fuel_charges: item.custom_fuel_charges || (rentalData?.fuelCost) || 0,
+                                                            elongation_charges: item.custom_elongation_charges || (rentalData?.elongationCost) || 0,
+                                                            risk_charges: item.custom_risk_charges || (rentalData?.riskCost) || 0,
+                                                            commercial_charges: item.custom_commercial_charges || (rentalData?.commercialCost) || 0,
+                                                            incidental_charges: item.custom_incidental_charges || (rentalData?.incidentalCost) || 0,
+                                                            other_charges: item.custom_other_charges || (rentalData?.otherCost) || 0,
+                                                        },
+                                                        total_rental_cost: item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0
                                                     }}
-                                                    totalCost={item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0}
                                                 />
                                             </div>
                                         </div>
