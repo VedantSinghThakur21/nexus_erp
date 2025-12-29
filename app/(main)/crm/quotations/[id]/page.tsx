@@ -233,15 +233,27 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                           <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
                             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Rental Type</p>
                             <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                              {(item.custom_rental_type || item.rental_type || 'N/A').charAt(0).toUpperCase() + (item.custom_rental_type || item.rental_type || 'N/A').slice(1)}
+                              {(() => {
+                                const rentalType = item.custom_rental_type || item.rental_type || 'N/A'
+                                if (typeof rentalType === 'string' && rentalType.length > 0 && !rentalType.includes('\n')) {
+                                  return rentalType.charAt(0).toUpperCase() + rentalType.slice(1)
+                                }
+                                return 'N/A'
+                              })()}
                             </Badge>
                           </div>
                           <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
                             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Duration</p>
                             <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                              {item.custom_rental_duration || item.rental_duration || 'N/A'}{' '}
+                              {item.custom_rental_duration || item.rental_duration || '0'}{' '}
                               <span className="text-sm font-normal text-slate-600 dark:text-slate-400">
-                                {(item.custom_rental_type || item.rental_type || '').charAt(0).toUpperCase() + (item.custom_rental_type || item.rental_type || '').slice(1)}
+                                {(() => {
+                                  const rentalType = item.custom_rental_type || item.rental_type || ''
+                                  if (typeof rentalType === 'string' && rentalType.length > 0 && !rentalType.includes('\n')) {
+                                    return rentalType.charAt(0).toUpperCase() + rentalType.slice(1)
+                                  }
+                                  return ''
+                                })()}
                               </span>
                             </p>
                           </div>

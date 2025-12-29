@@ -49,6 +49,8 @@ export async function POST(request: NextRequest) {
       // Add rental fields as custom fields if present
       // In ERPNext, custom fields are stored directly on the child table row
       if (item.is_rental) {
+        console.log('Processing rental item:', JSON.stringify(item, null, 2))
+        
         // Store complete rental data in JSON field for backup/reference
         baseItem.custom_rental_data = JSON.stringify({
           baseRentalCost: item.pricing_components?.base_cost || 0,
@@ -67,10 +69,10 @@ export async function POST(request: NextRequest) {
         
         // Store rental metadata as separate custom fields
         baseItem.custom_is_rental = 1
-        baseItem.custom_rental_type = item.rental_type
-        baseItem.custom_rental_duration = item.rental_duration
-        baseItem.custom_rental_start_date = item.rental_start_date
-        baseItem.custom_rental_end_date = item.rental_end_date
+        baseItem.custom_rental_type = item.rental_type || 'days'
+        baseItem.custom_rental_duration = item.rental_duration || 0
+        baseItem.custom_rental_start_date = item.rental_start_date || null
+        baseItem.custom_rental_end_date = item.rental_end_date || null
         
         // Store time fields if present
         if (item.rental_start_time) {
@@ -80,7 +82,12 @@ export async function POST(request: NextRequest) {
           baseItem.custom_rental_end_time = item.rental_end_time
         }
         
+        // Operator fields
+        baseItem.custom_requires_operator = item.requires_operator ? 1 : 0
         baseItem.custom_operator_included = item.operator_included ? 1 : 0
+        if (item.operator_name) {
+          baseItem.custom_operator_name = item.operator_name
+        }
         
         // Store ALL pricing components as individual custom fields for ERPNext reporting
         baseItem.custom_base_rental_cost = item.pricing_components?.base_cost || 0
@@ -93,6 +100,8 @@ export async function POST(request: NextRequest) {
         baseItem.custom_incidental_charges = item.pricing_components?.incidental_charges || 0
         baseItem.custom_other_charges = item.pricing_components?.other_charges || 0
         baseItem.custom_total_rental_cost = item.total_rental_cost || 0
+        
+        console.log('Mapped to ERPNext fields:', JSON.stringify(baseItem, null, 2))
       }
 
       return baseItem

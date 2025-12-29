@@ -59,6 +59,13 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
     })
   }
 
+  // Update components when changed from parent
+  useEffect(() => {
+    if (item.pricing_components && JSON.stringify(item.pricing_components) !== JSON.stringify(components)) {
+      setComponents(item.pricing_components)
+    }
+  }, [item.pricing_components])
+
   const totalCost = calculateTotalRentalCost(components)
 
   return (

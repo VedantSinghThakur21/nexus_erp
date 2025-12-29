@@ -39,37 +39,39 @@ export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
       </CardHeader>
       <CardContent className="space-y-5 pt-5">
         {/* Duration Info */}
-        <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-          <div className="flex items-start gap-3">
-            <Calendar className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
-            <div className="flex-1">
-              <p className="font-semibold text-sm text-slate-900 dark:text-white mb-2">Rental Period</p>
-              <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <span>
-                  {item.rental_start_date && new Date(item.rental_start_date).toLocaleDateString('en-IN', { 
-                    day: '2-digit', 
-                    month: 'short', 
-                    year: 'numeric' 
-                  })}
-                  {item.rental_start_time && ` ${item.rental_start_time.substring(0, 5)}`}
-                </span>
-                <span className="text-slate-400">\u2192</span>
-                <span>
-                  {item.rental_end_date && new Date(item.rental_end_date).toLocaleDateString('en-IN', { 
-                    day: '2-digit', 
-                    month: 'short', 
-                    year: 'numeric' 
-                  })}
-                  {item.rental_end_time && ` ${item.rental_end_time.substring(0, 5)}`}
-                </span>
+        {item.rental_start_date && item.rental_end_date && (
+          <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <div className="flex items-start gap-3">
+              <Calendar className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-slate-900 dark:text-white mb-2">Rental Period</p>
+                <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                  <span>
+                    {new Date(item.rental_start_date).toLocaleDateString('en-IN', { 
+                      day: '2-digit', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    })}
+                    {item.rental_start_time && ` ${item.rental_start_time.substring(0, 5)}`}
+                  </span>
+                  <span className="text-slate-400">\u2192</span>
+                  <span>
+                    {new Date(item.rental_end_date).toLocaleDateString('en-IN', { 
+                      day: '2-digit', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    })}
+                    {item.rental_end_time && ` ${item.rental_end_time.substring(0, 5)}`}
+                  </span>
+                </div>
+                <Badge variant="outline" className="mt-2 text-xs border-blue-300 dark:border-blue-700">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {item.rental_duration || 0} {item.rental_type ? (typeof item.rental_type === 'string' ? item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1) : 'Units') : 'Units'}
+                </Badge>
               </div>
-              <Badge variant="outline" className="mt-2 text-xs border-blue-300 dark:border-blue-700">
-                <Clock className="h-3 w-3 mr-1" />
-                {item.rental_duration} {item.rental_type ? item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1) : ''}
-              </Badge>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Operator Info */}
         {item.requires_operator && (
