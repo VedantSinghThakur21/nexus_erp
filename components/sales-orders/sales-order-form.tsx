@@ -722,28 +722,30 @@ export default function SalesOrderForm() {
                   {isRental && hasBreakdown && (
                     <tr className="bg-slate-50 dark:bg-slate-900/50">
                       <td colSpan={10} className="py-3 px-4">
-                        <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          <Package className="w-3 h-3" />
-                          <span>Rental Pricing Breakdown</span>
-                          {item.rental_type && (
-                            <Badge variant="outline" className="text-xs">
-                              {item.rental_duration} {item.rental_type}
-                            </Badge>
-                          )}
-                        </div>
                         <RentalPricingBreakdown
-                          components={{
-                            base_cost: item.base_cost || 0,
-                            accommodation_charges: item.accommodation_charges || 0,
-                            usage_charges: item.usage_charges || 0,
-                            fuel_charges: item.fuel_charges || 0,
-                            elongation_charges: item.elongation_charges || 0,
-                            risk_charges: item.risk_charges || 0,
-                            commercial_charges: item.commercial_charges || 0,
-                            incidental_charges: item.incidental_charges || 0,
-                            other_charges: item.other_charges || 0,
+                          item={{
+                            rental_type: item.rental_type || '',
+                            rental_duration: item.rental_duration || 0,
+                            rental_start_date: item.rental_start_date || '',
+                            rental_end_date: item.rental_end_date || '',
+                            rental_start_time: item.rental_start_time || '',
+                            rental_end_time: item.rental_end_time || '',
+                            requires_operator: item.requires_operator || false,
+                            operator_included: item.operator_included || false,
+                            operator_name: item.operator_name || '',
+                            pricing_components: {
+                              base_cost: item.base_cost || 0,
+                              accommodation_charges: item.accommodation_charges || 0,
+                              usage_charges: item.usage_charges || 0,
+                              fuel_charges: item.fuel_charges || 0,
+                              elongation_charges: item.elongation_charges || 0,
+                              risk_charges: item.risk_charges || 0,
+                              commercial_charges: item.commercial_charges || 0,
+                              incidental_charges: item.incidental_charges || 0,
+                              other_charges: item.other_charges || 0,
+                            },
+                            total_rental_cost: item.total_rental_cost || item.rate || 0
                           }}
-                          totalCost={item.total_rental_cost || item.rate || 0}
                         />
                       </td>
                     </tr>
