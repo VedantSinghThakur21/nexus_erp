@@ -40,11 +40,22 @@ export async function createOrganization(data: {
         subscription_status: organization.subscription.status,
         trial_end: organization.subscription.trial_end,
         owner_email: organization.owner,
-        max_users: 1,
-        max_leads: 0,
-        max_projects: 0,
-        max_invoices: 0,
-        max_storage: 0
+        usage_users: 1,
+        usage_leads: 0,
+        usage_projects: 0,
+        usage_invoices: 0,
+        usage_storage: 0
+      }
+    })
+
+    // Create organization member entry for owner
+    await frappeRequest('frappe.client.insert', 'POST', {
+      doc: {
+        doctype: 'Organization Member',
+        member_name: data.ownerEmail.split('@')[0],
+        email: data.ownerEmail,
+        role: 'owner',
+        organization_slug: organization.slug
       }
     })
 
@@ -149,11 +160,11 @@ export async function updateUsage(
     }
 
     const fieldMap = {
-      users: 'max_users',
-      leads: 'max_leads',
-      projects: 'max_projects',
-      invoices: 'max_invoices',
-      storage: 'max_storage'
+      users: 'usage_users',
+      leads: 'usage_leads',
+      projects: 'usage_projects',
+      invoices: 'usage_invoices',
+      storage: 'usage_storage'
     }
 
     const currentValue = org[fieldMap[usageType]] || 0
@@ -197,11 +208,11 @@ export async function canPerformAction(
     }
 
     const usageMap = {
-      users: org.max_users || 0,
-      leads: org.max_leads || 0,
-      projects: org.max_projects || 0,
-      invoices: org.max_invoices || 0,
-      storage: org.max_storage || 0
+      users: org.usage_users || 0,
+      leads: org.usage_leads || 0,
+      projects: org.usage_projects || 0,
+      invoices: org.usage_invoices || 0,
+      storage: org.usage_storage || 0
     }
 
     const limit = limitMap[actionType]
