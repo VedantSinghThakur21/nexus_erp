@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { SUBSCRIPTION_PLANS, SubscriptionTier } from '@/types/subscription'
 import { Check, Loader2 } from 'lucide-react'
 import { createOrganization } from '@/app/actions/organizations'
+import { getCurrentUser } from '@/app/actions/user-auth'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -22,23 +23,37 @@ export default function OnboardingPage() {
     ownerEmail: ''
   })
 
+  useEffect(() => {
+    async function loadUserEmail() {
+      const user = await getCurrentUser()
+      if (user) {
+        setFormData(prev => ({ ...prev, ownerEmail: user }))
+      }
+    }
+    loadUserEmail()
+  }, [])
+
   async function handleSubmit() {
     setLoading(true)
     
-    const result = await createOrganization({
-      name: formData.organizationName,
-      slug: formData.slug,
-      ownerEmail: formData.ownerEmail,
-      plan: selectedPlan
-    })
+    try {
+      const result = await createOrganization({
+        name: formData.organizationName,
+        slug: formData.slug,
+        ownerEmail: formData.ownerEmail,
+        plan: selectedPlan
+      })
 
-    setLoading(false)
-
-    if (result.success) {
-      // Redirect to dashboard
-      router.push('/dashboard')
-    } else {
-      alert('Error: ' + result.error)
+      if (result.success) {
+        // Redirect to dashboard
+        router.push('/dashboard')
+      } else {
+        alert('Error: ' + (result.error || 'Failed to create organization'))
+      }
+    } catch (error: any) {
+      alert('Error: ' + error.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -116,9 +131,12 @@ export default function OnboardingPage() {
                   type="email"
                   placeholder="you@example.com"
                   value={formData.ownerEmail}
-                  onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
-                  required
+                  readOnly
+                  className="bg-slate-50"
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  This is your account email
+                </p>
               </div>
 
               <Button

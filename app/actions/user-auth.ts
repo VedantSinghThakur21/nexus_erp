@@ -50,36 +50,61 @@ export async function signupUser(data: {
 }) {
   try {
     const [firstName, ...lastNameParts] = data.fullName.split(' ')
+    const erpUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
     
-    const userResult = await frappeRequest('frappe.client.insert', 'POST', {
-      doc: {
-        doctype: 'User',
+    // Use the signup API endpoint which creates users properly
+    const signupResponse = await fetch(`${erpUrl}/api/method/frappe.core.doctype.user.user.sign_up`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         email: data.email,
-        first_name: firstName,
-        last_name: lastNameParts.join(' '),
-        new_password: data.password,
-        enabled: 1,
-        send_welcome_email: 0
-      }
+        full_name: data.fullName,
+        redirect_to: '/onboarding'
+      })
     })
 
-    if (!userResult) {
-      return { success: false, error: 'Failed to create user' }
+    if (!signupResponse.ok) {
+      const errorData = await signupResponse.json()
+      return { success: false, error: errorData.message || 'Failed to create user' }
     }
 
+    // Set the password using the API
+    const erpApiKey = process.env.ERPNEXT_API_KEY
+    const erpApiSecret = process.env.ERPNEXT_API_SECRET
+
+    if (erpApiKey && erpApiSecret) {
+      await fetch(`${erpUrl}/api/method/frappe.client.set_value`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${erpApiKey}:${erpApiSecret}`
+        },
+        body: JSON.stringify({
+          doctype: 'User',
+          name: data.email,
+          fieldname: 'new_password',
+          value: data.password
+        })
+      })
+    }
+
+    // Now login with the new user credentials (not API credentials)
     const loginResult = await loginUser(data.email, data.password)
     if (!loginResult.success) {
-      return { success: false, error: 'User created but login failed' }
+      return { success: false, error: 'User created but login failed. Please try logging in manually.' }
     }
 
     return { 
       success: true, 
-      user: userResult,
+      user: { email: data.email, fullName: data.fullName },
       needsOnboarding: true,
       organizationName: data.organizationName
     }
   } catch (error: any) {
-    return { success: false, error: error.message }
+    console.error('Signup error:', error)
+    return { success: false, error: error.message || 'Failed to create account' }
   }
 }
 

@@ -11,13 +11,27 @@ export async function createOrganization(data: {
   plan?: SubscriptionTier
 }) {
   try {
+    // Format dates for ERPNext (YYYY-MM-DD HH:MM:SS)
+    const formatDateForERPNext = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const seconds = String(date.getSeconds()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    }
+
+    const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    const currentDate = new Date()
+
     const organization: Organization = {
       name: data.name,
       slug: data.slug,
       subscription: {
         plan: data.plan || 'free',
         status: 'trial',
-        trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+        trial_end: formatDateForERPNext(trialEndDate)
       },
       usage: {
         users: 1,
@@ -27,8 +41,8 @@ export async function createOrganization(data: {
         storage: 0
       },
       owner: data.ownerEmail,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: formatDateForERPNext(currentDate),
+      updated_at: formatDateForERPNext(currentDate)
     }
 
     const result = await frappeRequest('frappe.client.insert', 'POST', {
@@ -39,6 +53,8 @@ export async function createOrganization(data: {
         subscription_plan: organization.subscription.plan,
         subscription_status: organization.subscription.status,
         trial_end: organization.subscription.trial_end,
+        current_period_start: organization.created_at,
+        current_period_end: organization.subscription.trial_end,
         owner_email: organization.owner,
         usage_users: 1,
         usage_leads: 0,
