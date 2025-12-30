@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, 
   Users, 
@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
+import { logoutUser } from '@/app/actions/user-auth'
 
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -47,6 +48,13 @@ const menuItems = [
 // 1. Reusable Sidebar Content
 function SidebarContent({ isCollapsed = false, onToggle }: { isCollapsed?: boolean; onToggle?: () => void }) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await logoutUser()
+    router.push('/login')
+    router.refresh()
+  }
   
   return (
     <div 
@@ -119,11 +127,13 @@ function SidebarContent({ isCollapsed = false, onToggle }: { isCollapsed?: boole
                 Classic ERP
             </a>
 
-            <Button variant="outline" className="w-full gap-2 justify-start" asChild>
-              <Link href="/login">
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Link>
+            <Button 
+              variant="outline" 
+              className="w-full gap-2 justify-start" 
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
             </Button>
           </>
         ) : (
@@ -138,10 +148,13 @@ function SidebarContent({ isCollapsed = false, onToggle }: { isCollapsed?: boole
             >
                 <ExternalLink className="h-4 w-4" />
             </a>
-            <Button variant="outline" size="icon" asChild>
-              <Link href="/login" title="Sign Out">
-                <LogOut className="h-4 w-4" />
-              </Link>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleLogout}
+              title="Sign Out"
+            >
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         )}

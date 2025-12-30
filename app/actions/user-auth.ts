@@ -110,11 +110,28 @@ export async function signupUser(data: {
 
 export async function logoutUser() {
   try {
+    const erpUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
+    
+    // Call ERPNext logout endpoint
+    try {
+      await fetch(`${erpUrl}/api/method/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+    } catch (error) {
+      console.error('ERPNext logout error:', error)
+    }
+    
+    // Delete local session cookie
     const cookieStore = await cookies()
     cookieStore.delete('sid')
     
     return { success: true }
   } catch (error: any) {
+    console.error('Logout error:', error)
     return { success: false, error: error.message }
   }
 }
