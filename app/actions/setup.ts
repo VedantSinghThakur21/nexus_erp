@@ -205,6 +205,8 @@ export async function setupERPNextDoctypes() {
             options: 'active\ninvited\ninactive',
             default: 'active'
           }
+        ]
+      }
       })
       results.member = { status: 'created', message: 'Organization Member DocType created successfully' }
     }
