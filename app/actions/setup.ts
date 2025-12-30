@@ -215,17 +215,6 @@ export async function setupERPNextDoctypes() {
       success: true,
       message: 'Setup completed successfully',
       results
-            create: 1,
-            delete: 1
-          }
-        ]
-      }
-    })
-
-    return {
-      success: true,
-      message: 'Custom doctypes created successfully',
-      doctypes: { organization: orgDoctype, member: memberDoctype }
     }
   } catch (error: any) {
     console.error('Setup error:', error)
