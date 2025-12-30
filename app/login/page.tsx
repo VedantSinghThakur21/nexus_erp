@@ -1,39 +1,92 @@
 'use client'
 
 import { useState } from 'react'
-import { useFormStatus } from 'react-dom'
-import { login } from '@/app/actions/auth'
+import { loginUser, signupUser } from '@/app/actions/user-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRouter } from 'next/navigation'
-import { Mail, Eye, EyeOff, TrendingUp, Users, DollarSign, BarChart3 } from 'lucide-react'
-
-function SubmitButton() {
-  const { pending } = useFormStatus()
-  return (
-    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 rounded-lg" type="submit" disabled={pending}>
-      {pending ? 'Signing in...' : 'Sign In'}
-    </Button>
-  )
-}
+import { Mail, Eye, EyeOff, TrendingUp, Users, DollarSign, BarChart3, Building2, User } from 'lucide-react'
 
 export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null)
+  const [loginError, setLoginError] = useState<string | null>(null)
+  const [signupError, setSignupError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [signupLoading, setSignupLoading] = useState(false)
   const router = useRouter()
 
-  async function handleSubmit(formData: FormData) {
-    setError(null)
+  async function handleLogin(formData: FormData) {
+    setLoginError(null)
+    setLoginLoading(true)
     
-    const result = await login(null, formData)
+    try {
+      const email = formData.get('email') as string
+      const password = formData.get('password') as string
+      
+      const result = await loginUser(email, password)
+      
+      if (result.success) {
+        router.push('/dashboard')
+      } else {
+        setLoginError(result.error || 'Invalid email or password')
+      }
+    } catch (error) {
+      setLoginError('An error occurred during login')
+    } finally {
+      setLoginLoading(false)
+    }
+  }
+
+  async function handleSignup(formData: FormData) {
+    setSignupError(null)
+    setSignupLoading(true)
     
-    if (result?.error) {
-      setError(result.error)
-    } else if (result?.success) {
-      router.refresh() 
-      router.push('/dashboard') 
+    try {
+      const email = formData.get('email') as string
+      const password = formData.get('password') as string
+      const confirmPassword = formData.get('confirmPassword') as string
+      const fullName = formData.get('fullName') as string
+      const organizationName = formData.get('organizationName') as string
+      
+      // Validate password match
+      if (password !== confirmPassword) {
+        setSignupError('Passwords do not match')
+        setSignupLoading(false)
+        return
+      }
+      
+      // Validate required fields
+      if (!email || !password || !fullName || !organizationName) {
+        setSignupError('All fields are required')
+        setSignupLoading(false)
+        return
+      }
+      
+      const result = await signupUser({
+        email,
+        password,
+        fullName,
+        organizationName
+      })
+      
+      if (result.success) {
+        // Redirect to onboarding if needed, otherwise dashboard
+        if (result.needsOnboarding) {
+          router.push('/onboarding')
+        } else {
+          router.push('/dashboard')
+        }
+      } else {
+        setSignupError(result.error || 'Failed to create account')
+      }
+    } catch (error) {
+      setSignupError('An error occurred during signup')
+    } finally {
+      setSignupLoading(false)
     }
   }
 
@@ -109,84 +162,215 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Panel - Login Form */}
+      {/* Right Panel - Login/Signup Forms */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0d1117]">
         <div className="w-full max-w-md">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
-            <p className="text-slate-400">Enter your details to access your sales pipeline.</p>
-          </div>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#161b22] border border-slate-700">
+              <TabsTrigger value="login" className="data-[state=active]:bg-blue-600">Sign In</TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-blue-600">Create Account</TabsTrigger>
+            </TabsList>
 
-          <form action={handleSubmit} className="space-y-6">
-            {/* Email Input */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-300">Email address</Label>
-              <div className="relative">
-                <Input 
-                  id="email" 
-                  name="email" 
-                  type="text" 
-                  placeholder="name@company.com" 
-                  required 
-                  className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
-                />
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+            {/* Login Tab */}
+            <TabsContent value="login">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
+                <p className="text-slate-400">Enter your details to access your sales pipeline.</p>
               </div>
-            </div>
 
-            {/* Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-300">Password</Label>
-              <div className="relative">
-                <Input 
-                  id="password" 
-                  name="password" 
-                  type={showPassword ? "text" : "password"}
-                  required 
-                  className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              <form action={handleLogin} className="space-y-6">
+                {/* Email Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="login-email" className="text-sm font-medium text-slate-300">Email address</Label>
+                  <div className="relative">
+                    <Input 
+                      id="login-email" 
+                      name="email" 
+                      type="email" 
+                      placeholder="name@company.com" 
+                      required 
+                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  </div>
+                </div>
+
+                {/* Password Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="login-password" className="text-sm font-medium text-slate-300">Password</Label>
+                  <div className="relative">
+                    <Input 
+                      id="login-password" 
+                      name="password" 
+                      type={showPassword ? "text" : "password"}
+                      required 
+                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remember Me & Forgot Password */}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-700 bg-[#161b22] text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                    />
+                    <span className="text-sm text-slate-400">Remember me</span>
+                  </label>
+                  <button type="button" className="text-sm text-blue-500 hover:text-blue-400">
+                    Forgot password?
+                  </button>
+                </div>
+                
+                {loginError && (
+                  <div className="text-sm text-red-400 font-medium bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                    {loginError}
+                  </div>
+                )}
+
+                <Button 
+                  type="submit" 
+                  disabled={loginLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
+                  {loginLoading ? 'Signing in...' : 'Sign in'}
+                </Button>
+              </form>
+            </TabsContent>
+
+            {/* Signup Tab */}
+            <TabsContent value="signup">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-2">Create your account</h2>
+                <p className="text-slate-400">Start your 14-day free trial, no credit card required.</p>
               </div>
-            </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-700 bg-[#161b22] text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
-                />
-                <span className="text-sm text-slate-400">Remember me</span>
-              </label>
-              <button type="button" className="text-sm text-blue-500 hover:text-blue-400">
-                Forgot password?
-              </button>
-            </div>
-            
-            {error && (
-              <div className="text-sm text-red-400 font-medium bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                {error}
-              </div>
-            )}
+              <form action={handleSignup} className="space-y-6">
+                {/* Full Name Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-sm font-medium text-slate-300">Full Name</Label>
+                  <div className="relative">
+                    <Input 
+                      id="fullName" 
+                      name="fullName" 
+                      type="text" 
+                      placeholder="John Doe" 
+                      required 
+                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  </div>
+                </div>
 
-            <SubmitButton />
+                {/* Email Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email" className="text-sm font-medium text-slate-300">Email address</Label>
+                  <div className="relative">
+                    <Input 
+                      id="signup-email" 
+                      name="email" 
+                      type="email" 
+                      placeholder="name@company.com" 
+                      required 
+                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  </div>
+                </div>
 
-            {/* Footer */}
-            <p className="text-center text-sm text-slate-400">
-              Don't have an account?{' '}
-              <button type="button" className="text-blue-500 hover:text-blue-400 font-medium">
-                Contact Admin
-              </button>
-            </p>
-          </form>
+                {/* Organization Name Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="organizationName" className="text-sm font-medium text-slate-300">Organization Name</Label>
+                  <div className="relative">
+                    <Input 
+                      id="organizationName" 
+                      name="organizationName" 
+                      type="text" 
+                      placeholder="Acme Corp" 
+                      required 
+                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  </div>
+                </div>
+
+                {/* Password Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password" className="text-sm font-medium text-slate-300">Password</Label>
+                  <div className="relative">
+                    <Input 
+                      id="signup-password" 
+                      name="password" 
+                      type={showPassword ? "text" : "password"}
+                      required 
+                      minLength={6}
+                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">Confirm Password</Label>
+                  <div className="relative">
+                    <Input 
+                      id="confirmPassword" 
+                      name="confirmPassword" 
+                      type={showConfirmPassword ? "text" : "password"}
+                      required 
+                      minLength={6}
+                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+                
+                {signupError && (
+                  <div className="text-sm text-red-400 font-medium bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                    {signupError}
+                  </div>
+                )}
+
+                <Button 
+                  type="submit" 
+                  disabled={signupLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  {signupLoading ? 'Creating account...' : 'Create Account'}
+                </Button>
+
+                <p className="text-xs text-slate-500 text-center">
+                  By creating an account, you agree to our{' '}
+                  <button type="button" className="text-blue-500 hover:text-blue-400">Terms of Service</button>
+                  {' '}and{' '}
+                  <button type="button" className="text-blue-500 hover:text-blue-400">Privacy Policy</button>
+                </p>
+              </form>
+            </TabsContent>
+          </Tabs>
 
           {/* Footer Text */}
           <div className="mt-8 pt-6 border-t border-slate-800">

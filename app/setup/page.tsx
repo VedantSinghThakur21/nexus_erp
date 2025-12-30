@@ -1,7 +1,9 @@
 import { setupERPNextDoctypes, linkOrganizationToExistingDocs } from '@/app/actions/setup'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, AlertCircle } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { CheckCircle, AlertCircle, Info } from 'lucide-react'
+import { redirect } from 'next/navigation'
 
 async function runSetup() {
   'use server'
@@ -11,7 +13,15 @@ async function runSetup() {
   return { doctypeResult, linkResult }
 }
 
-export default async function SetupPage() {
+export default async function SetupPage({ searchParams }: { searchParams: Promise<{ ran?: string }> }) {
+  const params = await searchParams
+  const hasRun = params.ran === 'true'
+  
+  let setupResults = null
+  if (hasRun) {
+    setupResults = await runSetup()
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
       <Card className="max-w-2xl w-full">
@@ -22,6 +32,69 @@ export default async function SetupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          
+          {/* Show results if setup has run */}
+          {setupResults && (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <p className="font-semibold text-green-900">Setup Completed</p>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold mb-2">DocTypes:</p>
+                    <div className="space-y-1">
+                      {setupResults.doctypeResult.results?.organization && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Badge variant={setupResults.doctypeResult.results.organization.status === 'created' ? 'default' : 'secondary'}>
+                            {setupResults.doctypeResult.results.organization.status}
+                          </Badge>
+                          <span>Organization: {setupResults.doctypeResult.results.organization.message}</span>
+                        </div>
+                      )}
+                      {setupResults.doctypeResult.results?.member && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Badge variant={setupResults.doctypeResult.results.member.status === 'created' ? 'default' : 'secondary'}>
+                            {setupResults.doctypeResult.results.member.status}
+                          </Badge>
+                          <span>Organization Member: {setupResults.doctypeResult.results.member.message}</span>
+                        </div>
+                      )}
+           a href="/setup?ran=true">
+            <Button className="w-full" size="lg">
+              Run Setup
+            </Button>
+          </a    <p className="text-sm font-semibold mb-2">Custom Fields:</p>
+                    <div className="space-y-1">
+                      {setupResults.linkResult.results && Object.entries(setupResults.linkResult.results).map(([doctype, result]: [string, any]) => (
+                        <div key={doctype} className="flex items-center gap-2 text-sm">
+                          <Badge variant={result.status === 'created' ? 'default' : result.status === 'exists' ? 'secondary' : 'destructive'}>
+                            {result.status}
+                          </Badge>
+                          <span>{doctype}: {result.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <a href="/dashboard" className="flex-1">
+                  <Button className="w-full">Go to Dashboard</Button>
+                </a>
+                <a href="/login" className="flex-1">
+                  <Button variant="outline" className="w-full">Go to Login</Button>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Show setup instructions if not run yet */}
+          {!setupResults && (
+            <>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">
               <strong>⚠️ Important:</strong> Run this setup only once when first deploying the application.
@@ -70,6 +143,8 @@ export default async function SetupPage() {
               </div>
             </div>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -8,9 +8,23 @@
 import { frappeRequest } from '@/app/lib/api'
 
 export async function setupERPNextDoctypes() {
+  const results = {
+    organization: { status: 'skipped', message: 'Already exists' },
+    member: { status: 'skipped', message: 'Already exists' }
+  }
+
   try {
-    // 1. Create Organization DocType
-    const orgDoctype = await frappeRequest('frappe.client.insert', 'POST', {
+    // Check if Organization already exists
+    try {
+      await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'DocType',
+        filters: JSON.stringify({ name: 'Organization' }),
+        limit_page_length: 1
+      })
+      results.organization = { status: 'exists', message: 'Organization DocType already exists' }
+    } catch {
+      // DocType doesn't exist, create it
+      const orgDoctype = await frappeRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'DocType',
         name: 'Organization',
@@ -130,10 +144,21 @@ export async function setupERPNextDoctypes() {
           }
         ]
       }
-    })
+      })
+      results.organization = { status: 'created', message: 'Organization DocType created successfully' }
+    }
 
-    // 2. Create Organization Member DocType
-    const memberDoctype = await frappeRequest('frappe.client.insert', 'POST', {
+    // Check if Organization Member already exists
+    try {
+      await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'DocType',
+        filters: JSON.stringify({ name: 'Organization Member' }),
+        limit_page_length: 1
+      })
+      results.member = { status: 'exists', message: 'Organization Member DocType already exists' }
+    } catch {
+      // DocType doesn't exist, create it
+      const memberDoctype = await frappeRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'DocType',
         name: 'Organization Member',
@@ -180,12 +205,14 @@ export async function setupERPNextDoctypes() {
             options: 'active\ninvited\ninactive',
             default: 'active'
           }
-        ],
-        permissions: [
-          {
-            role: 'System Manager',
-            read: 1,
-            write: 1,
+      })
+      results.member = { status: 'created', message: 'Organization Member DocType created successfully' }
+    }
+
+    return {
+      success: true,
+      message: 'Setup completed successfully',
+      results
             create: 1,
             delete: 1
           }
@@ -209,24 +236,42 @@ export async function setupERPNextDoctypes() {
 }
 
 // Add organization context to existing custom fields
-export async function linkOrganizationToExistingDocs() {
-  const doctypes = ['Lead', 'Quotation', 'Sales Order', 'Sales Invoice', 'Project']
+  const results: Record<string, any> = {}
 
   try {
     for (const doctype of doctypes) {
-      await frappeRequest('frappe.client.insert', 'POST', {
-        doc: {
+      try {
+        // Check if field already exists
+        const existing = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Custom Field',
-          dt: doctype,
-          fieldname: 'organization_slug',
-          label: 'Organization',
-          fieldtype: 'Data',
-          insert_after: 'naming_series'
+          filters: JSON.stringify({ dt: doctype, fieldname: 'organization_slug' }),
+          limit_page_length: 1
+        })
+
+        if (existing && existing.length > 0) {
+          results[doctype] = { status: 'exists', message: 'Field already exists' }
+        } else {
+          // Field doesn't exist, create it
+          await frappeRequest('frappe.client.insert', 'POST', {
+            doc: {
+              doctype: 'Custom Field',
+              dt: doctype,
+              fieldname: 'organization_slug',
+              label: 'Organization',
+              fieldtype: 'Data',
+              insert_after: 'naming_series'
+            }
+          })
+          results[doctype] = { status: 'created', message: 'Field created successfully' }
         }
-      })
+      } catch (error: any) {
+        results[doctype] = { status: 'error', message: error.message }
+      }
     }
 
-    return { success: true, message: 'Organization field added to all documents' }
+    return { success: true, message: 'Setup completed', results }
+  } catch (error: any) {
+    return { success: false, error: error.message, resultsn field added to all documents' }
   } catch (error: any) {
     return { success: false, error: error.message }
   }
