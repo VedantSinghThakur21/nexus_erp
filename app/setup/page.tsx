@@ -62,11 +62,11 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
                           <span>Organization Member: {setupResults.doctypeResult.results.member.message}</span>
                         </div>
                       )}
-           a href="/setup?ran=true">
-            <Button className="w-full" size="lg">
-              Run Setup
-            </Button>
-          </a    <p className="text-sm font-semibold mb-2">Custom Fields:</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Custom Fields:</p>
                     <div className="space-y-1">
                       {setupResults.linkResult.results && Object.entries(setupResults.linkResult.results).map(([doctype, result]: [string, any]) => (
                         <div key={doctype} className="flex items-center gap-2 text-sm">
