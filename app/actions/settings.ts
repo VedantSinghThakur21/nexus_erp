@@ -15,16 +15,21 @@ export interface User {
 // 1. Get Current User Details
 export async function getProfile() {
   try {
-    // Use userRequest to get the actual logged-in user, not the API bot
-    const email = await userRequest('frappe.auth.get_logged_user', 'GET', {})
-    console.log('Getting profile for user:', email)
+    const { cookies } = await import('next/headers')
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value
     
-    const user = await userRequest('frappe.client.get', 'GET', {
-        doctype: 'User',
-        name: email
-    })
+    if (!userEmail) {
+      console.error('No user email found in cookies')
+      return null
+    }
+    
+    console.log('Getting profile for user:', userEmail)
+    
+    // Fetch user directly from User doctype
+    const user = await userRequest(`/api/resource/User/${userEmail}`, 'GET')
     console.log('User profile:', user)
-    return user as User
+    return user.data as User
   } catch (e) {
     console.error('Get profile error:', e)
     return null

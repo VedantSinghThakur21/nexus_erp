@@ -41,6 +41,14 @@ export async function loginUser(email: string, password: string) {
         }
       }
 
+      // Store user email for profile retrieval
+      cookieStore.set('user_email', email, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7
+      })
+
       return { success: true, user: data.full_name || email }
     }
 
@@ -225,6 +233,7 @@ export async function logoutUser() {
     // Delete local session cookie
     const cookieStore = await cookies()
     cookieStore.delete('sid')
+    cookieStore.delete('user_email')
     
     return { success: true }
   } catch (error: any) {
@@ -235,10 +244,16 @@ export async function logoutUser() {
 
 export async function getCurrentUser() {
   try {
-    // Use userRequest instead of frappeRequest to get the actual logged-in user
-    const result = await userRequest('frappe.auth.get_logged_user', 'GET', {})
-    console.log('Current user from session:', result)
-    return result
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value
+    
+    if (!userEmail) {
+      console.log('No user email found in cookies')
+      return null
+    }
+    
+    console.log('Current user from cookie:', userEmail)
+    return userEmail
   } catch (error) {
     console.error('Get current user error:', error)
     return null
