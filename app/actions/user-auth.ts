@@ -7,6 +7,8 @@ export async function loginUser(email: string, password: string) {
   try {
     const erpUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
     
+    console.log('Attempting login for:', email)
+    
     const response = await fetch(`${erpUrl}/api/method/login`, {
       method: 'POST',
       headers: {
@@ -19,6 +21,7 @@ export async function loginUser(email: string, password: string) {
     })
 
     const data = await response.json()
+    console.log('Login response:', data)
 
     if (data.message === 'Logged In' || response.ok) {
       const cookieStore = await cookies()
@@ -36,8 +39,10 @@ export async function loginUser(email: string, password: string) {
       return { success: true, user: data.full_name || email }
     }
 
-    return { success: false, error: 'Invalid credentials' }
+    return { success: false, error: data.message || 'Invalid credentials' }
   } catch (error: any) {
+    console.error('Login error:', error)
+    return { success: false, error: error.message }
     return { success: false, error: error.message }
   }
 }
@@ -49,62 +54,116 @@ export async function signupUser(data: {
   organizationName: string
 }) {
   try {
-    const [firstName, ...lastNameParts] = data.fullName.split(' ')
-    const erpUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
+    console.log('Starting signup process for:', data.email)
     
-    // Use the signup API endpoint which creates users properly
-    const signupResponse = await fetch(`${erpUrl}/api/method/frappe.core.doctype.user.user.sign_up`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: data.email,
-        full_name: data.fullName,
-        redirect_to: '/onboarding'
+    // First check if user already exists
+    try {
+      const existingUsers = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'User',
+        filters: JSON.stringify({ email: data.email }),
+        fields: JSON.stringify(['name', 'email']),
+        limit_page_length: 1
       })
-    })
-
-    if (!signupResponse.ok) {
-      const errorData = await signupResponse.json()
-      return { success: false, error: errorData.message || 'Failed to create user' }
+      
+      if (existingUsers && existingUsers.length > 0) {
+        console.log('User already exists:', data.email)
+        return { 
+          success: false, 
+          error: 'An account with this email already exists. Please log in instead.' 
+        }
+      }
+    } catch (checkError) {
+      console.log('Could not check existing user (may not exist yet):', checkError)
+    }
+    
+    const [firstName, ...lastNameParts] = data.fullName.split(' ')
+    
+    // Create user with minimal required fields
+    const userDoc = {
+      doctype: 'User',
+      email: data.email,
+      first_name: firstName,
+      last_name: lastNameParts.join(' ') || firstName,
+      enabled: 1,
+      send_welcome_email: 0,
+      new_password: data.password
     }
 
-    // Set the password using the API
-    const erpApiKey = process.env.ERPNEXT_API_KEY
-    const erpApiSecret = process.env.ERPNEXT_API_SECRET
+    console.log('Creating user with data:', { email: userDoc.email, firstName: userDoc.first_name })
 
-    if (erpApiKey && erpApiSecret) {
-      await fetch(`${erpUrl}/api/method/frappe.client.set_value`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `token ${erpApiKey}:${erpApiSecret}`
-        },
-        body: JSON.stringify({
-          doctype: 'User',
-          name: data.email,
-          fieldname: 'new_password',
-          value: data.password
-        })
+    try {
+      const userResult = await frappeRequest('frappe.client.insert', 'POST', {
+        doc: userDoc
       })
-    }
 
-    // Now login with the new user credentials (not API credentials)
-    const loginResult = await loginUser(data.email, data.password)
-    if (!loginResult.success) {
-      return { success: false, error: 'User created but login failed. Please try logging in manually.' }
-    }
+      if (!userResult) {
+        return { success: false, error: 'Failed to create user account. Please try again.' }
+      }
 
-    return { 
-      success: true, 
-      user: { email: data.email, fullName: data.fullName },
-      needsOnboarding: true,
-      organizationName: data.organizationName
+      console.log('User created successfully:', userResult)
+
+      // Give ERPNext a moment to process the user creation
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Now login with the new user credentials
+      console.log('Attempting to login new user...')
+      const loginResult = await loginUser(data.email, data.password)
+      
+      if (!loginResult.success) {
+        console.warn('Auto-login failed after user creation')
+        return { 
+          success: false, 
+          error: 'Account created successfully! Please log in with your credentials.',
+          userCreated: true
+        }
+      }
+
+      console.log('User logged in successfully')
+      return { 
+        success: true, 
+        user: { email: data.email, fullName: data.fullName },
+        needsOnboarding: true,
+        organizationName: data.organizationName
+      }
+    } catch (createError: any) {
+      console.error('User creation error:', createError)
+      
+      const errorMsg = createError.message || ''
+      
+      // Check for common error patterns
+      if (errorMsg.includes('already exists') || errorMsg.includes('duplicate')) {
+        return { 
+          success: false, 
+          error: 'An account with this email already exists. Please log in instead.' 
+        }
+      }
+      
+      if (errorMsg.includes('password')) {
+        return {
+          success: false,
+          error: 'Password does not meet requirements. Please use a stronger password.'
+        }
+      }
+      
+      if (errorMsg.includes('email') || errorMsg.includes('valid')) {
+        return {
+          success: false,
+          error: 'Please enter a valid email address.'
+        }
+      }
+      
+      // Generic error with helpful message
+      return { 
+        success: false, 
+        error: `Failed to create account: ${errorMsg.substring(0, 100)}. Please contact support if the issue persists.` 
+      }
     }
   } catch (error: any) {
     console.error('Signup error:', error)
-    return { success: false, error: error.message || 'Failed to create account' }
+    return { 
+      success: false, 
+      error: 'An unexpected error occurred. Please check your connection and try again.' 
+    }
   }
 }
 

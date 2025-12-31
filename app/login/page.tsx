@@ -59,9 +59,24 @@ export default function LoginPage() {
         return
       }
       
+      // Validate password length
+      if (password.length < 6) {
+        setSignupError('Password must be at least 6 characters')
+        setSignupLoading(false)
+        return
+      }
+      
       // Validate required fields
       if (!email || !password || !fullName || !organizationName) {
         setSignupError('All fields are required')
+        setSignupLoading(false)
+        return
+      }
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        setSignupError('Please enter a valid email address')
         setSignupLoading(false)
         return
       }
@@ -82,27 +97,33 @@ export default function LoginPage() {
         }
       } else {
         setSignupError(result.error || 'Failed to create account')
+        // If user was created but login failed, suggest switching to login tab
+        if ((result as any).userCreated) {
+          setTimeout(() => {
+            // Could switch to login tab here if needed
+          }, 3000)
+        }
       }
-    } catch (error) {
-      setSignupError('An error occurred during signup')
+    } catch (error: any) {
+      setSignupError(error.message || 'An error occurred during signup')
     } finally {
       setSignupLoading(false)
     }
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#0a0e1a]">
+    <div suppressHydrationWarning className="flex h-screen w-full bg-[#0a0e1a]">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
+      <div suppressHydrationWarning className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl"></div>
+        <div suppressHydrationWarning className="absolute inset-0 opacity-10">
+          <div suppressHydrationWarning className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
+          <div suppressHydrationWarning className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl"></div>
         </div>
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+        <div suppressHydrationWarning className="relative z-10">
+          <div suppressHydrationWarning className="flex items-center gap-3 mb-8">
+            <div suppressHydrationWarning className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <TrendingUp className="h-6 w-6 text-white" />
             </div>
             <span className="text-2xl font-bold text-white">Nexus ERP</span>
