@@ -1,7 +1,7 @@
 'use server'
 
 import { cookies } from 'next/headers'
-import { frappeRequest } from '@/app/lib/api'
+import { frappeRequest, userRequest } from '@/app/lib/api'
 
 export async function loginUser(email: string, password: string) {
   try {
@@ -23,17 +23,22 @@ export async function loginUser(email: string, password: string) {
     const data = await response.json()
     console.log('Login response:', data)
 
-    if (data.message === 'Logged In' || response.ok) {
+    if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
       const cookieStore = await cookies()
       const setCookieHeader = response.headers.get('set-cookie')
       
       if (setCookieHeader) {
-        cookieStore.set('sid', setCookieHeader.split(';')[0].split('=')[1], {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7
-        })
+        // Extract sid cookie value
+        const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
+        if (sidMatch) {
+          cookieStore.set('sid', sidMatch[1], {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7
+          })
+          console.log('Session cookie set for user:', email)
+        }
       }
 
       return { success: true, user: data.full_name || email }
@@ -197,9 +202,12 @@ export async function logoutUser() {
 
 export async function getCurrentUser() {
   try {
-    const result = await frappeRequest('frappe.auth.get_logged_user', 'GET', {})
+    // Use userRequest instead of frappeRequest to get the actual logged-in user
+    const result = await userRequest('frappe.auth.get_logged_user', 'GET', {})
+    console.log('Current user from session:', result)
     return result
   } catch (error) {
+    console.error('Get current user error:', error)
     return null
   }
 }
@@ -207,18 +215,27 @@ export async function getCurrentUser() {
 export async function getCurrentUserOrganization() {
   try {
     const user = await getCurrentUser()
-    if (!user) return null
+    if (!user) {
+      console.log('No user logged in')
+      return null
+    }
 
-    const orgs = await frappeRequest('frappe.client.get_list', 'GET', {
+    console.log('Fetching organization for user:', user)
+
+    // Use userRequest for user-specific data
+    const orgs = await userRequest('frappe.client.get_list', 'GET', {
       doctype: 'Organization Member',
       filters: JSON.stringify({ email: user }),
       fields: JSON.stringify(['organization_slug', 'role']),
       limit_page_length: 1
     })
 
-    if (!orgs || orgs.length === 0) return null
+    if (!orgs || orgs.length === 0) {
+      console.log('No organization found for user')
+      return null
+    }
 
-    const org = await frappeRequest('frappe.client.get', 'GET', {
+    const org = await userRequest('frappe.client.get', 'GET', {
       doctype: 'Organization',
       filters: JSON.stringify({ slug: orgs[0].organization_slug })
     })

@@ -4,6 +4,67 @@ const BASE_URL = process.env.ERP_NEXT_URL
 const API_KEY = process.env.ERP_API_KEY
 const API_SECRET = process.env.ERP_API_SECRET
 
+/**
+ * Make authenticated request as the logged-in user (uses session cookie)
+ * Use this for user-specific operations
+ */
+export async function userRequest(endpoint: string, method = 'GET', body: any = null) {
+  const cookieStore = await cookies()
+  const sessionCookie = cookieStore.get('sid')
+  
+  if (!sessionCookie) {
+    throw new Error('Not authenticated')
+  }
+
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+    'Cookie': `sid=${sessionCookie.value}`,
+  }
+
+  if (method !== 'GET') {
+    headers['Content-Type'] = 'application/json'
+  }
+
+  let url = `${BASE_URL}/api/method/${endpoint}`
+  const fetchOptions: RequestInit = {
+    method,
+    headers,
+    cache: 'no-store',
+    credentials: 'include',
+  }
+
+  if (method === 'GET' && body) {
+    const params = new URLSearchParams()
+    Object.entries(body).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value))
+      }
+    })
+    url += `?${params.toString()}`
+  } else if (body) {
+    fetchOptions.body = JSON.stringify(body)
+  }
+
+  try {
+    const res = await fetch(url, fetchOptions)
+    const data = await res.json()
+
+    if (!res.ok) {
+      console.error('User API Error:', { status: res.status, data })
+      throw new Error(data.message || data._server_messages || 'Request failed')
+    }
+
+    return data.message || data.data || data
+  } catch (error: any) {
+    console.error('User Request Failed:', error.message)
+    throw error
+  }
+}
+
+/**
+ * Make request with API credentials (for admin operations)
+ * Use this only for system-level operations like creating users/organizations
+ */
 export async function frappeRequest(endpoint: string, method = 'GET', body: any = null) {
   // We prefer API Key/Secret for stability (Bypasses CSRF issues)
   const authHeader = `token ${API_KEY}:${API_SECRET}`
