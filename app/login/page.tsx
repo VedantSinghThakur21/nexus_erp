@@ -60,8 +60,20 @@ export default function LoginPage() {
       }
       
       // Validate password length
-      if (password.length < 6) {
-        setSignupError('Password must be at least 6 characters')
+      if (password.length < 8) {
+        setSignupError('Password must be at least 8 characters long')
+        setSignupLoading(false)
+        return
+      }
+      
+      // Validate password strength (ERPNext requirements)
+      const hasUppercase = /[A-Z]/.test(password)
+      const hasLowercase = /[a-z]/.test(password)
+      const hasNumber = /[0-9]/.test(password)
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+      
+      if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+        setSignupError('Password must include uppercase, lowercase, number, and special character (!@#$%^&*)')
         setSignupLoading(false)
         return
       }
@@ -334,7 +346,7 @@ export default function LoginPage() {
                       name="password" 
                       type={showPassword ? "text" : "password"}
                       required 
-                      minLength={6}
+                      minLength={8}
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <button
@@ -345,6 +357,9 @@ export default function LoginPage() {
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                  <p className="text-xs text-slate-400">
+                    Must be at least 8 characters with uppercase, lowercase, number, and special character (!@#$%^&*)
+                  </p>
                 </div>
 
                 {/* Confirm Password Input */}
@@ -356,7 +371,7 @@ export default function LoginPage() {
                       name="confirmPassword" 
                       type={showConfirmPassword ? "text" : "password"}
                       required 
-                      minLength={6}
+                      minLength={8}
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <button

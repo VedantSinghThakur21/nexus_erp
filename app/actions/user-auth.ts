@@ -61,6 +61,31 @@ export async function signupUser(data: {
   try {
     console.log('Starting signup process for:', data.email)
     
+    // Validate password strength (ERPNext requirements)
+    const passwordErrors = []
+    if (data.password.length < 8) {
+      passwordErrors.push('at least 8 characters')
+    }
+    if (!/[A-Z]/.test(data.password)) {
+      passwordErrors.push('at least one uppercase letter')
+    }
+    if (!/[a-z]/.test(data.password)) {
+      passwordErrors.push('at least one lowercase letter')
+    }
+    if (!/[0-9]/.test(data.password)) {
+      passwordErrors.push('at least one number')
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(data.password)) {
+      passwordErrors.push('at least one special character')
+    }
+    
+    if (passwordErrors.length > 0) {
+      return {
+        success: false,
+        error: `Password must contain ${passwordErrors.join(', ')}`
+      }
+    }
+    
     // First check if user already exists
     try {
       const existingUsers = await frappeRequest('frappe.client.get_list', 'GET', {
@@ -134,6 +159,14 @@ export async function signupUser(data: {
       console.error('User creation error:', createError)
       
       const errorMsg = createError.message || ''
+      
+      // Check for password validation errors
+      if (errorMsg.includes('Invalid Password') || errorMsg.includes('password')) {
+        return {
+          success: false,
+          error: 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character (!@#$%^&*)'
+        }
+      }
       
       // Check for common error patterns
       if (errorMsg.includes('already exists') || errorMsg.includes('duplicate')) {
