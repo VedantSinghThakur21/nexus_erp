@@ -7,9 +7,32 @@
 
 const https = require('https');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
-// Load environment variables
-require('dotenv').config({ path: '.env.local' });
+// Load environment variables from .env.local manually
+function loadEnvFile() {
+  try {
+    const envPath = path.join(__dirname, '..', '.env.local');
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      envContent.split('\n').forEach(line => {
+        const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+        if (match) {
+          const key = match[1];
+          let value = match[2] || '';
+          // Remove quotes if present
+          value = value.replace(/^['"]|['"]$/g, '');
+          process.env[key] = value;
+        }
+      });
+    }
+  } catch (error) {
+    // Ignore if file doesn't exist, will use defaults
+  }
+}
+
+loadEnvFile();
 
 const ERP_NEXT_URL = process.env.ERP_NEXT_URL || 'http://103.224.243.242:8080';
 const ERP_API_KEY = process.env.ERP_API_KEY;
