@@ -98,10 +98,19 @@ export async function middleware(request: NextRequest) {
   // Handle subdomain routing
   let erpnextUrl = process.env.ERP_NEXT_URL || 'http://103.224.243.242:8080'
   let tenantMode = 'master'
+  let tenantSubdomain = subdomain
   
-  if (subdomain) {
+  // For development without DNS: Check if user has tenant_subdomain cookie
+  if (!subdomain) {
+    const tenantCookie = request.cookies.get('tenant_subdomain')
+    if (tenantCookie && !isPublicRoute) {
+      tenantSubdomain = tenantCookie.value
+    }
+  }
+  
+  if (tenantSubdomain) {
     // Fetch tenant configuration
-    const tenant = await getTenantConfig(subdomain)
+    const tenant = await getTenantConfig(tenantSubdomain)
     
     if (tenant) {
       if (tenant.status !== 'active' && tenant.status !== 'trial') {
@@ -146,7 +155,7 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next()
   response.headers.set('X-ERPNext-URL', erpnextUrl)
   response.headers.set('X-Tenant-Mode', tenantMode)
-  response.headers.set('X-Subdomain', subdomain || '')
+  response.headers.set('X-Subdomain', tenantSubdomain || '')
   
   return response
 }
