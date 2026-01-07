@@ -62,7 +62,7 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     }
 
     // Check if subdomain is available
-    const existing = await frappeRequest('frappe.client.get_list', {
+    const existing = await frappeRequest('frappe.client.get_list', 'POST', {
       doctype: 'Tenant',
       filters: { subdomain },
       limit_page_length: 1
