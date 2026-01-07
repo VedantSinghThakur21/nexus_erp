@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { frappeRequest } from '../lib/api'
 import { createTenant } from './tenants'
 import { provisionTenant } from './provision'
+import { setupTenantDocType } from './setup-tenant'
 
 interface SignupData {
   email: string
@@ -33,6 +34,18 @@ interface SignupResult {
  */
 export async function signupWithTenant(data: SignupData): Promise<SignupResult> {
   try {
+    // First, ensure Tenant DocType exists (auto-create if missing)
+    console.log('Checking Tenant DocType...')
+    try {
+      const setupResult = await setupTenantDocType()
+      if (setupResult.success) {
+        console.log('Tenant DocType ready:', setupResult.message)
+      }
+    } catch (setupError) {
+      console.error('Failed to setup Tenant DocType:', setupError)
+      // Continue anyway - might already exist
+    }
+
     // Generate subdomain from organization name if not provided
     let subdomain = data.subdomain
     if (!subdomain) {

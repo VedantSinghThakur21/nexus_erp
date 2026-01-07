@@ -1,5 +1,8 @@
+'use client'
+
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const Pricing = () => {
   const plans = [
@@ -118,13 +121,15 @@ const Pricing = () => {
               </ul>
 
               {/* CTA */}
-              <Button
-                variant={plan.popular ? "default" : "outline"}
-                className={`w-full ${plan.popular ? "bg-blue-600 hover:bg-blue-700" : ""}`}
-                size="lg"
-              >
-                {plan.cta}
-              </Button>
+              <Link href={plan.cta === "Contact Sales" ? "/contact" : "/login"}>
+                <Button
+                  variant={plan.popular ? "default" : "outline"}
+                  className={`w-full ${plan.popular ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                  size="lg"
+                >
+                  {plan.cta}
+                </Button>
+              </Link>
             </div>
           ))}
         </div>

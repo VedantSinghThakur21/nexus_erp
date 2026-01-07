@@ -75,12 +75,17 @@ export async function middleware(request: NextRequest) {
   const subdomain = getSubdomain(hostname)
   
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/signup', '/api', '/setup']
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+  const publicRoutes = ['/login', '/signup', '/api', '/setup', '/', '/contact', '/demo']
+  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route))
   
   // Check for session cookie
   const sessionCookie = request.cookies.get('sid')
   const hasSession = !!sessionCookie
+  
+  // Don't redirect to dashboard from landing page
+  if (pathname === '/' && !subdomain) {
+    return NextResponse.next()
+  }
   
   // Setup route (one-time admin setup) - always use master site
   if (pathname === '/setup') {
