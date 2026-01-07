@@ -31,7 +31,7 @@ echo "🔧 Creating new site..."
 docker compose exec -T backend bench new-site $SITE_NAME \
     --admin-password "$ADMIN_PASSWORD" \
     --db-name $DB_NAME \
-    --mariadb-root-password "changeit" \
+    --mariadb-root-password "vedant@21" \
     --install-app erpnext \
     --set-default
 
