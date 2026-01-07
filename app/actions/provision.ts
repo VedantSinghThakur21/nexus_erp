@@ -86,14 +86,14 @@ export async function provisionTenant(
     // === PRODUCTION PROVISIONING ===
     console.log('🚀 Starting production provisioning for', subdomain)
     
-    const scriptPath = process.env.PROVISION_SCRIPT_PATH || '/home/frappe/nexus_erp/scripts/provision-site.js'
+    const scriptPath = process.env.PROVISION_SCRIPT_PATH || '/home/ubuntu/frappe_docker/custom_scripts/provision-site-simple.sh'
     
     const result = await new Promise<TenantProvisioningResult>((resolve) => {
-      const child = spawn('node', [
+      const child = spawn('bash', [
         scriptPath,
-        `--subdomain=${subdomain}`,
-        `--admin-email=${adminEmail}`,
-        `--admin-password=${adminPassword}`
+        subdomain,
+        adminEmail,
+        adminPassword
       ])
 
       let output = ''
