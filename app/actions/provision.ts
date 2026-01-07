@@ -45,9 +45,9 @@ export async function provisionTenant(
   adminPassword: string
 ): Promise<TenantProvisioningResult> {
   try {
-    // Update tenant status to provisioning
-    await updateTenant(tenantId, { status: 'provisioning' })
-
+    // Don't update to "provisioning" - keep it at "pending" during provisioning
+    // The Tenant DocType only allows: pending, trial, active, suspended, cancelled
+    
     // Check if we should use mock provisioning (for development)
     const useMockProvisioning = process.env.MOCK_PROVISIONING === 'true'
     
@@ -64,7 +64,7 @@ export async function provisionTenant(
       
       // Update tenant with mock data
       await updateTenant(tenantId, {
-        status: 'active',
+        status: 'trial',  // Set to trial for new signups
         site_url: siteUrl,
         provisioned_at: new Date().toISOString(),
         site_config: JSON.stringify({
@@ -113,8 +113,8 @@ export async function provisionTenant(
 
       child.on('close', async (code) => {
         if (code !== 0) {
-          // Provisioning failed
-          await updateTenant(tenantId, { status: 'failed' })
+          // Provisioning failed - set to suspended instead of "failed"
+          await updateTenant(tenantId, { status: 'suspended' })
 
           resolve({
             success: false,
@@ -131,7 +131,7 @@ export async function provisionTenant(
             
             // Update tenant with site details
             await updateTenant(tenantId, {
-              status: 'active',
+              status: 'trial',  // Set to trial instead of active for new signups
               site_url: provisionResult.site_url,
               provisioned_at: provisionResult.provisioned_at,
               site_config: JSON.stringify({
@@ -151,7 +151,7 @@ export async function provisionTenant(
           }
         } catch (parseError) {
           console.error('Failed to parse provisioning result:', parseError)
-          await updateTenant(tenantId, { status: 'failed' })
+          await updateTenant(tenantId, { status: 'suspended' })
           resolve({
             success: false,
             error: 'Provisioning completed but failed to parse result'
@@ -165,9 +165,9 @@ export async function provisionTenant(
   } catch (error: any) {
     console.error('Provision tenant error:', error)
     
-    // Update tenant status to failed
+    // Update tenant status to suspended on error
     try {
-      await updateTenant(tenantId, { status: 'failed' })
+      await updateTenant(tenantId, { status: 'suspended' })
     } catch (e) {
       console.error('Failed to update tenant status:', e)
     }
