@@ -129,11 +129,16 @@ export async function provisionTenant(
           if (jsonMatch) {
             const provisionResult = JSON.parse(jsonMatch[0])
             
+            // Convert ISO 8601 datetime to Frappe format (YYYY-MM-DD HH:MM:SS)
+            const provisionedAt = provisionResult.provisioned_at 
+              ? new Date(provisionResult.provisioned_at).toISOString().slice(0, 19).replace('T', ' ')
+              : undefined;
+            
             // Update tenant with site details
             await updateTenant(tenantId, {
               status: 'trial',  // Set to trial instead of active for new signups
               site_url: provisionResult.site_url,
-              provisioned_at: provisionResult.provisioned_at,
+              provisioned_at: provisionedAt,
               site_config: JSON.stringify({
                 db_name: provisionResult.db_name,
                 api_key: provisionResult.api_key,
