@@ -120,13 +120,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div suppressHydrationWarning className="flex h-screen w-full bg-[#0a0e1a]">
+    <div suppressHydrationWarning className="flex h-screen w-full bg-[#0f0f0f]">
       {/* Left Panel - Branding */}
       <div suppressHydrationWarning className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div suppressHydrationWarning className="absolute inset-0 opacity-10">
-          <div suppressHydrationWarning className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
-          <div suppressHydrationWarning className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl"></div>
+        {/* Background Pattern - Timeless Night style */}
+        <div suppressHydrationWarning className="absolute inset-0 opacity-5">
+          <div suppressHydrationWarning className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl"></div>
+          <div suppressHydrationWarning className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
         </div>
 
         <div suppressHydrationWarning className="relative z-10">
@@ -192,12 +192,12 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Login/Signup Forms */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0d1117]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#161616]">
         <div className="w-full max-w-md">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#161b22] border border-slate-700">
-              <TabsTrigger value="login" className="data-[state=active]:bg-blue-600">Sign In</TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-blue-600">Create Account</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#1f1f1f] border border-[#262626]">
+              <TabsTrigger value="login" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Sign In</TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Create Account</TabsTrigger>
             </TabsList>
 
             {/* Login Tab */}
@@ -218,6 +218,7 @@ export default function LoginPage() {
                       type="email" 
                       placeholder="name@company.com" 
                       required 
+                      className="pl-10 bg-[#1f1f1f] border-[#262626] text-white placeholder:text-gray-500 focus:border-blue-600 focus:ring-blue-600"
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
