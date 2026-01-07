@@ -109,12 +109,6 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
     erpnextUrl = await getERPNextURL()
   }
 
-  // Determine which URL to use
-  let erpnextUrl = BASE_URL || 'http://103.224.243.242:8080'
-  if (useTenantUrl) {
-    erpnextUrl = await getERPNextURL()
-  }
-
   // Build the URL and Request Options
   let url = `${erpnextUrl}/api/method/${endpoint}`
   const fetchOptions: RequestInit = {

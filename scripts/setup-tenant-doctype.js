@@ -38,6 +38,16 @@ const ERP_NEXT_URL = process.env.ERP_NEXT_URL || 'http://103.224.243.242:8080';
 const ERP_API_KEY = process.env.ERP_API_KEY;
 const ERP_API_SECRET = process.env.ERP_API_SECRET;
 
+// Check for required credentials
+if (!ERP_API_KEY || !ERP_API_SECRET) {
+  console.error('\x1b[31m❌ Error: Missing API credentials!\x1b[0m');
+  console.error('\x1b[33m⚠️  Please create .env.local file with:\x1b[0m');
+  console.error('   ERP_API_KEY=your_api_key');
+  console.error('   ERP_API_SECRET=your_api_secret');
+  console.error('\x1b[36mℹ️  Get credentials from: ERPNext → User Menu → My Settings → API Access\x1b[0m');
+  process.exit(1);
+}
+
 // Colors for console output
 const colors = {
   reset: '\x1b[0m',
