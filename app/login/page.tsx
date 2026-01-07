@@ -105,9 +105,9 @@ export default function LoginPage() {
       })
       
       if (result.success) {
-        // Redirect to the provisioned ERPNext site
-        alert(`🎉 Account created successfully!\n\nYour dedicated site: ${result.siteUrl}\n\nRedirecting to your ERPNext dashboard...`)
-        window.location.href = `${result.siteUrl}/app`
+        // Redirect to custom Next.js dashboard with tenant subdomain
+        alert(`🎉 Account created successfully!\n\nYour organization: ${result.subdomain}\n\nRedirecting to your dashboard...`)
+        window.location.href = result.dashboardUrl || '/dashboard'
       } else {
         setSignupError(result.error || 'Failed to create account')
       }

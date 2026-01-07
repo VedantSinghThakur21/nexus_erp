@@ -190,3 +190,105 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
     throw error
   }
 }
+
+/**
+ * Make request to tenant site using tenant's API credentials
+ * Reads tenant config from middleware headers
+ * Use this for operations on tenant data when no user session is available
+ */
+export async function tenantRequest(endpoint: string, method = 'GET', body: any = null) {
+  try {
+    const headersList = await headers()
+    const tenantMode = headersList.get('X-Tenant-Mode')
+    
+    // If not in tenant mode, fall back to regular request
+    if (tenantMode !== 'tenant') {
+      return frappeRequest(endpoint, method, body, true)
+    }
+    
+    const erpnextUrl = await getERPNextURL()
+    
+    // For tenant requests, we need to fetch tenant's API keys from the Tenant DocType
+    // First get the subdomain
+    const subdomain = headersList.get('X-Subdomain')
+    if (!subdomain) {
+      throw new Error('No subdomain found in tenant mode')
+    }
+    
+    // Fetch tenant config from master site to get API keys
+    const tenantConfigResponse = await fetch(`${BASE_URL}/api/method/frappe.client.get_list`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${API_KEY}:${API_SECRET}`
+      },
+      body: JSON.stringify({
+        doctype: 'Tenant',
+        filters: { subdomain },
+        fields: ['site_config'],
+        limit_page_length: 1
+      })
+    })
+    
+    const tenantConfigData = await tenantConfigResponse.json()
+    if (!tenantConfigData.message || tenantConfigData.message.length === 0) {
+      throw new Error('Tenant configuration not found')
+    }
+    
+    let siteConfig = tenantConfigData.message[0].site_config
+    if (typeof siteConfig === 'string') {
+      siteConfig = JSON.parse(siteConfig)
+    }
+    
+    const tenantApiKey = siteConfig.api_key
+    const tenantApiSecret = siteConfig.api_secret
+    
+    if (!tenantApiKey || !tenantApiSecret) {
+      throw new Error('Tenant API credentials not found')
+    }
+    
+    // Make request using tenant's credentials
+    const authHeader = `token ${tenantApiKey}:${tenantApiSecret}`
+    
+    const requestHeaders: HeadersInit = {
+      'Accept': 'application/json',
+      'Authorization': authHeader,
+    }
+    
+    if (method !== 'GET') {
+      requestHeaders['Content-Type'] = 'application/json'
+    }
+    
+    let url = `${erpnextUrl}/api/method/${endpoint}`
+    const fetchOptions: RequestInit = {
+      method,
+      headers: requestHeaders,
+      cache: 'no-store',
+    }
+    
+    if (method === 'GET' && body) {
+      const params = new URLSearchParams()
+      Object.entries(body).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value))
+        }
+      })
+      url += `?${params.toString()}`
+    } else if (body) {
+      fetchOptions.body = JSON.stringify(body)
+    }
+    
+    const res = await fetch(url, fetchOptions)
+    const data = await res.json()
+    
+    if (!res.ok) {
+      console.error('Tenant API Error:', { status: res.status, data })
+      throw new Error(data.message || 'Tenant request failed')
+    }
+    
+    return data.message || data.data || data
+  } catch (error: any) {
+    console.error('Tenant Request Failed:', error.message)
+    throw error
+  }
+}

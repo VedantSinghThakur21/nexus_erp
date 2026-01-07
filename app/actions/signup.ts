@@ -189,7 +189,9 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     return {
       success: true,
       tenantId: tenant.id,
-      siteUrl: provisionResult.site_url
+      subdomain: subdomain,
+      dashboardUrl: `http://${subdomain}.nexuserp.com:3000/dashboard` // For production
+      // For local: `http://${subdomain}.localhost:3000/dashboard`
     }
 
   } catch (error: any) {
