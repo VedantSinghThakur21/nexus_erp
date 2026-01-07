@@ -151,12 +151,12 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       const loginResponse = await fetch(`${provisionResult.site_url}/api/method/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({
+        body: new URLSearchParams({
           usr: data.email,
           pwd: data.password
-        }),
+        })
       })
 
       if (loginResponse.ok) {
@@ -166,17 +166,43 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
           const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
           if (sidMatch) {
             const cookieStore = await cookies()
+            
+            // Set session cookie for the tenant site
             cookieStore.set('sid', sidMatch[1], {
               httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               maxAge: 60 * 60 * 24 * 7 // 7 days
             })
+            
+            // Set user email
             cookieStore.set('user_email', data.email, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
               maxAge: 60 * 60 * 24 * 7
             })
-            cookieStore.set('tenant_subdomain', subdomain, {
+            
+            // CRITICAL: Mark as tenant user (not admin)
+            cookieStore.set('user_type', 'tenant', {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
               maxAge: 60 * 60 * 24 * 7
+            })
+            
+            // Set tenant subdomain for routing
+            cookieStore.set('tenant_subdomain', subdomain, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7
+            })
+            
+            console.log('✅ Tenant login successful - cookies set:', {
+              user: data.email,
+              subdomain,
+              userType: 'tenant'
             })
           }
         }

@@ -388,10 +388,12 @@ export async function logoutUser() {
       console.error('ERPNext logout error:', error)
     }
     
-    // Delete local session cookie
+    // Delete all session cookies
     const cookieStore = await cookies()
     cookieStore.delete('sid')
     cookieStore.delete('user_email')
+    cookieStore.delete('user_type')
+    cookieStore.delete('tenant_subdomain')
     
     return { success: true }
   } catch (error: any) {
