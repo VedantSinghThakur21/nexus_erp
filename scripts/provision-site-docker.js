@@ -15,6 +15,7 @@ const { execSync } = require('child_process')
 const DOCKER_COMPOSE_PATH = process.env.DOCKER_COMPOSE_PATH || '/home/ubuntu/frappe_docker'
 const DOMAIN = process.env.DOMAIN || 'localhost'
 const BACKEND_CONTAINER = process.env.BACKEND_CONTAINER || 'backend'
+const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin'
 
 function parseArgs() {
   const args = {}
@@ -25,26 +26,36 @@ function parseArgs() {
   return args
 }
 
-function execDockerCommand(command, description) {
+function execDockerCommand(command, description, passPassword = false) {
   console.log(`\n🔧 ${description}...`)
   try {
-    const fullCommand = `cd ${DOCKER_COMPOSE_PATH} && docker compose exec -T ${BACKEND_CONTAINER} ${command}`
+    let fullCommand
+    if (passPassword) {
+      // Use echo to pipe password to the command
+      fullCommand = `cd ${DOCKER_COMPOSE_PATH} && echo '${DB_ROOT_PASSWORD}' | docker compose exec -T ${BACKEND_CONTAINER} ${command}`
+    } else {
+      fullCommand = `cd ${DOCKER_COMPOSE_PATH} && docker compose exec -T ${BACKEND_CONTAINER} ${command}`
+    }
+    
     const output = execSync(fullCommand, {
       encoding: 'utf-8',
-      stdio: 'pipe'
+      stdio: 'pipe',
+      shell: '/bin/bash'
     })
     console.log(`✅ ${description} completed`)
     return output
   } catch (error) {
     console.error(`❌ ${description} failed:`, error.message)
+    if (error.stderr) console.error('stderr:', error.stderr)
     throw error
   }
 }
 
-async function provisionSite(subdomain, adminEmail, adminPassword) {
-  const siteName = `${subdomain}.${DOMAIN}`
-  const dbName = subdomain.replace(/-/g, '_')
-  
+async function provisionS with root password
+    execDockerCommand(
+      `bench new-site ${siteName} --admin-password '${adminPassword}' --db-name ${dbName} --no-mariadb-socket --db-root-password '${DB_ROOT_PASSWORD}'`,
+      'Creating new site',
+      true
   console.log('\n' + '='.repeat(60))
   console.log(`🚀 Provisioning ERPNext Site: ${siteName}`)
   console.log('='.repeat(60))
@@ -176,8 +187,9 @@ print(json.dumps({'api_key': api_key, 'api_secret': api_secret}))
     // Attempt cleanup
     try {
       console.log('\n🧹 Attempting cleanup...')
-      execDockerCommand(
-        `bench drop-site ${siteName} --force --no-backup`,
+      execDockerCommand( --db-root-password '${DB_ROOT_PASSWORD}'`,
+        'Dropping failed site',
+        trueeName} --force --no-backup`,
         'Dropping failed site'
       )
     } catch (cleanupError) {
