@@ -8,6 +8,7 @@ import { frappeRequest, userRequest } from '@/app/lib/api'
  */
 async function loginToMasterSite(email: string, password: string, masterUrl: string) {
   try {
+    console.log('Attempting master site login to:', masterUrl)
     const response = await fetch(`${masterUrl}/api/method/login`, {
       method: 'POST',
       headers: {
@@ -19,8 +20,9 @@ async function loginToMasterSite(email: string, password: string, masterUrl: str
       })
     })
 
+    console.log('Master site response status:', response.status)
     const data = await response.json()
-    console.log('Master site login response:', data.message)
+    console.log('Master site login response:', data)
 
     if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
       const cookieStore = await cookies()
