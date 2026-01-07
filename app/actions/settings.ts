@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest } from "@/app/lib/api"
+import { frappeRequest, userRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 
 export interface User {
@@ -15,8 +15,8 @@ export interface User {
 // 1. Get Current User Details
 export async function getProfile() {
   try {
-    // First get the current logged-in user email
-    const currentUser = await frappeRequest('frappe.auth.get_logged_user', 'GET', {})
+    // Get current logged-in user using session cookie (NOT API token)
+    const currentUser = await userRequest('frappe.auth.get_logged_user', 'GET', {})
     
     if (!currentUser) {
       console.error('No logged-in user found')
@@ -25,8 +25,8 @@ export async function getProfile() {
     
     console.log('Getting profile for user:', currentUser)
     
-    // Fetch user details from User doctype
-    const user = await frappeRequest('frappe.client.get', 'GET', {
+    // Fetch user details from User doctype using session
+    const user = await userRequest('frappe.client.get', 'GET', {
       doctype: 'User',
       name: currentUser
     })

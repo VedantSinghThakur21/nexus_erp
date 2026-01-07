@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { loginUser, signupUser } from '@/app/actions/user-auth'
+import { loginUser } from '@/app/actions/user-auth'
+import { signupWithTenant } from '@/app/actions/signup'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRouter } from 'next/navigation'
 import { Mail, Eye, EyeOff, TrendingUp, Users, DollarSign, BarChart3, Building2, User } from 'lucide-react'
 
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [signupLoading, setSignupLoading] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro' | 'enterprise'>('free')
   const router = useRouter()
 
   async function handleLogin(formData: FormData) {
@@ -93,28 +96,20 @@ export default function LoginPage() {
         return
       }
       
-      const result = await signupUser({
+      const result = await signupWithTenant({
         email,
         password,
         fullName,
-        organizationName
+        organizationName,
+        plan: selectedPlan
       })
       
       if (result.success) {
-        // Redirect to onboarding if needed, otherwise dashboard
-        if (result.needsOnboarding) {
-          router.push('/onboarding')
-        } else {
-          router.push('/dashboard')
-        }
+        // Show success message with site URL
+        alert(`🎉 Account created successfully!\n\nYour dedicated site: ${result.siteUrl}\n\nRedirecting to your dashboard...`)
+        router.push('/dashboard')
       } else {
         setSignupError(result.error || 'Failed to create account')
-        // If user was created but login failed, suggest switching to login tab
-        if ((result as any).userCreated) {
-          setTimeout(() => {
-            // Could switch to login tab here if needed
-          }, 3000)
-        }
       }
     } catch (error: any) {
       setSignupError(error.message || 'An error occurred during signup')
@@ -335,6 +330,39 @@ export default function LoginPage() {
                     />
                     <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
                   </div>
+                </div>
+
+                {/* Subscription Plan Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="plan" className="text-sm font-medium text-slate-300">Subscription Plan</Label>
+                  <Select value={selectedPlan} onValueChange={(value: any) => setSelectedPlan(value)}>
+                    <SelectTrigger className="w-full bg-[#161b22] border-slate-700 text-white py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#161b22] border-slate-700">
+                      <SelectItem value="free" className="text-white hover:bg-slate-800">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">Free Plan</span>
+                          <span className="text-xs text-slate-400">₹0/month • 2 users • 50 leads</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="pro" className="text-white hover:bg-slate-800">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">Pro Plan</span>
+                          <span className="text-xs text-slate-400">₹2,999/month • 10 users • 1000 leads</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="enterprise" className="text-white hover:bg-slate-800">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">Enterprise Plan</span>
+                          <span className="text-xs text-slate-400">₹9,999/month • Unlimited</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-400">
+                    Start with 14-day free trial. No credit card required.
+                  </p>
                 </div>
 
                 {/* Password Input */}

@@ -1,12 +1,34 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 
 const BASE_URL = process.env.ERP_NEXT_URL
 const API_KEY = process.env.ERP_API_KEY
 const API_SECRET = process.env.ERP_API_SECRET
 
 /**
+ * Get the appropriate ERPNext URL based on tenant context
+ * Reads from middleware-set headers
+ */
+async function getERPNextURL(): Promise<string> {
+  try {
+    const headersList = await headers()
+    const tenantUrl = headersList.get('X-ERPNext-URL')
+    
+    if (tenantUrl) {
+      return tenantUrl
+    }
+  } catch (error) {
+    // Headers might not be available in all contexts
+    console.warn('Could not read headers for tenant URL')
+  }
+  
+  // Fallback to master site
+  return BASE_URL || 'http://103.224.243.242:8080'
+}
+
+/**
  * Make authenticated request as the logged-in user (uses session cookie)
  * Use this for user-specific operations
+ * Automatically routes to the correct tenant site
  */
 export async function userRequest(endpoint: string, method = 'GET', body: any = null) {
   const cookieStore = await cookies()
@@ -15,6 +37,8 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
   if (!sessionCookie) {
     throw new Error('Not authenticated')
   }
+
+  const erpnextUrl = await getERPNextURL()
 
   const headers: HeadersInit = {
     'Accept': 'application/json',
@@ -25,7 +49,7 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
     headers['Content-Type'] = 'application/json'
   }
 
-  let url = `${BASE_URL}/api/method/${endpoint}`
+  let url = `${erpnextUrl}/api/method/${endpoint}`
   const fetchOptions: RequestInit = {
     method,
     headers,
@@ -64,8 +88,9 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
 /**
  * Make request with API credentials (for admin operations)
  * Use this only for system-level operations like creating users/organizations
+ * For multi-tenant: This always hits the MASTER site for tenant management
  */
-export async function frappeRequest(endpoint: string, method = 'GET', body: any = null) {
+export async function frappeRequest(endpoint: string, method = 'GET', body: any = null, useTenantUrl = false) {
   // We prefer API Key/Secret for stability (Bypasses CSRF issues)
   const authHeader = `token ${API_KEY}:${API_SECRET}`
   
@@ -78,8 +103,20 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
     headers['Content-Type'] = 'application/json'
   }
 
+  // Determine which URL to use
+  let erpnextUrl = BASE_URL || 'http://103.224.243.242:8080'
+  if (useTenantUrl) {
+    erpnextUrl = await getERPNextURL()
+  }
+
+  // Determine which URL to use
+  let erpnextUrl = BASE_URL || 'http://103.224.243.242:8080'
+  if (useTenantUrl) {
+    erpnextUrl = await getERPNextURL()
+  }
+
   // Build the URL and Request Options
-  let url = `${BASE_URL}/api/method/${endpoint}`
+  let url = `${erpnextUrl}/api/method/${endpoint}`
   const fetchOptions: RequestInit = {
     method,
     headers,
