@@ -37,7 +37,6 @@ export async function createTenant(data: TenantCreateRequest): Promise<{ success
       company_name: data.company_name,
       subdomain: data.subdomain,
       owner_email: data.owner_email,
-      admin_email: data.admin_email || data.owner_email, // Add admin_email for login lookup
       plan: data.plan
     })
     
@@ -49,7 +48,6 @@ export async function createTenant(data: TenantCreateRequest): Promise<{ success
         subdomain: data.subdomain,
         owner_email: data.owner_email,
         owner_name: data.owner_name,
-        admin_email: data.admin_email || data.owner_email, // Admin email for authentication
         plan: data.plan,
         status: 'pending',
         site_url: `https://${data.subdomain}.nexuserp.com`,

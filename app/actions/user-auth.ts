@@ -20,7 +20,7 @@ export async function loginUser(email: string, password: string) {
       },
       body: JSON.stringify({
         doctype: 'Tenant',
-        filters: { admin_email: email },
+        filters: { owner_email: email }, // Use owner_email which already exists
         fields: ['subdomain', 'site_url', 'site_config', 'status'],
         limit_page_length: 1
       })

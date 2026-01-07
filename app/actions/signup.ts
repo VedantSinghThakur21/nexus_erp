@@ -80,7 +80,6 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       subdomain,
       owner_email: data.email,
       owner_name: data.fullName,
-      admin_email: data.email, // Add admin_email for login lookup
       plan: data.plan || 'free'
     })
 
