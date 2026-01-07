@@ -202,7 +202,6 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
           'Content-Type': 'application/x-www-form-urlencoded',
           'X-Frappe-Site-Name': siteName
         },
-        },
         body: new URLSearchParams({
           usr: data.email,
           pwd: data.password
