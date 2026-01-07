@@ -5,8 +5,38 @@ import { frappeRequest } from '../lib/api'
 import type { TenantProvisioningResult } from '@/types/tenant'
 
 /**
+ * Update tenant fields using frappe.client.save
+ * More reliable than set_value for multiple fields
+ */
+async function updateTenant(tenantId: string, updates: Record<string, any>) {
+  try {
+    // First get the current tenant document
+    const tenant = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Tenant',
+      name: tenantId
+    })
+
+    // Merge updates
+    const updatedDoc = {
+      ...tenant,
+      ...updates,
+      doctype: 'Tenant',
+      name: tenantId
+    }
+
+    // Save the document
+    await frappeRequest('frappe.client.save', 'POST', {
+      doc: updatedDoc
+    })
+  } catch (error) {
+    console.error('Update tenant error:', error)
+    throw error
+  }
+}
+
+/**
  * Provision a new ERPNext site for a tenant
- * This calls the provision-site.js script on the server
+ * Supports both production provisioning and development mock mode
  */
 export async function provisionTenant(
   tenantId: string,
@@ -16,14 +46,46 @@ export async function provisionTenant(
 ): Promise<TenantProvisioningResult> {
   try {
     // Update tenant status to provisioning
-    await frappeRequest('frappe.client.set_value', 'POST', {
-      doctype: 'Tenant',
-      name: tenantId,
-      fieldname: 'status',
-      value: 'provisioning'
-    })
+    await updateTenant(tenantId, { status: 'provisioning' })
 
-    // Call provisioning script
+    // Check if we should use mock provisioning (for development)
+    const useMockProvisioning = process.env.MOCK_PROVISIONING === 'true'
+    
+    if (useMockProvisioning) {
+      console.log('🔧 Using mock provisioning for development')
+      
+      // Simulate provisioning delay
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Create mock site URL (points to master site in dev)
+      const siteUrl = process.env.ERP_NEXT_URL || 'http://103.224.243.242:8080'
+      const mockApiKey = `mock_${subdomain}_${Date.now()}`
+      const mockApiSecret = `mock_secret_${Math.random().toString(36).substring(2)}`
+      
+      // Update tenant with mock data
+      await updateTenant(tenantId, {
+        status: 'active',
+        site_url: siteUrl,
+        provisioned_at: new Date().toISOString(),
+        site_config: JSON.stringify({
+          db_name: `${subdomain}_db`,
+          api_key: mockApiKey,
+          api_secret: mockApiSecret
+        })
+      })
+      
+      console.log('✅ Mock provisioning completed for', subdomain)
+      
+      return {
+        success: true,
+        site_url: siteUrl,
+        admin_url: `${siteUrl}/app`
+      }
+    }
+
+    // === PRODUCTION PROVISIONING ===
+    console.log('🚀 Starting production provisioning for', subdomain)
+    
     const scriptPath = process.env.PROVISION_SCRIPT_PATH || '/home/frappe/nexus_erp/scripts/provision-site.js'
     
     const result = await new Promise<TenantProvisioningResult>((resolve) => {
@@ -52,12 +114,7 @@ export async function provisionTenant(
       child.on('close', async (code) => {
         if (code !== 0) {
           // Provisioning failed
-          await frappeRequest('frappe.client.set_value', 'POST', {
-            doctype: 'Tenant',
-            name: tenantId,
-            fieldname: 'status',
-            value: 'failed'
-          })
+          await updateTenant(tenantId, { status: 'failed' })
 
           resolve({
             success: false,
@@ -72,20 +129,16 @@ export async function provisionTenant(
           if (jsonMatch) {
             const provisionResult = JSON.parse(jsonMatch[0])
             
-            // Update tenant with site details using frappe.client.save
-            await frappeRequest('frappe.client.save', 'POST', {
-              doc: {
-                doctype: 'Tenant',
-                name: tenantId,
-                status: 'active',
-                site_url: provisionResult.site_url,
-                provisioned_at: provisionResult.provisioned_at,
-                site_config: JSON.stringify({
-                  db_name: provisionResult.db_name,
-                  api_key: provisionResult.api_key,
-                  api_secret: provisionResult.api_secret
-                })
-              }
+            // Update tenant with site details
+            await updateTenant(tenantId, {
+              status: 'active',
+              site_url: provisionResult.site_url,
+              provisioned_at: provisionResult.provisioned_at,
+              site_config: JSON.stringify({
+                db_name: provisionResult.db_name,
+                api_key: provisionResult.api_key,
+                api_secret: provisionResult.api_secret
+              })
             })
 
             resolve({
@@ -98,6 +151,7 @@ export async function provisionTenant(
           }
         } catch (parseError) {
           console.error('Failed to parse provisioning result:', parseError)
+          await updateTenant(tenantId, { status: 'failed' })
           resolve({
             success: false,
             error: 'Provisioning completed but failed to parse result'
@@ -113,12 +167,7 @@ export async function provisionTenant(
     
     // Update tenant status to failed
     try {
-      await frappeRequest('frappe.client.set_value', 'POST', {
-        doctype: 'Tenant',
-        name: tenantId,
-        fieldname: 'status',
-        value: 'failed'
-      })
+      await updateTenant(tenantId, { status: 'failed' })
     } catch (e) {
       console.error('Failed to update tenant status:', e)
     }
@@ -131,62 +180,27 @@ export async function provisionTenant(
 }
 
 /**
- * Check if subdomain is available
+ * Check provisioning status of a tenant
  */
-export async function checkSubdomainAvailability(subdomain: string): Promise<{ available: boolean; error?: string }> {
+export async function getProvisioningStatus(tenantId: string): Promise<{
+  status: string
+  site_url?: string
+  error?: string
+}> {
   try {
-    // Validate format
-    if (!/^[a-z0-9-]+$/.test(subdomain)) {
-      return {
-        available: false,
-        error: 'Subdomain can only contain lowercase letters, numbers, and hyphens'
-      }
-    }
-
-    if (subdomain.length < 3) {
-      return {
-        available: false,
-        error: 'Subdomain must be at least 3 characters'
-      }
-    }
-
-    if (subdomain.length > 63) {
-      return {
-        available: false,
-        error: 'Subdomain must be less than 63 characters'
-      }
-    }
-
-    // Check reserved subdomains
-    const reserved = ['www', 'api', 'app', 'admin', 'mail', 'ftp', 'localhost', 'staging', 'dev', 'test']
-    if (reserved.includes(subdomain)) {
-      return {
-        available: false,
-        error: 'This subdomain is reserved'
-      }
-    }
-
-    // Check if already exists
-    const existing = await frappeRequest('frappe.client.get_list', 'GET', {
+    const tenant = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Tenant',
-      filters: { subdomain },
-      limit_page_length: 1
+      name: tenantId
     })
 
-    if (existing && existing.length > 0) {
-      return {
-        available: false,
-        error: 'Subdomain is already taken'
-      }
-    }
-
-    return { available: true }
-
-  } catch (error: any) {
-    console.error('Check subdomain error:', error)
     return {
-      available: false,
-      error: 'Failed to check subdomain availability'
+      status: tenant.status,
+      site_url: tenant.site_url
+    }
+  } catch (error: any) {
+    return {
+      status: 'error',
+      error: error.message
     }
   }
 }
