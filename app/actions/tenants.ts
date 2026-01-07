@@ -32,6 +32,14 @@ export async function createTenant(data: TenantCreateRequest): Promise<{ success
     }
 
     // Create tenant record
+    console.log('Creating tenant with data:', {
+      customer_name: data.customer_name,
+      company_name: data.company_name,
+      subdomain: data.subdomain,
+      owner_email: data.owner_email,
+      plan: data.plan
+    })
+    
     const tenant = await frappeRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'Tenant',
@@ -48,12 +56,26 @@ export async function createTenant(data: TenantCreateRequest): Promise<{ success
       }
     })
 
+    console.log('Tenant created response:', tenant)
+
+    // Handle different response structures
+    const tenantData = tenant?.data || tenant?.message || tenant
+    
+    if (!tenantData) {
+      throw new Error('Invalid response from server')
+    }
+
     return {
       success: true,
-      tenant: tenant.data as Tenant
+      tenant: tenantData as Tenant
     }
   } catch (error: any) {
     console.error('Create tenant error:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response
+    })
     return {
       success: false,
       error: error.message || 'Failed to create tenant'
