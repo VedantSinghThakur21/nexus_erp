@@ -56,10 +56,29 @@ docker compose exec -T backend bench --site $SITE_NAME set-config developer_mode
 # Generate API keys for Administrator
 echo ""
 echo "🔧 Generating API keys..."
-API_OUTPUT=$(docker compose exec -T backend bench --site $SITE_NAME execute "frappe.core.doctype.user.user.generate_keys" --args "['Administrator']" 2>&1)
+docker compose exec -T backend bench --site $SITE_NAME execute "
+import frappe
+import json
 
-API_KEY=$(echo "$API_OUTPUT" | grep -oP 'API Key: \K[^\s]+' || echo "")
-API_SECRET=$(echo "$API_OUTPUT" | grep -oP 'API Secret: \K[^\s]+' || echo "")
+frappe.connect()
+user = frappe.get_doc('User', 'Administrator')
+
+# Generate new keys
+api_key = frappe.generate_hash(length=15)
+api_secret = frappe.generate_hash(length=15)
+
+user.api_key = api_key
+user.api_secret = api_secret
+user.save(ignore_permissions=True)
+frappe.db.commit()
+
+print(json.dumps({'api_key': api_key, 'api_secret': api_secret}))
+" > /tmp/api_keys_$SUBDOMAIN.json 2>&1
+
+# Extract API keys from output
+API_KEY=$(cat /tmp/api_keys_$SUBDOMAIN.json | grep -o '"api_key": "[^"]*"' | cut -d'"' -f4)
+API_SECRET=$(cat /tmp/api_keys_$SUBDOMAIN.json | grep -o '"api_secret": "[^"]*"' | cut -d'"' -f4)
+rm -f /tmp/api_keys_$SUBDOMAIN.json
 
 # Output results
 echo ""
