@@ -145,12 +145,14 @@ export async function loginUser(email: string, password: string) {
 
     // Step 2: Authenticate against the tenant's site
     const tenantSiteUrl = tenant.site_url
-    console.log('Authenticating against tenant site:', tenantSiteUrl)
+    const siteName = `${tenant.subdomain}.localhost`
+    console.log('Authenticating against tenant site:', tenantSiteUrl, 'Site:', siteName)
     
     const response = await fetch(`${tenantSiteUrl}/api/method/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Frappe-Site-Name': siteName
       },
       body: new URLSearchParams({
         usr: email,

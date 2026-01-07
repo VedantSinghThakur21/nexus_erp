@@ -82,8 +82,8 @@ echo "============================================================"
 echo ""
 echo "📋 Site Details:"
 echo "  Site Name: $SITE_NAME"
-echo "  Site URL: http://localhost:8080"
-echo "  Admin URL: http://localhost:8080/app"
+echo "  Site URL: http://$SITE_NAME:8080"
+echo "  Admin URL: http://$SITE_NAME:8080/app"
 echo "  DB Name: $DB_NAME"
 echo "  Admin Email: $ADMIN_EMAIL"
 echo "  API Key: $API_KEY"
@@ -95,8 +95,8 @@ cat << EOF
 {
   "success": true,
   "site_name": "$SITE_NAME",
-  "site_url": "http://localhost:8080",
-  "admin_url": "http://localhost:8080/app",
+  "site_url": "http://$SITE_NAME:8080",
+  "admin_url": "http://$SITE_NAME:8080/app",
   "db_name": "$DB_NAME",
   "admin_email": "$ADMIN_EMAIL",
   "api_key": "$API_KEY",
