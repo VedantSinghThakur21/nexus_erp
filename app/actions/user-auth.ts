@@ -3,6 +3,77 @@
 import { cookies } from 'next/headers'
 import { frappeRequest, userRequest } from '@/app/lib/api'
 
+/**
+ * Login to master site (for admin users, not tenants)
+ */
+async function loginToMasterSite(email: string, password: string, masterUrl: string) {
+  try {
+    const response = await fetch(`${masterUrl}/api/method/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        usr: email,
+        pwd: password
+      })
+    })
+
+    const data = await response.json()
+    console.log('Master site login response:', data.message)
+
+    if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
+      const cookieStore = await cookies()
+      const setCookieHeader = response.headers.get('set-cookie')
+      
+      if (setCookieHeader) {
+        const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
+        if (sidMatch) {
+          cookieStore.set('sid', sidMatch[1], {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7
+          })
+        }
+      }
+
+      cookieStore.set('user_email', email, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7
+      })
+      
+      // Mark as master site user (not a tenant)
+      cookieStore.set('user_type', 'admin', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7
+      })
+
+      return { 
+        success: true, 
+        user: data.full_name || email,
+        userType: 'admin',
+        dashboardUrl: '/dashboard'
+      }
+    }
+
+    return { 
+      success: false, 
+      error: 'Invalid credentials. Please check your email and password.' 
+    }
+  } catch (error: any) {
+    console.error('Master site login error:', error)
+    return { 
+      success: false, 
+      error: 'Unable to connect to authentication service.' 
+    }
+  }
+}
+
 export async function loginUser(email: string, password: string) {
   try {
     const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
@@ -11,7 +82,7 @@ export async function loginUser(email: string, password: string) {
     
     console.log('Attempting login for:', email)
     
-    // Step 1: Look up which tenant this user belongs to
+    // Step 1: Check if this is a tenant user
     const tenantLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
       method: 'POST',
       headers: {
@@ -20,7 +91,7 @@ export async function loginUser(email: string, password: string) {
       },
       body: JSON.stringify({
         doctype: 'Tenant',
-        filters: { owner_email: email }, // Use owner_email which already exists
+        filters: { owner_email: email },
         fields: ['subdomain', 'site_url', 'site_config', 'status'],
         limit_page_length: 1
       })
@@ -29,11 +100,13 @@ export async function loginUser(email: string, password: string) {
     const tenantData = await tenantLookupResponse.json()
     console.log('Tenant lookup response:', tenantData)
 
-    if (!tenantData.message || tenantData.message.length === 0) {
-      return { 
-        success: false, 
-        error: 'No account found with this email. Please sign up first.' 
-      }
+    // Check if tenant exists
+    const isTenantUser = tenantData.message && tenantData.message.length > 0
+    
+    if (!isTenantUser) {
+      // Not a tenant user - try master site login (for admin users)
+      console.log('Not a tenant user, attempting master site login')
+      return await loginToMasterSite(email, password, masterUrl)
     }
 
     const tenant = tenantData.message[0]
@@ -118,11 +191,20 @@ export async function loginUser(email: string, password: string) {
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7
       })
+      
+      // Mark as tenant user
+      cookieStore.set('user_type', 'tenant', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7
+      })
 
       return { 
         success: true, 
         user: data.full_name || email,
         subdomain: tenant.subdomain,
+        userType: 'tenant',
         dashboardUrl: '/dashboard' // Simple redirect, middleware handles tenant routing
       }
     }

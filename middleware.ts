@@ -100,8 +100,17 @@ export async function middleware(request: NextRequest) {
   let tenantMode = 'master'
   let tenantSubdomain = subdomain
   
-  // For development without DNS: Check if user has tenant_subdomain cookie
-  if (!subdomain) {
+  // Check user type
+  const userTypeCookie = request.cookies.get('user_type')
+  const userType = userTypeCookie?.value
+  
+  // For admin users, always use master site
+  if (userType === 'admin') {
+    tenantMode = 'master'
+    tenantSubdomain = null
+  }
+  // For tenant users without subdomain in URL: Check tenant_subdomain cookie
+  else if (!subdomain && userType === 'tenant') {
     const tenantCookie = request.cookies.get('tenant_subdomain')
     if (tenantCookie && !isPublicRoute) {
       tenantSubdomain = tenantCookie.value
