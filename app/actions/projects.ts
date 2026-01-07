@@ -2,6 +2,8 @@
 
 import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
+import { canCreateProject, incrementUsage } from "./usage-limits"
+import { headers } from "next/headers"
 
 export interface Project {
   name: string
@@ -71,6 +73,22 @@ export async function getTasks(projectId: string) {
 
 // 4. CREATE: New Project
 export async function createProject(formData: FormData) {
+  // Check usage limits first
+  const headersList = await headers()
+  const subdomain = headersList.get('X-Subdomain')
+  
+  if (subdomain) {
+    const usageCheck = await canCreateProject(subdomain)
+    if (!usageCheck.allowed) {
+      return { 
+        error: usageCheck.message || 'Project limit reached',
+        limitReached: true,
+        currentUsage: usageCheck.current,
+        limit: usageCheck.limit
+      }
+    }
+  }
+  
   const projectData = {
     doctype: 'Project',
     project_name: formData.get('project_name'),
@@ -81,6 +99,12 @@ export async function createProject(formData: FormData) {
 
   try {
     await frappeRequest('frappe.client.insert', 'POST', { doc: projectData })
+    
+    // Increment usage counter
+    if (subdomain) {
+      await incrementUsage(subdomain, 'usage_projects')
+    }
+    
     revalidatePath('/projects')
     return { success: true }
   } catch (error: any) {

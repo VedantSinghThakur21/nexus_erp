@@ -1,6 +1,6 @@
-# 🏢 Nexus ERP
+# 🏢 Nexus ERP - Multi-Tenant SaaS Platform
 
-> A modern, headless ERP frontend built with Next.js 14+ that provides a beautiful, custom UI layer for ERPNext.
+> A modern, multi-tenant SaaS ERP system built with Next.js 15 that provides a beautiful, custom UI layer for ERPNext. Each customer gets their own isolated ERPNext instance with subscription-based usage limits.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.0-black?style=flat&logo=next.js)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-blue?style=flat&logo=react)](https://reactjs.org)
@@ -11,23 +11,87 @@
 
 ## 🎯 What is Nexus ERP?
 
-Nexus ERP is a **Headless ERP Architecture** implementation that combines:
+Nexus ERP is a **Multi-Tenant SaaS ERP Platform** that combines:
 - 🎨 **Modern UI Layer** → Next.js with React Server Components
-- ⚡ **Powerful Backend** → ERPNext (Frappe Framework) running in Docker
+- ⚡ **Powerful Backend** → ERPNext (Frappe Framework) with multi-tenancy
 - 🔗 **Seamless Bridge** → Server Actions connecting frontend ↔ backend
+- 🏢 **Multi-Tenancy** → Each customer gets their own isolated ERPNext site
+- 💳 **Subscription Plans** → Free, Pro, and Enterprise tiers with usage limits
 
-**Think of it as:** A sleek, customizable dashboard that "drives" your robust ERPNext engine under the hood.
+**Think of it as:** A complete SaaS platform where each customer has their own ERP instance with subscription-based access.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-- 📊 **Real-time Dashboard** with metrics & analytics
-- 📄 **Invoice Management** (Create, Submit, Print, Download PDFs)
-- 👥 **CRM with Kanban Board** (Drag & drop lead pipeline)
-- 🚗 **Fleet Management** (Vehicle tracking, bookings, inspections)
-- 💼 **Project Tracking** with timelines
-- 🤖 **AI Chat Assistant** powered by OpenAI/Google AI
+### 🏢 Multi-Tenancy & Subscriptions
+- Subdomain-based tenant isolation (`acme.nexuserp.com`)
+- Three subscription tiers: Free, Pro, Enterprise
+- Real-time usage tracking (users, leads, projects, invoices)
+- Automatic usage limit enforcement
+- Upgrade prompts when limits reached
+
+### 📊 Core ERP Features
+- **Real-time Dashboard** with metrics & analytics
+- **Invoice Management** (Create, Submit, Print, Download PDFs)
+- **CRM with Kanban Board** (Drag & drop lead pipeline)
+- **Fleet Management** (Vehicle tracking, bookings, inspections)
+- **Project Tracking** with timelines
+- **Team Management** (Invite members, role-based access)
+- **AI Chat Assistant** powered by OpenAI/Google AI
+
+---
+
+## 🚀 Quick Setup
+
+### Prerequisites
+- ERPNext instance running (v14 or v15)
+- Node.js 18+ installed
+- Admin access to ERPNext
+- API credentials from ERPNext
+
+### Step 1: Install Dependencies
+```bash
+npm install
+```
+
+### Step 2: Configure Environment
+Create `.env.local` in project root:
+```env
+ERP_NEXT_URL=http://103.224.243.242:8080
+ERP_API_KEY=your_api_key_here
+ERP_API_SECRET=your_api_secret_here
+```
+
+**Get API credentials**: Login to ERPNext → User Menu → My Settings → API Access → Generate Keys
+
+### Step 3: Run Tenant Setup
+```bash
+npm run dev
+```
+
+Then visit: **http://localhost:3000/setup-tenant**
+
+Click through the 3-step wizard:
+1. ✅ Create Tenant DocType
+2. ✅ Verify Setup
+3. ✅ Create Test Tenant (optional)
+
+### Step 4: Start Using
+- **Login**: http://localhost:3000/login
+- **Dashboard**: http://localhost:3000/dashboard
+- **Team Management**: http://localhost:3000/team
+
+📖 **Full Setup Guide**: [docs/QUICK_START.md](docs/QUICK_START.md)
+
+---
+
+## 📚 Documentation
+
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
+- **[Multi-Tenancy Complete](docs/MULTI_TENANCY_COMPLETE.md)** - Architecture & implementation details
+- **[Architecture](docs/ARCHITECTURE.md)** - Technical deep dive
+- **[Setup Guide](docs/SETUP_GUIDE.md)** - Detailed setup instructions
 - 🎨 **Enterprise UI** with Shadcn components
 - 🔐 **Secure API Authentication** (Key/Secret based)
 

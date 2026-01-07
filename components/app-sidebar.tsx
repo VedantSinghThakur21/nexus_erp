@@ -42,6 +42,7 @@ const menuItems = [
   { name: 'Bookings', icon: Calendar, href: '/bookings' },
   { name: 'Inspections', icon: ClipboardCheck, href: '/inspections' },
   { name: 'Operators', icon: Users, href: '/operators' },
+  { name: 'Team', icon: Users, href: '/team' },
   { name: 'Settings', icon: Settings, href: '/settings' },
 ]
 

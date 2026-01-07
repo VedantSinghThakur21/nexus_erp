@@ -2,6 +2,8 @@
 
 import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
+import { canCreateLead, incrementUsage } from "./usage-limits"
+import { headers } from "next/headers"
 
 export interface Lead {
   name: string
@@ -134,6 +136,22 @@ export async function getLeads() {
 
 // 2. CREATE: Add a new lead (Expanded for Detailed View)
 export async function createLead(data: any) {
+  // Check usage limits first
+  const headersList = await headers()
+  const subdomain = headersList.get('X-Subdomain')
+  
+  if (subdomain) {
+    const usageCheck = await canCreateLead(subdomain)
+    if (!usageCheck.allowed) {
+      return { 
+        error: usageCheck.message || 'Lead limit reached',
+        limitReached: true,
+        currentUsage: usageCheck.current,
+        limit: usageCheck.limit
+      }
+    }
+  }
+  
   // We switched to a JSON object 'data' to handle the larger form structure easily
   const leadData: any = {
     doctype: 'Lead',
@@ -167,6 +185,12 @@ export async function createLead(data: any) {
     await frappeRequest('frappe.client.insert', 'POST', {
       doc: leadData
     })
+    
+    // Increment usage counter
+    if (subdomain) {
+      await incrementUsage(subdomain, 'usage_leads')
+    }
+    
     revalidatePath('/crm')
     return { success: true }
   } catch (error: any) {

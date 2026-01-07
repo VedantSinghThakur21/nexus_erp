@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup:tenant": "node scripts/setup-tenant-doctype.js"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.0.10",

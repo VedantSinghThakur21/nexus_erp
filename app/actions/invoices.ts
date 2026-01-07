@@ -2,6 +2,8 @@
 
 import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
+import { canCreateInvoice, incrementUsage } from "./usage-limits"
+import { headers } from "next/headers"
 
 export interface Invoice {
   name: string
@@ -237,6 +239,22 @@ async function ensureTaxTemplate(templateName: string) {
 
 // 2. CREATE: Create a new Invoice with Tax Template Support and Rental Data
 export async function createInvoice(data: any) {
+  // Check usage limits first
+  const headersList = await headers()
+  const subdomain = headersList.get('X-Subdomain')
+  
+  if (subdomain) {
+    const usageCheck = await canCreateInvoice(subdomain)
+    if (!usageCheck.allowed) {
+      return { 
+        error: usageCheck.message || 'Invoice limit reached',
+        limitReached: true,
+        currentUsage: usageCheck.current,
+        limit: usageCheck.limit
+      }
+    }
+  }
+  
   // Process items to preserve rental data if coming from Sales Order
   const processedItems = (data.items || []).map((item: any) => {
     const baseItem: any = {
@@ -331,6 +349,11 @@ export async function createInvoice(data: any) {
     const newDoc = await frappeRequest('frappe.client.insert', 'POST', {
       doc: invoiceDoc
     })
+    
+    // Increment usage counter
+    if (subdomain) {
+      await incrementUsage(subdomain, 'usage_invoices')
+    }
     
     revalidatePath('/invoices')
     return { success: true, name: newDoc.name } 
