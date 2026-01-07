@@ -123,8 +123,7 @@ export async function loginUser(email: string, password: string) {
         success: true, 
         user: data.full_name || email,
         subdomain: tenant.subdomain,
-        dashboardUrl: `http://${tenant.subdomain}.nexuserp.com:3000/dashboard`
-        // For local: `http://${tenant.subdomain}.localhost:3000/dashboard`
+        dashboardUrl: '/dashboard' // Simple redirect, middleware handles tenant routing
       }
     }
 

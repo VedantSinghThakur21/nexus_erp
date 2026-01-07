@@ -190,8 +190,7 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       success: true,
       tenantId: tenant.id,
       subdomain: subdomain,
-      dashboardUrl: `http://${subdomain}.nexuserp.com:3000/dashboard` // For production
-      // For local: `http://${subdomain}.localhost:3000/dashboard`
+      dashboardUrl: '/dashboard' // Simple redirect for now, middleware handles tenant routing
     }
 
   } catch (error: any) {
