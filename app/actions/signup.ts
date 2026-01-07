@@ -95,7 +95,7 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     // Provision the site (this takes 2-3 minutes)
     console.log('Starting site provisioning for', subdomain)
     const provisionResult = await provisionTenant(
-      tenant.id,
+      tenant.name || tenant.subdomain,  // Use 'name' field which is the tenant ID
       subdomain,
       data.email,
       data.password
