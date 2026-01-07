@@ -402,23 +402,19 @@ export async function logoutUser() {
 
 export async function getCurrentUser() {
   try {
-    // Use userRequest to get the actual logged-in user from session
-    const result = await userRequest('frappe.auth.get_logged_user', 'GET', {})
-    console.log('Current user from session:', result)
-    return result
+    // Get user from cookie (set during login)
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value
+    
+    if (!userEmail) {
+      console.log('No user email found in cookie')
+      return null
+    }
+    
+    console.log('Current user from cookie:', userEmail)
+    return userEmail
   } catch (error) {
     console.error('Get current user error:', error)
-    // Fallback to cookie
-    try {
-      const cookieStore = await cookies()
-      const userEmail = cookieStore.get('user_email')?.value
-      if (userEmail) {
-        console.log('Current user from cookie (fallback):', userEmail)
-        return userEmail
-      }
-    } catch (cookieError) {
-      console.error('Cookie fallback failed:', cookieError)
-    }
     return null
   }
 }
