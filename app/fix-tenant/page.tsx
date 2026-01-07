@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { fixTenantSiteUrl, fixAllTenantUrls } from '@/app/actions/fix-tenant'
 import { createTenantUser, checkTenantUser } from '@/app/actions/create-tenant-user'
+import { debugTenantConfig, regenerateTenantApiKeys } from '@/app/actions/debug-tenant'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 
 export default function FixTenantPage() {
@@ -19,6 +20,10 @@ export default function FixTenantPage() {
   const [userFullName, setUserFullName] = useState('Vedant Singh Thakur')
   const [userPassword, setUserPassword] = useState('')
   const [userSubdomain, setUserSubdomain] = useState('testorganisation-sau')
+  
+  // Debug & regenerate keys
+  const [debugSubdomain, setDebugSubdomain] = useState('testorganisation-sau')
+  const [adminPassword, setAdminPassword] = useState('')
 
   async function handleFixSingle() {
     setLoading(true)
@@ -77,6 +82,32 @@ export default function FixTenantPage() {
     }
   }
 
+  async function handleDebug() {
+    setLoading(true)
+    setResult(null)
+    try {
+      const res = await debugTenantConfig(debugSubdomain)
+      setResult(res)
+    } catch (error: any) {
+      setResult({ success: false, error: error.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleRegenerateKeys() {
+    setLoading(true)
+    setResult(null)
+    try {
+      const res = await regenerateTenantApiKeys(debugSubdomain, adminPassword)
+      setResult(res)
+    } catch (error: any) {
+      setResult({ success: false, error: error.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container max-w-2xl mx-auto py-12 px-4">
       <div className="mb-8">
@@ -87,6 +118,61 @@ export default function FixTenantPage() {
       </div>
 
       <div className="space-y-6">
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle>🔍 Debug Tenant Configuration</CardTitle>
+            <CardDescription>
+              Check tenant configuration and test API credentials (run this first to diagnose issues)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tenant Subdomain</Label>
+              <Input
+                value={debugSubdomain}
+                onChange={(e) => setDebugSubdomain(e.target.value)}
+                placeholder="testorganisation-sau"
+              />
+            </div>
+            <Button onClick={handleDebug} disabled={loading || !debugSubdomain}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Debug Configuration
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle>🔑 Regenerate API Keys</CardTitle>
+            <CardDescription>
+              If API authentication is failing, regenerate the API keys for the tenant site
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tenant Subdomain</Label>
+              <Input
+                value={debugSubdomain}
+                onChange={(e) => setDebugSubdomain(e.target.value)}
+                placeholder="testorganisation-sau"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Administrator Password</Label>
+              <Input
+                type="password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                placeholder="Enter admin password used during provisioning"
+              />
+            </div>
+            <Button onClick={handleRegenerateKeys} disabled={loading || !debugSubdomain || !adminPassword}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Regenerate API Keys
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Create User in Tenant Site</CardTitle>
@@ -217,6 +303,17 @@ export default function FixTenantPage() {
                   {result.details && (
                     <div className="mt-2 text-xs bg-white/50 p-2 rounded border max-h-32 overflow-auto">
                       <pre>{JSON.stringify(result.details, null, 2)}</pre>
+                    </div>
+                  )}
+                  {result.debug && (
+                    <div className="mt-2 text-xs bg-white/50 p-2 rounded border max-h-96 overflow-auto">
+                      <pre>{JSON.stringify(result.debug, null, 2)}</pre>
+                    </div>
+                  )}
+                  {result.keys && (
+                    <div className="mt-2 text-xs space-y-1">
+                      <div><strong>API Key:</strong> {result.keys.api_key}</div>
+                      <div><strong>API Secret:</strong> {result.keys.api_secret}</div>
                     </div>
                   )}
                   {result.results && (
