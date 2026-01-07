@@ -33,7 +33,8 @@ export default function LoginPage() {
       const result = await loginUser(email, password)
       
       if (result.success) {
-        router.push('/dashboard')
+        // Redirect to tenant's dashboard with subdomain
+        window.location.href = result.dashboardUrl || '/dashboard'
       } else {
         setLoginError(result.error || 'Invalid email or password')
       }

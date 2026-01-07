@@ -5,11 +5,52 @@ import { frappeRequest, userRequest } from '@/app/lib/api'
 
 export async function loginUser(email: string, password: string) {
   try {
-    const erpUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
+    const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
+    const apiKey = process.env.ERP_API_KEY
+    const apiSecret = process.env.ERP_API_SECRET
     
     console.log('Attempting login for:', email)
     
-    const response = await fetch(`${erpUrl}/api/method/login`, {
+    // Step 1: Look up which tenant this user belongs to
+    const tenantLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${apiKey}:${apiSecret}`
+      },
+      body: JSON.stringify({
+        doctype: 'Tenant',
+        filters: { admin_email: email },
+        fields: ['subdomain', 'site_url', 'site_config', 'status'],
+        limit_page_length: 1
+      })
+    })
+
+    const tenantData = await tenantLookupResponse.json()
+    console.log('Tenant lookup response:', tenantData)
+
+    if (!tenantData.message || tenantData.message.length === 0) {
+      return { 
+        success: false, 
+        error: 'No account found with this email. Please sign up first.' 
+      }
+    }
+
+    const tenant = tenantData.message[0]
+    
+    // Check tenant status
+    if (tenant.status === 'suspended' || tenant.status === 'cancelled') {
+      return { 
+        success: false, 
+        error: `Your account is ${tenant.status}. Please contact support.` 
+      }
+    }
+
+    // Step 2: Authenticate against the tenant's site
+    const tenantSiteUrl = tenant.site_url
+    console.log('Authenticating against tenant site:', tenantSiteUrl)
+    
+    const response = await fetch(`${tenantSiteUrl}/api/method/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -41,21 +82,33 @@ export async function loginUser(email: string, password: string) {
         }
       }
 
-      // Store user email for profile retrieval
+      // Store user email and tenant info for routing
       cookieStore.set('user_email', email, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7
       })
+      
+      cookieStore.set('tenant_subdomain', tenant.subdomain, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7
+      })
 
-      return { success: true, user: data.full_name || email }
+      return { 
+        success: true, 
+        user: data.full_name || email,
+        subdomain: tenant.subdomain,
+        dashboardUrl: `http://${tenant.subdomain}.nexuserp.com:3000/dashboard`
+        // For local: `http://${tenant.subdomain}.localhost:3000/dashboard`
+      }
     }
 
     return { success: false, error: data.message || 'Invalid credentials' }
   } catch (error: any) {
     console.error('Login error:', error)
-    return { success: false, error: error.message }
     return { success: false, error: error.message }
   }
 }
