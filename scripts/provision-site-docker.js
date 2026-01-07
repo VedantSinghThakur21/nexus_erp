@@ -15,7 +15,6 @@ const { execSync } = require('child_process')
 const DOCKER_COMPOSE_PATH = process.env.DOCKER_COMPOSE_PATH || '/home/ubuntu/frappe_docker'
 const DOMAIN = process.env.DOMAIN || 'localhost'
 const BACKEND_CONTAINER = process.env.BACKEND_CONTAINER || 'backend'
-const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin'
 
 function parseArgs() {
   const args = {}
@@ -26,16 +25,10 @@ function parseArgs() {
   return args
 }
 
-function execDockerCommand(command, description, passPassword = false) {
+function execDockerCommand(command, description) {
   console.log(`\n🔧 ${description}...`)
   try {
-    let fullCommand
-    if (passPassword) {
-      // Use echo to pipe password to the command
-      fullCommand = `cd ${DOCKER_COMPOSE_PATH} && echo '${DB_ROOT_PASSWORD}' | docker compose exec -T ${BACKEND_CONTAINER} ${command}`
-    } else {
-      fullCommand = `cd ${DOCKER_COMPOSE_PATH} && docker compose exec -T ${BACKEND_CONTAINER} ${command}`
-    }
+    const fullCommand = `cd ${DOCKER_COMPOSE_PATH} && docker compose exec -T ${BACKEND_CONTAINER} bash -c "${command.replace(/"/g, '\\"')}"`
     
     const output = execSync(fullCommand, {
       encoding: 'utf-8',
