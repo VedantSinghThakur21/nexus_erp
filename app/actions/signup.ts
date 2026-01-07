@@ -110,48 +110,98 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     console.log('Site provisioned successfully:', provisionResult.site_url)
 
-    // Create organization in the NEW tenant site
-    // We need to use the tenant's site URL and API credentials
+    // Get site configuration with API credentials
     const siteConfig = typeof tenant.site_config === 'string' 
       ? JSON.parse(tenant.site_config) 
       : tenant.site_config
 
-    // Create organization using tenant's API
-    if (siteConfig && siteConfig.api_key && siteConfig.api_secret) {
-      try {
-        await fetch(`${provisionResult.site_url}/api/method/frappe.client.insert`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `token ${siteConfig.api_key}:${siteConfig.api_secret}`
-          },
-          body: JSON.stringify({
-            doc: {
-              doctype: 'Organization',
-              organization_name: data.organizationName,
-              organization_slug: subdomain,
-              subscription_plan: data.plan || 'free',
-              subscription_status: 'trial',
-              trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-              max_users: data.plan === 'enterprise' ? 999 : (data.plan === 'pro' ? 10 : 2),
-              max_leads: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 1000 : 50),
-              max_projects: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 50 : 5),
-              max_invoices: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 500 : 20)
-            }
-          })
-        })
-      } catch (orgError) {
-        console.error('Failed to create organization in tenant site:', orgError)
-        // Continue anyway - organization can be created later
+    if (!siteConfig || !siteConfig.api_key || !siteConfig.api_secret) {
+      console.error('Site config missing API credentials')
+      return {
+        success: false,
+        error: 'Site provisioned but missing API credentials'
       }
     }
 
-    // Login to the tenant site
+    const siteName = `${subdomain}.localhost`
+    const authHeader = `token ${siteConfig.api_key}:${siteConfig.api_secret}`
+
+    // STEP 1: Create User in the tenant site
     try {
+      console.log('Creating user in tenant site:', data.email)
+      const createUserResponse = await fetch(`${provisionResult.site_url}/api/method/frappe.client.insert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+          'X-Frappe-Site-Name': siteName
+        },
+        body: JSON.stringify({
+          doc: {
+            doctype: 'User',
+            email: data.email,
+            first_name: data.fullName,
+            new_password: data.password,
+            send_welcome_email: 0,
+            user_type: 'System User',
+            enabled: 1
+          }
+        })
+      })
+
+      const userResult = await createUserResponse.json()
+      console.log('User creation result:', userResult)
+      
+      if (!createUserResponse.ok) {
+        console.error('Failed to create user:', userResult)
+        // Continue anyway - user might already exist
+      }
+    } catch (userError) {
+      console.error('Failed to create user in tenant site:', userError)
+      // Continue anyway
+    }
+
+    // STEP 2: Create organization in the tenant site
+    try {
+      console.log('Creating organization in tenant site')
+      await fetch(`${provisionResult.site_url}/api/method/frappe.client.insert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+          'X-Frappe-Site-Name': siteName
+        },
+        body: JSON.stringify({
+          doc: {
+            doctype: 'Organization',
+            organization_name: data.organizationName,
+            organization_slug: subdomain,
+            subscription_plan: data.plan || 'free',
+            subscription_status: 'trial',
+            trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            max_users: data.plan === 'enterprise' ? 999 : (data.plan === 'pro' ? 10 : 2),
+            max_leads: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 1000 : 50),
+            max_projects: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 50 : 5),
+            max_invoices: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 500 : 20)
+          }
+        })
+      })
+    } catch (orgError) {
+      console.error('Failed to create organization in tenant site:', orgError)
+      // Continue anyway - organization can be created later
+    }
+
+    // STEP 3: Login to the tenant site with the user credentials
+    try {
+      const siteName = `${subdomain}.localhost`
+      console.log('Logging into tenant site:', provisionResult.site_url, 'Site:', siteName)
+      
       const loginResponse = await fetch(`${provisionResult.site_url}/api/method/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Frappe-Site-Name': siteName
+        },
         },
         body: new URLSearchParams({
           usr: data.email,
