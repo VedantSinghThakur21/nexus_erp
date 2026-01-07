@@ -39,10 +39,32 @@ export async function loginUser(email: string, password: string) {
     const tenant = tenantData.message[0]
     
     // Check tenant status
-    if (tenant.status === 'suspended' || tenant.status === 'cancelled') {
+    if (tenant.status === 'suspended') {
+      // If suspended but site_config is missing, provisioning failed - allow retry with better message
+      if (!tenant.site_config) {
+        return { 
+          success: false, 
+          error: 'Account provisioning failed. Please contact support or sign up with a new email.' 
+        }
+      }
       return { 
         success: false, 
-        error: `Your account is ${tenant.status}. Please contact support.` 
+        error: 'Your account is suspended. Please contact support.' 
+      }
+    }
+    
+    if (tenant.status === 'cancelled') {
+      return { 
+        success: false, 
+        error: 'Your account has been cancelled. Please contact support.' 
+      }
+    }
+    
+    // Check if provisioning is still pending
+    if (tenant.status === 'pending') {
+      return { 
+        success: false, 
+        error: 'Your account is still being set up. Please wait a few minutes and try again.' 
       }
     }
 
