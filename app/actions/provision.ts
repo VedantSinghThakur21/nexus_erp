@@ -72,11 +72,11 @@ export async function provisionTenant(
           if (jsonMatch) {
             const provisionResult = JSON.parse(jsonMatch[0])
             
-            // Update tenant with site details
-            await frappeRequest('frappe.client.set_value', {
-              doctype: 'Tenant',
-              name: tenantId,
-              fieldname: {
+            // Update tenant with site details using frappe.client.save
+            await frappeRequest('frappe.client.save', 'POST', {
+              doc: {
+                doctype: 'Tenant',
+                name: tenantId,
                 status: 'active',
                 site_url: provisionResult.site_url,
                 provisioned_at: provisionResult.provisioned_at,
@@ -113,7 +113,7 @@ export async function provisionTenant(
     
     // Update tenant status to failed
     try {
-      await frappeRequest('frappe.client.set_value', {
+      await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'Tenant',
         name: tenantId,
         fieldname: 'status',
