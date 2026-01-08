@@ -146,8 +146,9 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
       console.error('ERPNext API Response:', {
         status: res.status,
         statusText: res.statusText,
-        data: data,
-        url: url
+        url: url,
+        dataKeys: Object.keys(data || {}),
+        data: JSON.stringify(data, null, 2)
       })
       
       // Safely extract error message
@@ -170,10 +171,19 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
         }
       }
       
+      // Examine exception field if present
+      if (data.exception) {
+        console.error("Frappe Exception:", data.exception)
+        errorMessage = data.exception;
+      }
+      
       // Log errors only if it's NOT a 404 (Not Found)
       // This prevents console spam when a user clicks a bad link
       if (res.status !== 404) {
-        console.error("ERPNext Error:", errorMessage)
+        console.error("ERPNext Error Details:", {
+          message: errorMessage,
+          fullData: data
+        })
       }
       
       throw new Error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage))
