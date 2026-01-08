@@ -117,6 +117,34 @@ export default function FixTenantPage() {
         </p>
       </div>
 
+      {/* API Authentication Error Notice */}
+      <Card className="mb-6 border-red-200 bg-red-50">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold mb-2">⚠️ API Authentication Issues?</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                If you're seeing "AuthenticationError" or "UNAUTHORIZED" errors, the master site API keys need to be regenerated.
+              </p>
+              <div className="text-sm space-y-2 bg-white/50 p-3 rounded border">
+                <p className="font-semibold">Quick Fix on Server:</p>
+                <code className="block text-xs bg-black text-white p-2 rounded">
+                  cd /home/ubuntu/frappe_docker<br/>
+                  bash ~/nexus_erp/scripts/fix-master-api-keys.sh
+                </code>
+                <p className="text-xs mt-2">
+                  Then update your .env file with the new keys and restart Next.js.
+                </p>
+                <p className="text-xs text-blue-600 mt-2">
+                  📖 See <strong>docs/FIX_API_AUTH.md</strong> for detailed instructions
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="space-y-6">
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
