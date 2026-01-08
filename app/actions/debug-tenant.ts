@@ -185,23 +185,52 @@ export async function regenerateTenantApiKeys(subdomain: string, adminPassword: 
 
     const newKeys = keysResult.message
     
-    // Update tenant record with new keys
+    // Update tenant record with new keys using MASTER site credentials
     const updatedConfig = {
       db_name: `${subdomain.replace(/-/g, '_')}`,
       api_key: newKeys.api_key,
       api_secret: newKeys.api_secret
     }
 
-    await frappeRequest('frappe.client.set_value', 'POST', {
-      doctype: 'Tenant',
-      name: tenant.name,
-      fieldname: 'site_config',
-      value: JSON.stringify(updatedConfig)
+    console.log('Updating tenant record in master database...')
+    
+    // Use master site API credentials to update the Tenant record
+    const masterUrl = process.env.ERP_NEXT_URL || 'http://103.224.243.242:8080'
+    const masterApiKey = process.env.ERP_API_KEY
+    const masterApiSecret = process.env.ERP_API_SECRET
+
+    const updateResponse = await fetch(`${masterUrl}/api/method/frappe.client.set_value`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${masterApiKey}:${masterApiSecret}`
+      },
+      body: JSON.stringify({
+        doctype: 'Tenant',
+        name: tenant.name,
+        fieldname: 'site_config',
+        value: JSON.stringify(updatedConfig)
+      })
     })
+
+    if (!updateResponse.ok) {
+      const updateError = await updateResponse.json()
+      console.error('Failed to update tenant record:', updateError)
+      return {
+        success: false,
+        error: 'Generated new keys but failed to save to database',
+        keys: {
+          api_key: newKeys.api_key,
+          api_secret: newKeys.api_secret
+        }
+      }
+    }
+
+    console.log('Tenant record updated successfully')
 
     return {
       success: true,
-      message: 'API keys regenerated successfully',
+      message: 'API keys regenerated and saved successfully',
       keys: {
         api_key: newKeys.api_key,
         api_secret: newKeys.api_secret
