@@ -1,5 +1,6 @@
 import { getTeamMembers } from '@/app/actions/team'
 import { InviteTeamMemberDialog } from '@/components/team/invite-team-member-dialog'
+import { RemoveMemberButton } from '@/components/team/remove-member-button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -77,24 +78,10 @@ export default async function TeamPage() {
                   
                   {member.email !== 'Administrator' && member.email !== 'administrator@example.com' && (
                     <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          if (confirm(`Remove ${member.first_name} from the organization?`)) {
-                            const { removeTeamMember } = await import('@/app/actions/team')
-                            const result = await removeTeamMember(member.email)
-                            if (result.success) {
-                              window.location.reload()
-                            } else {
-                              alert(result.error)
-                            }
-                          }
-                        }}
-                      >
-                        <UserMinus className="h-4 w-4 mr-1" />
-                        Remove
-                      </Button>
+                      <RemoveMemberButton 
+                        memberEmail={member.email}
+                        memberName={member.first_name}
+                      />
                     </div>
                   )}
                 </div>
