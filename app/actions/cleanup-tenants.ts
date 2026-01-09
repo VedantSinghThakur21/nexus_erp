@@ -115,7 +115,15 @@ export async function deleteAllUsers() {
     }
   } catch (error) {
     console.error('User cleanup error:', error)
-    return {disable users (except Administrator)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
+
+/**
+ * Full cleanup - delete all tenants and disable users (except Administrator)
  */
 export async function fullCleanup() {
   console.log('🧹 Starting full cleanup...')
