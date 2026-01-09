@@ -149,7 +149,9 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     // STEP 1: Create User in the tenant site
     try {
       console.log('Creating user in tenant site:', data.email)
-      const createUserResponse = await fetch(`${provisionResult.site_url}/api/method/frappe.client.insert`, {
+      
+      // First, check if user already exists
+      const checkUserResponse = await fetch(`${provisionResult.site_url}/api/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,28 +159,86 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
           'X-Frappe-Site-Name': siteName
         },
         body: JSON.stringify({
-          doc: {
-            doctype: 'User',
-            email: data.email,
-            first_name: data.fullName,
-            new_password: data.password,
-            send_welcome_email: 0,
-            user_type: 'System User',
-            enabled: 1
-          }
+          doctype: 'User',
+          filters: { email: data.email },
+          fields: ['name', 'email'],
+          limit_page_length: 1
         })
       })
 
-      const userResult = await createUserResponse.json()
-      console.log('User creation result:', userResult)
+      const existingUsers = await checkUserResponse.json()
       
-      if (!createUserResponse.ok) {
-        console.error('Failed to create user:', userResult)
-        // Continue anyway - user might already exist
+      if (!existingUsers.message || existingUsers.message.length === 0) {
+        // User doesn't exist, create it
+        const [firstName, ...lastNameParts] = data.fullName.split(' ')
+        
+        const createUserResponse = await fetch(`${provisionResult.site_url}/api/method/frappe.client.insert`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+            'X-Frappe-Site-Name': siteName
+          },
+          body: JSON.stringify({
+            doc: {
+              doctype: 'User',
+              email: data.email,
+              first_name: firstName,
+              last_name: lastNameParts.join(' ') || '',
+              send_welcome_email: 0,
+              user_type: 'System User',
+              enabled: 1
+            }
+          })
+        })
+
+        const userResult = await createUserResponse.json()
+        console.log('User creation result:', userResult)
+        
+        if (!createUserResponse.ok) {
+          console.error('Failed to create user:', userResult)
+          return {
+            success: false,
+            error: `Failed to create user: ${userResult.message || userResult.exception || 'Unknown error'}`
+          }
+        }
+
+        // Now set the password using a separate API call
+        console.log('Setting user password...')
+        const setPasswordResponse = await fetch(`${provisionResult.site_url}/api/method/frappe.core.doctype.user.user.update_password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+            'X-Frappe-Site-Name': siteName
+          },
+          body: JSON.stringify({
+            new_password: data.password,
+            user: data.email
+          })
+        })
+
+        const passwordResult = await setPasswordResponse.json()
+        console.log('Password set result:', passwordResult)
+        
+        if (!setPasswordResponse.ok) {
+          console.error('Failed to set password:', passwordResult)
+          return {
+            success: false,
+            error: 'User created but failed to set password. Please contact support.'
+          }
+        }
+
+        console.log('✅ User created and password set successfully')
+      } else {
+        console.log('User already exists, skipping creation')
       }
     } catch (userError) {
       console.error('Failed to create user in tenant site:', userError)
-      // Continue anyway
+      return {
+        success: false,
+        error: `Failed to set up user account: ${userError instanceof Error ? userError.message : 'Unknown error'}`
+      }
     }
 
     // STEP 2: Create organization in the tenant site
