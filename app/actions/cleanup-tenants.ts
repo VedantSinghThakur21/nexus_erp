@@ -10,10 +10,10 @@ export async function deleteAllTenants() {
   try {
     console.log('🗑️  Starting tenant cleanup...')
 
-    // Get all tenants - use only safe fields
+    // Get all tenants - use only basic fields (name and subdomain)
     const tenants = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Tenant',
-      fields: JSON.stringify(['name', 'subdomain', 'organization_name']),
+      fields: JSON.stringify(['name', 'subdomain']),
       limit_page_length: 999
     })
 
@@ -60,6 +60,7 @@ export async function deleteAllTenants() {
 /**
  * Disable all non-Administrator users from the master site
  * ERPNext doesn't allow deleting users, only disabling them
+ * Also skips System Manager users as ERPNext requires at least one active System Manager
  */
 export async function deleteAllUsers() {
   try {
@@ -80,14 +81,32 @@ export async function deleteAllUsers() {
       return { success: true, deleted: 0 }
     }
 
-    console.log(`Found ${users.length} users to disable`)
+    console.log(`Found ${users.length} users to check`)
 
     let disabledCount = 0
+    let skippedCount = 0
     const errors: any[] = []
 
     for (const user of users) {
       try {
         if (user.enabled === 1) {
+          // Check if user has System Manager role - skip if they do
+          const roles = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Has Role',
+            filters: JSON.stringify([
+              ['parent', '=', user.name],
+              ['role', '=', 'System Manager']
+            ]),
+            fields: JSON.stringify(['name']),
+            limit_page_length: 1
+          })
+
+          if (roles && roles.length > 0) {
+            console.log(`Skipping System Manager: ${user.email}`)
+            skippedCount++
+            continue
+          }
+
           console.log(`Disabling user: ${user.email}`)
           // Disable the user instead of deleting
           await frappeRequest('frappe.client.set_value', 'POST', {
@@ -106,11 +125,12 @@ export async function deleteAllUsers() {
       }
     }
 
-    console.log(`✅ Disabled ${disabledCount} users`)
+    console.log(`✅ Disabled ${disabledCount} users, skipped ${skippedCount} System Managers`)
     
     return {
       success: true,
       deleted: disabledCount,
+      skipped: skippedCount,
       errors: errors.length > 0 ? errors : undefined
     }
   } catch (error) {
