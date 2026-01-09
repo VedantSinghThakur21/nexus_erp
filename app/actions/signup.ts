@@ -110,19 +110,39 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     console.log('Site provisioned successfully:', provisionResult.site_url)
 
+    // Reload tenant record to get updated site_config with API credentials
+    console.log('Reloading tenant record to get API credentials...')
+    const updatedTenantList = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Tenant',
+      filters: JSON.stringify({ name: tenant.name || tenant.subdomain }),
+      fields: JSON.stringify(['*']),
+      limit_page_length: 1
+    })
+
+    if (!updatedTenantList || updatedTenantList.length === 0) {
+      console.error('Could not reload tenant record after provisioning')
+      return {
+        success: false,
+        error: 'Site provisioned but could not retrieve credentials'
+      }
+    }
+
+    const updatedTenant = updatedTenantList[0]
+
     // Get site configuration with API credentials
-    const siteConfig = typeof tenant.site_config === 'string' 
-      ? JSON.parse(tenant.site_config) 
-      : tenant.site_config
+    const siteConfig = typeof updatedTenant.site_config === 'string' 
+      ? JSON.parse(updatedTenant.site_config) 
+      : updatedTenant.site_config
 
     if (!siteConfig || !siteConfig.api_key || !siteConfig.api_secret) {
-      console.error('Site config missing API credentials')
+      console.error('Site config missing API credentials:', siteConfig)
       return {
         success: false,
         error: 'Site provisioned but missing API credentials'
       }
     }
 
+    console.log('API credentials retrieved successfully')
     const siteName = `${subdomain}.localhost`
     const authHeader = `token ${siteConfig.api_key}:${siteConfig.api_secret}`
 
