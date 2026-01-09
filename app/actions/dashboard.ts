@@ -200,9 +200,8 @@ export async function getDealsByStage() {
 // Get My Open Leads
 export async function getMyOpenLeads() {
   try {
-    const { cookies: cookiesModule } = await import('next/headers')
-    const cookieStore = await cookiesModule()
-    const userEmail = cookieStore.get('user_email')?.value
+    // Get logged-in user from Frappe session
+    const userEmail = await frappeRequest('frappe.auth.get_logged_user', 'GET', null, true)
     
     const leads = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Lead',
@@ -233,9 +232,8 @@ export async function getMyOpenLeads() {
 // Get My Open Opportunities
 export async function getMyOpenOpportunities() {
   try {
-    const { cookies: cookiesModule } = await import('next/headers')
-    const cookieStore = await cookiesModule()
-    const userEmail = cookieStore.get('user_email')?.value
+    // Get logged-in user from Frappe session
+    const userEmail = await frappeRequest('frappe.auth.get_logged_user', 'GET', null, true)
     
     const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Opportunity',
