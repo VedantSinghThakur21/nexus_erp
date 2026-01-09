@@ -36,12 +36,10 @@ export async function getInspections() {
 // 2. CREATE: New Inspection
 export async function createInspection(formData: FormData) {
   try {
-    // 1. Get Current User (The Inspector) from cookies
-    const { cookies: cookiesModule } = await import('next/headers')
-    const cookieStore = await cookiesModule()
-    const currentUser = cookieStore.get('user_email')?.value
+    // Get logged-in user from Frappe session
+    const currentUser = await frappeRequest('frappe.auth.get_logged_user', 'GET', null, true)
 
-    // 2. Prepare Document
+    // Prepare Document
     const inspectionDoc = {
         doctype: 'Quality Inspection',
         inspection_type: formData.get('type'),

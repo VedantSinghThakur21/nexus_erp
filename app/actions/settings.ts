@@ -15,19 +15,17 @@ export interface User {
 // 1. Get Current User Details
 export async function getProfile() {
   try {
-    // Get current logged-in user from cookies (already set during login)
-    const { cookies: cookiesModule } = await import('next/headers')
-    const cookieStore = await cookiesModule()
-    const userEmail = cookieStore.get('user_email')?.value
+    // Get logged-in user email from Frappe session
+    const userEmail = await userRequest('frappe.auth.get_logged_user')
     
     if (!userEmail) {
-      console.error('No logged-in user found in cookies')
+      console.error('No logged-in user found in session')
       return null
     }
     
     console.log('Getting profile for user:', userEmail)
     
-    // Fetch user details from User doctype using session
+    // Fetch user details from User doctype
     const user = await userRequest('frappe.client.get', 'GET', {
       doctype: 'User',
       name: userEmail
