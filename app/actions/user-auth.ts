@@ -446,12 +446,19 @@ export async function getCurrentUserOrganization() {
       return null
     }
 
-    const org = await userRequest('frappe.client.get', 'GET', {
+    const orgList = await userRequest('frappe.client.get_list', 'GET', {
       doctype: 'Organization',
-      filters: JSON.stringify({ slug: orgs[0].organization_slug })
+      filters: JSON.stringify({ slug: orgs[0].organization_slug }),
+      fields: JSON.stringify(['*']),
+      limit_page_length: 1
     })
 
-    return { ...org, userRole: orgs[0].role }
+    if (!orgList || orgList.length === 0) {
+      console.log('Organization not found')
+      return null
+    }
+
+    return { ...orgList[0], userRole: orgs[0].role }
   } catch (error) {
     return null
   }
