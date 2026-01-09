@@ -10,11 +10,11 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Receipt, Building2, Landmark, Palette } from "lucide-react"
 
 export default async function SettingsPage() {
-  const profile = await getProfile()
-  const team = await getTeam()
-  const taxTemplates = await getTaxTemplates()
-  const company = await getCompany()
-  const bankAccounts = await getBankAccounts()
+  const profile = await getProfile().catch(() => null)
+  const team = await getTeam().catch(() => [])
+  const taxTemplates = await getTaxTemplates().catch(() => [])
+  const company = await getCompany().catch(() => null)
+  const bankAccounts = await getBankAccounts().catch(() => [])
 
   return (
     <div className="p-6 lg:p-8 space-y-8 max-w-5xl mx-auto">
@@ -47,21 +47,27 @@ export default async function SettingsPage() {
       {/* Profile Section */}
       <Card>
         <CardHeader><CardTitle>My Profile</CardTitle></CardHeader>
-        <CardContent className="flex items-center gap-6">
-            <Avatar className="h-20 w-20 border-2 border-slate-100">
-                <AvatarFallback className="text-xl bg-blue-100 text-blue-700">
-                    {profile?.first_name?.[0]}
-                </AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">{profile?.full_name}</h3>
-                <p className="text-slate-500">{profile?.name}</p>
-                <div className="pt-2">
-                    <Badge variant="outline" className="bg-slate-50 border-slate-200">
-                        {profile?.role_profile_name || "System User"}
-                    </Badge>
-                </div>
+        <CardContent>
+          {profile ? (
+            <div className="flex items-center gap-6">
+              <Avatar className="h-20 w-20 border-2 border-slate-100">
+                  <AvatarFallback className="text-xl bg-blue-100 text-blue-700">
+                      {profile?.first_name?.[0]}
+                  </AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">{profile?.full_name}</h3>
+                  <p className="text-slate-500">{profile?.name}</p>
+                  <div className="pt-2">
+                      <Badge variant="outline" className="bg-slate-50 border-slate-200">
+                          {profile?.role_profile_name || "System User"}
+                      </Badge>
+                  </div>
+              </div>
             </div>
+          ) : (
+            <p className="text-slate-500">Please log in to view your profile.</p>
+          )}
         </CardContent>
       </Card>
 

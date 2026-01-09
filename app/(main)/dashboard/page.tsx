@@ -66,13 +66,20 @@ async function getRevenueData() {
 }
 
 export default async function DashboardPage() {
-  const user = await getUser()
-  const stats = await getDashboardStats()
-  const pipelineFunnel = await getSalesPipelineFunnel()
-  const dealsByStage = await getDealsByStage()
-  const revenueData = await getRevenueData()
-  const myLeads = await getMyOpenLeads()
-  const myOpportunities = await getMyOpenOpportunities()
+  // Fetch all data with error handling
+  const user = await getUser().catch(() => ({ full_name: 'User' }))
+  const stats = await getDashboardStats().catch(() => ({
+    newLeadsToday: 0,
+    openOpportunities: 0,
+    pipelineValue: 0,
+    dealsWonMTD: 0,
+    winRate: 0
+  }))
+  const pipelineFunnel = await getSalesPipelineFunnel().catch(() => [])
+  const dealsByStage = await getDealsByStage().catch(() => [])
+  const revenueData = await getRevenueData().catch(() => [])
+  const myLeads = await getMyOpenLeads().catch(() => [])
+  const myOpportunities = await getMyOpenOpportunities().catch(() => [])
 
   // Safe validation - ensure all data is arrays/objects, not error objects
   const safePipelineFunnel = Array.isArray(pipelineFunnel) ? pipelineFunnel : []

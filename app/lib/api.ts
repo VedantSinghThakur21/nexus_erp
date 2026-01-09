@@ -45,6 +45,14 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
     'Cookie': `sid=${sessionCookie.value}`,
   }
 
+  // For tenant users, add the site name header
+  const userType = cookieStore.get('user_type')?.value
+  const tenantSubdomain = cookieStore.get('tenant_subdomain')?.value
+  
+  if (userType === 'tenant' && tenantSubdomain) {
+    headers['X-Frappe-Site-Name'] = `${tenantSubdomain}.localhost`
+  }
+
   if (method !== 'GET') {
     headers['Content-Type'] = 'application/json'
   }
@@ -107,6 +115,13 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
   let erpnextUrl = BASE_URL || 'http://103.224.243.242:8080'
   if (useTenantUrl) {
     erpnextUrl = await getERPNextURL()
+    
+    // If using tenant URL, add site name header
+    const cookieStore = await cookies()
+    const tenantSubdomain = cookieStore.get('tenant_subdomain')?.value
+    if (tenantSubdomain) {
+      headers['X-Frappe-Site-Name'] = `${tenantSubdomain}.localhost`
+    }
   }
 
   // Build the URL and Request Options
@@ -263,6 +278,7 @@ export async function tenantRequest(endpoint: string, method = 'GET', body: any 
     const requestHeaders: HeadersInit = {
       'Accept': 'application/json',
       'Authorization': authHeader,
+      'X-Frappe-Site-Name': `${subdomain}.localhost` // Add site name for multi-tenant setup
     }
     
     if (method !== 'GET') {
