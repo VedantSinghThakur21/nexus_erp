@@ -90,38 +90,34 @@ export async function deleteAllUsers() {
     for (const user of users) {
       try {
         if (user.enabled === 1) {
-          // Check if user has System Manager role - skip if they do
-          const roles = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Has Role',
-            filters: JSON.stringify([
-              ['parent', '=', user.name],
-              ['role', '=', 'System Manager']
-            ]),
-            fields: JSON.stringify(['name']),
-            limit_page_length: 1
-          })
-
-          if (roles && roles.length > 0) {
-            console.log(`Skipping System Manager: ${user.email}`)
-            skippedCount++
-            continue
+          console.log(`Attempting to disable user: ${user.email}`)
+          // Try to disable the user - ERPNext will throw error if System Manager
+          try {
+            await frappeRequest('frappe.client.set_value', 'POST', {
+              doctype: 'User',
+              name: user.name,
+              fieldname: 'enabled',
+              value: 0
+            })
+            disabledCount++
+            console.log(`✓ Disabled: ${user.email}`)
+          } catch (disableError: any) {
+            // Check if error is about System Manager protection
+            const errorMsg = disableError.message || ''
+            if (errorMsg.includes('System Manager') || errorMsg.includes('at least one')) {
+              console.log(`⊘ Skipped System Manager: ${user.email}`)
+              skippedCount++
+            } else {
+              // Re-throw if it's a different error
+              throw disableError
+            }
           }
-
-          console.log(`Disabling user: ${user.email}`)
-          // Disable the user instead of deleting
-          await frappeRequest('frappe.client.set_value', 'POST', {
-            doctype: 'User',
-            name: user.name,
-            fieldname: 'enabled',
-            value: 0
-          })
-          disabledCount++
         } else {
           console.log(`User already disabled: ${user.email}`)
         }
-      } catch (error) {
-        console.error(`Failed to disable user ${user.email}:`, error)
-        errors.push({ user: user.email, error })
+      } catch (error: any) {
+        console.error(`Failed to process user ${user.email}:`, error)
+        errors.push({ user: user.email, error: error.message })
       }
     }
 
