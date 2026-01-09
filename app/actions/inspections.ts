@@ -2,6 +2,7 @@
 
 import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
+import { cookies } from 'next/headers'
 
 export interface Inspection {
   name: string
@@ -36,8 +37,9 @@ export async function getInspections() {
 // 2. CREATE: New Inspection
 export async function createInspection(formData: FormData) {
   try {
-    // Get logged-in user from Frappe session
-    const currentUser = await frappeRequest('frappe.auth.get_logged_user', 'GET', null, true)
+    // Get logged-in user from cookies (set by Frappe during login)
+    const cookieStore = await cookies()
+    const currentUser = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
 
     // Prepare Document
     const inspectionDoc = {

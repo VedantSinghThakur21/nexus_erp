@@ -1,6 +1,7 @@
 'use server'
 
 import { frappeRequest } from "@/app/lib/api"
+import { cookies } from 'next/headers'
 
 export async function getDashboardStats() {
   try {
@@ -200,8 +201,14 @@ export async function getDealsByStage() {
 // Get My Open Leads
 export async function getMyOpenLeads() {
   try {
-    // Get logged-in user from Frappe session
-    const userEmail = await frappeRequest('frappe.auth.get_logged_user', 'GET', null, true)
+    // Get logged-in user from cookies (set by Frappe during login)
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+    
+    if (!userEmail) {
+      console.error('No user found in cookies for getMyOpenLeads')
+      return []
+    }
     
     const leads = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Lead',
@@ -232,8 +239,14 @@ export async function getMyOpenLeads() {
 // Get My Open Opportunities
 export async function getMyOpenOpportunities() {
   try {
-    // Get logged-in user from Frappe session
-    const userEmail = await frappeRequest('frappe.auth.get_logged_user', 'GET', null, true)
+    // Get logged-in user from cookies (set by Frappe during login)
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+    
+    if (!userEmail) {
+      console.error('No user found in cookies for getMyOpenOpportunities')
+      return []
+    }
     
     const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Opportunity',

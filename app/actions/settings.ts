@@ -2,6 +2,7 @@
 
 import { frappeRequest, userRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
+import { cookies } from 'next/headers'
 
 export interface User {
   name: string // Email
@@ -15,11 +16,12 @@ export interface User {
 // 1. Get Current User Details
 export async function getProfile() {
   try {
-    // Get logged-in user email from Frappe session
-    const userEmail = await userRequest('frappe.auth.get_logged_user')
+    // Get logged-in user email from cookies (set by Frappe during login)
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
     
     if (!userEmail) {
-      console.error('No logged-in user found in session')
+      console.error('No logged-in user found in cookies')
       return null
     }
     

@@ -406,15 +406,16 @@ export async function logoutUser() {
 
 export async function getCurrentUser() {
   try {
-    // Get logged-in user from Frappe session
-    const userEmail = await userRequest('frappe.auth.get_logged_user')
+    // Get logged-in user from cookies (set by Frappe during login)
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
     
     if (!userEmail) {
-      console.log('No user found in session')
+      console.log('No user found in cookies')
       return null
     }
     
-    console.log('Current user from session:', userEmail)
+    console.log('Current user from cookies:', userEmail)
     return userEmail
   } catch (error) {
     console.error('Get current user error:', error)
