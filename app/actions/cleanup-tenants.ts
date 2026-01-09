@@ -136,13 +136,5 @@ export async function fullCleanup() {
     users: usersResult,
     success: tenantsResult.success && usersResult.success,
     message: `Deleted ${tenantsResult.deleted} tenants and disabled ${usersResult.deleted} users`
-  
-  const tenantsResult = await deleteAllTenants()
-  const usersResult = await deleteAllUsers()
-  
-  return {
-    tenants: tenantsResult,
-    users: usersResult,
-    success: tenantsResult.success && usersResult.success
   }
 }
