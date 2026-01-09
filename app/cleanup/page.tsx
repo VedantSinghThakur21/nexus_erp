@@ -16,12 +16,12 @@ export default async function CleanupPage({
           <CardHeader>
             <CardTitle className="text-red-600">⚠️ Danger Zone: Full Cleanup</CardTitle>
             <CardDescription>
-              This will delete ALL tenants and users (except Administrator) from the master database.
+              This will delete ALL tenants and disable all users (except Administrator) from the master database.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="mb-4 text-muted-foreground">
-              This action is irreversible and should only be used in development/testing.
+              This action will disable users (not delete) as ERPNext doesn't allow user deletion. Tenants will be permanently deleted.
             </p>
             <a 
               href="/cleanup?confirm=yes" 
@@ -46,6 +46,11 @@ export default async function CleanupPage({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {result.message && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-green-800">{result.message}</p>
+              </div>
+            )}
             <div>
               <h3 className="font-semibold">Tenants</h3>
               <p>Deleted: {result.tenants.deleted}</p>
@@ -55,7 +60,7 @@ export default async function CleanupPage({
             </div>
             <div>
               <h3 className="font-semibold">Users</h3>
-              <p>Deleted: {result.users.deleted}</p>
+              <p>Disabled: {result.users.deleted}</p>
               {result.users.errors && (
                 <p className="text-red-600">Errors: {result.users.errors.length}</p>
               )}
