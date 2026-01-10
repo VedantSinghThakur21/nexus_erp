@@ -25,6 +25,52 @@ interface SignupResult {
 }
 
 /**
+ * Helper function to add delay between retries
+ */
+async function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Retry a function with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 5,
+  delayMs: number = 3000,
+  operationName: string = 'Operation'
+): Promise<T> {
+  let lastError: Error | null = null
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[Retry ${attempt}/${maxRetries}] Attempting: ${operationName}`)
+      const result = await operation()
+      console.log(`✅ Success on attempt ${attempt}`)
+      return result
+    } catch (error: any) {
+      lastError = error
+      console.error(`❌ Attempt ${attempt}/${maxRetries} failed:`, error.message)
+      
+      // Check if it's an auth error that we should retry
+      const isAuthError = error.message?.includes('AuthenticationError') || 
+                         error.message?.includes('401') ||
+                         error.message?.includes('Unauthorized')
+      
+      if (!isAuthError || attempt === maxRetries) {
+        // If it's not an auth error, or we've exhausted retries, throw
+        throw error
+      }
+      
+      console.log(`⏳ Waiting ${delayMs}ms before retry ${attempt + 1}/${maxRetries}...`)
+      await delay(delayMs)
+    }
+  }
+  
+  throw lastError || new Error('Max retries exceeded')
+}
+
+/**
  * Complete signup flow with tenant provisioning
  * 1. Create tenant record in master site
  * 2. Provision ERPNext site (async)
@@ -129,33 +175,47 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     const updatedTenant = updatedTenantList[0]
 
-    // Get site configuration with API credentials
-    const siteConfig = typeof updatedTenant.site_config === 'string' 
-      ? JSON.parse(updatedTenant.site_config) 
-      : updatedTenant.site_config
-
-    if (!siteConfig || !siteConfig.api_key || !siteConfig.api_secret) {
-      console.error('Site config missing API credentials:', siteConfig)
-      return {
-        success: false,
-        error: 'Site provisioned but missing API credentials'
-      }
-    }
-
     console.log('API credentials retrieved successfully')
     const siteName = `${subdomain}.localhost`
     const apiKey = siteConfig.api_key
     const apiSecret = siteConfig.api_secret
     
-    // Wait a moment for API credentials to be active in the system
-    console.log('Waiting for API credentials to activate...')
-    await new Promise(resolve => setTimeout(resolve, 3000)) // Wait 3 seconds
+    // CRITICAL: Wait for site and API credentials to be fully active
+    // The database might not be fully initialized or API keys not propagated to cache
+    console.log('⏳ Waiting 5 seconds for site initialization and API keys to activate...')
+    await delay(5000) // Initial 5-second wait
     
     console.log('Using API Key:', apiKey.substring(0, 8) + '... for site:', siteName)
 
-    // STEP 1: Create User in the tenant site
+    // STEP 1: Create User in the tenant site with retry mechanism
     try {
       console.log('Creating user in tenant site:', data.email)
+      
+      // Check if user exists with retry logic
+      const existingUsers = await retryWithBackoff(
+        async () => {
+          return await tenantAuthRequest(
+            'frappe.client.get_list',
+            siteName,
+            apiKey,
+            apiSecret,
+            'POST',
+            {
+              doctype: 'User',
+              filters: { email: data.email },
+              fields: ['name', 'email'],
+              limit_page_length: 1
+            }
+          )
+        },
+        5, // max attempts
+        3000, // 3 seconds between retries
+        'Check existing user'
+      )
+
+      console.log('User check result:', existingUsers)
+      
+      if (!existingUsers || existingUsers.length === 0) {
       
       // First, check if user already exists using our helper function
       const existingUsers = await tenantAuthRequest(
@@ -175,45 +235,58 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       console.log('User check result:', existingUsers)
       
       if (!existingUsers || existingUsers.length === 0) {
-        // User doesn't exist, create it
+        // User doesn't exist, create it with retry logic
         const [firstName, ...lastNameParts] = data.fullName.split(' ')
         
-        const userResult = await tenantAuthRequest(
-          'frappe.client.insert',
-          siteName,
-          apiKey,
-          apiSecret,
-          'POST',
-          {
-            doc: {
-              doctype: 'User',
-              email: data.email,
-              first_name: firstName,
-              last_name: lastNameParts.join(' ') || '',
-              send_welcome_email: 0,
-              user_type: 'System User',
-              enabled: 1
-            }
-          }
+        const userResult = await retryWithBackoff(
+          async () => {
+            return await tenantAuthRequest(
+              'frappe.client.insert',
+              siteName,
+              apiKey,
+              apiSecret,
+              'POST',
+              {
+                doc: {
+                  doctype: 'User',
+                  email: data.email,
+                  first_name: firstName,
+                  last_name: lastNameParts.join(' ') || '',
+                  send_welcome_email: 0,
+                  user_type: 'System User',
+                  enabled: 1
+                }
+              }
+            )
+          },
+          5, // max attempts
+          3000, // 3 seconds between retries
+          'Create user'
         )
 
         console.log('User creation result:', userResult)
 
-        // Now set the password using a separate API call
+        // Now set the password using a separate API call with retry logic
         console.log('Setting user password...')
-        const passwordResult = await tenantAuthRequest(
-          'frappe.core.doctype.user.user.update_password',
-          siteName,
-          apiKey,
-          apiSecret,
-          'POST',
-          {
-            new_password: data.password,
-            user: data.email
-          }
+        const passwordResult = await retryWithBackoff(
+          async () => {
+            return await tenantAuthRequest(
+              'frappe.core.doctype.user.user.update_password',
+              siteName,
+              apiKey,
+              apiSecret,
+              'POST',
+              {
+                new_password: data.password,
+                user: data.email
+              }
+            )
+          },
+          5, // max attempts
+          3000, // 3 seconds between retries
+          'Set user password'
         )
 
-        console.log('Password set result:', passwordResult)
         console.log('Password set result:', passwordResult)
 
         console.log('✅ User created and password set successfully')
@@ -231,26 +304,33 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     // STEP 2: Create organization in the tenant site
     try {
       console.log('Creating organization in tenant site')
-      await tenantAuthRequest(
-        'frappe.client.insert',
-        siteName,
-        apiKey,
-        apiSecret,
-        'POST',
-        {
-          doc: {
-            doctype: 'Organization',
-            organization_name: data.organizationName,
-            organization_slug: subdomain,
-            subscription_plan: data.plan || 'free',
-            subscription_status: 'trial',
-            trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-            max_users: data.plan === 'enterprise' ? 999 : (data.plan === 'pro' ? 10 : 2),
-            max_leads: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 1000 : 50),
-            max_projects: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 50 : 5),
-            max_invoices: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 500 : 20)
-          }
-        }
+      await retryWithBackoff(
+        async () => {
+          return await tenantAuthRequest(
+            'frappe.client.insert',
+            siteName,
+            apiKey,
+            apiSecret,
+            'POST',
+            {
+              doc: {
+                doctype: 'Organization',
+                organization_name: data.organizationName,
+                organization_slug: subdomain,
+                subscription_plan: data.plan || 'free',
+                subscription_status: 'trial',
+                trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                max_users: data.plan === 'enterprise' ? 999 : (data.plan === 'pro' ? 10 : 2),
+                max_leads: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 1000 : 50),
+                max_projects: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 50 : 5),
+                max_invoices: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 500 : 20)
+              }
+            }
+          )
+        },
+        5, // max attempts
+        3000, // 3 seconds between retries
+        'Create organization'
       )
       console.log('✅ Organization created successfully')
     } catch (orgError) {
