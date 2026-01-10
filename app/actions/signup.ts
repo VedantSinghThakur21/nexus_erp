@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { frappeRequest, tenantAuthRequest } from '../lib/api'
+import { frappeRequest, tenantAdminRequest } from '../lib/api'
 import { createTenant } from './tenants'
 import { provisionTenant } from './provision'
 import { setupTenantDocType } from './setup-tenant'
@@ -14,6 +14,63 @@ interface SignupData {
   organizationName: string
   subdomain?: string
   plan?: 'free' | 'pro' | 'enterprise'
+}
+
+/**
+ * Validate email format
+ */
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email) && email.length <= 254
+}
+
+/**
+ * Validate password strength
+ * Requirements: Min 8 chars, at least 1 uppercase, 1 lowercase, 1 number
+ */
+function isValidPassword(password: string): boolean {
+  if (password.length < 8) return false
+  if (!/[A-Z]/.test(password)) return false
+  if (!/[a-z]/.test(password)) return false
+  if (!/[0-9]/.test(password)) return false
+  return true
+}
+
+/**
+ * Sanitize and validate subdomain
+ * Only allows alphanumeric and hyphens, prevents common attacks
+ */
+function sanitizeSubdomain(input: string): string {
+  // Remove any characters that aren't alphanumeric or hyphen
+  let sanitized = input
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .replace(/-{2,}/g, '-') // Replace multiple hyphens with single
+    .substring(0, 63) // DNS max subdomain length
+  
+  // Prevent reserved/dangerous subdomains
+  const reserved = ['admin', 'api', 'www', 'mail', 'ftp', 'localhost', 'root', 'administrator']
+  if (reserved.includes(sanitized)) {
+    sanitized = `org-${sanitized}`
+  }
+  
+  // Ensure minimum length
+  if (sanitized.length < 3) {
+    sanitized = sanitized + Math.random().toString(36).substring(2, 5)
+  }
+  
+  return sanitized
+}
+
+/**
+ * Sanitize name inputs to prevent XSS
+ */
+function sanitizeName(name: string): string {
+  return name
+    .replace(/[<>"'&]/g, '') // Remove HTML/script characters
+    .trim()
+    .substring(0, 140) // Max length
 }
 
 interface SignupResult {
@@ -80,6 +137,39 @@ async function retryWithBackoff<T>(
  */
 export async function signupWithTenant(data: SignupData): Promise<SignupResult> {
   try {
+    // SECURITY: Validate all inputs before processing
+    if (!isValidEmail(data.email)) {
+      return {
+        success: false,
+        error: 'Invalid email address format'
+      }
+    }
+    
+    if (!isValidPassword(data.password)) {
+      return {
+        success: false,
+        error: 'Password must be at least 8 characters with uppercase, lowercase, and number'
+      }
+    }
+    
+    // Sanitize name inputs
+    const fullName = sanitizeName(data.fullName)
+    const organizationName = sanitizeName(data.organizationName)
+    
+    if (!fullName || fullName.length < 2) {
+      return {
+        success: false,
+        error: 'Please provide a valid full name'
+      }
+    }
+    
+    if (!organizationName || organizationName.length < 2) {
+      return {
+        success: false,
+        error: 'Please provide a valid organization name'
+      }
+    }
+    
     // First, ensure Tenant DocType exists (auto-create if missing)
     console.log('Checking Tenant DocType...')
     try {
@@ -92,19 +182,12 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       // Continue anyway - might already exist
     }
 
-    // Generate subdomain from organization name if not provided
+    // SECURITY: Sanitize subdomain to prevent injection attacks
     let subdomain = data.subdomain
     if (!subdomain) {
-      subdomain = data.organizationName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-        .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
-        .substring(0, 63) // Max 63 chars for subdomain
-      
-      // Ensure it's at least 3 characters
-      if (subdomain.length < 3) {
-        subdomain = subdomain + Math.random().toString(36).substring(2, 5)
-      }
+      subdomain = sanitizeSubdomain(organizationName)
+    } else {
+      subdomain = sanitizeSubdomain(subdomain)
     }
 
     // Check if subdomain is available
@@ -119,13 +202,13 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       subdomain = `${subdomain}-${Math.random().toString(36).substring(2, 5)}`
     }
 
-    // Create tenant record
+    // Create tenant record with sanitized values
     const tenantResult = await createTenant({
-      customer_name: data.fullName,
-      company_name: data.organizationName,
+      customer_name: fullName,
+      company_name: organizationName,
       subdomain,
       owner_email: data.email,
-      owner_name: data.fullName,
+      owner_name: fullName,
       plan: data.plan || 'free'
     })
 
@@ -199,36 +282,36 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     }
 
     const siteName = `${subdomain}.localhost`
-    const apiKey = siteConfig.api_key
-    const apiSecret = siteConfig.api_secret
+    const adminPassword = siteConfig.admin_password
     
-    console.log('🔑 Extracted credentials:', {
+    if (!adminPassword) {
+      console.error('Provisioning incomplete: admin_password missing from site_config')
+      return {
+        success: false,
+        error: 'Provisioning incomplete: Administrator password not found'
+      }
+    }
+    
+    console.log('🔑 Using Administrator credentials for tenant site:', {
       siteName,
-      apiKeyPreview: apiKey.substring(0, 10) + '...',
-      apiSecretPreview: apiSecret.substring(0, 10) + '...',
-      apiKeyLength: apiKey.length,
-      apiSecretLength: apiSecret.length
+      adminPasswordLength: adminPassword.length
     })
     
-    // CRITICAL: Wait for site and API credentials to be fully active
-    // The database might not be fully initialized or API keys not propagated to cache
-    console.log('⏳ Waiting 5 seconds for site initialization and API keys to activate...')
-    await delay(5000) // Initial 5-second wait
+    // CRITICAL: Wait for site to be fully initialized
+    console.log('⏳ Waiting 5 seconds for site initialization...')
+    await delay(5000)
     
-    console.log('Using API Key:', apiKey.substring(0, 8) + '... for site:', siteName)
-
-    // STEP 1: Create User in the tenant site with retry mechanism
+    // STEP 1: Create User in the tenant site using Administrator credentials
     try {
       console.log('Creating user in tenant site:', data.email)
       
-      // Check if user exists with retry logic
+      // Check if user exists
       const existingUsers = await retryWithBackoff(
         async () => {
-          return await tenantAuthRequest(
+          return await tenantAdminRequest(
             'frappe.client.get_list',
             siteName,
-            apiKey,
-            apiSecret,
+            adminPassword,
             'POST',
             {
               doctype: 'User',
@@ -238,24 +321,23 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
             }
           )
         },
-        5, // max attempts
-        3000, // 3 seconds between retries
+        3, // max attempts
+        2000, // 2 seconds between retries
         'Check existing user'
       )
 
       console.log('User check result:', existingUsers)
       
       if (!existingUsers || existingUsers.length === 0) {
-        // User doesn't exist, create it with retry logic
+        // User doesn't exist, create it
         const [firstName, ...lastNameParts] = data.fullName.split(' ')
         
         const userResult = await retryWithBackoff(
           async () => {
-            return await tenantAuthRequest(
+            return await tenantAdminRequest(
               'frappe.client.insert',
               siteName,
-              apiKey,
-              apiSecret,
+              adminPassword,
               'POST',
               {
                 doc: {
@@ -270,22 +352,21 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
               }
             )
           },
-          5, // max attempts
-          3000, // 3 seconds between retries
+          3, // max attempts
+          2000, // 2 seconds between retries
           'Create user'
         )
 
         console.log('User creation result:', userResult)
 
-        // Now set the password using a separate API call with retry logic
+        // Now set the password
         console.log('Setting user password...')
         const passwordResult = await retryWithBackoff(
           async () => {
-            return await tenantAuthRequest(
+            return await tenantAdminRequest(
               'frappe.core.doctype.user.user.update_password',
               siteName,
-              apiKey,
-              apiSecret,
+              adminPassword,
               'POST',
               {
                 new_password: data.password,
@@ -293,8 +374,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
               }
             )
           },
-          5, // max attempts
-          3000, // 3 seconds between retries
+          3, // max attempts
+          2000, // 2 seconds between retries
           'Set user password'
         )
 
@@ -306,9 +387,10 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       }
     } catch (userError) {
       console.error('Failed to create user in tenant site:', userError)
+      // SECURITY: Don't expose internal error details to users
       return {
         success: false,
-        error: `Failed to set up user account: ${userError instanceof Error ? userError.message : 'Unknown error'}`
+        error: 'Failed to set up user account. Please try again or contact support.'
       }
     }
 
@@ -317,11 +399,10 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       console.log('Creating organization in tenant site')
       await retryWithBackoff(
         async () => {
-          return await tenantAuthRequest(
+          return await tenantAdminRequest(
             'frappe.client.insert',
             siteName,
-            apiKey,
-            apiSecret,
+            adminPassword,
             'POST',
             {
               doc: {
@@ -339,8 +420,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
             }
           )
         },
-        5, // max attempts
-        3000, // 3 seconds between retries
+        3, // max attempts
+        2000, // 2 seconds between retries
         'Create organization'
       )
       console.log('✅ Organization created successfully')

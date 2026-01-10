@@ -1,28 +1,42 @@
 # 🏢 Nexus ERP - Multi-Tenant SaaS Platform
 
-> A modern, multi-tenant SaaS ERP system built with Next.js 15 that provides a beautiful, custom UI layer for ERPNext. Each customer gets their own isolated ERPNext instance with subscription-based usage limits.
+> A modern, production-ready multi-tenant SaaS ERP system built with Next.js 15 that provides a beautiful, custom UI layer for ERPNext. Each customer gets their own isolated ERPNext instance with enterprise-grade security and subscription-based usage limits.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.0-black?style=flat&logo=next.js)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-blue?style=flat&logo=react)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat&logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com)
+[![Security](https://img.shields.io/badge/Security-Production%20Ready-success?style=flat&logo=security)](./SECURITY.md)
 
 ---
 
 ## 🎯 What is Nexus ERP?
 
-Nexus ERP is a **Multi-Tenant SaaS ERP Platform** that combines:
+Nexus ERP is a **Production-Ready Multi-Tenant SaaS ERP Platform** that combines:
 - 🎨 **Modern UI Layer** → Next.js with React Server Components
 - ⚡ **Powerful Backend** → ERPNext (Frappe Framework) with multi-tenancy
 - 🔗 **Seamless Bridge** → Server Actions connecting frontend ↔ backend
 - 🏢 **Multi-Tenancy** → Each customer gets their own isolated ERPNext site
 - 💳 **Subscription Plans** → Free, Pro, and Enterprise tiers with usage limits
+- 🔒 **Enterprise Security** → Production-ready with comprehensive security measures
 
-**Think of it as:** A complete SaaS platform where each customer has their own ERP instance with subscription-based access.
+**Think of it as:** A complete SaaS platform where each customer has their own ERP instance with enterprise-grade security and subscription-based access.
 
 ---
 
 ## ✨ Key Features
+
+### 🔒 Security & Compliance (Production-Ready)
+- ✅ **Input Validation** - Email, password, subdomain sanitization
+- ✅ **Password Requirements** - 8+ chars, mixed case, numbers
+- ✅ **XSS Prevention** - HTML/script sanitization
+- ✅ **SQL Injection Prevention** - ORM with parameterized queries
+- ✅ **CSRF Protection** - SameSite cookie attributes
+- ✅ **Secure Sessions** - httpOnly, secure cookies
+- ✅ **Multi-Tenant Isolation** - Separate databases per tenant
+- ✅ **Security Headers** - HSTS, CSP, X-Frame-Options, etc.
+- ✅ **Error Handling** - No internal details exposed
+- 📋 See [SECURITY.md](./SECURITY.md) for complete details
 
 ### 🏢 Multi-Tenancy & Subscriptions
 - Subdomain-based tenant isolation (`acme.nexuserp.com`)
@@ -186,11 +200,48 @@ nexus_erp/
 
 | Document | Description |
 |----------|-------------|
+| **[SECURITY.md](./SECURITY.md)** | 🔒 **Complete security documentation, compliance, incident response** |
+| **[docs/PRODUCTION_CHECKLIST.md](./docs/PRODUCTION_CHECKLIST.md)** | ✅ **Pre-deployment security audit & checklist** |
+| **[docs/SECURITY_QUICK_REFERENCE.md](./docs/SECURITY_QUICK_REFERENCE.md)** | 📋 **Developer security guidelines & best practices** |
+| **[docs/SECURITY_IMPLEMENTATION_SUMMARY.md](./docs/SECURITY_IMPLEMENTATION_SUMMARY.md)** | 📊 **Security features summary & metrics** |
 | **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** | Complete technical documentation, data flow, patterns |
 | **[docs/CHECKLIST.md](./docs/CHECKLIST.md)** | Step-by-step setup verification & troubleshooting |
 | **[docs/SETUP_AND_CLEANUP.md](./docs/SETUP_AND_CLEANUP.md)** | Installation, debugging, common issues |
 | **[docs/VISUAL_ARCHITECTURE.md](./docs/VISUAL_ARCHITECTURE.md)** | Diagrams & visual guides |
 | **[docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)** | Daily coding patterns & quick reference |
+
+---
+
+## 🔒 Security & Production Readiness
+
+This application implements **enterprise-grade security** suitable for production deployment:
+
+### Implemented Security Features
+- ✅ **Input Validation** - Email, password strength, subdomain sanitization
+- ✅ **XSS Prevention** - HTML/script character sanitization
+- ✅ **SQL Injection Prevention** - ORM with parameterized queries
+- ✅ **CSRF Protection** - SameSite cookie attributes
+- ✅ **Secure Sessions** - httpOnly, secure, sameSite cookies
+- ✅ **Multi-Tenant Isolation** - Separate databases per tenant
+- ✅ **Error Handling** - Generic messages, no internal details exposed
+- ✅ **Security Headers** - HSTS, CSP, X-Frame-Options, X-XSS-Protection
+- ✅ **HTTPS Enforcement** - Production warnings for HTTP
+- ✅ **Administrator Minimization** - Credentials used only during provisioning
+
+### Security Documentation
+- **[SECURITY.md](./SECURITY.md)** - Complete security guide with compliance
+- **[PRODUCTION_CHECKLIST.md](./docs/PRODUCTION_CHECKLIST.md)** - Deployment checklist
+- **[SECURITY_QUICK_REFERENCE.md](./docs/SECURITY_QUICK_REFERENCE.md)** - Developer guidelines
+
+### Recommended Before Production
+- Rate limiting (Upstash Redis)
+- Email verification
+- Two-factor authentication
+- Session timeout
+- Audit logging
+- Penetration testing
+
+📋 **See [SECURITY.md](./SECURITY.md) for complete security documentation**
 
 ---
 

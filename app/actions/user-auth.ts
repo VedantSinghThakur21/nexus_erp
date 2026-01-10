@@ -4,6 +4,14 @@ import { cookies } from 'next/headers'
 import { frappeRequest, userRequest } from '@/app/lib/api'
 
 /**
+ * Validate email format (same as signup)
+ */
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email) && email.length <= 254
+}
+
+/**
  * Login to master site (for admin users, not tenants)
  */
 async function loginToMasterSite(email: string, password: string, masterUrl: string) {
@@ -78,6 +86,28 @@ async function loginToMasterSite(email: string, password: string, masterUrl: str
 
 export async function loginUser(email: string, password: string) {
   try {
+    // SECURITY: Validate inputs
+    if (!email || !password) {
+      return {
+        success: false,
+        error: 'Email and password are required'
+      }
+    }
+    
+    if (!isValidEmail(email)) {
+      return {
+        success: false,
+        error: 'Invalid email format'
+      }
+    }
+    
+    if (password.length < 6) {
+      return {
+        success: false,
+        error: 'Invalid credentials'
+      }
+    }
+    
     const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
     const apiKey = process.env.ERP_API_KEY
     const apiSecret = process.env.ERP_API_SECRET

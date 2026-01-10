@@ -393,3 +393,113 @@ export async function tenantAuthRequest(
     throw error
   }
 }
+
+/**
+ * Login to tenant site with Administrator credentials and make authenticated request
+ * Use this for initial tenant setup when API keys might not be active yet
+ */
+export async function tenantAdminRequest(
+  endpoint: string,
+  siteName: string,
+  adminPassword: string,
+  method = 'GET',
+  body: any = null
+) {
+  try {
+    // SECURITY: Validate siteName to prevent header injection
+    if (!/^[a-z0-9.-]+$/i.test(siteName)) {
+      throw new Error('Invalid site name format')
+    }
+    
+    const erpnextUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+    
+    // SECURITY: Use HTTPS in production
+    if (process.env.NODE_ENV === 'production' && !erpnextUrl.startsWith('https://')) {
+      console.warn('⚠️ WARNING: Using HTTP in production environment')
+    }
+    
+    // Step 1: Login as Administrator to get session cookie
+    console.log('🔐 Logging into tenant site as Administrator:', siteName)
+    const loginResponse = await fetch(`${erpnextUrl}/api/method/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Frappe-Site-Name': siteName
+      },
+      body: new URLSearchParams({
+        usr: 'Administrator',
+        pwd: adminPassword
+      })
+    })
+    
+    const loginData = await loginResponse.json()
+    
+    if (!loginResponse.ok || loginData.message !== 'Logged In') {
+      // SECURITY: Log detailed error internally but don't expose to client
+      console.error('Admin login failed:', { status: loginResponse.status, site: siteName })
+      throw new Error('Tenant site authentication failed')
+    }
+    
+    // Extract session cookie
+    const setCookieHeader = loginResponse.headers.get('set-cookie')
+    if (!setCookieHeader) {
+      throw new Error('No session cookie received from login')
+    }
+    
+    const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
+    if (!sidMatch) {
+      throw new Error('Could not extract sid from cookie')
+    }
+    
+    const sessionId = sidMatch[1]
+    console.log('✅ Admin session established for tenant:', siteName)
+    
+    // Step 2: Make the actual request with session cookie
+    const requestHeaders: HeadersInit = {
+      'Accept': 'application/json',
+      'Cookie': `sid=${sessionId}`,
+      'X-Frappe-Site-Name': siteName
+    }
+    
+    if (method !== 'GET') {
+      requestHeaders['Content-Type'] = 'application/json'
+    }
+    
+    let url = `${erpnextUrl}/api/method/${endpoint}`
+    const fetchOptions: RequestInit = {
+      method,
+      headers: requestHeaders,
+      cache: 'no-store',
+    }
+    
+    if (method === 'GET' && body) {
+      const params = new URLSearchParams()
+      Object.entries(body).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value))
+        }
+      })
+      url += `?${params.toString()}`
+    } else if (body) {
+      fetchOptions.body = JSON.stringify(body)
+    }
+    
+    const res = await fetch(url, fetchOptions)
+    const data = await res.json()
+    
+    if (!res.ok) {
+      console.error('Tenant Admin Request Error:', {
+        status: res.status,
+        siteName,
+        endpoint,
+        dataKeys: Object.keys(data)
+      })
+      throw new Error(data.message || data.exception || 'Tenant admin request failed')
+    }
+    
+    return data.message || data.data || data
+  } catch (error: any) {
+    console.error('Tenant Admin Request Failed:', error.message)
+    throw error
+  }
+}
