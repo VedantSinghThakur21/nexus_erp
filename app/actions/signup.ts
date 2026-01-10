@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { randomBytes } from 'crypto'
 import { frappeRequest, tenantAdminRequest } from '../lib/api'
 import { createTenant } from './tenants'
 import { provisionTenant } from './provision'
@@ -79,6 +80,15 @@ interface SignupResult {
   tenantId?: string
   siteUrl?: string
   needsProvisioning?: boolean
+}
+
+/**
+ * Generate a strong random password for admin provisioning.
+ * We keep it in-memory only and never persist it to Tenant DocType.
+ */
+function generateStrongPassword(length: number = 24): string {
+  // base64 expands by ~4/3, so we take enough bytes then trim
+  return randomBytes(Math.ceil((length * 3) / 4)).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, length)
 }
 
 /**
@@ -259,13 +269,16 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     const tenant = tenantResult.tenant
 
+    // Generate a transient admin password just for provisioning (never stored)
+    const adminProvisionPassword = generateStrongPassword(24)
+
     // Provision the site (this takes 2-3 minutes)
-    console.log('Starting site provisioning for', subdomain)
+    console.log('Starting site provisioning for', subdomain, '[admin password length only]', adminProvisionPassword.length)
     const provisionResult = await provisionTenant(
       tenant.name || tenant.subdomain,  // Use 'name' field which is the tenant ID
       subdomain,
       data.email,
-      ''  // No longer using admin password for security
+      adminProvisionPassword
     )
 
     if (!provisionResult.success) {
@@ -277,14 +290,21 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     console.log('Site provisioned successfully:', provisionResult.site_url)
 
-    // Reload tenant record to get updated site_config with API credentials
+    // Reload tenant record to get updated site_config with API credentials (allow time for bench to update)
     console.log('Reloading tenant record to get API credentials...')
-    const updatedTenantList = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Tenant',
-      filters: JSON.stringify({ name: tenant.name || tenant.subdomain }),
-      fields: JSON.stringify(['*']),
-      limit_page_length: 1
-    })
+    const updatedTenantList = await retryWithBackoff(
+      async () => {
+        return await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Tenant',
+          filters: JSON.stringify({ name: tenant.name || tenant.subdomain }),
+          fields: JSON.stringify(['*']),
+          limit_page_length: 1
+        })
+      },
+      6, // attempts
+      5000, // 5s between retries to allow site_config to be written
+      'Reload tenant after provisioning'
+    )
 
     if (!updatedTenantList || updatedTenantList.length === 0) {
       console.error('Could not reload tenant record after provisioning')
@@ -325,11 +345,13 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     }
 
     const siteName = `${subdomain}.localhost`
+    const apiKey = siteConfig.api_key
+    const apiSecret = siteConfig.api_secret
     
     console.log('🔑 Using API credentials for tenant site:', {
       siteName,
-      hasApiKey: !!siteConfig.api_key,
-      hasApiSecret: !!siteConfig.api_secret
+      hasApiKey: !!apiKey,
+      hasApiSecret: !!apiSecret
     })
     
     // CRITICAL: Wait longer for site to be fully initialized
