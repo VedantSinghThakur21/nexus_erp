@@ -202,6 +202,14 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     const apiKey = siteConfig.api_key
     const apiSecret = siteConfig.api_secret
     
+    console.log('🔑 Extracted credentials:', {
+      siteName,
+      apiKeyPreview: apiKey.substring(0, 10) + '...',
+      apiSecretPreview: apiSecret.substring(0, 10) + '...',
+      apiKeyLength: apiKey.length,
+      apiSecretLength: apiSecret.length
+    })
+    
     // CRITICAL: Wait for site and API credentials to be fully active
     // The database might not be fully initialized or API keys not propagated to cache
     console.log('⏳ Waiting 5 seconds for site initialization and API keys to activate...')

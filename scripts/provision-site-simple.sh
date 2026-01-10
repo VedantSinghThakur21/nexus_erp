@@ -59,20 +59,49 @@ echo "🔧 Generating API keys..."
 API_KEYS=$(docker compose exec -T backend bench --site $SITE_NAME console <<EOF
 import frappe
 import json
-user = frappe.get_doc('User', 'Administrator')
+
+# Generate unique keys
 api_key = frappe.generate_hash(length=15)
 api_secret = frappe.generate_hash(length=15)
+
+# Get Administrator user
+user = frappe.get_doc('User', 'Administrator')
 user.api_key = api_key
 user.api_secret = api_secret
+
+# Save with explicit commit
 user.save(ignore_permissions=True)
 frappe.db.commit()
+
+# Verify keys were saved
+verify_user = frappe.get_doc('User', 'Administrator')
+if verify_user.api_key != api_key:
+    raise Exception('API key verification failed - keys not saved to database')
+
 print(json.dumps({'api_key': api_key, 'api_secret': api_secret}))
 EOF
 )
 
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to generate or save API keys"
+    exit 1
+fi
+
 # Extract keys from JSON output
 API_KEY=$(echo "$API_KEYS" | grep -o '"api_key": *"[^"]*"' | sed 's/"api_key": *"\([^"]*\)"/\1/' | tail -1)
 API_SECRET=$(echo "$API_KEYS" | grep -o '"api_secret": *"[^"]*"' | sed 's/"api_secret": *"\([^"]*\)"/\1/' | tail -1)
+
+# Critical: Clear cache so API keys are immediately available
+echo ""
+echo "🔧 Clearing cache to activate API keys..."
+docker compose exec -T backend bench --site $SITE_NAME clear-cache
+
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to clear cache"
+    exit 1
+fi
+
+echo "✅ Cache cleared - API keys are now active"
 
 # Output results
 echo ""

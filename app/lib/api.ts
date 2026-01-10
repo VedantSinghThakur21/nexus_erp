@@ -341,6 +341,15 @@ export async function tenantAuthRequest(
       'X-Frappe-Site-Name': siteName // Critical: tells Frappe which site to use
     }
     
+    console.log('🌐 Tenant Auth Request:', {
+      endpoint,
+      siteName,
+      'X-Frappe-Site-Name': siteName,
+      authHeaderPreview: authHeader.substring(0, 20) + '...',
+      method,
+      url: `${erpnextUrl}/api/method/${endpoint}`
+    })
+    
     if (method !== 'GET') {
       requestHeaders['Content-Type'] = 'application/json'
     }
