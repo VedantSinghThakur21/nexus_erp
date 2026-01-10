@@ -89,6 +89,44 @@ async function delay(ms: number): Promise<void> {
 }
 
 /**
+ * Security: Remove admin password from tenant config after setup completes
+ * CRITICAL: Call this after user/org creation to minimize credential exposure
+ */
+async function cleanupTenantCredentials(tenantId: string): Promise<void> {
+  try {
+    console.log('🔒 [SECURITY] Removing admin password from tenant config:', tenantId)
+    
+    const tenant = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Tenant',
+      name: tenantId
+    })
+    
+    const siteConfig = typeof tenant.site_config === 'string' 
+      ? JSON.parse(tenant.site_config)
+      : tenant.site_config
+    
+    // Remove admin password, keep API credentials
+    if (siteConfig.admin_password) {
+      delete siteConfig.admin_password
+      
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Tenant',
+        name: tenantId,
+        fieldname: 'site_config',
+        value: JSON.stringify(siteConfig)
+      })
+      
+      console.log('✅ [SECURITY] Admin password removed from tenant config')
+    } else {
+      console.log('ℹ️ [SECURITY] No admin password found in config')
+    }
+  } catch (error) {
+    console.error('⚠️ [SECURITY] Failed to cleanup admin credentials:', error)
+    // Don't fail signup if cleanup fails - log for manual review
+  }
+}
+
+/**
  * Retry a function with exponential backoff
  */
 async function retryWithBackoff<T>(
@@ -499,6 +537,12 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       console.error('Auto-login failed:', loginError)
       // User can login manually
     }
+
+    // 🔒 SECURITY: Remove admin password after successful setup
+    // Run asynchronously to not block user login
+    cleanupTenantCredentials(tenant.id || tenant.name).catch(err => {
+      console.error('⚠️ Async cleanup failed:', err)
+    })
 
     return {
       success: true,

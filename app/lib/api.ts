@@ -320,8 +320,13 @@ export async function tenantRequest(endpoint: string, method = 'GET', body: any 
 }
 
 /**
- * Make authenticated request to a specific tenant site using provided API credentials
- * Use this during signup/provisioning when you have the API key/secret directly
+ * Make authenticated request to a specific tenant site using API credentials
+ * 
+ * SECURITY: This is the PREFERRED method for tenant operations (more secure than admin password)
+ * - API keys can be scoped to specific permissions
+ * - Can be rotated without changing admin password
+ * - Easier to audit and monitor
+ * - Should be used for all operations after initial setup
  */
 export async function tenantAuthRequest(
   endpoint: string, 
@@ -332,8 +337,22 @@ export async function tenantAuthRequest(
   body: any = null
 ) {
   try {
+    // SECURITY: Validate inputs
+    if (!/^[a-z0-9.-]+$/i.test(siteName)) {
+      throw new Error('Invalid site name format')
+    }
+    
+    if (!apiKey || !apiSecret || apiKey.length < 10 || apiSecret.length < 10) {
+      throw new Error('Invalid API credentials')
+    }
+    
     const erpnextUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
     const authHeader = `token ${apiKey}:${apiSecret}`
+    
+    // SECURITY: Use HTTPS in production
+    if (process.env.NODE_ENV === 'production' && !erpnextUrl.startsWith('https://')) {
+      console.warn('⚠️ WARNING: Using HTTP in production environment')
+    }
     
     const requestHeaders: HeadersInit = {
       'Accept': 'application/json',
@@ -396,7 +415,12 @@ export async function tenantAuthRequest(
 
 /**
  * Login to tenant site with Administrator credentials and make authenticated request
- * Use this for initial tenant setup when API keys might not be active yet
+ * 
+ * SECURITY NOTES:
+ * - Use ONLY for initial tenant setup (user creation, org setup)
+ * - Admin password should be rotated immediately after setup
+ * - Prefer tenantApiRequest() for ongoing operations (more secure)
+ * - Admin access should be temporary and audited
  */
 export async function tenantAdminRequest(
   endpoint: string,
@@ -409,6 +433,11 @@ export async function tenantAdminRequest(
     // SECURITY: Validate siteName to prevent header injection
     if (!/^[a-z0-9.-]+$/i.test(siteName)) {
       throw new Error('Invalid site name format')
+    }
+    
+    // SECURITY: Validate admin password is provided
+    if (!adminPassword || adminPassword.length < 8) {
+      throw new Error('Invalid administrator credentials')
     }
     
     const erpnextUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
