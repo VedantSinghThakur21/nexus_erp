@@ -216,25 +216,6 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       console.log('User check result:', existingUsers)
       
       if (!existingUsers || existingUsers.length === 0) {
-      
-      // First, check if user already exists using our helper function
-      const existingUsers = await tenantAuthRequest(
-        'frappe.client.get_list',
-        siteName,
-        apiKey,
-        apiSecret,
-        'POST',
-        {
-          doctype: 'User',
-          filters: { email: data.email },
-          fields: ['name', 'email'],
-          limit_page_length: 1
-        }
-      )
-
-      console.log('User check result:', existingUsers)
-      
-      if (!existingUsers || existingUsers.length === 0) {
         // User doesn't exist, create it with retry logic
         const [firstName, ...lastNameParts] = data.fullName.split(' ')
         
