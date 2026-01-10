@@ -26,7 +26,8 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
-import { logoutUser } from '@/app/actions/user-auth'
+import { logoutUser as logoutUserAuth } from '@/app/actions/user-auth'
+import { logoutUser as logoutUserAction } from '@/app/actions/logout'
 
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -52,9 +53,16 @@ function SidebarContent({ isCollapsed = false, onToggle }: { isCollapsed?: boole
   const router = useRouter()
 
   async function handleLogout() {
-    await logoutUser()
-    router.push('/login')
-    router.refresh()
+    try {
+      // Use the new logout action that properly clears cookies
+      await logoutUserAction()
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Fallback to old method if new one fails
+      await logoutUserAuth()
+      router.push('/login')
+      router.refresh()
+    }
   }
   
   return (
