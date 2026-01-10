@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { frappeRequest } from '../lib/api'
+import { frappeRequest, tenantAuthRequest } from '../lib/api'
 import { createTenant } from './tenants'
 import { provisionTenant } from './provision'
 import { setupTenantDocType } from './setup-tenant'
@@ -144,63 +144,47 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     console.log('API credentials retrieved successfully')
     const siteName = `${subdomain}.localhost`
+    const apiKey = siteConfig.api_key
+    const apiSecret = siteConfig.api_secret
     
     // Wait a moment for API credentials to be active in the system
     console.log('Waiting for API credentials to activate...')
     await new Promise(resolve => setTimeout(resolve, 3000)) // Wait 3 seconds
     
-    // Format: "token api_key:api_secret"
-    const authHeader = `token ${siteConfig.api_key}:${siteConfig.api_secret}`
-    console.log('Using API Key:', siteConfig.api_key.substring(0, 8) + '...')
+    console.log('Using API Key:', apiKey.substring(0, 8) + '... for site:', siteName)
 
     // STEP 1: Create User in the tenant site
     try {
       console.log('Creating user in tenant site:', data.email)
       
-      // Use site URL from provisioning result (includes proper hostname)
-      const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-      
-      // First, check if user already exists
-      const checkUserResponse = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-          'X-Frappe-Site-Name': siteName
-        },
-        body: JSON.stringify({
+      // First, check if user already exists using our helper function
+      const existingUsers = await tenantAuthRequest(
+        'frappe.client.get_list',
+        siteName,
+        apiKey,
+        apiSecret,
+        'POST',
+        {
           doctype: 'User',
           filters: { email: data.email },
           fields: ['name', 'email'],
           limit_page_length: 1
-        })
-      })
-
-      const checkResult = await checkUserResponse.json()
-      console.log('User check result:', checkResult)
-      
-      if (checkResult.exc || checkResult.exception) {
-        console.error('Auth error during user check:', checkResult)
-        return {
-          success: false,
-          error: 'Failed to authenticate with tenant site. API credentials may not be active yet.'
         }
-      }
-      
-      const existingUsers = checkResult.message || []
+      )
+
+      console.log('User check result:', existingUsers)
       
       if (!existingUsers || existingUsers.length === 0) {
         // User doesn't exist, create it
         const [firstName, ...lastNameParts] = data.fullName.split(' ')
         
-        const createUserResponse = await fetch(`${baseUrl}/api/method/frappe.client.insert`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-            'X-Frappe-Site-Name': siteName
-          },
-          body: JSON.stringify({
+        const userResult = await tenantAuthRequest(
+          'frappe.client.insert',
+          siteName,
+          apiKey,
+          apiSecret,
+          'POST',
+          {
             doc: {
               doctype: 'User',
               email: data.email,
@@ -210,45 +194,27 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
               user_type: 'System User',
               enabled: 1
             }
-          })
-        })
-
-        const userResult = await createUserResponse.json()
-        console.log('User creation result:', userResult)
-        
-        if (!createUserResponse.ok) {
-          console.error('Failed to create user:', userResult)
-          return {
-            success: false,
-            error: `Failed to create user: ${userResult.message || userResult.exception || 'Unknown error'}`
           }
-        }
+        )
+
+        console.log('User creation result:', userResult)
 
         // Now set the password using a separate API call
         console.log('Setting user password...')
-        const setPasswordResponse = await fetch(`${baseUrl}/api/method/frappe.core.doctype.user.user.update_password`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-            'X-Frappe-Site-Name': siteName
-          },
-          body: JSON.stringify({
+        const passwordResult = await tenantAuthRequest(
+          'frappe.core.doctype.user.user.update_password',
+          siteName,
+          apiKey,
+          apiSecret,
+          'POST',
+          {
             new_password: data.password,
             user: data.email
-          })
-        })
-
-        const passwordResult = await setPasswordResponse.json()
-        console.log('Password set result:', passwordResult)
-        
-        if (!setPasswordResponse.ok) {
-          console.error('Failed to set password:', passwordResult)
-          return {
-            success: false,
-            error: 'User created but failed to set password. Please contact support.'
           }
-        }
+        )
+
+        console.log('Password set result:', passwordResult)
+        console.log('Password set result:', passwordResult)
 
         console.log('✅ User created and password set successfully')
       } else {
@@ -265,15 +231,13 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     // STEP 2: Create organization in the tenant site
     try {
       console.log('Creating organization in tenant site')
-      const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-      await fetch(`${baseUrl}/api/method/frappe.client.insert`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-          'X-Frappe-Site-Name': siteName
-        },
-        body: JSON.stringify({
+      await tenantAuthRequest(
+        'frappe.client.insert',
+        siteName,
+        apiKey,
+        apiSecret,
+        'POST',
+        {
           doc: {
             doctype: 'Organization',
             organization_name: data.organizationName,
@@ -286,8 +250,9 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
             max_projects: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 50 : 5),
             max_invoices: data.plan === 'enterprise' ? 999999 : (data.plan === 'pro' ? 500 : 20)
           }
-        })
-      })
+        }
+      )
+      console.log('✅ Organization created successfully')
     } catch (orgError) {
       console.error('Failed to create organization in tenant site:', orgError)
       // Continue anyway - organization can be created later
@@ -295,10 +260,10 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     // STEP 3: Login to the tenant site with the user credentials
     try {
-      const siteName = `${subdomain}.localhost`
-      console.log('Logging into tenant site:', provisionResult.site_url, 'Site:', siteName)
+      const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+      console.log('Logging into tenant site:', baseUrl, 'Site:', siteName)
       
-      const loginResponse = await fetch(`${provisionResult.site_url}/api/method/login`, {
+      const loginResponse = await fetch(`${baseUrl}/api/method/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

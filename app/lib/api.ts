@@ -221,13 +221,13 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
  * Reads tenant config from middleware headers
  * Use this for operations on tenant data when no user session is available
  */
-export async function tenantRequest(endpoint: string, method = 'GET', body: any = null) {
+export async function tenantRequest(endpoint: string, method = 'GET', body: any = null, siteName?: string) {
   try {
     const headersList = await headers()
     const tenantMode = headersList.get('X-Tenant-Mode')
     
-    // If not in tenant mode, fall back to regular request
-    if (tenantMode !== 'tenant') {
+    // If not in tenant mode and no siteName provided, fall back to regular request
+    if (tenantMode !== 'tenant' && !siteName) {
       return frappeRequest(endpoint, method, body, true)
     }
     
@@ -235,7 +235,7 @@ export async function tenantRequest(endpoint: string, method = 'GET', body: any 
     
     // For tenant requests, we need to fetch tenant's API keys from the Tenant DocType
     // First get the subdomain
-    const subdomain = headersList.get('X-Subdomain')
+    let subdomain = siteName ? siteName.replace('.localhost', '') : headersList.get('X-Subdomain')
     if (!subdomain) {
       throw new Error('No subdomain found in tenant mode')
     }
@@ -315,6 +315,72 @@ export async function tenantRequest(endpoint: string, method = 'GET', body: any 
     return data.message || data.data || data
   } catch (error: any) {
     console.error('Tenant Request Failed:', error.message)
+    throw error
+  }
+}
+
+/**
+ * Make authenticated request to a specific tenant site using provided API credentials
+ * Use this during signup/provisioning when you have the API key/secret directly
+ */
+export async function tenantAuthRequest(
+  endpoint: string, 
+  siteName: string,
+  apiKey: string,
+  apiSecret: string,
+  method = 'GET', 
+  body: any = null
+) {
+  try {
+    const erpnextUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+    const authHeader = `token ${apiKey}:${apiSecret}`
+    
+    const requestHeaders: HeadersInit = {
+      'Accept': 'application/json',
+      'Authorization': authHeader,
+      'X-Frappe-Site-Name': siteName // Critical: tells Frappe which site to use
+    }
+    
+    if (method !== 'GET') {
+      requestHeaders['Content-Type'] = 'application/json'
+    }
+    
+    let url = `${erpnextUrl}/api/method/${endpoint}`
+    const fetchOptions: RequestInit = {
+      method,
+      headers: requestHeaders,
+      cache: 'no-store',
+    }
+    
+    if (method === 'GET' && body) {
+      const params = new URLSearchParams()
+      Object.entries(body).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value))
+        }
+      })
+      url += `?${params.toString()}`
+    } else if (body) {
+      fetchOptions.body = JSON.stringify(body)
+    }
+    
+    const res = await fetch(url, fetchOptions)
+    const data = await res.json()
+    
+    if (!res.ok) {
+      console.error('Tenant Auth Request Error:', { 
+        status: res.status, 
+        siteName,
+        endpoint,
+        dataKeys: Object.keys(data),
+        exception: data.exception || data.exc_type 
+      })
+      throw new Error(data.message || data.exception || 'Tenant auth request failed')
+    }
+    
+    return data.message || data.data || data
+  } catch (error: any) {
+    console.error('Tenant Auth Request Failed:', error.message)
     throw error
   }
 }
