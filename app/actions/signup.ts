@@ -259,23 +259,13 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     const tenant = tenantResult.tenant
 
-    // Generate a secure admin password for the tenant site
-    // NOTE: This is DIFFERENT from the user's password (data.password)
-    // The admin password is for initial setup only and will be removed after use
-    const adminPassword = data.password // Using user password as admin password for simplicity
-    
-    console.log('🔐 Admin password for provisioning:', {
-      length: adminPassword.length,
-      subdomain
-    })
-
     // Provision the site (this takes 2-3 minutes)
     console.log('Starting site provisioning for', subdomain)
     const provisionResult = await provisionTenant(
       tenant.name || tenant.subdomain,  // Use 'name' field which is the tenant ID
       subdomain,
       data.email,
-      adminPassword  // Use the admin password for provisioning
+      ''  // No longer using admin password for security
     )
 
     if (!provisionResult.success) {
@@ -323,32 +313,9 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     console.log('📋 Site config received:', {
       has_api_key: !!siteConfig.api_key,
-      has_api_secret: !!siteConfig.api_secret,
-      has_admin_password: !!siteConfig.admin_password,
-      admin_password_length: siteConfig.admin_password?.length || 0
+      has_api_secret: !!siteConfig.api_secret
     })
-
-    const siteName = `${subdomain}.localhost`
-    const retrievedAdminPassword = siteConfig.admin_password
     
-    if (!retrievedAdminPassword) {
-      console.error('Provisioning incomplete: admin_password missing from site_config')
-      return {
-        success: false,
-        error: 'Provisioning incomplete: Administrator password not found'
-      }
-    }
-    
-    // Verify the admin password matches what we used for provisioning
-    if (retrievedAdminPassword !== adminPassword) {
-      console.warn('⚠️ Admin password mismatch detected!')
-      console.warn('Expected length:', adminPassword.length, 'Got length:', retrievedAdminPassword.length)
-      // Use the one from site_config as it's the actual password set during provisioning
-    }
-    
-    // Use the password from site_config (it's the authoritative source)
-    const actualAdminPassword = retrievedAdminPassword
-
     if (!siteConfig.api_key || !siteConfig.api_secret) {
       console.error('Provisioning incomplete: API credentials missing from site_config')
       return {
@@ -358,27 +325,17 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     }
 
     const siteName = `${subdomain}.localhost`
-    const adminPassword = siteConfig.admin_password
     
-    if (!adminPassword) {
-      console.error('Provisioning incomplete: admin_password missing from site_config')
-      return {
-        success: false,
-        error: 'Provisioning incomplete: Administrator password not found'
-      }
-    }
-    // Use the password from site_config (it's the authoritative source)
-    const actualAdminPassword = retrievedAdminPassword
-    
-    console.log('🔑 Using Administrator credentials for tenant site:', {
+    console.log('🔑 Using API credentials for tenant site:', {
       siteName,
-      adminPasswordLength: actualAdminPassword.length
+      hasApiKey: !!siteConfig.api_key,
+      hasApiSecret: !!siteConfig.api_secret
     })
     
     // CRITICAL: Wait longer for site to be fully initialized
     // New sites need time for database setup, cache warming, etc.
-    console.log('⏳ Waiting 10 seconds for site initialization...')
-    await delay(10000)  // Increased from 5s to 10s
+    console.log('⏳ Waiting 15 seconds for site initialization...')
+    await delay(15000)  // Increased from 10s to 15s
     
     // STEP 1: Create User in the tenant site using API keys (more secure)
     try {
