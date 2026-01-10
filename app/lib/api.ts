@@ -449,6 +449,9 @@ export async function tenantAdminRequest(
     
     // Step 1: Login as Administrator to get session cookie
     console.log('🔐 Logging into tenant site as Administrator:', siteName)
+    console.log('🔐 Login URL:', `${erpnextUrl}/api/method/login`)
+    console.log('🔐 Admin password length:', adminPassword?.length || 0)
+    
     const loginResponse = await fetch(`${erpnextUrl}/api/method/login`, {
       method: 'POST',
       headers: {
@@ -463,9 +466,18 @@ export async function tenantAdminRequest(
     
     const loginData = await loginResponse.json()
     
+    console.log('🔐 Login response status:', loginResponse.status)
+    console.log('🔐 Login response data:', loginData)
+    
     if (!loginResponse.ok || loginData.message !== 'Logged In') {
       // SECURITY: Log detailed error internally but don't expose to client
-      console.error('Admin login failed:', { status: loginResponse.status, site: siteName })
+      console.error('Admin login failed:', { 
+        status: loginResponse.status, 
+        site: siteName,
+        message: loginData.message,
+        exception: loginData.exception,
+        exc_type: loginData.exc_type
+      })
       throw new Error('Tenant site authentication failed')
     }
     

@@ -70,8 +70,8 @@ export async function provisionTenant(
         site_config: JSON.stringify({
           db_name: `${subdomain}_db`,
           api_key: mockApiKey,
-          api_secret: mockApiSecret,
-          admin_password: adminPassword  // Stored for initial setup
+          api_secret: mockApiSecret
+          // NOT storing admin_password - use API keys
         })
       })
       
@@ -136,8 +136,6 @@ export async function provisionTenant(
               : undefined;
             
             // Update tenant with site details
-            // SECURITY NOTE: admin_password stored temporarily for initial setup only
-            // Should be removed or rotated after user/org creation completes
             await updateTenant(tenantId, {
               status: 'trial',  // Set to trial instead of active for new signups
               site_url: provisionResult.site_url,
@@ -145,8 +143,8 @@ export async function provisionTenant(
               site_config: JSON.stringify({
                 db_name: provisionResult.db_name,
                 api_key: provisionResult.api_key,
-                api_secret: provisionResult.api_secret,
-                admin_password: adminPassword  // Stored for initial setup, remove after use
+                api_secret: provisionResult.api_secret
+                // NOT storing admin_password - use API keys for better security
               })
             })
 
