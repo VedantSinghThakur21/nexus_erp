@@ -3,17 +3,18 @@
 import { frappeRequest } from '@/app/lib/api'
 
 /**
- * DANGER: This will delete all tenants and their associated data
+ * DANGER: This will delete ALL tenants including suspended ones
  * Use only for development/testing cleanup
  */
 export async function deleteAllTenants() {
   try {
     console.log('🗑️  Starting tenant cleanup...')
 
-    // Get all tenants - use only basic fields (name and subdomain)
+    // Get ALL tenants regardless of status
     const tenants = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Tenant',
-      fields: JSON.stringify(['name', 'subdomain']),
+      filters: JSON.stringify([]),  // No filters = get everything
+      fields: JSON.stringify(['name', 'subdomain', 'status']),
       limit_page_length: 999
     })
 
@@ -22,30 +23,31 @@ export async function deleteAllTenants() {
       return { success: true, deleted: 0 }
     }
 
-    console.log(`Found ${tenants.length} tenants to delete`)
+    console.log(`Found ${tenants.length} tenants to delete (including suspended)`)
 
     let deletedCount = 0
     const errors: any[] = []
 
     for (const tenant of tenants) {
       try {
-        console.log(`Deleting tenant: ${tenant.subdomain}`)
+        console.log(`Deleting tenant: ${tenant.subdomain} (${tenant.status})`)
         await frappeRequest('frappe.client.delete', 'POST', {
           doctype: 'Tenant',
           name: tenant.name
         })
         deletedCount++
-      } catch (error) {
-        console.error(`Failed to delete tenant ${tenant.subdomain}:`, error)
-        errors.push({ tenant: tenant.subdomain, error })
+      } catch (error: any) {
+        console.error(`Failed to delete tenant ${tenant.subdomain}:`, error.message)
+        errors.push({ tenant: tenant.subdomain, error: error.message })
       }
     }
 
-    console.log(`✅ Deleted ${deletedCount} tenants`)
+    console.log(`✅ Deleted ${deletedCount}/${tenants.length} tenants`)
     
     return {
       success: true,
       deleted: deletedCount,
+      total: tenants.length,
       errors: errors.length > 0 ? errors : undefined
     }
   } catch (error) {

@@ -341,23 +341,29 @@ export default function LoginPage() {
                     <SelectTrigger className="w-full bg-[#161b22] border-slate-700 text-white py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#161b22] border-slate-700">
-                      <SelectItem value="free" className="text-white hover:bg-slate-800">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">Free Plan</span>
-                          <span className="text-xs text-slate-400">₹0/month • 2 users • 50 leads</span>
+                    <SelectContent className="bg-[#0d1117] border-slate-700">
+                      <SelectItem value="free" className="text-white hover:bg-slate-800 focus:bg-slate-800 cursor-pointer">
+                        <div className="flex items-center justify-between w-full py-2">
+                          <div className="flex flex-col items-start">
+                            <span className="font-semibold text-base">Free Plan</span>
+                            <span className="text-xs text-slate-400">₹0/month • 2 users • 50 leads</span>
+                          </div>
                         </div>
                       </SelectItem>
-                      <SelectItem value="pro" className="text-white hover:bg-slate-800">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">Pro Plan</span>
-                          <span className="text-xs text-slate-400">₹2,999/month • 10 users • 1000 leads</span>
+                      <SelectItem value="pro" className="text-white hover:bg-slate-800 focus:bg-slate-800 cursor-pointer">
+                        <div className="flex items-center justify-between w-full py-2">
+                          <div className="flex flex-col items-start">
+                            <span className="font-semibold text-base">Professional</span>
+                            <span className="text-xs text-slate-400">₹2,999/month • 10 users • 1000 leads</span>
+                          </div>
                         </div>
                       </SelectItem>
-                      <SelectItem value="enterprise" className="text-white hover:bg-slate-800">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">Enterprise Plan</span>
-                          <span className="text-xs text-slate-400">₹9,999/month • Unlimited</span>
+                      <SelectItem value="enterprise" className="text-white hover:bg-slate-800 focus:bg-slate-800 cursor-pointer">
+                        <div className="flex items-center justify-between w-full py-2">
+                          <div className="flex flex-col items-start">
+                            <span className="font-semibold text-base">Enterprise</span>
+                            <span className="text-xs text-slate-400">₹9,999/month • Unlimited</span>
+                          </div>
                         </div>
                       </SelectItem>
                     </SelectContent>
