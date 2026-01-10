@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { UserMinus, Mail, Clock } from 'lucide-react'
+import { NoHydrationWrapper } from '@/components/no-hydration-wrapper'
 
 export default async function TeamPage() {
   const teamMembers = await getTeamMembers()
@@ -19,7 +20,8 @@ export default async function TeamPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <NoHydrationWrapper>
+    <div className="container mx-auto py-8 px-4" suppressHydrationWarning>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Team Members</h1>
@@ -91,12 +93,13 @@ export default async function TeamPage() {
         </CardContent>
       </Card>
 
-      <div className="mt-6 p-4 bg-muted rounded-lg">
+      <div className="mt-6 p-4 bg-muted rounded-lg" suppressHydrationWarning>
         <h3 className="font-semibold mb-2">Team Member Limits</h3>
         <p className="text-sm text-muted-foreground">
           Your current plan allows for a specific number of team members. Upgrade your plan to add more users to your organization.
         </p>
       </div>
     </div>
+    </NoHydrationWrapper>
   )
 }

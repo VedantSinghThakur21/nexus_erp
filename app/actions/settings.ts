@@ -27,21 +27,20 @@ export async function getProfile() {
     
     console.log('Getting profile for user:', userEmail)
     
-    // Fetch user details from User doctype using get_list (whitelisted)
-    const users = await userRequest('frappe.client.get_list', 'GET', {
+    // Use frappe.client.get (whitelisted) to fetch single user document
+    const user = await userRequest('frappe.client.get', 'GET', {
       doctype: 'User',
-      filters: JSON.stringify({ name: userEmail }),
-      fields: JSON.stringify(['name', 'full_name', 'email', 'first_name', 'role_profile_name', 'enabled']),
-      limit_page_length: 1
+      name: userEmail,
+      fields: JSON.stringify(['name', 'full_name', 'email', 'first_name', 'role_profile_name', 'enabled'])
     })
     
-    if (!users || users.length === 0) {
+    if (!user) {
       console.error('User not found:', userEmail)
       return null
     }
     
-    console.log('User profile:', users[0])
-    return users[0] as User
+    console.log('User profile:', user)
+    return user as User
   } catch (e) {
     console.error('Get profile error:', e)
     return null

@@ -1,0 +1,143 @@
+{
+  "actions": [],
+  "allow_rename": 1,
+  "autoname": "field:plan_slug",
+  "creation": "2026-01-10 00:00:00.000000",
+  "doctype": "DocType",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "plan_name",
+    "plan_slug",
+    "pricing_section",
+    "monthly_price",
+    "yearly_price",
+    "limits_section",
+    "max_users",
+    "max_storage_gb",
+    "max_bookings_per_month",
+    "max_invoices_per_month",
+    "features_section",
+    "enabled_features"
+  ],
+  "fields": [
+    {
+      "fieldname": "plan_name",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Plan Name",
+      "reqd": 1,
+      "unique": 0
+    },
+    {
+      "fieldname": "plan_slug",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Plan Slug",
+      "reqd": 1,
+      "unique": 1,
+      "description": "Unique identifier for the plan (e.g., free, pro, enterprise)"
+    },
+    {
+      "fieldname": "pricing_section",
+      "fieldtype": "Section Break",
+      "label": "Pricing"
+    },
+    {
+      "fieldname": "monthly_price",
+      "fieldtype": "Currency",
+      "label": "Monthly Price",
+      "default": "0",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "yearly_price",
+      "fieldtype": "Currency",
+      "label": "Yearly Price",
+      "description": "Annual subscription price (usually discounted)"
+    },
+    {
+      "fieldname": "limits_section",
+      "fieldtype": "Section Break",
+      "label": "Usage Limits"
+    },
+    {
+      "fieldname": "max_users",
+      "fieldtype": "Int",
+      "label": "Max Users",
+      "default": "5",
+      "description": "Maximum number of users allowed in this plan"
+    },
+    {
+      "fieldname": "max_storage_gb",
+      "fieldtype": "Float",
+      "label": "Max Storage (GB)",
+      "default": "10",
+      "precision": "2",
+      "description": "Maximum storage in gigabytes"
+    },
+    {
+      "fieldname": "max_bookings_per_month",
+      "fieldtype": "Int",
+      "label": "Max Bookings Per Month",
+      "default": "50",
+      "description": "Maximum bookings allowed per month"
+    },
+    {
+      "fieldname": "max_invoices_per_month",
+      "fieldtype": "Int",
+      "label": "Max Invoices Per Month",
+      "default": "100",
+      "description": "Maximum invoices that can be created per month"
+    },
+    {
+      "fieldname": "features_section",
+      "fieldtype": "Section Break",
+      "label": "Enabled Features"
+    },
+    {
+      "fieldname": "enabled_features",
+      "fieldtype": "Table",
+      "label": "Features",
+      "options": "Subscription Plan Feature",
+      "description": "Select which features are enabled for this plan"
+    }
+  ],
+  "index_web_pages_for_search": 1,
+  "links": [],
+  "modified": "2026-01-10 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Custom",
+  "name": "Subscription Plan",
+  "naming_rule": "By fieldname",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    },
+    {
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "All",
+      "share": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": [],
+  "track_changes": 1,
+  "track_seen": 1,
+  "track_views": 1
+}
