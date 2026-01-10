@@ -175,11 +175,11 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
           limit_page_length: 1
         })
       })
- || existingUsers.length === 0) {
-        // User doesn't exist, create it
-        const [firstName, ...lastNameParts] = data.fullName.split(' ')
-        
-        const createUserResponse = await fetch(`${baseU
+
+      const checkResult = await checkUserResponse.json()
+      console.log('User check result:', checkResult)
+      
+      if (checkResult.exc || checkResult.exception) {
         console.error('Auth error during user check:', checkResult)
         return {
           success: false,
@@ -189,11 +189,11 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       
       const existingUsers = checkResult.message || []
       
-      if (!existingUsers.message || existingUsers.message.length === 0) {
+      if (!existingUsers || existingUsers.length === 0) {
         // User doesn't exist, create it
         const [firstName, ...lastNameParts] = data.fullName.split(' ')
         
-        const createUserResponse = await fetch(`${provisionResult.site_url}/api/method/frappe.client.insert`, {
+        const createUserResponse = await fetch(`${baseUrl}/api/method/frappe.client.insert`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
