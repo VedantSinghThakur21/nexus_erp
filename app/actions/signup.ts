@@ -176,6 +176,28 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     const updatedTenant = updatedTenantList[0]
 
     console.log('API credentials retrieved successfully')
+    
+    // Parse site_config from tenant record
+    if (!updatedTenant.site_config) {
+      console.error('Provisioning incomplete: site_config is missing')
+      return {
+        success: false,
+        error: 'Provisioning incomplete: Missing site configuration'
+      }
+    }
+
+    const siteConfig = typeof updatedTenant.site_config === 'string' 
+      ? JSON.parse(updatedTenant.site_config) 
+      : updatedTenant.site_config
+
+    if (!siteConfig.api_key || !siteConfig.api_secret) {
+      console.error('Provisioning incomplete: API credentials missing from site_config')
+      return {
+        success: false,
+        error: 'Provisioning incomplete: API credentials not generated'
+      }
+    }
+
     const siteName = `${subdomain}.localhost`
     const apiKey = siteConfig.api_key
     const apiSecret = siteConfig.api_secret
