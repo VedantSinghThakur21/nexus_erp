@@ -2,7 +2,9 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { randomBytes } from 'crypto'
 import { frappeRequest, tenantAuthRequest } from '../lib/api'
+import { pollTenantApiActivation } from '../lib/tenant-api-poller'
 import { createTenant } from './tenants'
 import { provisionTenant } from './provision'
 import { setupTenantDocType } from './setup-tenant'
@@ -221,13 +223,18 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     const tenant = tenantResult.tenant
 
+    // Generate a secure password ONLY for provisioning script requirement
+    // SECURITY: This password is NEVER stored and NEVER used after provisioning
+    // We rely exclusively on API keys for all operations
+    const tempProvisionPassword = randomBytes(16).toString('base64').slice(0, 24)
+
     // Provision the site (this takes 2-3 minutes)
     console.log('Starting site provisioning for', subdomain)
     const provisionResult = await provisionTenant(
       tenant.name || tenant.subdomain,  // Use 'name' field which is the tenant ID
       subdomain,
       data.email,
-      ''  // Empty admin password - not used for security
+      tempProvisionPassword  // Required by provisioning script but never stored
     )
 
     if (!provisionResult.success) {
@@ -303,13 +310,27 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       hasApiSecret: !!apiSecret
     })
     
-    // CRITICAL: Wait longer for API keys to become active
-    // Newly provisioned sites need time for:
-    // - Database initialization
-    // - Administrator user creation
-    // - API key activation and permissions setup
-    console.log('⏳ Waiting 40 seconds for API keys to activate...')
-    await delay(40000)  // Extended to 40s for API key activation
+    // CRITICAL: Poll API endpoint until keys are active
+    // More reliable than fixed wait times - adapts to server load
+    console.log('🔄 Polling API keys until active (max 12 attempts, ~2 minutes)...')
+    const pollResult = await pollTenantApiActivation(
+      siteName,
+      apiKey,
+      apiSecret,
+      12,    // max attempts
+      5000,  // start with 5s delay
+      15000  // max 15s delay between attempts
+    )
+    
+    if (!pollResult.active) {
+      console.error('API keys failed to activate:', pollResult)
+      return {
+        success: false,
+        error: `Site provisioned but API keys did not activate after ${Math.round(pollResult.totalWaitTime / 1000)}s. Please contact support.`
+      }
+    }
+    
+    console.log(`✅ API keys active after ${pollResult.attempts} attempts (${Math.round(pollResult.totalWaitTime / 1000)}s)`)
     
     // STEP 1: Create User in the tenant site using API keys
     // SECURITY: API keys are more secure than admin passwords for automation
@@ -333,8 +354,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
             }
           )
         },
-        8, // Increased to 8 attempts for API key activation
-        8000, // 8 seconds between retries
+        3, // Reduced since keys are confirmed active
+        3000, // 3 seconds between retries
         'Check existing user'
       )
 
@@ -365,8 +386,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
               }
             )
           },
-          8, // Increased attempts
-          8000, // 8 seconds between retries
+          3, // Reduced retries
+          3000, // 3 seconds
           'Create user'
         )
 
@@ -388,8 +409,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
               }
             )
           },
-          8, // Increased attempts
-          8000, // 8 seconds between retries
+          3, // Reduced retries
+          3000, // 3 seconds
           'Set user password'
         )
 
@@ -435,8 +456,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
             }
           )
         },
-        8, // Increased attempts
-        8000, // 8 seconds between retries
+        3, // Reduced retries
+        3000, // 3 seconds
         'Create organization'
       )
       console.log('✅ Organization created successfully')
