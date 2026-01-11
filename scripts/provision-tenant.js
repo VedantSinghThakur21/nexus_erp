@@ -234,36 +234,52 @@ print(f"API_SECRET:{api_secret}")
     
     console.error(`✓ API keys generated`);
 
-    // STEP 6: Update Tenant Status on Master Site
-    console.error(`[6/6] Updating tenant status to active...`);
+    // STEP 6: Create/Update Tenant Record on Master Site
+    console.error(`[6/6] Creating tenant record on master site...`);
     
-    const updateTenantScript = `
+    const createTenantScript = `
 import frappe
+import json
 
-# Connect to master site to update tenant status
+# Connect to master site
 frappe.init(site='${process.env.FRAPPE_SITE_NAME || 'erp.localhost'}')
 frappe.connect()
 
-# Update tenant status if Tenant DocType exists
+# Create or update tenant record if Tenant DocType exists
 if frappe.db.exists('DocType', 'Tenant'):
     if frappe.db.exists('Tenant', {'subdomain': '${subdomain}'}):
+        # Update existing tenant
         tenant = frappe.get_doc('Tenant', {'subdomain': '${subdomain}'})
-        tenant.status = 'active'
-        tenant.site_config = '${JSON.stringify({ apiKey, apiSecret }).replace(/'/g, "\\'")}'
-        tenant.save(ignore_permissions=True)
-        frappe.db.commit()
-        print("TENANT_STATUS_UPDATED")
     else:
-        print("TENANT_NOT_FOUND")
+        # Create new tenant
+        tenant = frappe.get_doc({
+            'doctype': 'Tenant',
+            'subdomain': '${subdomain}',
+            'organization_name': '${organizationName}',
+            'email': '${email}'
+        })
+    
+    # Update fields
+    tenant.status = 'active'
+    tenant.site_url = 'https://${subdomain}.nexuserp.com'
+    tenant.site_config = json.dumps({
+        'api_key': '${apiKey}',
+        'api_secret': '${apiSecret}',
+        'site_name': '${SITE_NAME}'
+    })
+    
+    tenant.save(ignore_permissions=True)
+    frappe.db.commit()
+    print("TENANT_RECORD_CREATED")
 else:
     print("TENANT_DOCTYPE_NOT_FOUND")
 `;
 
     try {
-      benchRunner(updateTenantScript);
-      console.error(`✓ Tenant status updated to active`);
+      benchRunner(createTenantScript);
+      console.error(`✓ Tenant record created on master site`);
     } catch (error) {
-      console.error(`⚠ Tenant status update skipped (DocType may not exist or site not found)`);
+      console.error(`⚠ Tenant record creation skipped (DocType may not exist)`);
     }
 
     // Calculate elapsed time
