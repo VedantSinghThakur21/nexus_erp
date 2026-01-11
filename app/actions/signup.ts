@@ -2,8 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { randomBytes } from 'crypto'
-import { frappeRequest, tenantAuthRequest, tenantAdminRequest } from '../lib/api'
+import { frappeRequest, tenantAuthRequest } from '../lib/api'
 import { createTenant } from './tenants'
 import { provisionTenant } from './provision'
 import { setupTenantDocType } from './setup-tenant'
@@ -83,57 +82,10 @@ interface SignupResult {
 }
 
 /**
- * Generate a strong random password for admin provisioning.
- * We keep it in-memory only and never persist it to Tenant DocType.
- */
-function generateStrongPassword(length: number = 24): string {
-  // base64 expands by ~4/3, so we take enough bytes then trim
-  return randomBytes(Math.ceil((length * 3) / 4)).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, length)
-}
-
-/**
  * Helper function to add delay between retries
  */
 async function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-/**
- * Security: Remove admin password from tenant config after setup completes
- * CRITICAL: Call this after user/org creation to minimize credential exposure
- */
-async function cleanupTenantCredentials(tenantId: string): Promise<void> {
-  try {
-    console.log('🔒 [SECURITY] Removing admin password from tenant config:', tenantId)
-    
-    const tenant = await frappeRequest('frappe.client.get', 'GET', {
-      doctype: 'Tenant',
-      name: tenantId
-    })
-    
-    const siteConfig = typeof tenant.site_config === 'string' 
-      ? JSON.parse(tenant.site_config)
-      : tenant.site_config
-    
-    // Remove admin password, keep API credentials
-    if (siteConfig.admin_password) {
-      delete siteConfig.admin_password
-      
-      await frappeRequest('frappe.client.set_value', 'POST', {
-        doctype: 'Tenant',
-        name: tenantId,
-        fieldname: 'site_config',
-        value: JSON.stringify(siteConfig)
-      })
-      
-      console.log('✅ [SECURITY] Admin password removed from tenant config')
-    } else {
-      console.log('ℹ️ [SECURITY] No admin password found in config')
-    }
-  } catch (error) {
-    console.error('⚠️ [SECURITY] Failed to cleanup admin credentials:', error)
-    // Don't fail signup if cleanup fails - log for manual review
-  }
 }
 
 /**
@@ -269,16 +221,13 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
 
     const tenant = tenantResult.tenant
 
-    // Generate a transient admin password just for provisioning (never stored)
-    const adminProvisionPassword = generateStrongPassword(24)
-
     // Provision the site (this takes 2-3 minutes)
-    console.log('Starting site provisioning for', subdomain, '[admin password length only]', adminProvisionPassword.length)
+    console.log('Starting site provisioning for', subdomain)
     const provisionResult = await provisionTenant(
       tenant.name || tenant.subdomain,  // Use 'name' field which is the tenant ID
       subdomain,
       data.email,
-      adminProvisionPassword
+      ''  // Empty admin password - not used for security
     )
 
     if (!provisionResult.success) {
@@ -345,29 +294,36 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
     }
 
     const siteName = `${subdomain}.localhost`
+    const apiKey = siteConfig.api_key
+    const apiSecret = siteConfig.api_secret
     
-    console.log('🔑 Using admin credentials for initial user setup:', {
+    console.log('🔑 Using API credentials for tenant site:', {
       siteName,
-      adminPasswordLength: adminProvisionPassword.length
+      hasApiKey: !!apiKey,
+      hasApiSecret: !!apiSecret
     })
     
-    // CRITICAL: Wait for site to be fully initialized
-    // New sites need time for database setup, cache warming, Administrator user creation
-    console.log('⏳ Waiting 20 seconds for site initialization...')
-    await delay(20000)  // Increased to 20s for admin user to be ready
+    // CRITICAL: Wait longer for API keys to become active
+    // Newly provisioned sites need time for:
+    // - Database initialization
+    // - Administrator user creation
+    // - API key activation and permissions setup
+    console.log('⏳ Waiting 40 seconds for API keys to activate...')
+    await delay(40000)  // Extended to 40s for API key activation
     
-    // STEP 1: Create User in the tenant site using admin password
-    // NOTE: API keys aren't active immediately after provisioning, so we use admin login
+    // STEP 1: Create User in the tenant site using API keys
+    // SECURITY: API keys are more secure than admin passwords for automation
     try {
       console.log('Creating user in tenant site:', data.email)
       
       // Check if user exists
       const existingUsers = await retryWithBackoff(
         async () => {
-          return await tenantAdminRequest(
+          return await tenantAuthRequest(
             'frappe.client.get_list',
             siteName,
-            adminProvisionPassword,
+            apiKey,
+            apiSecret,
             'POST',
             {
               doctype: 'User',
@@ -377,8 +333,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
             }
           )
         },
-        5, // max attempts
-        5000, // 5 seconds between retries
+        8, // Increased to 8 attempts for API key activation
+        8000, // 8 seconds between retries
         'Check existing user'
       )
 
@@ -390,10 +346,11 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
         
         const userResult = await retryWithBackoff(
           async () => {
-            return await tenantAdminRequest(
+            return await tenantAuthRequest(
               'frappe.client.insert',
               siteName,
-              adminProvisionPassword,
+              apiKey,
+              apiSecret,
               'POST',
               {
                 doc: {
@@ -408,8 +365,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
               }
             )
           },
-          5, // max attempts
-          5000, // 5 seconds between retries
+          8, // Increased attempts
+          8000, // 8 seconds between retries
           'Create user'
         )
 
@@ -419,10 +376,11 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
         console.log('Setting user password...')
         const passwordResult = await retryWithBackoff(
           async () => {
-            return await tenantAdminRequest(
+            return await tenantAuthRequest(
               'frappe.core.doctype.user.user.update_password',
               siteName,
-              adminProvisionPassword,
+              apiKey,
+              apiSecret,
               'POST',
               {
                 new_password: data.password,
@@ -430,8 +388,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
               }
             )
           },
-          5, // max attempts
-          5000, // 5 seconds between retries
+          8, // Increased attempts
+          8000, // 8 seconds between retries
           'Set user password'
         )
 
@@ -455,10 +413,11 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       console.log('Creating organization in tenant site')
       await retryWithBackoff(
         async () => {
-          return await tenantAdminRequest(
+          return await tenantAuthRequest(
             'frappe.client.insert',
             siteName,
-            adminProvisionPassword,
+            apiKey,
+            apiSecret,
             'POST',
             {
               doc: {
@@ -476,8 +435,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
             }
           )
         },
-        5, // max attempts
-        5000, // 5 seconds between retries
+        8, // Increased attempts
+        8000, // 8 seconds between retries
         'Create organization'
       )
       console.log('✅ Organization created successfully')
@@ -556,15 +515,8 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       // User can login manually
     }
 
-    // SECURITY: Clean up admin password from tenant config
-    // Now that user/org creation is complete, remove the admin password
-    try {
-      console.log('🔒 [SECURITY] Removing admin password from tenant config')
-      await cleanupTenantCredentials(tenant.name || tenant.subdomain)
-    } catch (cleanupError) {
-      console.error('⚠️ [SECURITY] Failed to cleanup admin credentials:', cleanupError)
-      // Don't fail signup - this is a security best practice but not critical
-    }
+    // SECURITY: No cleanup needed - we never store admin passwords
+    // API keys are used exclusively for all tenant operations
 
     return {
       success: true,

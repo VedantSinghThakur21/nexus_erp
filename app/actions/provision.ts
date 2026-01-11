@@ -136,6 +136,7 @@ export async function provisionTenant(
               : undefined;
             
             // Update tenant with site details
+            // SECURITY: Only store API keys, never admin passwords
             await updateTenant(tenantId, {
               status: 'trial',  // Set to trial instead of active for new signups
               site_url: provisionResult.site_url,
@@ -144,7 +145,7 @@ export async function provisionTenant(
                 db_name: provisionResult.db_name,
                 api_key: provisionResult.api_key,
                 api_secret: provisionResult.api_secret
-                // NOT storing admin_password - use API keys for better security
+                // SECURITY: Never store admin_password - use API keys only
               })
             })
 
