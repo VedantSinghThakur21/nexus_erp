@@ -36,6 +36,7 @@ if (!subdomain || !email || !fullName || !password || !organizationName) {
 const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker';
+const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin';
 const SITE_NAME = `${subdomain}.localhost`;
 
 /**
@@ -81,7 +82,7 @@ async function provisionTenant() {
     // STEP 1: Create Site
     console.error(`[1/5] Creating site: ${SITE_NAME}...`);
     dockerExec(
-      `bench new-site ${SITE_NAME} --admin-password ${ADMIN_PASSWORD} --no-mariadb-socket`,
+      `bench new-site ${SITE_NAME} --admin-password ${ADMIN_PASSWORD} --mariadb-root-password ${DB_ROOT_PASSWORD} --no-mariadb-socket`,
       true
     );
     console.error(`✓ Site created successfully`);
