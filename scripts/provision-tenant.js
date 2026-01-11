@@ -104,13 +104,12 @@ async function provisionTenant() {
     // STEP 1: Create Site (or skip if exists)
     console.error(`[1/5] Checking/creating site: ${SITE_NAME}...`);
     
-    // Check if site exists
-    const sitesOutput = dockerExec(`bench --site all list-sites`, true);
-    const siteExists = sitesOutput.includes(SITE_NAME);
-    
-    if (siteExists) {
+    // Check if site directory exists
+    try {
+      dockerExec(`test -d sites/${SITE_NAME}`, true);
       console.error(`✓ Site already exists, skipping creation`);
-    } else {
+    } catch (e) {
+      // Site doesn't exist, create it
       dockerExec(
         `bench new-site ${SITE_NAME} --admin-password ${ADMIN_PASSWORD} --mariadb-root-password ${DB_ROOT_PASSWORD} --no-mariadb-socket`,
         true
