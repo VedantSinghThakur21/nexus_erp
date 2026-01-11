@@ -64,18 +64,13 @@ else:
 try {
   const tempFile = `/tmp/create_tenant_${Date.now()}.py`;
   
-  // Create the file using heredoc
-  const createFileCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "cat > ${tempFile} << 'EOFPYTHON'
-${createScript}
-EOFPYTHON
-"`;
-
-  execSync(createFileCmd, { encoding: 'utf8', stdio: 'inherit' });
+  // Escape single quotes for bash
+  const escapedScript = createScript.replace(/'/g, "'\\''");
   
-  // Run it through bench console
-  const runCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "cat ${tempFile} | bench --site ${MASTER_SITE} console && rm ${tempFile}"`;
+  // Write file and run it through bench console using pipe
+  const command = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "echo '${escapedScript}' > ${tempFile} && cat ${tempFile} | bench --site ${MASTER_SITE} console; EXIT_CODE=\\$?; rm -f ${tempFile}; exit \\$EXIT_CODE"`;
   
-  const output = execSync(runCmd, { encoding: 'utf8' });
+  const output = execSync(command, { encoding: 'utf8' });
   console.log(output);
   console.log('\n✨ Done! You can now try logging in.');
   
