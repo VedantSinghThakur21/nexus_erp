@@ -232,23 +232,24 @@ else:
     // STEP 5: Generate API Keys
     console.error(`[5/5] Generating API keys...`);
     
+    // Use Frappe's built-in generate_keys() method which properly generates and stores API keys
+    // The function returns (api_key, api_secret) where api_secret is the unhashed version for one-time capture
+    // Reference: https://github.com/frappe/frappe/blob/develop/frappe/core/doctype/user/user.py#L1400-L1431
     const generateKeysScript = `
 import frappe
-import secrets
+from frappe.core.doctype.user.user import generate_keys
 
 frappe.init(site='${SITE_NAME}')
 frappe.connect()
+frappe.set_user('Administrator')
 
-# Generate API credentials
-api_key = secrets.token_hex(16)
-api_secret = secrets.token_hex(32)
+# Generate API keys using Frappe's built-in method
+# This properly creates and hashes the api_secret, returning the unhashed version for one-time use
+result = generate_keys('${email}')
+api_key = result['api_key']
+api_secret = result['api_secret']
 
-# Update user with API credentials
-frappe.db.set_value('User', '${email}', {
-    'api_key': api_key,
-    'api_secret': api_secret
-})
-
+# Commit to database
 frappe.db.commit()
 
 # Output in parseable format
