@@ -38,6 +38,13 @@ interface SignupResult {
 }
 
 /**
+ * Simple delay helper for async operations
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
  * Validate email format
  */
 function isValidEmail(email: string): boolean {
@@ -175,17 +182,73 @@ export async function signup(data: SignupData): Promise<SignupResult> {
       console.log(`✅ Tenant provisioned successfully: ${result.site}`)
       console.log(`⏱️  Elapsed time: ${result.elapsed}s`)
 
-      // Step 4: Store tenant credentials in database (optional)
-      // TODO: Create Tenant DocType entry with API keys
+      // Step 4: Wait for backend to stabilize (avoid race condition)
+      console.log('⏳ Waiting 5 seconds for site initialization...')
+      await delay(5000)
 
+      // Step 5: Verify site is accessible with retry logic
+      const siteName = result.site! // e.g., "sushmaorganisation.localhost"
+      const siteUrl = result.url!
+      const apiKey = result.apiKey!
+      const apiSecret = result.apiSecret!
+
+      console.log(`🔍 Verifying site accessibility: ${siteName}`)
+      
+      const MAX_RETRIES = 5
+      const BASE_DELAY = 3000 // 3 seconds
+      let lastError: Error | null = null
+
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          console.log(`📡 Attempt ${attempt}/${MAX_RETRIES}: Testing connection to ${siteUrl}`)
+          
+          // Test connection with a simple API call
+          const testResponse = await fetch(`${siteUrl}/api/method/frappe.auth.get_logged_user`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `token ${apiKey}:${apiSecret}`,
+              'X-Frappe-Site-Name': siteName
+            }
+          })
+
+          if (testResponse.ok) {
+            console.log(`✅ Site ${siteName} is ready and accessible!`)
+            break
+          }
+
+          // Check for authentication errors (site not ready yet)
+          if (testResponse.status === 401 || testResponse.status === 403) {
+            const errorData = await testResponse.json().catch(() => ({}))
+            throw new Error(`Authentication error: ${errorData.message || 'Site not ready'}`)
+          }
+
+          // Other errors
+          throw new Error(`HTTP ${testResponse.status}: ${testResponse.statusText}`)
+
+        } catch (error: any) {
+          lastError = error
+          
+          if (attempt < MAX_RETRIES) {
+            const waitTime = BASE_DELAY * attempt // Exponential backoff: 3s, 6s, 9s, 12s, 15s
+            console.warn(`⚠️  Waiting for site to wake up... (${error.message})`)
+            console.log(`⏱️  Retrying in ${waitTime / 1000} seconds...`)
+            await delay(waitTime)
+          } else {
+            console.error(`❌ All ${MAX_RETRIES} connection attempts failed`)
+            throw new Error(`Site provisioned but not accessible after ${MAX_RETRIES} attempts: ${error.message}`)
+          }
+        }
+      }
+
+      // Step 6: Return success
       return {
         success: true,
-        message: `Account created successfully! Your workspace is ready at ${result.site}`,
+        message: `Account created successfully! Your workspace is ready at ${siteName}`,
         data: {
-          site: result.site!,
-          url: result.url!,
-          apiKey: result.apiKey!,
-          apiSecret: result.apiSecret!
+          site: siteName,
+          url: siteUrl,
+          apiKey: apiKey,
+          apiSecret: apiSecret
         }
       }
 
