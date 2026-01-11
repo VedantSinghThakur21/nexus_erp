@@ -1,12 +1,40 @@
 'use server'
 
-import { frappeRequest } from '../lib/api'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import path from 'path'
+
+const execFileAsync = promisify(execFile)
 
 interface SignupData {
   email: string
   password: string
   fullName: string
   organizationName: string
+}
+
+interface TenantProvisionResult {
+  success: boolean
+  site?: string
+  url?: string
+  email?: string
+  apiKey?: string
+  apiSecret?: string
+  organizationName?: string
+  elapsed?: number
+  error?: string
+}
+
+interface SignupResult {
+  success: boolean
+  error?: string
+  message?: string
+  data?: {
+    site: string
+    url: string
+    apiKey: string
+    apiSecret: string
+  }
 }
 
 /**
@@ -39,19 +67,24 @@ function sanitizeName(name: string): string {
     .substring(0, 140) // Max length
 }
 
-interface SignupResult {
-  success: boolean
-  error?: string
-  message?: string
+/**
+ * Generate subdomain from organization name
+ */
+function generateSubdomain(organizationName: string): string {
+  return organizationName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 32) // Max length
 }
 
 /**
- * Simple Single-Tenant Signup
- * Creates a user in the default ERPNext site
+ * Multi-Tenant Signup with Provisioning
+ * Creates a complete tenant environment with site, user, and API keys
  */
 export async function signup(data: SignupData): Promise<SignupResult> {
   try {
-    // Validate inputs
+    // Step 1: Validate inputs
     if (!isValidEmail(data.email)) {
       return {
         success: false,
@@ -83,85 +116,110 @@ export async function signup(data: SignupData): Promise<SignupResult> {
       }
     }
 
-    // Check if user already exists
-    try {
-      const existingUsers = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'User',
-        filters: JSON.stringify({ email: data.email }),
-        fields: JSON.stringify(['name'])
-      })
-
-      if (existingUsers && existingUsers.length > 0) {
-        return {
-          success: false,
-          error: 'An account with this email already exists'
-        }
+    // Step 2: Generate subdomain
+    const subdomain = generateSubdomain(sanitizedOrgName)
+    
+    if (!subdomain || subdomain.length < 3) {
+      return {
+        success: false,
+        error: 'Organization name too short or invalid'
       }
-    } catch (error: any) {
-      console.error('Error checking existing user:', error)
-      // Continue with signup if check fails (don't block)
     }
 
-    // Create new user in ERPNext
-    const newUser = await frappeRequest('frappe.client.insert', 'POST', {
-      doc: {
-        doctype: 'User',
-        email: data.email,
-        first_name: sanitizedFullName.split(' ')[0],
-        last_name: sanitizedFullName.split(' ').slice(1).join(' ') || '',
-        full_name: sanitizedFullName,
-        send_welcome_email: 0,
-        new_password: data.password,
-        enabled: 1,
-        user_type: 'System User'
-      }
-    })
+    console.log(`🚀 Starting tenant provisioning for: ${subdomain}.localhost`)
 
-    console.log('✅ User created successfully:', data.email)
-
-    // Create Organization (Customer DocType in ERPNext)
+    // Step 3: Execute provisioning script
+    const scriptPath = path.join(process.cwd(), 'scripts', 'provision-tenant.js')
+    
     try {
-      await frappeRequest('frappe.client.insert', 'POST', {
-        doc: {
-          doctype: 'Customer',
-          customer_name: sanitizedOrgName,
-          customer_type: 'Company',
-          territory: 'All Territories',
-          customer_group: 'All Customer Groups'
+      const { stdout, stderr } = await execFileAsync(
+        'node',
+        [
+          scriptPath,
+          subdomain,
+          data.email,
+          sanitizedFullName,
+          data.password,
+          sanitizedOrgName
+        ],
+        {
+          timeout: 120000, // 2 minute timeout
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          env: {
+            ...process.env,
+            DOCKER_SERVICE: process.env.DOCKER_SERVICE || 'backend',
+            ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin'
+          }
         }
-      })
-      console.log('✅ Organization created:', sanitizedOrgName)
-    } catch (error) {
-      console.warn('⚠️ Could not create organization:', error)
-      // Don't fail signup if organization creation fails
-    }
+      )
 
-    return {
-      success: true,
-      message: 'Account created successfully! You can now log in.'
+      // Log stderr (progress messages)
+      if (stderr) {
+        console.error('Provisioning output:', stderr)
+      }
+
+      // Parse JSON result from stdout
+      const lastLine = stdout.trim().split('\n').pop()
+      if (!lastLine) {
+        throw new Error('No output from provisioning script')
+      }
+
+      const result: TenantProvisionResult = JSON.parse(lastLine)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Provisioning failed')
+      }
+
+      console.log(`✅ Tenant provisioned successfully: ${result.site}`)
+      console.log(`⏱️  Elapsed time: ${result.elapsed}s`)
+
+      // Step 4: Store tenant credentials in database (optional)
+      // TODO: Create Tenant DocType entry with API keys
+
+      return {
+        success: true,
+        message: `Account created successfully! Your workspace is ready at ${result.site}`,
+        data: {
+          site: result.site!,
+          url: result.url!,
+          apiKey: result.apiKey!,
+          apiSecret: result.apiSecret!
+        }
+      }
+
+    } catch (execError: any) {
+      console.error('Provisioning script error:', execError)
+      
+      // Try to parse error output
+      if (execError.stdout) {
+        try {
+          const errorResult: TenantProvisionResult = JSON.parse(
+            execError.stdout.trim().split('\n').pop() || '{}'
+          )
+          if (errorResult.error) {
+            return {
+              success: false,
+              error: `Provisioning failed: ${errorResult.error}`
+            }
+          }
+        } catch (parseError) {
+          // Couldn't parse error, use generic message
+        }
+      }
+
+      return {
+        success: false,
+        error: `Failed to provision tenant: ${execError.message}`
+      }
     }
 
   } catch (error: any) {
     console.error('Signup error:', error)
     
-    // Handle specific ERPNext errors
-    if (error.message?.includes('already exists')) {
-      return {
-        success: false,
-        error: 'An account with this email already exists'
-      }
-    }
-
-    if (error.message?.includes('permission')) {
-      return {
-        success: false,
-        error: 'Signup is currently disabled. Please contact support.'
-      }
-    }
-
     return {
       success: false,
       error: error.message || 'Failed to create account. Please try again.'
     }
   }
 }
+
