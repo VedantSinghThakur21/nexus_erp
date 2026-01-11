@@ -64,11 +64,11 @@ else:
 try {
   const tempFile = `/tmp/create_tenant_${Date.now()}.py`;
   
-  // Escape single quotes for bash
-  const escapedScript = createScript.replace(/'/g, "'\\''");
+  // Use base64 encoding to avoid all quote escaping issues
+  const base64Script = Buffer.from(createScript).toString('base64');
   
-  // Write file and run it through bench console using pipe
-  const command = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "echo '${escapedScript}' > ${tempFile} && cat ${tempFile} | bench --site ${MASTER_SITE} console; EXIT_CODE=\\$?; rm -f ${tempFile}; exit \\$EXIT_CODE"`;
+  // Decode base64, write to file, run through bench console, cleanup
+  const command = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "echo '${base64Script}' | base64 -d > ${tempFile} && cat ${tempFile} | bench --site ${MASTER_SITE} console; EXIT_CODE=\\$?; rm -f ${tempFile}; exit \\$EXIT_CODE"`;
   
   const output = execSync(command, { encoding: 'utf8' });
   console.log(output);
