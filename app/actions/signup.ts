@@ -80,7 +80,9 @@ interface SignupResult {
   error?: string
   tenantId?: string
   siteUrl?: string
+  subdomain?: string
   needsProvisioning?: boolean
+  dashboardUrl?: string
 }
 
 /**
@@ -310,27 +312,28 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       hasApiSecret: !!apiSecret
     })
     
-    // CRITICAL: Poll API endpoint until keys are active
-    // More reliable than fixed wait times - adapts to server load
-    console.log('🔄 Polling API keys until active (max 12 attempts, ~2 minutes)...')
+    // PRODUCTION: Enhanced provisioning script warms up Administrator session
+    // API keys should be active immediately, but we still poll as safety measure
+    console.log('🔄 Verifying API keys are active (quick validation)...')
     const pollResult = await pollTenantApiActivation(
       siteName,
       apiKey,
       apiSecret,
-      12,    // max attempts
-      5000,  // start with 5s delay
-      15000  // max 15s delay between attempts
+      6,     // reduced attempts since keys should be active
+      2000,  // shorter initial delay
+      5000   // shorter max delay
     )
     
     if (!pollResult.active) {
-      console.error('API keys failed to activate:', pollResult)
+      console.error('❌ CRITICAL: API keys failed to activate after enhanced provisioning')
+      console.error('This should not happen with the production provisioning script')
       return {
         success: false,
-        error: `Site provisioned but API keys did not activate after ${Math.round(pollResult.totalWaitTime / 1000)}s. Please contact support.`
+        error: 'Failed to activate API keys. Please check provisioning script and server logs.'
       }
     }
     
-    console.log(`✅ API keys active after ${pollResult.attempts} attempts (${Math.round(pollResult.totalWaitTime / 1000)}s)`)
+    console.log(`✅ API keys verified active after ${pollResult.attempts} attempts (${Math.round(pollResult.totalWaitTime / 1000)}s)`)
     
     // STEP 1: Create User in the tenant site using API keys
     // SECURITY: API keys are more secure than admin passwords for automation

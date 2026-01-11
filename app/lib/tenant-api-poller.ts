@@ -12,28 +12,29 @@ interface PollResult {
 
 /**
  * Poll tenant API endpoint until keys are active
- * More reliable than fixed wait times
+ * Production mode: Keys should be active immediately due to session warmup
  */
 export async function pollTenantApiActivation(
   siteName: string,
   apiKey: string,
   apiSecret: string,
-  maxAttempts: number = 12,
-  initialDelay: number = 5000,
-  maxDelay: number = 15000
+  maxAttempts: number = 6,
+  initialDelay: number = 2000,
+  maxDelay: number = 5000
 ): Promise<PollResult> {
   const erpnextUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
   let currentDelay = initialDelay
   let totalWaitTime = 0
   
-  console.log('🔄 Starting API key activation polling for:', siteName)
+  console.log('🔄 Starting API key verification for:', siteName)
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       console.log(`[Poll ${attempt}/${maxAttempts}] Testing API keys... (waited ${totalWaitTime}ms so far)`)
       
-      // Test with a simple method that requires authentication
-      const response = await fetch(`${erpnextUrl}/api/method/frappe.auth.get_logged_user`, {
+      // Test with a simple GET endpoint that works with API keys
+      // frappe.client.get_list is more reliable than auth endpoints
+      const response = await fetch(`${erpnextUrl}/api/method/frappe.client.get_list`, {
         method: 'GET',
         headers: {
           'Authorization': `token ${apiKey}:${apiSecret}`,
@@ -43,16 +44,23 @@ export async function pollTenantApiActivation(
         cache: 'no-store'
       })
       
-      if (response.ok) {
-        const data = await response.json()
-        if (data.message || data.data) {
-          console.log(`✅ API keys active after ${attempt} attempts (${totalWaitTime}ms)`)
-          return {
-            active: true,
-            attempts: attempt,
-            totalWaitTime
-          }
+      const data = await response.json()
+      
+      // If we get a valid response (even if it's an error about missing params), keys are active
+      if (response.status === 200 || (response.status === 417 && data.exc_type !== 'AuthenticationError')) {
+        console.log(`✅ API keys active after ${attempt} attempts (${totalWaitTime}ms)`)
+        return {
+          active: true,
+          attempts: attempt,
+          totalWaitTime
         }
+      }
+      
+      // Check if it's specifically an auth error
+      if (data.exc_type === 'AuthenticationError' || data.exception?.includes('AuthenticationError')) {
+        console.log(`🔑 Auth error - keys not ready yet (status: ${response.status})`)
+      } else {
+        console.log(`📝 Response status ${response.status}, checking next attempt...`)
       }
       
       // Not active yet, wait before next attempt
