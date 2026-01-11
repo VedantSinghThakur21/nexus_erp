@@ -129,24 +129,35 @@ from frappe.utils.password import update_password
 frappe.init(site='${SITE_NAME}')
 frappe.connect()
 
-# Create user
-user = frappe.get_doc({
-    'doctype': 'User',
-    'email': '${email}',
-    'first_name': '${fullName.split(' ')[0]}',
-    'last_name': '${fullName.split(' ').slice(1).join(' ') || fullName.split(' ')[0]}',
-    'enabled': 1,
-    'send_welcome_email': 0,
-    'user_type': 'System User'
-})
-user.insert(ignore_permissions=True)
+# Check if user already exists
+if frappe.db.exists('User', '${email}'):
+    print("User already exists, updating...")
+    user = frappe.get_doc('User', '${email}')
+    user.enabled = 1
+    user.user_type = 'System User'
+else:
+    # Create new user
+    user = frappe.get_doc({
+        'doctype': 'User',
+        'email': '${email}',
+        'first_name': '${fullName.split(' ')[0]}',
+        'last_name': '${fullName.split(' ').slice(1).join(' ') || fullName.split(' ')[0]}',
+        'enabled': 1,
+        'send_welcome_email': 0,
+        'user_type': 'System User'
+    })
+    user.insert(ignore_permissions=True)
+    print(f"User created: {user.name}")
 
 # Set password
 update_password(user='${email}', pwd='${password}')
+print("Password set successfully")
 
 # Assign System Manager role
 user.add_roles('System Manager')
+print("System Manager role assigned")
 
+user.save(ignore_permissions=True)
 frappe.db.commit()
 print(f"USER_CREATED:{user.name}")
 `;
