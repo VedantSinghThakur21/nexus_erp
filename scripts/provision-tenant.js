@@ -235,43 +235,59 @@ else:
     // Use Frappe's built-in method to generate API keys
     // frappe.generate_hash() creates secure random tokens
     // The api_secret is stored hashed in the database using the Password field type
-    // Reference: https://github.com/frappe/frappe/blob/develop/frappe/core/doctype/user/user.py#L1400-L1431
     const generateKeysScript = `
 import frappe
+import sys
 
-frappe.init(site='${SITE_NAME}')
-frappe.connect()
-frappe.set_user('Administrator')
-
-# Get the user document
-user = frappe.get_doc('User', '${email}')
-
-# Generate API key and secret using Frappe's secure method
-api_secret = frappe.generate_hash(length=15)
-api_key = user.api_key if user.api_key else frappe.generate_hash(length=15)
-
-# Set the keys on the user document
-# The api_secret field is of type Password, so Frappe will automatically hash it on save
-user.api_key = api_key
-user.api_secret = api_secret
-user.save(ignore_permissions=True)
-
-# Commit to database
-frappe.db.commit()
-
-# Output in parseable format (output api_secret before it gets hashed)
-print(f"API_KEY:{api_key}")
-print(f"API_SECRET:{api_secret}")
+try:
+    frappe.init(site='${SITE_NAME}')
+    frappe.connect()
+    frappe.set_user('Administrator')
+    
+    # Get the user document
+    user = frappe.get_doc('User', '${email}')
+    
+    # Generate API key and secret using Frappe's secure method
+    api_secret = frappe.generate_hash(length=15)
+    api_key = user.api_key if user.api_key else frappe.generate_hash(length=15)
+    
+    # Set the keys on the user document
+    # The api_secret field is of type Password, so Frappe will automatically hash it on save
+    user.api_key = api_key
+    user.api_secret = api_secret
+    user.save(ignore_permissions=True)
+    
+    # Commit to database
+    frappe.db.commit()
+    
+    # Output ONLY the credentials in parseable format
+    sys.stdout.write(f"API_KEY:{api_key}\\n")
+    sys.stdout.write(f"API_SECRET:{api_secret}\\n")
+    sys.stdout.flush()
+    
+except Exception as e:
+    sys.stderr.write(f"Error generating keys: {str(e)}\\n")
+    sys.exit(1)
 `;
 
-    const keysOutput = benchRunner(generateKeysScript);
+    let keysOutput;
+    try {
+      keysOutput = benchRunner(generateKeysScript);
+    } catch (error) {
+      console.error(`\n❌ Error running key generation script: ${error.message}`);
+      throw new Error(`Failed to generate API keys: ${error.message}`);
+    }
+    
+    // Debug output
+    console.error(`\nDebug - Keys output:\n${keysOutput}\n`);
     
     // Parse API credentials from output
     const apiKeyMatch = keysOutput.match(/API_KEY:([a-zA-Z0-9]+)/);
     const apiSecretMatch = keysOutput.match(/API_SECRET:([a-zA-Z0-9]+)/);
     
     if (!apiKeyMatch || !apiSecretMatch) {
-      throw new Error('Failed to parse API credentials from output');
+      console.error(`\nDebug - Failed to parse. Full output:\n${keysOutput}\n`);
+      throw new Error(`Failed to parse API credentials from output. Check debug output above.`);
     }
     
     const apiKey = apiKeyMatch[1];
