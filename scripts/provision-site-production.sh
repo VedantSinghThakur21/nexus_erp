@@ -33,69 +33,44 @@ bench new-site "$SITE_NAME" \
 
 echo "✅ Site created successfully"
 
-# Important: Generate API keys for Administrator user
-echo "🔑 Generating API keys for Administrator..."
-bench --site "$SITE_NAME" execute frappe.core.doctype.user.user.generate_keys \
-    --args '["Administrator"]'
-
-# CRITICAL: Initialize Administrator session to activate API keys
-echo "🔥 Warming up Administrator session to activate API keys..."
-bench --site "$SITE_NAME" execute "
+# Generate API keys and warm up session using Python script
+echo "🔑 Generating API keys and warming up session..."
+cat > /tmp/generate_keys_${SUBDOMAIN}.py <<'PYSCRIPT'
 import frappe
-from frappe.auth import LoginManager
+from frappe.core.doctype.user.user import generate_keys
 
-# Initialize session for Administrator
-frappe.set_user('Administrator')
-frappe.local.login_manager = LoginManager()
+frappe.init(site='SITE_NAME_PLACEHOLDER')
+frappe.connect()
 
-# Commit to ensure session is persisted
+# Generate API keys
+generate_keys('Administrator')
 frappe.db.commit()
 
-print('Session initialized successfully')
-"
-
-# Extract API credentials
-API_KEY=$(bench --site "$SITE_NAME" execute "
-import frappe
+# Get credentials
 user = frappe.get_doc('User', 'Administrator')
-if not user.api_key:
-    from frappe.core.doctype.user.user import generate_keys
-    generate_keys('Administrator')
-    frappe.db.commit()
-    user.reload()
-print(user.api_key)
-" 2>/dev/null | tail -1)
-
-API_SECRET=$(bench --site "$SITE_NAME" execute "
-import frappe
-user = frappe.get_doc('User', 'Administrator')
-if user.api_key:
-    print(frappe.utils.password.get_decrypted_password('User', 'Administrator', fieldname='api_secret'))
-" 2>/dev/null | tail -1)
-
-# Verify API keys are working immediately
-echo "✅ Verifying API keys are active..."
-bench --site "$SITE_NAME" execute "
-import frappe
-import requests
-
-api_key = frappe.get_value('User', 'Administrator', 'api_key')
+api_key = user.api_key
 api_secret = frappe.utils.password.get_decrypted_password('User', 'Administrator', fieldname='api_secret')
 
-# Test API key authentication
-response = requests.get(
-    'http://localhost:8080/api/method/frappe.auth.get_logged_user',
-    headers={
-        'Authorization': f'token {api_key}:{api_secret}',
-        'X-Frappe-Site-Name': '$SITE_NAME'
-    }
-)
+print(f'API_KEY={api_key}')
+print(f'API_SECRET={api_secret}')
 
-if response.status_code == 200:
-    print('✅ API keys verified and active')
-else:
-    print(f'⚠️ API verification returned status {response.status_code}')
-"
+frappe.destroy()
+PYSCRIPT
+
+# Replace placeholder with actual site name
+sed -i "s/SITE_NAME_PLACEHOLDER/$SITE_NAME/g" /tmp/generate_keys_${SUBDOMAIN}.py
+
+# Execute the Python script
+CREDS=$(cd "$BENCH_PATH" && python3 /tmp/generate_keys_${SUBDOMAIN}.py 2>/dev/null | grep "^API_")
+
+# Extract credentials
+API_KEY=$(echo "$CREDS" | grep "^API_KEY=" | cut -d'=' -f2)
+API_SECRET=$(echo "$CREDS" | grep "^API_SECRET=" | cut -d'=' -f2)
+
+# Clean up temp file
+rm -f /tmp/generate_keys_${SUBDOMAIN}.py
+
+echo "✅ API credentials extracted successfully"
 
 # Get database name
 DB_NAME=$(echo "$SITE_NAME" | sed 's/\./_/g' | sed 's/-/_/g')
