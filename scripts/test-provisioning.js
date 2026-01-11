@@ -74,7 +74,7 @@ child.on('close', (code) => {
       
       console.log('\n🧹 Cleanup Commands:');
       console.log(`  docker compose exec backend bench drop-site ${result.site} --force`);
-      console.log(`  docker compose exec backend bench mariadb -e "DROP DATABASE IF EXISTS \\`${result.site.replace(/\./g, '-')}\\`"`);
+      console.log(`  docker compose exec backend bench mariadb -e "DROP DATABASE IF EXISTS \`${result.site.replace(/\./g, '-')}\`"`);
       
       process.exit(0);
     } catch (error) {
