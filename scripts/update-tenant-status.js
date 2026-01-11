@@ -45,11 +45,35 @@ else:
 
 try {
   const tempFile = `/tmp/update_tenant_${Date.now()}.py`;
-  const escapedScript = updateScript.replace(/'/g, "'\\''");
   
-  const command = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "echo '${escapedScript}' > ${tempFile} && cat ${tempFile} | bench --site ${MASTER_SITE} console && rm ${tempFile}"`;
+  // First, create the Python file
+  const createFileCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "cat > ${tempFile} << 'EOFPYTHON'
+import frappe
+
+frappe.init(site='${MASTER_SITE}')
+frappe.connect()
+
+if frappe.db.exists('DocType', 'Tenant'):
+    if frappe.db.exists('Tenant', {'subdomain': '${subdomain}'}):
+        tenant = frappe.get_doc('Tenant', {'subdomain': '${subdomain}'})
+        print(f\\\"Current status: {tenant.status}\\\")
+        tenant.status = 'active'
+        tenant.save(ignore_permissions=True)
+        frappe.db.commit()
+        print(\\\"✅ Status updated to: active\\\")
+    else:
+        print(\\\"❌ Tenant not found with subdomain: ${subdomain}\\\")
+else:
+    print(\\\"❌ Tenant DocType not found\\\")
+EOFPYTHON
+"`;
+
+  execSync(createFileCmd, { encoding: 'utf8' });
   
-  const output = execSync(command, { encoding: 'utf8' });
+  // Now run it through bench console
+  const runCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "cat ${tempFile} | bench --site ${MASTER_SITE} console && rm ${tempFile}"`;
+  
+  const output = execSync(runCmd, { encoding: 'utf8' });
   console.log(output);
   console.log('\n✨ Done!');
   
