@@ -54,7 +54,13 @@ function dockerExec(command, silent = false) {
     );
     return result.trim();
   } catch (error) {
-    throw new Error(`Command failed: ${command}\n${error.message}`);
+    // Check if command actually failed (exit code != 0) vs just stderr output
+    // execSync throws on non-zero exit code, but also includes stderr in the error
+    if (error.status !== 0) {
+      throw new Error(`Command failed: ${command}\n${error.message}`);
+    }
+    // If exit code is 0, just return stdout (stderr was just warnings)
+    return error.stdout ? error.stdout.toString().trim() : '';
   }
 }
 
