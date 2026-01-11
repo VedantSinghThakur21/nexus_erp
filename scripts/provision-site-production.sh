@@ -35,13 +35,12 @@ echo "✅ Site created successfully"
 
 # Important: Generate API keys for Administrator user
 echo "🔑 Generating API keys for Administrator..."
-bench execute "frappe.core.doctype.user.user.generate_keys" \
-    --args '["Administrator"]' \
-    --site "$SITE_NAME"
+bench --site "$SITE_NAME" execute frappe.core.doctype.user.user.generate_keys \
+    --args '["Administrator"]'
 
 # CRITICAL: Initialize Administrator session to activate API keys
 echo "🔥 Warming up Administrator session to activate API keys..."
-bench execute "
+bench --site "$SITE_NAME" execute "
 import frappe
 from frappe.auth import LoginManager
 
@@ -53,10 +52,10 @@ frappe.local.login_manager = LoginManager()
 frappe.db.commit()
 
 print('Session initialized successfully')
-" --site "$SITE_NAME"
+"
 
 # Extract API credentials
-API_KEY=$(bench execute "
+API_KEY=$(bench --site "$SITE_NAME" execute "
 import frappe
 user = frappe.get_doc('User', 'Administrator')
 if not user.api_key:
@@ -65,18 +64,18 @@ if not user.api_key:
     frappe.db.commit()
     user.reload()
 print(user.api_key)
-" --site "$SITE_NAME" 2>/dev/null | tail -1)
+" 2>/dev/null | tail -1)
 
-API_SECRET=$(bench execute "
+API_SECRET=$(bench --site "$SITE_NAME" execute "
 import frappe
 user = frappe.get_doc('User', 'Administrator')
 if user.api_key:
     print(frappe.utils.password.get_decrypted_password('User', 'Administrator', fieldname='api_secret'))
-" --site "$SITE_NAME" 2>/dev/null | tail -1)
+" 2>/dev/null | tail -1)
 
 # Verify API keys are working immediately
 echo "✅ Verifying API keys are active..."
-bench execute "
+bench --site "$SITE_NAME" execute "
 import frappe
 import requests
 
@@ -96,7 +95,7 @@ if response.status_code == 200:
     print('✅ API keys verified and active')
 else:
     print(f'⚠️ API verification returned status {response.status_code}')
-" --site "$SITE_NAME"
+"
 
 # Get database name
 DB_NAME=$(echo "$SITE_NAME" | sed 's/\./_/g' | sed 's/-/_/g')
