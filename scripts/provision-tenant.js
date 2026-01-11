@@ -266,11 +266,16 @@ frappe.connect()
 
 # Create or update tenant record if Tenant DocType exists
 if frappe.db.exists('DocType', 'Tenant'):
-    if frappe.db.exists('Tenant', {'subdomain': '${subdomain}'}):
+    # Try to find existing tenant by subdomain
+    existing_tenants = frappe.get_all('Tenant', filters={'subdomain': '${subdomain}'}, limit=1)
+    
+    if existing_tenants:
         # Update existing tenant
-        tenant = frappe.get_doc('Tenant', {'subdomain': '${subdomain}'})
+        print(f"Updating existing tenant: ${subdomain}")
+        tenant = frappe.get_doc('Tenant', existing_tenants[0].name)
     else:
         # Create new tenant
+        print(f"Creating new tenant: ${subdomain}")
         tenant = frappe.get_doc({
             'doctype': 'Tenant',
             'subdomain': '${subdomain}',
@@ -280,7 +285,7 @@ if frappe.db.exists('DocType', 'Tenant'):
             'owner_email': '${email}'
         })
     
-    # Update fields
+    # Update fields (for both new and existing)
     tenant.status = 'active'
     tenant.site_url = 'http://${subdomain}.localhost:8080'
     tenant.site_config = json.dumps({
