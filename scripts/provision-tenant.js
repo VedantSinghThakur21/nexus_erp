@@ -101,13 +101,22 @@ async function provisionTenant() {
   const startTime = Date.now();
   
   try {
-    // STEP 1: Create Site
-    console.error(`[1/5] Creating site: ${SITE_NAME}...`);
-    dockerExec(
-      `bench new-site ${SITE_NAME} --admin-password ${ADMIN_PASSWORD} --mariadb-root-password ${DB_ROOT_PASSWORD} --no-mariadb-socket`,
-      true
-    );
-    console.error(`✓ Site created successfully`);
+    // STEP 1: Create Site (or skip if exists)
+    console.error(`[1/5] Checking/creating site: ${SITE_NAME}...`);
+    
+    // Check if site exists
+    const sitesOutput = dockerExec(`bench --site all list-sites`, true);
+    const siteExists = sitesOutput.includes(SITE_NAME);
+    
+    if (siteExists) {
+      console.error(`✓ Site already exists, skipping creation`);
+    } else {
+      dockerExec(
+        `bench new-site ${SITE_NAME} --admin-password ${ADMIN_PASSWORD} --mariadb-root-password ${DB_ROOT_PASSWORD} --no-mariadb-socket`,
+        true
+      );
+      console.error(`✓ Site created successfully`);
+    }
 
     // STEP 2: Install App
     console.error(`[2/5] Installing nexus_core app...`);
