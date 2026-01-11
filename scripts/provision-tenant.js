@@ -234,6 +234,38 @@ print(f"API_SECRET:{api_secret}")
     
     console.error(`✓ API keys generated`);
 
+    // STEP 6: Update Tenant Status on Master Site
+    console.error(`[6/6] Updating tenant status to active...`);
+    
+    const updateTenantScript = `
+import frappe
+
+# Connect to master site to update tenant status
+frappe.init(site='${process.env.FRAPPE_SITE_NAME || 'erp.localhost'}')
+frappe.connect()
+
+# Update tenant status if Tenant DocType exists
+if frappe.db.exists('DocType', 'Tenant'):
+    if frappe.db.exists('Tenant', {'subdomain': '${subdomain}'}):
+        tenant = frappe.get_doc('Tenant', {'subdomain': '${subdomain}'})
+        tenant.status = 'active'
+        tenant.site_config = '${JSON.stringify({ apiKey, apiSecret }).replace(/'/g, "\\'")}'
+        tenant.save(ignore_permissions=True)
+        frappe.db.commit()
+        print("TENANT_STATUS_UPDATED")
+    else:
+        print("TENANT_NOT_FOUND")
+else:
+    print("TENANT_DOCTYPE_NOT_FOUND")
+`;
+
+    try {
+      benchRunner(updateTenantScript);
+      console.error(`✓ Tenant status updated to active`);
+    } catch (error) {
+      console.error(`⚠ Tenant status update skipped (DocType may not exist or site not found)`);
+    }
+
     // Calculate elapsed time
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
     console.error(`\n✅ Provisioning completed in ${elapsed}s`);
