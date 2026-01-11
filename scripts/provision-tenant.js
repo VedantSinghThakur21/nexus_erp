@@ -62,34 +62,29 @@ function dockerExec(command, silent = false) {
  * Execute Python code via bench console
  */
 function benchRunner(pythonCode) {
-  // Write Python code to a temporary file and execute it
+  // Write Python code to a temporary file and execute it inside the container
   const tempFile = `/tmp/provision_${Date.now()}.py`;
   
-  // Escape the Python code for echo command
+  // Escape the Python code for echo command (use single quotes to avoid most escaping issues)
   const escapedCode = pythonCode
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/`/g, '\\`')
-    .replace(/\$/g, '\\$')
-    .replace(/!/g, '\\!');
+    .replace(/'/g, "'\\''");  // Escape single quotes for bash
   
   try {
-    // Write Python code to temp file
-    dockerExec(`bash -c "echo \\"${escapedCode}\\" > ${tempFile}"`);
+    // Create complete bash command that runs inside container
+    const bashCommand = `
+      echo '${escapedCode}' > ${tempFile} && \
+      bench --site ${SITE_NAME} console < ${tempFile}; \
+      EXIT_CODE=$?; \
+      rm -f ${tempFile}; \
+      exit $EXIT_CODE
+    `;
     
-    // Execute using bench console
-    const result = dockerExec(`bench --site ${SITE_NAME} console < ${tempFile}`);
-    
-    // Cleanup temp file
-    try {
-      dockerExec(`bash -c "rm -f ${tempFile}"`, true);
-    } catch (e) {
-      // Ignore cleanup errors
-    }
+    // Execute the entire command inside the container
+    const result = dockerExec(`bash -c "${bashCommand.replace(/"/g, '\\"')}"`);
     
     return result;
   } catch (error) {
-    // Cleanup on error
+    // Cleanup on error (if file still exists)
     try {
       dockerExec(`bash -c "rm -f ${tempFile}"`, true);
     } catch (e) {
