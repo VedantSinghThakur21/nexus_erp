@@ -17,13 +17,14 @@
 const { execSync } = require('child_process');
 
 const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
+const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker';
 const pattern = process.argv[2] || 'test-*';
 
 console.log(`🧹 Cleaning up tenants matching: ${pattern}\n`);
 
 function dockerExec(command) {
   try {
-    return execSync(`docker compose exec -T ${DOCKER_SERVICE} ${command}`, {
+    return execSync(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} ${command}`, {
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe']
     }).trim();

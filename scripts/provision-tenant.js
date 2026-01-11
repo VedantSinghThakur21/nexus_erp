@@ -35,6 +35,7 @@ if (!subdomain || !email || !fullName || !password || !organizationName) {
 // Configuration
 const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker';
 const SITE_NAME = `${subdomain}.localhost`;
 
 /**
@@ -43,7 +44,7 @@ const SITE_NAME = `${subdomain}.localhost`;
 function dockerExec(command, silent = false) {
   try {
     const result = execSync(
-      `docker compose exec -T ${DOCKER_SERVICE} ${command}`,
+      `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} ${command}`,
       {
         encoding: 'utf8',
         stdio: silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
