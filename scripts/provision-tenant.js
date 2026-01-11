@@ -232,27 +232,34 @@ else:
     // STEP 5: Generate API Keys
     console.error(`[5/5] Generating API keys...`);
     
-    // Use Frappe's built-in generate_keys() method which properly generates and stores API keys
-    // The function returns (api_key, api_secret) where api_secret is the unhashed version for one-time capture
+    // Use Frappe's built-in method to generate API keys
+    // frappe.generate_hash() creates secure random tokens
+    // The api_secret is stored hashed in the database using the Password field type
     // Reference: https://github.com/frappe/frappe/blob/develop/frappe/core/doctype/user/user.py#L1400-L1431
     const generateKeysScript = `
 import frappe
-from frappe.core.doctype.user.user import generate_keys
 
 frappe.init(site='${SITE_NAME}')
 frappe.connect()
 frappe.set_user('Administrator')
 
-# Generate API keys using Frappe's built-in method
-# This properly creates and hashes the api_secret, returning the unhashed version for one-time use
-result = generate_keys('${email}')
-api_key = result['api_key']
-api_secret = result['api_secret']
+# Get the user document
+user = frappe.get_doc('User', '${email}')
+
+# Generate API key and secret using Frappe's secure method
+api_secret = frappe.generate_hash(length=15)
+api_key = user.api_key if user.api_key else frappe.generate_hash(length=15)
+
+# Set the keys on the user document
+# The api_secret field is of type Password, so Frappe will automatically hash it on save
+user.api_key = api_key
+user.api_secret = api_secret
+user.save(ignore_permissions=True)
 
 # Commit to database
 frappe.db.commit()
 
-# Output in parseable format
+# Output in parseable format (output api_secret before it gets hashed)
 print(f"API_KEY:{api_key}")
 print(f"API_SECRET:{api_secret}")
 `;
@@ -260,8 +267,8 @@ print(f"API_SECRET:{api_secret}")
     const keysOutput = benchRunner(generateKeysScript);
     
     // Parse API credentials from output
-    const apiKeyMatch = keysOutput.match(/API_KEY:([a-f0-9]+)/);
-    const apiSecretMatch = keysOutput.match(/API_SECRET:([a-f0-9]+)/);
+    const apiKeyMatch = keysOutput.match(/API_KEY:([a-zA-Z0-9]+)/);
+    const apiSecretMatch = keysOutput.match(/API_SECRET:([a-zA-Z0-9]+)/);
     
     if (!apiKeyMatch || !apiSecretMatch) {
       throw new Error('Failed to parse API credentials from output');
