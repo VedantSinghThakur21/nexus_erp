@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { randomBytes } from 'crypto'
-import { frappeRequest, tenantAdminRequest } from '../lib/api'
+import { frappeRequest, tenantAuthRequest } from '../lib/api'
 import { createTenant } from './tenants'
 import { provisionTenant } from './provision'
 import { setupTenantDocType } from './setup-tenant'
