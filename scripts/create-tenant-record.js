@@ -52,7 +52,7 @@ if frappe.db.exists('DocType', 'Tenant'):
         })
     
     tenant.status = 'active'
-    tenant.site_url = 'https://${subdomain}.nexuserp.com'
+    tenant.site_url = 'http://${subdomain}.localhost:8080'
     tenant.save(ignore_permissions=True)
     frappe.db.commit()
     print("✅ Tenant record created successfully!")

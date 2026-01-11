@@ -263,7 +263,7 @@ if frappe.db.exists('DocType', 'Tenant'):
     
     # Update fields
     tenant.status = 'active'
-    tenant.site_url = 'https://${subdomain}.nexuserp.com'
+    tenant.site_url = 'http://${subdomain}.localhost:8080'
     tenant.site_config = json.dumps({
         'api_key': '${apiKey}',
         'api_secret': '${apiSecret}',
