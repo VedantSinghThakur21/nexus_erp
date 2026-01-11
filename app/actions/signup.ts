@@ -186,13 +186,14 @@ export async function signup(data: SignupData): Promise<SignupResult> {
       console.log('⏳ Waiting 5 seconds for site initialization...')
       await delay(5000)
 
-      // Step 5: Verify site is accessible with retry logic
+      // Step 5: Verify site is accessible and user can authenticate
       const siteName = result.site! // e.g., "sushmaorganisation.localhost"
       const siteUrl = result.url!
       const apiKey = result.apiKey!
       const apiSecret = result.apiSecret!
+      const userEmail = result.email!
 
-      console.log(`🔍 Verifying site accessibility: ${siteName}`)
+      console.log(`🔍 Verifying site accessibility and user credentials: ${siteName}`)
       
       const MAX_RETRIES = 5
       const BASE_DELAY = 3000 // 3 seconds
@@ -202,8 +203,8 @@ export async function signup(data: SignupData): Promise<SignupResult> {
         try {
           console.log(`📡 Attempt ${attempt}/${MAX_RETRIES}: Testing connection to ${siteUrl}`)
           
-          // Test connection with a simple API call
-          const testResponse = await fetch(`${siteUrl}/api/method/frappe.auth.get_logged_user`, {
+          // Test 1: Verify site is accessible with API credentials
+          const apiTestResponse = await fetch(`${siteUrl}/api/method/frappe.auth.get_logged_user`, {
             method: 'GET',
             headers: {
               'Authorization': `token ${apiKey}:${apiSecret}`,
@@ -211,10 +212,34 @@ export async function signup(data: SignupData): Promise<SignupResult> {
             }
           })
 
-          if (testResponse.ok) {
-            console.log(`✅ Site ${siteName} is ready and accessible!`)
+          if (!apiTestResponse.ok) {
+            throw new Error(`API test failed with status ${apiTestResponse.status}`)
+          }
+
+          console.log(`✅ API credentials verified`)
+
+          // Test 2: Verify user can log in with password (critical for signin)
+          const loginTestResponse = await fetch(`${siteUrl}/api/method/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-Frappe-Site-Name': siteName
+            },
+            body: new URLSearchParams({
+              usr: userEmail,
+              pwd: data.password
+            })
+          })
+
+          const loginData = await loginTestResponse.json()
+
+          if (loginData.message === 'Logged In' || loginTestResponse.ok) {
+            console.log(`✅ User ${userEmail} can authenticate successfully!`)
+            console.log(`✅ Site ${siteName} is fully ready and accessible!`)
             break
           }
+
+          throw new Error(`Login test failed: ${loginData.message || 'Unknown error'}`)
 
           // Check for authentication errors (site not ready yet)
           if (testResponse.status === 401 || testResponse.status === 403) {

@@ -133,41 +133,59 @@ async function provisionTenant() {
     const createUserScript = `
 import frappe
 from frappe.utils.password import update_password
+from frappe.core.doctype.user.user import User
 
 frappe.init(site='${SITE_NAME}')
 frappe.connect()
+frappe.set_user('Administrator')
 
-# Check if user already exists
-if frappe.db.exists('User', '${email}'):
-    print("User already exists, updating...")
-    user = frappe.get_doc('User', '${email}')
-    user.enabled = 1
-    user.user_type = 'System User'
-else:
-    # Create new user
-    user = frappe.get_doc({
-        'doctype': 'User',
-        'email': '${email}',
-        'first_name': '${fullName.split(' ')[0]}',
-        'last_name': '${fullName.split(' ').slice(1).join(' ') || fullName.split(' ')[0]}',
-        'enabled': 1,
-        'send_welcome_email': 0,
-        'user_type': 'System User'
-    })
-    user.insert(ignore_permissions=True)
-    print(f"User created: {user.name}")
-
-# Set password
-update_password(user='${email}', pwd='${password}')
-print("Password set successfully")
-
-# Assign System Manager role
-user.add_roles('System Manager')
-print("System Manager role assigned")
-
-user.save(ignore_permissions=True)
-frappe.db.commit()
-print(f"USER_CREATED:{user.name}")
+try:
+    # Check if user already exists
+    if frappe.db.exists('User', '${email}'):
+        print("User already exists, updating...")
+        user = frappe.get_doc('User', '${email}')
+        user.enabled = 1
+        user.user_type = 'System User'
+    else:
+        # Create new user following ERPNext best practices
+        print(f"Creating new user: ${email}")
+        user = frappe.get_doc({
+            'doctype': 'User',
+            'email': '${email}',
+            'first_name': '${fullName.split(' ')[0]}',
+            'last_name': '${fullName.split(' ').slice(1).join(' ') || fullName.split(' ')[0]}',
+            'enabled': 1,
+            'send_welcome_email': 0,
+            'user_type': 'System User',
+            'new_password': '${password}',  # Let Frappe handle password hashing
+            'simultaneous_sessions': 3,  # Allow multiple device logins
+            'role_profile_name': None,  # Set roles manually
+        })
+        user.insert(ignore_permissions=True)
+        print(f"User created: {user.name}")
+    
+    # Set password using Frappe's secure password utility
+    # This properly hashes and salts the password
+    update_password(user='${email}', pwd='${password}', logout_all_sessions=0)
+    print("Password securely hashed and saved")
+    
+    # Assign System Manager role for full access
+    user.add_roles('System Manager')
+    print("System Manager role assigned")
+    
+    # Enable API access for the user
+    if not user.api_key and not user.api_secret:
+        user.generate_keys()
+        print("API keys generated for user")
+    
+    user.save(ignore_permissions=True)
+    frappe.db.commit()
+    print(f"USER_CREATED:{user.name}|VERIFIED:1")
+    
+except Exception as e:
+    print(f"ERROR_CREATING_USER:{str(e)}")
+    frappe.db.rollback()
+    raise
 `;
 
     benchRunner(createUserScript);

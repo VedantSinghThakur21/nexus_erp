@@ -143,33 +143,46 @@ export async function loginUser(email: string, password: string) {
 
     const tenant = tenantData.message[0]
     
-    // Check tenant status
+    // Validate tenant status before attempting login
     if (tenant.status === 'suspended') {
-      // If suspended but site_config is missing, provisioning failed - allow retry with better message
+      // If suspended but site_config is missing, provisioning failed
       if (!tenant.site_config) {
+        console.error('Tenant provisioning incomplete:', tenant.subdomain)
         return { 
           success: false, 
-          error: 'Account provisioning failed. Please contact support or sign up with a new email.' 
+          error: 'Account setup incomplete. Please try signing up again or contact support.' 
         }
       }
+      console.warn('Tenant suspended:', tenant.subdomain)
       return { 
         success: false, 
-        error: 'Your account is suspended. Please contact support.' 
+        error: 'Your account is suspended. Please contact support to reactivate.' 
       }
     }
     
     if (tenant.status === 'cancelled') {
+      console.warn('Tenant cancelled:', tenant.subdomain)
       return { 
         success: false, 
-        error: 'Your account has been cancelled. Please contact support.' 
+        error: 'Your account has been cancelled. Contact support to restore access.' 
       }
     }
     
     // Check if provisioning is still pending
     if (tenant.status === 'pending') {
+      console.info('Tenant provisioning in progress:', tenant.subdomain)
       return { 
         success: false, 
-        error: 'Your account is still being set up. Please wait a few minutes and try again.' 
+        error: 'Your account is still being set up. This usually takes 2-3 minutes. Please try again shortly.' 
+      }
+    }
+
+    // Validate site_url format
+    if (!tenant.site_url || !tenant.site_url.startsWith('http')) {
+      console.error('Invalid site_url for tenant:', tenant.subdomain, tenant.site_url)
+      return {
+        success: false,
+        error: 'Account configuration error. Please contact support.'
       }
     }
 
@@ -197,26 +210,49 @@ export async function loginUser(email: string, password: string) {
       const cookieStore = await cookies()
       const setCookieHeader = response.headers.get('set-cookie')
       
+      // Extract and store session cookie (sid) from Frappe
       if (setCookieHeader) {
-        // Extract sid cookie value
         const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
         if (sidMatch) {
-          cookieStore.set('sid', sidMatch[1], {
+          const sessionId = sidMatch[1]
+          cookieStore.set('sid', sessionId, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            path: '/'
           })
-          console.log('Session cookie set for user:', email)
+          console.log('✅ Session cookie set for user:', email)
+        } else {
+          console.warn('⚠️ No session ID found in response')
         }
+      } else {
+        console.warn('⚠️ No set-cookie header in response')
       }
 
-      // Store user email and tenant info for routing
+      // Store user metadata for routing and session management
       cookieStore.set('user_email', email, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/'
+      })
+
+      cookieStore.set('tenant_subdomain', tenant.subdomain, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/'
+      })
+
+      cookieStore.set('tenant_site_url', tenantSiteUrl, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/'
       })
       
       cookieStore.set('tenant_subdomain', tenant.subdomain, {
