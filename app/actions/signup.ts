@@ -143,12 +143,14 @@ export async function signup(data: SignupData): Promise<SignupResult> {
           sanitizedOrgName
         ],
         {
-          timeout: 120000, // 2 minute timeout
+          timeout: 300000, // 5 minute timeout (provisioning takes ~3 minutes)
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
           env: {
             ...process.env,
             DOCKER_SERVICE: process.env.DOCKER_SERVICE || 'backend',
-            ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin'
+            ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin',
+            DB_ROOT_PASSWORD: process.env.DB_ROOT_PASSWORD || 'admin',
+            DOCKER_COMPOSE_DIR: process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker'
           }
         }
       )

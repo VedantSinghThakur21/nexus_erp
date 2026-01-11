@@ -292,6 +292,9 @@ export default function LoginPage() {
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-white mb-2">Create your account</h2>
                 <p className="text-slate-400">Start your 14-day free trial, no credit card required.</p>
+                <div className="mt-3 text-sm text-amber-400/80 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
+                  ⏱️ Account setup takes ~3 minutes. Please don't close this page.
+                </div>
               </div>
 
               <form action={handleSignup} className="space-y-6">
