@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { loginUser } from '@/app/actions/user-auth'
-import { signupWithTenant } from '@/app/actions/signup'
+import { signup } from '@/app/actions/signup'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [signupLoading, setSignupLoading] = useState(false)
+  const [provisioningStatus, setProvisioningStatus] = useState<string>('')
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro' | 'enterprise'>('free')
   const router = useRouter()
 
@@ -97,20 +98,28 @@ export default function LoginPage() {
         return
       }
       
-      const result = await signupWithTenant({
+      // Show provisioning status
+      setProvisioningStatus('Creating your workspace...')
+      
+      const result = await signup({
         email,
         password,
         fullName,
-        organizationName,
-        plan: selectedPlan
+        organizationName
       })
       
-      if (result.success) {
-        // Redirect to custom Next.js dashboard with tenant subdomain
-        alert(`🎉 Account created successfully!\n\nYour organization: ${result.subdomain}\n\nRedirecting to your dashboard...`)
-        window.location.href = result.dashboardUrl || '/dashboard'
+      if (result.success && result.data) {
+        setProvisioningStatus('Success! Redirecting to your workspace...')
+        
+        // Show success message with tenant info
+        const siteName = result.data.site.replace('.localhost', '')
+        alert(`🎉 Workspace Created Successfully!\n\nSite: ${result.data.site}\nURL: ${result.data.url}\n\nYou can now log in with your credentials!`)
+        
+        // Redirect to login tab or dashboard
+        window.location.href = '/login'
       } else {
         setSignupError(result.error || 'Failed to create account')
+        setProvisioningStatus('')
       }
     } catch (error: any) {
       setSignupError(error.message || 'An error occurred during signup')
@@ -426,12 +435,24 @@ export default function LoginPage() {
                   </div>
                 )}
 
+                {provisioningStatus && !signupError && (
+                  <div className="text-sm text-blue-400 font-medium bg-blue-500/10 p-4 rounded-lg border border-blue-500/20 flex items-center gap-3">
+                    <div className="animate-spin h-4 w-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                    <span>{provisioningStatus}</span>
+                  </div>
+                )}
+
                 <Button 
                   type="submit" 
                   disabled={signupLoading}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  {signupLoading ? 'Creating account...' : 'Create Account'}
+                  {signupLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                      Creating workspace...
+                    </span>
+                  ) : 'Create Account'}
                 </Button>
 
                 <p className="text-xs text-slate-500 text-center">
