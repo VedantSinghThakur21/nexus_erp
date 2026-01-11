@@ -1,64 +1,98 @@
 'use server'
 
 import { cookies } from 'next/headers'
+import { frappeRequest } from '@/app/lib/api'
+
+// Helper to find which tenant belongs to an email
+async function findTenantForEmail(email: string) {
+  try {
+    // 1. Search in Master Site "SaaS Tenant" DocType
+    // We filter tenants where owner_email matches
+    const tenants = await frappeRequest(
+        'frappe.client.get_list', 
+        'GET', 
+        {
+            doctype: 'SaaS Tenant',
+            filters: `[["owner_email", "=", "${email}"]]`,
+            fields: '["subdomain", "site_url", "site_config", "status"]',
+            limit_page_length: 1
+        }
+    )
+    return tenants.length > 0 ? tenants[0] : null
+  } catch (e) {
+    console.error("Tenant lookup failed:", e)
+    return null
+  }
+}
 
 export async function login(prevState: any, formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-
-  // 1. Prepare the request to ERPNext
-  // We use the internal Docker URL (http://127.0.0.1:8080) for speed and security
-  const erpUrl = process.env.ERP_NEXT_URL
   
-  if (!erpUrl) {
-    return { error: 'ERP URL is not configured' }
-  }
+  console.log(`Attempting login for: ${email}`);
+
+  // Default to Master URL
+  let targetUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  let siteHeader = process.env.FRAPPE_SITE_NAME_HEADER || 'localhost'
 
   try {
-    // 2. POST credentials to Frappe's login endpoint
-    const response = await fetch(`${erpUrl}/api/method/login`, {
+    // 1. Lookup Tenant
+    const tenant = await findTenantForEmail(email)
+    
+    if (tenant) {
+        console.log(`Found tenant: ${tenant.subdomain}`);
+        // If tenant found, we must target their site
+        targetUrl = 'http://127.0.0.1:8080' // Keep hitting local Docker port
+        siteHeader = `${tenant.subdomain}.localhost` // Force the Host header
+    } else {
+        console.log("No tenant found. Attempting login on master site.");
+    }
+
+    console.log(`Authenticating against site: ${siteHeader}`);
+
+    // 2. Perform Login
+    const response = await fetch(`${targetUrl}/api/method/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
+      headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Host': siteHeader, // Required for Nginx/Traefik routing
+          'X-Frappe-Site-Name': siteHeader // Backup for Frappe app routing
       },
-      // ERPNext specifically expects 'usr' and 'pwd' keys
-      body: new URLSearchParams({
-        usr: email,
-        pwd: password,
-      }),
+      body: new URLSearchParams({ usr: email, pwd: password }),
     })
 
     const data = await response.json()
 
-    // 3. Check for success
     if (response.ok && data.message === 'Logged In') {
-      // 4. Extract the 'sid' (Session ID) cookie from ERPNext response
-      const setCookieHeader = response.headers.get('set-cookie')
+      const cookieStore = await cookies()
       
+      // 3. Set Session Cookie
+      const setCookieHeader = response.headers.get('set-cookie')
       if (setCookieHeader) {
-        // Parse the sid from the raw header string
-        const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
-        const sid = sidMatch ? sidMatch[1] : null
-
+        const sid = setCookieHeader.match(/sid=([^;]+)/)?.[1]
         if (sid) {
-            // 5. Set the cookie in Next.js browser context
-            const cookieStore = await cookies()
-            cookieStore.set('sid', sid, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-          })
+            cookieStore.set('sid', sid, { 
+                httpOnly: true, 
+                secure: process.env.NODE_ENV === 'production', 
+                path: '/' 
+            })
         }
       }
 
+      // 4. Set Context Cookies
+      cookieStore.set('user_id', email, { path: '/' })
+      if (tenant) {
+          cookieStore.set('tenant_id', tenant.subdomain, { path: '/' })
+      }
+
+      console.log("Login successful.");
       return { success: true }
     } else {
+      console.error("Login failed response:", data)
       return { error: data.message || 'Invalid credentials' }
     }
-  } catch (error) {
-    console.error('Login error:', error)
+  } catch (error: any) {
+    console.error("Auth Error:", error)
     return { error: 'Failed to connect to ERP server' }
   }
 }
