@@ -46,7 +46,9 @@ if frappe.db.exists('DocType', 'Tenant'):
             'doctype': 'Tenant',
             'subdomain': '${subdomain}',
             'organization_name': '${organizationName}',
-            'email': '${email}'
+            'company_name': '${organizationName}',
+            'email': '${email}',
+            'owner_email': '${email}'
         })
     
     tenant.status = 'active'
