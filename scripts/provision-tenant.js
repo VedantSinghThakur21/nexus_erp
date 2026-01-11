@@ -59,17 +59,44 @@ function dockerExec(command, silent = false) {
 }
 
 /**
- * Execute Python code via bench runner
+ * Execute Python code via bench console
  */
 function benchRunner(pythonCode) {
-  // Escape special characters for shell
+  // Write Python code to a temporary file and execute it
+  const tempFile = `/tmp/provision_${Date.now()}.py`;
+  
+  // Escape the Python code for echo command
   const escapedCode = pythonCode
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
     .replace(/`/g, '\\`')
-    .replace(/\$/g, '\\$');
+    .replace(/\$/g, '\\$')
+    .replace(/!/g, '\\!');
   
-  return dockerExec(`bash -c "bench --site ${SITE_NAME} runner '${escapedCode}'"`);
+  try {
+    // Write Python code to temp file
+    dockerExec(`bash -c "echo \\"${escapedCode}\\" > ${tempFile}"`);
+    
+    // Execute using bench console
+    const result = dockerExec(`bench --site ${SITE_NAME} console < ${tempFile}`);
+    
+    // Cleanup temp file
+    try {
+      dockerExec(`bash -c "rm -f ${tempFile}"`, true);
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+    
+    return result;
+  } catch (error) {
+    // Cleanup on error
+    try {
+      dockerExec(`bash -c "rm -f ${tempFile}"`, true);
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
 }
 
 /**
@@ -237,7 +264,7 @@ print(f"API_SECRET:{api_secret}")
     // Attempt cleanup
     try {
       console.error(`\n🧹 Attempting cleanup...`);
-      dockerExec(`bench drop-site ${SITE_NAME} --force`, true);
+      dockerExec(`bench drop-site ${SITE_NAME} --mariadb-root-password ${DB_ROOT_PASSWORD} --force`, true);
       console.error(`✓ Site dropped`);
     } catch (cleanupError) {
       console.error(`⚠ Cleanup failed: ${cleanupError.message}`);

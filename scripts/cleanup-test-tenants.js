@@ -18,6 +18,7 @@ const { execSync } = require('child_process');
 
 const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
 const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker';
+const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin';
 const pattern = process.argv[2] || 'test-*';
 
 console.log(`🧹 Cleaning up tenants matching: ${pattern}\n`);
@@ -80,7 +81,7 @@ try {
     for (const site of sitesToDelete) {
       try {
         process.stdout.write(`🗑️  Deleting ${site}...`);
-        dockerExec(`bench drop-site ${site} --force`);
+        dockerExec(`bench drop-site ${site} --mariadb-root-password ${DB_ROOT_PASSWORD} --force`);
         console.log(' ✅');
         successCount++;
       } catch (error) {
