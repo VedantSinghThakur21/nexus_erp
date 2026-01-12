@@ -2,6 +2,7 @@ const { exec, spawn } = require('child_process');
 const util = require('util');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const execPromise = util.promisify(exec);
 
@@ -31,7 +32,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 // Helper to execute commands with live output streaming
 async function execWithProgress(command, description) {
     return new Promise((resolve, reject) => {
-        console.error(`${description}`);
+        if (description) console.error(`${description}`);
         
         const child = spawn('bash', ['-c', `cd ${DOCKER_COMPOSE_DIR} && ${command}`], {
             stdio: ['inherit', 'pipe', 'pipe']
@@ -40,19 +41,15 @@ async function execWithProgress(command, description) {
         let stdout = '';
         let stderr = '';
         
-        // Stream stdout
         child.stdout.on('data', (data) => {
             const output = data.toString();
             stdout += output;
-            // Show progress in real-time
             process.stderr.write(output);
         });
         
-        // Stream stderr
         child.stderr.on('data', (data) => {
             const output = data.toString();
             stderr += output;
-            // Show progress in real-time
             process.stderr.write(output);
         });
         
@@ -70,7 +67,7 @@ async function execWithProgress(command, description) {
     });
 }
 
-// Helper to execute commands in container with timeout
+// Helper to execute commands in container
 async function execInContainer(command, throwOnError = true, timeoutMs = 600000) {
     try {
         const { stdout, stderr } = await execPromise(
@@ -96,6 +93,24 @@ async function execBench(command, throwOnError = true) {
     return execInContainer(`bench ${command}`, throwOnError);
 }
 
+// Helper to run Python code via piping to bench console
+async function runPythonCode(pythonCode, siteName) {
+    return new Promise((resolve, reject) => {
+        // Escape the code properly for shell
+        const escapedCode = pythonCode.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$').replace(/`/g, '\\`');
+        
+        const command = `cd ${DOCKER_COMPOSE_DIR} && echo "${escapedCode}" | docker compose exec -T ${DOCKER_SERVICE} bench --site ${siteName} console`;
+        
+        exec(command, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+            if (error) {
+                reject(new Error(`Python execution failed: ${stderr}\n${stdout}`));
+            } else {
+                resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
+            }
+        });
+    });
+}
+
 // Check if site is properly initialized
 async function isSiteValid(siteName) {
     try {
@@ -107,7 +122,7 @@ async function isSiteValid(siteName) {
         const configCheck = await execInContainer(`test -f sites/${siteName}/site_config.json`, false);
         if (!configCheck.success) return false;
         
-        // Check 3: site_config.json has encryption_key (critical!)
+        // Check 3: site_config.json has encryption_key
         const configContent = await execInContainer(`cat sites/${siteName}/site_config.json`, false);
         if (!configContent.success) return false;
         
@@ -132,6 +147,46 @@ async function isSiteValid(siteName) {
     }
 }
 
+// Fix missing encryption_key by directly editing site_config.json
+async function fixEncryptionKey(siteName) {
+    try {
+        console.error('⚠ Encryption key missing, adding it now...');
+        
+        // Generate a secure encryption key (32 bytes in base64)
+        const encryptionKey = crypto.randomBytes(32).toString('base64');
+        
+        // Read current config
+        const configContent = await execInContainer(`cat sites/${siteName}/site_config.json`);
+        const config = JSON.parse(configContent.stdout);
+        
+        // Add encryption_key
+        config.encryption_key = encryptionKey;
+        
+        // Write config back via temp file
+        const tempFile = `/tmp/site_config_${Date.now()}.json`;
+        const localTempFile = path.join('/tmp', `local_config_${Date.now()}.json`);
+        
+        fs.writeFileSync(localTempFile, JSON.stringify(config, null, 1));
+        
+        // Copy to container
+        await execPromise(
+            `cd ${DOCKER_COMPOSE_DIR} && docker compose cp "${localTempFile}" ${DOCKER_SERVICE}:${tempFile}`
+        );
+        
+        // Move to correct location
+        await execInContainer(`mv ${tempFile} sites/${siteName}/site_config.json`);
+        
+        // Cleanup
+        fs.unlinkSync(localTempFile);
+        
+        console.error('✓ Encryption key added successfully');
+        return true;
+    } catch (e) {
+        console.error(`Failed to add encryption key: ${e.message}`);
+        return false;
+    }
+}
+
 async function provision() {
     try {
         console.error(`🚀 Starting provisioning for ${SITE_NAME}`);
@@ -140,72 +195,67 @@ async function provision() {
         // 1. Check/Create Site
         console.error('[1/5] Checking/creating site...');
         
-        const siteValid = await isSiteValid(SITE_NAME);
+        let siteValid = await isSiteValid(SITE_NAME);
         
         if (siteValid) {
             console.error('✓ Site exists and is valid');
         } else {
-            // Clean up any broken site remnants
-            console.error('⚠ Site missing or corrupted, recreating...');
+            // Check if site directory exists but is incomplete
+            const siteExists = await execInContainer(`test -d sites/${SITE_NAME}`, false);
             
-            try {
-                await execBench(`drop-site ${SITE_NAME} --force --no-backup`, false);
-                console.error('✓ Cleaned up existing site');
-            } catch (e) {
-                // Site might not exist, that's fine
-            }
-            
-            // Create fresh site with progress output
-            console.error('[Creating new site - this may take 2-3 minutes]');
-            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            
-            await execWithProgress(
-                `docker compose exec -T ${DOCKER_SERVICE} bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket`,
-                '⏳ Starting site creation...'
-            );
-            
-            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.error('✓ Site creation completed');
-            console.error('');
-            
-            // Verify the site was created properly
-            console.error('Validating site configuration...');
-            const newSiteValid = await isSiteValid(SITE_NAME);
-            if (!newSiteValid) {
-                // Try to fix missing encryption_key
-                console.error('⚠ Site config incomplete, attempting to fix...');
-                try {
-                    await execInContainer(`bench --site ${SITE_NAME} console --execute "
-import frappe
-from frappe.installer import make_site_dirs
-from frappe.utils import get_site_path, cstr
-
-# Ensure encryption_key exists
-site_config = frappe.get_site_config()
-if not site_config.get('encryption_key'):
-    import secrets
-    encryption_key = secrets.token_hex(16)
-    frappe.conf.encryption_key = encryption_key
-    frappe.get_site_config(sites_path='.', site_path=get_site_path())
-    from frappe.installer import update_site_config
-    update_site_config('encryption_key', encryption_key)
-    print(f'Added encryption_key: {encryption_key}')
-else:
-    print('encryption_key already exists')
-"`, true);
-                    console.error('✓ Site config fixed');
-                    
-                    // Validate again
-                    const fixedValid = await isSiteValid(SITE_NAME);
-                    if (!fixedValid) {
-                        throw new Error('Site creation failed - could not fix site configuration');
+            if (siteExists.success) {
+                console.error('⚠ Site exists but is incomplete/corrupted');
+                
+                // Try to fix encryption key first
+                const fixed = await fixEncryptionKey(SITE_NAME);
+                if (fixed) {
+                    siteValid = await isSiteValid(SITE_NAME);
+                    if (siteValid) {
+                        console.error('✓ Site fixed and validated');
                     }
-                } catch (fixError) {
-                    throw new Error(`Site creation failed - site is not properly initialized: ${fixError.message}`);
                 }
             }
             
-            console.error('✓ Site created and validated');
+            // If still not valid, recreate
+            if (!siteValid) {
+                console.error('⚠ Recreating site from scratch...');
+                
+                try {
+                    await execBench(`drop-site ${SITE_NAME} --force --no-backup`, false);
+                    console.error('✓ Cleaned up existing site');
+                } catch (e) {
+                    // Site might not exist, that's fine
+                }
+                
+                // Create fresh site with progress output
+                console.error('[Creating new site - this may take 2-3 minutes]');
+                console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                
+                await execWithProgress(
+                    `docker compose exec -T ${DOCKER_SERVICE} bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket`,
+                    '⏳ Starting site creation...'
+                );
+                
+                console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.error('✓ Site creation completed');
+                console.error('');
+                
+                // Check and fix encryption_key if needed
+                console.error('Validating site configuration...');
+                siteValid = await isSiteValid(SITE_NAME);
+                if (!siteValid) {
+                    const fixed = await fixEncryptionKey(SITE_NAME);
+                    if (fixed) {
+                        siteValid = await isSiteValid(SITE_NAME);
+                    }
+                }
+                
+                if (!siteValid) {
+                    throw new Error('Site creation failed - unable to initialize properly');
+                }
+                
+                console.error('✓ Site created and validated');
+            }
         }
 
         // 2. Install App
@@ -224,30 +274,27 @@ else:
             }
         } catch (e) {
             console.error(`⚠ App install warning: ${e.message}`);
-            // Continue even if app install fails
         }
 
-        // 3. Create Admin User via bench add-system-manager
+        // 3. Create Admin User
         console.error(`[3/5] Creating admin user: ${ADMIN_EMAIL}...`);
         
-        // Split full name
         const nameParts = FULL_NAME.trim().split(' ');
         const firstName = nameParts[0] || 'Admin';
         const lastName = nameParts.slice(1).join(' ') || '';
         
         try {
             // Check if user exists
-            const userCheck = await execInContainer(
-                `bench --site ${SITE_NAME} console --execute "import frappe; print('exists' if frappe.db.exists('User', '${ADMIN_EMAIL}') else 'not_exists')"`,
-                false
-            );
+            const checkUserCode = `import frappe
+print('exists' if frappe.db.exists('User', '${ADMIN_EMAIL}') else 'not_exists')`;
+            
+            const userCheck = await runPythonCode(checkUserCode, SITE_NAME);
             
             if (userCheck.stdout.includes('exists')) {
                 console.error('User already exists, updating...');
                 
-                // Update existing user using bench console
-                await execInContainer(`bench --site ${SITE_NAME} console --execute "
-import frappe
+                // Update existing user
+                const updateUserCode = `import frappe
 from frappe.utils.password import update_password
 
 email = '${ADMIN_EMAIL}'
@@ -264,8 +311,9 @@ if not has_role:
 user.save(ignore_permissions=True)
 update_password(user=email, pwd='${PASSWORD}', logout_all_sessions=0)
 frappe.db.commit()
-print('User updated successfully')
-"`);
+print('User updated successfully')`;
+                
+                await runPythonCode(updateUserCode, SITE_NAME);
             } else {
                 console.error('Creating new user...');
                 
@@ -273,8 +321,7 @@ print('User updated successfully')
                 await execBench(`--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL}`);
                 
                 // Set password and update details
-                await execInContainer(`bench --site ${SITE_NAME} console --execute "
-import frappe
+                const setupUserCode = `import frappe
 from frappe.utils.password import update_password
 
 email = '${ADMIN_EMAIL}'
@@ -284,8 +331,9 @@ user.last_name = '${lastName}'
 user.save(ignore_permissions=True)
 update_password(user=email, pwd='${PASSWORD}', logout_all_sessions=0)
 frappe.db.commit()
-print('User created successfully')
-"`);
+print('User created successfully')`;
+                
+                await runPythonCode(setupUserCode, SITE_NAME);
             }
             
             console.error('✓ User created/updated successfully');
@@ -296,8 +344,7 @@ print('User created successfully')
         // 4. Initialize Settings
         console.error('[4/5] Initializing settings...');
         try {
-            await execInContainer(`bench --site ${SITE_NAME} console --execute "
-import frappe
+            const settingsCode = `import frappe
 
 if frappe.db.exists('DocType', 'SaaS Settings'):
     if not frappe.db.exists('SaaS Settings', 'SaaS Settings'):
@@ -312,8 +359,9 @@ if frappe.db.exists('DocType', 'SaaS Settings'):
     frappe.db.commit()
     print('Settings initialized')
 else:
-    print('SaaS Settings not found, skipping')
-"`, false);
+    print('SaaS Settings not found, skipping')`;
+    
+            await runPythonCode(settingsCode, SITE_NAME);
             console.error('✓ Settings initialized');
         } catch (e) {
             console.error('⚠ Settings initialization skipped (not critical)');
@@ -321,8 +369,8 @@ else:
 
         // 5. Generate API Keys
         console.error('[5/5] Generating API keys...');
-        const keysResult = await execInContainer(`bench --site ${SITE_NAME} console --execute "
-import frappe
+        
+        const keysCode = `import frappe
 import json
 
 user = frappe.get_doc('User', '${ADMIN_EMAIL}')
@@ -342,8 +390,9 @@ print(json.dumps({
     'api_key': user.api_key,
     'api_secret': api_secret
 }))
-print('===JSON_END===')
-"`);
+print('===JSON_END===')`;
+
+        const keysResult = await runPythonCode(keysCode, SITE_NAME);
         
         // Extract JSON from output
         const match = keysResult.stdout.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/);
