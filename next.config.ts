@@ -7,8 +7,14 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
+      // CRITICAL: Provisioning takes 2-5 minutes, needs extended timeout
+      allowedOrigins: ['localhost:3000', '127.0.0.1:3000'],
     },
   },
+  
+  // Increase max duration for serverless functions (10 minutes)
+  // This prevents SIGTERM during long-running provisioning operations
+  maxDuration: 600, // 10 minutes
   
   // Security headers for production
   async headers() {
