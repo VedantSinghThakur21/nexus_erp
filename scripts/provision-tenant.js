@@ -57,9 +57,9 @@ async function execFrappePython(pythonCode, stepName) {
             `cd ${DOCKER_COMPOSE_DIR} && docker compose cp "${localTempFile}" ${DOCKER_SERVICE}:${tempFileName}`
         );
         
-        // Execute using bench execute
+        // Execute using Python directly with Frappe bench environment
         const { stdout, stderr } = await execPromise(
-            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bench --site ${SITE_NAME} execute --file ${tempFileName}`
+            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -w /home/frappe/frappe-bench -T ${DOCKER_SERVICE} /home/frappe/frappe-bench/env/bin/python ${tempFileName}`
         );
         
         return stdout.trim();
@@ -135,56 +135,58 @@ async function provision() {
 import frappe
 from frappe.utils.password import update_password
 
-def create_or_update_user():
-    email = '${ADMIN_EMAIL}'
-    first_name = '${firstName}'
-    last_name = '${lastName}'
-    password = '${PASSWORD}'
-    
-    try:
-        if frappe.db.exists('User', email):
-            print("User exists, updating...")
-            user = frappe.get_doc('User', email)
-            user.enabled = 1
-            user.first_name = first_name
-            user.last_name = last_name
-            
-            # Ensure System Manager role
-            has_role = False
-            for role in user.roles:
-                if role.role == 'System Manager':
-                    has_role = True
-                    break
-            if not has_role:
-                user.append('roles', {'role': 'System Manager'})
-            
-            user.save(ignore_permissions=True)
-        else:
-            print("Creating new user...")
-            user = frappe.get_doc({
-                'doctype': 'User',
-                'email': email,
-                'first_name': first_name,
-                'last_name': last_name,
-                'enabled': 1,
-                'send_welcome_email': 0,
-                'user_type': 'System User'
-            })
-            user.insert(ignore_permissions=True)
-            user.add_roles('System Manager')
-        
-        # Set password
-        update_password(user=email, pwd=password, logout_all_sessions=0)
-        frappe.db.commit()
-        print("SUCCESS: User created/updated")
-    except Exception as e:
-        frappe.db.rollback()
-        print("ERROR: " + str(e))
-        import traceback
-        traceback.print_exc()
-        raise
+frappe.init(site='${SITE_NAME}')
+frappe.connect()
 
-create_or_update_user()
+email = '${ADMIN_EMAIL}'
+first_name = '${firstName}'
+last_name = '${lastName}'
+password = '${PASSWORD}'
+
+try:
+    if frappe.db.exists('User', email):
+        print("User exists, updating...")
+        user = frappe.get_doc('User', email)
+        user.enabled = 1
+        user.first_name = first_name
+        user.last_name = last_name
+        
+        # Ensure System Manager role
+        has_role = False
+        for role in user.roles:
+            if role.role == 'System Manager':
+                has_role = True
+                break
+        if not has_role:
+            user.append('roles', {'role': 'System Manager'})
+        
+        user.save(ignore_permissions=True)
+    else:
+        print("Creating new user...")
+        user = frappe.get_doc({
+            'doctype': 'User',
+            'email': email,
+            'first_name': first_name,
+            'last_name': last_name,
+            'enabled': 1,
+            'send_welcome_email': 0,
+            'user_type': 'System User'
+        })
+        user.insert(ignore_permissions=True)
+        user.add_roles('System Manager')
+    
+    # Set password
+    update_password(user=email, pwd=password, logout_all_sessions=0)
+    frappe.db.commit()
+    print("SUCCESS: User created/updated")
+except Exception as e:
+    frappe.db.rollback()
+    print("ERROR: " + str(e))
+    import traceback
+    traceback.print_exc()
+    raise
+finally:
+    frappe.destroy()
 `;
         await execFrappePython(createUserCode, "Create User");
         console.error('✓ User created/updated successfully');
@@ -194,27 +196,29 @@ create_or_update_user()
         const settingsCode = `
 import frappe
 
-def init_settings():
-    try:
-        if frappe.db.exists('DocType', 'SaaS Settings'):
-            if not frappe.db.exists('SaaS Settings', 'SaaS Settings'):
-                s = frappe.new_doc('SaaS Settings')
-                s.name = 'SaaS Settings'
-                s.insert(ignore_permissions=True)
-            
-            doc = frappe.get_doc('SaaS Settings', 'SaaS Settings')
-            doc.plan_name = 'Free'
-            doc.max_users = 5
-            doc.save(ignore_permissions=True)
-            frappe.db.commit()
-            print("SUCCESS: Settings initialized")
-        else:
-            print("INFO: SaaS Settings DocType not found, skipping...")
-    except Exception as e:
-        print("WARNING: Settings init failed: " + str(e))
-        # Don't fail the whole provisioning for this
+frappe.init(site='${SITE_NAME}')
+frappe.connect()
 
-init_settings()
+try:
+    if frappe.db.exists('DocType', 'SaaS Settings'):
+        if not frappe.db.exists('SaaS Settings', 'SaaS Settings'):
+            s = frappe.new_doc('SaaS Settings')
+            s.name = 'SaaS Settings'
+            s.insert(ignore_permissions=True)
+        
+        doc = frappe.get_doc('SaaS Settings', 'SaaS Settings')
+        doc.plan_name = 'Free'
+        doc.max_users = 5
+        doc.save(ignore_permissions=True)
+        frappe.db.commit()
+        print("SUCCESS: Settings initialized")
+    else:
+        print("INFO: SaaS Settings DocType not found, skipping...")
+except Exception as e:
+    print("WARNING: Settings init failed: " + str(e))
+    # Don't fail the whole provisioning for this
+finally:
+    frappe.destroy()
 `;
         await execFrappePython(settingsCode, "Init Settings");
         console.error('✓ Settings initialized');
@@ -225,33 +229,35 @@ init_settings()
 import frappe
 import json
 
-def generate_keys():
-    try:
-        user = frappe.get_doc('User', '${ADMIN_EMAIL}')
-        
-        # Generate keys
-        api_secret = frappe.generate_hash(length=15)
-        if not user.api_key:
-            user.api_key = frappe.generate_hash(length=15)
-        
-        user.api_secret = api_secret
-        user.save(ignore_permissions=True)
-        frappe.db.commit()
-        
-        # Output as JSON
-        print("===JSON_START===")
-        print(json.dumps({
-            "api_key": user.api_key,
-            "api_secret": api_secret
-        }))
-        print("===JSON_END===")
-    except Exception as e:
-        print("ERROR: " + str(e))
-        import traceback
-        traceback.print_exc()
-        raise
+frappe.init(site='${SITE_NAME}')
+frappe.connect()
 
-generate_keys()
+try:
+    user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+    
+    # Generate keys
+    api_secret = frappe.generate_hash(length=15)
+    if not user.api_key:
+        user.api_key = frappe.generate_hash(length=15)
+    
+    user.api_secret = api_secret
+    user.save(ignore_permissions=True)
+    frappe.db.commit()
+    
+    # Output as JSON
+    print("===JSON_START===")
+    print(json.dumps({
+        "api_key": user.api_key,
+        "api_secret": api_secret
+    }))
+    print("===JSON_END===")
+except Exception as e:
+    print("ERROR: " + str(e))
+    import traceback
+    traceback.print_exc()
+    raise
+finally:
+    frappe.destroy()
 `;
         const keysOutput = await execFrappePython(keysCode, "Generate Keys");
         
