@@ -78,7 +78,7 @@ export async function createTenant(data: CreateTenantData): Promise<CreateTenant
         owner_name: data.owner_name,
         email: data.owner_email, // Alias for backward compatibility
         plan: data.plan,
-        status: 'Pending', // Will be updated to Active after provisioning
+        status: 'pending', // Will be updated to active after provisioning (must be lowercase)
         site_url: `http://${data.subdomain}.localhost:8080`,
         site_name: `${data.subdomain}.localhost`,
         created_at: new Date().toISOString()
@@ -102,7 +102,7 @@ export async function createTenant(data: CreateTenantData): Promise<CreateTenant
         owner_email: data.owner_email,
         owner_name: data.owner_name,
         plan: data.plan,
-        status: 'Pending',
+        status: 'pending',
         site_url: `http://${data.subdomain}.localhost:8080`,
         site_name: `${data.subdomain}.localhost`
       }
@@ -150,7 +150,7 @@ export async function updateTenantAfterProvisioning(
       name: tenantId,
       fieldname: {
         site_config: JSON.stringify(siteConfig),
-        status: 'Active',
+        status: 'active',
         provisioned_at: new Date().toISOString()
       }
     })

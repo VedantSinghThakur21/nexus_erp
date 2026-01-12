@@ -123,7 +123,7 @@ export async function provisionTenant(
             api_secret: result.apiSecret,
             site_url: result.url
           }),
-          status: 'Active',
+          status: 'active',
           site_name: result.site
         }
       })
