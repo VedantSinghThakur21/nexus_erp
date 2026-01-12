@@ -172,7 +172,37 @@ async function provision() {
             console.error('Validating site configuration...');
             const newSiteValid = await isSiteValid(SITE_NAME);
             if (!newSiteValid) {
-                throw new Error('Site creation failed - site is not properly initialized');
+                // Try to fix missing encryption_key
+                console.error('⚠ Site config incomplete, attempting to fix...');
+                try {
+                    await execInContainer(`bench --site ${SITE_NAME} console --execute "
+import frappe
+from frappe.installer import make_site_dirs
+from frappe.utils import get_site_path, cstr
+
+# Ensure encryption_key exists
+site_config = frappe.get_site_config()
+if not site_config.get('encryption_key'):
+    import secrets
+    encryption_key = secrets.token_hex(16)
+    frappe.conf.encryption_key = encryption_key
+    frappe.get_site_config(sites_path='.', site_path=get_site_path())
+    from frappe.installer import update_site_config
+    update_site_config('encryption_key', encryption_key)
+    print(f'Added encryption_key: {encryption_key}')
+else:
+    print('encryption_key already exists')
+"`, true);
+                    console.error('✓ Site config fixed');
+                    
+                    // Validate again
+                    const fixedValid = await isSiteValid(SITE_NAME);
+                    if (!fixedValid) {
+                        throw new Error('Site creation failed - could not fix site configuration');
+                    }
+                } catch (fixError) {
+                    throw new Error(`Site creation failed - site is not properly initialized: ${fixError.message}`);
+                }
             }
             
             console.error('✓ Site created and validated');
