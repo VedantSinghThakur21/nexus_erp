@@ -1,4 +1,4 @@
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const util = require('util');
 const fs = require('fs');
 const path = require('path');
@@ -28,11 +28,54 @@ const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
 const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'vedant@21'; 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 
-// Helper to execute commands in container
-async function execInContainer(command, throwOnError = true) {
+// Helper to execute commands with live output streaming
+async function execWithProgress(command, description) {
+    return new Promise((resolve, reject) => {
+        console.error(`${description}`);
+        
+        const child = spawn('bash', ['-c', `cd ${DOCKER_COMPOSE_DIR} && ${command}`], {
+            stdio: ['inherit', 'pipe', 'pipe']
+        });
+        
+        let stdout = '';
+        let stderr = '';
+        
+        // Stream stdout
+        child.stdout.on('data', (data) => {
+            const output = data.toString();
+            stdout += output;
+            // Show progress in real-time
+            process.stderr.write(output);
+        });
+        
+        // Stream stderr
+        child.stderr.on('data', (data) => {
+            const output = data.toString();
+            stderr += output;
+            // Show progress in real-time
+            process.stderr.write(output);
+        });
+        
+        child.on('close', (code) => {
+            if (code === 0) {
+                resolve({ stdout: stdout.trim(), stderr: stderr.trim(), success: true });
+            } else {
+                reject(new Error(`Command failed with code ${code}\nStdout: ${stdout}\nStderr: ${stderr}`));
+            }
+        });
+        
+        child.on('error', (error) => {
+            reject(new Error(`Failed to start command: ${error.message}`));
+        });
+    });
+}
+
+// Helper to execute commands in container with timeout
+async function execInContainer(command, throwOnError = true, timeoutMs = 600000) {
     try {
         const { stdout, stderr } = await execPromise(
-            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} ${command}`
+            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} ${command}`,
+            { maxBuffer: 10 * 1024 * 1024, timeout: timeoutMs }
         );
         return { stdout: stdout.trim(), stderr: stderr.trim(), success: true };
     } catch (error) {
@@ -112,13 +155,21 @@ async function provision() {
                 // Site might not exist, that's fine
             }
             
-            // Create fresh site with proper initialization
-            console.error('Creating new site...');
-            await execInContainer(
-                `bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket`
+            // Create fresh site with progress output
+            console.error('[Creating new site - this may take 2-3 minutes]');
+            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            
+            await execWithProgress(
+                `docker compose exec -T ${DOCKER_SERVICE} bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket`,
+                '⏳ Starting site creation...'
             );
             
+            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.error('✓ Site creation completed');
+            console.error('');
+            
             // Verify the site was created properly
+            console.error('Validating site configuration...');
             const newSiteValid = await isSiteValid(SITE_NAME);
             if (!newSiteValid) {
                 throw new Error('Site creation failed - site is not properly initialized');
@@ -134,12 +185,16 @@ async function provision() {
             if (stdout.includes('nexus_core')) {
                 console.error('✓ App already installed');
             } else {
-                await execBench(`--site ${SITE_NAME} install-app nexus_core`);
+                console.error('⏳ Installing nexus_core (this may take 1-2 minutes)...');
+                await execWithProgress(
+                    `docker compose exec -T ${DOCKER_SERVICE} bench --site ${SITE_NAME} install-app nexus_core`,
+                    ''
+                );
                 console.error('✓ App installed successfully');
             }
         } catch (e) {
             console.error(`⚠ App install warning: ${e.message}`);
-            // Continue even if app install fails - it might not exist or already be installed
+            // Continue even if app install fails
         }
 
         // 3. Create Admin User via bench add-system-manager
