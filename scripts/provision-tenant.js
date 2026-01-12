@@ -65,10 +65,10 @@ function dockerExec(command, silent = false) {
 }
 
 /**
- * Execute Python code via bench execute (not interactive console)
+ * Execute Python code via python directly (not bench console)
  */
 function benchRunner(pythonCode) {
-  // Write Python code to a temporary file and execute it with bench execute
+  // Write Python code to a temporary file and execute it directly with Python in frappe context
   const tempFile = `/tmp/provision_${Date.now()}.py`;
   
   // Escape the Python code for echo command (use single quotes to avoid most escaping issues)
@@ -76,9 +76,9 @@ function benchRunner(pythonCode) {
     .replace(/'/g, "'\\''");  // Escape single quotes for bash
   
   try {
-    // Create complete bash command that writes to file and executes with bench execute
-    // bench execute runs Python code directly without interactive console
-    const bashCommand = `echo '${escapedCode}' > ${tempFile} && bench --site ${SITE_NAME} execute ${tempFile}; EXIT_CODE=$?; rm -f ${tempFile}; exit $EXIT_CODE`;
+    // Execute Python script using the frappe bench environment
+    // This runs the script directly without the interactive IPython console
+    const bashCommand = `echo '${escapedCode}' > ${tempFile} && cd ~/frappe-bench && python ${tempFile}; EXIT_CODE=$?; rm -f ${tempFile}; exit $EXIT_CODE`;
     
     // Execute the entire command inside the container
     const result = dockerExec(`bash -c "${bashCommand.replace(/"/g, '\\"')}"`);
