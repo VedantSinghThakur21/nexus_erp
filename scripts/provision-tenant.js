@@ -65,32 +65,28 @@ function dockerExec(command, silent = false) {
 }
 
 /**
- * Execute Python code via python directly (not bench console)
+ * Execute Python code using bench with Frappe context
  */
 function benchRunner(pythonCode) {
-  // Write Python code to a temporary file and execute it directly with Python in frappe context
-  const tempFile = `/tmp/provision_${Date.now()}.py`;
-  
-  // Escape the Python code for echo command (use single quotes to avoid most escaping issues)
+  // Escape Python code for bash -c command (needs careful escaping)
+  // Replace backslashes first, then single quotes, then double quotes
   const escapedCode = pythonCode
-    .replace(/'/g, "'\\''");  // Escape single quotes for bash
+    .replace(/\\/g, '\\\\')           // Escape backslashes
+    .replace(/"/g, '\\"')              // Escape double quotes
+    .replace(/\$/g, '\\$')             // Escape dollar signs
+    .replace(/`/g, '\\`')              // Escape backticks
+    .replace(/\n/g, '\\n');            // Preserve newlines
   
   try {
-    // Execute Python script using the frappe bench environment
-    // This runs the script directly without the interactive IPython console
-    const bashCommand = `echo '${escapedCode}' > ${tempFile} && cd ~/frappe-bench && python ${tempFile}; EXIT_CODE=$?; rm -f ${tempFile}; exit $EXIT_CODE`;
+    // Use bench --site SITE python -c "CODE" to execute Python with Frappe context
+    // This provides the full Frappe environment without interactive console
+    const bashCommand = `bench --site ${SITE_NAME} python -c "${escapedCode}"`;
     
-    // Execute the entire command inside the container
-    const result = dockerExec(`bash -c "${bashCommand.replace(/"/g, '\\"')}"`);
+    // Execute the command inside the container
+    const result = dockerExec(`bash -c "cd ~/frappe-bench && ${bashCommand}"`);
     
     return result;
   } catch (error) {
-    // Cleanup on error (if file still exists)
-    try {
-      dockerExec(`bash -c "rm -f ${tempFile}"`, true);
-    } catch (e) {
-      // Ignore cleanup errors
-    }
     throw error;
   }
 }
