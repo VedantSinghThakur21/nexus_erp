@@ -23,40 +23,35 @@ if (!SUBDOMAIN || !ADMIN_EMAIL || !PASSWORD) {
 }
 
 const SITE_NAME = `${SUBDOMAIN}.localhost`;
-const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker';
+// Use the user's home directory dynamically, defaulting to 'frappe_docker' folder
+const DOCKER_COMPOSE_DIR = path.join(process.env.HOME || '/home/ubuntu', 'frappe_docker');
 const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
-const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'vedant@21'; // Default from previous context
+const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'vedant@21'; 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 
-/**
- * Execute Python code safely by writing to a file and running it inside the container
- * This bypasses shell escaping issues which cause "Syntax error: '(' unexpected"
- */
 async function runPythonScript(pythonCode, stepName) {
     const fileName = `provision_${Date.now()}_${Math.floor(Math.random() * 1000)}.py`;
     const hostPath = path.join(__dirname, fileName);
     const containerPath = `/tmp/${fileName}`;
 
     try {
-        // 1. Write script to host
         fs.writeFileSync(hostPath, pythonCode);
 
-        // 2. Copy script to container
+        // Copy to container
         await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose cp "${hostPath}" ${DOCKER_SERVICE}:${containerPath}`);
 
-        // 3. Execute script in container
-        // We use ../env/bin/python to ensure we use the Frappe environment python
+        // Execute in container
+        // FIX: Use ABSOLUTE path to python environment to avoid relative path errors
         const { stdout } = await execPromise(
-            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} ../env/bin/python ${containerPath}`
+            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} /home/frappe/frappe-bench/env/bin/python ${containerPath}`
         );
 
         return stdout.trim();
     } catch (error) {
-        throw new Error(`Step '${stepName}' failed: ${error.message}`);
+        const output = error.stdout?.toString() || error.stderr?.toString() || "";
+        throw new Error(`Step '${stepName}' failed.\nOutput: ${output}\nMessage: ${error.message}`);
     } finally {
-        // Cleanup host file
         if (fs.existsSync(hostPath)) fs.unlinkSync(hostPath);
-        // Cleanup container file (best effort)
         try {
             await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} rm ${containerPath}`);
         } catch (e) {}
@@ -66,15 +61,14 @@ async function runPythonScript(pythonCode, stepName) {
 async function provision() {
     try {
         console.error(`🚀 Starting provisioning for ${SITE_NAME}`);
+        console.error(`📂 Working Directory: ${DOCKER_COMPOSE_DIR}`);
 
         // 1. Check/Create Site
         console.error('[1/5] Checking/creating site...');
         try {
-             // Check if site exists
              await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} test -d sites/${SITE_NAME}`);
              console.error('✓ Site directory exists');
         } catch (e) {
-             // Create site
              await execPromise(
                  `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket --force`
              );
@@ -90,10 +84,11 @@ async function provision() {
             console.error('⚠ App install warning (might already be installed)');
         }
 
-        // 3. Create Admin User (Python)
+        // 3. Create Admin User
         console.error(`[3/5] Creating admin user: ${ADMIN_EMAIL}...`);
         const createUserCode = `
 import frappe
+import sys
 from frappe.utils.password import update_password
 
 frappe.init(site='${SITE_NAME}')
@@ -102,10 +97,12 @@ frappe.connect()
 try:
     email = '${ADMIN_EMAIL}'
     if frappe.db.exists('User', email):
+        print("User exists")
         user = frappe.get_doc('User', email)
         user.enabled = 1
         user.save(ignore_permissions=True)
     else:
+        print("Creating user")
         user = frappe.get_doc({
             'doctype': 'User',
             'email': email,
@@ -123,6 +120,7 @@ try:
 except Exception as e:
     frappe.db.rollback()
     print(f"ERROR: {str(e)}")
+    sys.exit(1)
 finally:
     frappe.destroy()
 `;
@@ -133,6 +131,8 @@ finally:
         console.error('[4/5] Initializing settings...');
         const settingsCode = `
 import frappe
+import sys
+
 frappe.init(site='${SITE_NAME}')
 frappe.connect()
 try:
@@ -181,6 +181,7 @@ try:
     print("JSON_END")
 except Exception as e:
     print(f"ERROR: {str(e)}")
+    sys.exit(1)
 finally:
     frappe.destroy()
 `;
