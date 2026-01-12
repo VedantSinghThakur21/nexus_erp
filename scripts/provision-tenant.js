@@ -41,9 +41,10 @@ async function runPythonScript(pythonCode, stepName) {
         await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose cp "${hostPath}" ${DOCKER_SERVICE}:${containerPath}`);
 
         // Execute in container
-        // FIX: Use ABSOLUTE path to python environment to avoid relative path errors
+        // FIX: Explicitly set working directory (-w) to bench root so frappe.init finds the sites
+        // FIX: Use absolute path to python
         const { stdout } = await execPromise(
-            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} /home/frappe/frappe-bench/env/bin/python ${containerPath}`
+            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -w /home/frappe/frappe-bench -T ${DOCKER_SERVICE} /home/frappe/frappe-bench/env/bin/python ${containerPath}`
         );
 
         return stdout.trim();
@@ -66,9 +67,12 @@ async function provision() {
         // 1. Check/Create Site
         console.error('[1/5] Checking/creating site...');
         try {
-             await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} test -d sites/${SITE_NAME}`);
-             console.error('✓ Site directory exists');
+             // FIX: Check for site_config.json to ensure the site is actually valid, not just a folder
+             await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} test -f sites/${SITE_NAME}/site_config.json`);
+             console.error('✓ Site exists and is valid');
         } catch (e) {
+             // Create site
+             console.error('⚠ Site missing or invalid, creating new...');
              await execPromise(
                  `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket --force`
              );
