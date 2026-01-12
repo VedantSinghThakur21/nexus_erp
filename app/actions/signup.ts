@@ -22,6 +22,13 @@ interface SignupResult {
   tenantId?: string
   siteUrl?: string
   needsProvisioning?: boolean
+  data?: {
+    site: string
+    url: string
+    subdomain: string
+  }
+  subdomain?: string
+  dashboardUrl?: string
 }
 
 /**
@@ -423,7 +430,12 @@ export async function signupWithTenant(data: SignupData): Promise<SignupResult> 
       success: true,
       tenantId: tenant.id,
       subdomain: subdomain,
-      dashboardUrl: '/dashboard' // Simple redirect for now, middleware handles tenant routing
+      dashboardUrl: '/dashboard', // Simple redirect for now, middleware handles tenant routing
+      data: {
+        site: `${subdomain}.localhost`,
+        url: `http://${subdomain}.localhost:8080`,
+        subdomain: subdomain
+      }
     }
 
   } catch (error: any) {
@@ -574,3 +586,6 @@ export async function signupUser(data: {
     }
   }
 }
+
+// Export alias for backward compatibility
+export { signupWithTenant as signup }
