@@ -91,18 +91,74 @@ export function getBackendURL(config?: BackendConfig): string {
 
 /**
  * Get OAuth token from localStorage or sessionStorage
- * Customize this based on your auth implementation
+ * Checks token expiration before returning
  */
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null
   
-  // Try multiple storage locations
-  return (
-    localStorage.getItem('access_token') ||
-    localStorage.getItem('auth_token') ||
-    sessionStorage.getItem('access_token') ||
-    null
-  )
+  // Get token and expiration
+  const token = localStorage.getItem('access_token')
+  const expiresAt = localStorage.getItem('token_expires_at')
+  
+  // If no token, return null
+  if (!token) return null
+  
+  // Check if token is expired
+  if (expiresAt && parseInt(expiresAt) <= Date.now()) {
+    // Token expired, clear it
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('token_expires_at')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_info')
+    
+    // Redirect to login if in browser
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname)
+    }
+    
+    return null
+  }
+  
+  return token
+}
+
+/**
+ * Check if user is authenticated
+ */
+export function isAuthenticated(): boolean {
+  return getAuthToken() !== null
+}
+
+/**
+ * Get stored user info
+ */
+export function getUserInfo(): any | null {
+  if (typeof window === 'undefined') return null
+  
+  const userInfoStr = localStorage.getItem('user_info')
+  if (!userInfoStr) return null
+  
+  try {
+    return JSON.parse(userInfoStr)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Logout user (clear all tokens)
+ */
+export function logout() {
+  if (typeof window === 'undefined') return
+  
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('token_expires_at')
+  localStorage.removeItem('user_info')
+  sessionStorage.clear()
+  
+  // Redirect to login
+  window.location.href = '/auth/login'
 }
 
 /**
