@@ -9,6 +9,7 @@ export interface Quotation {
   party_name: string
   customer_name?: string
   status: string // Draft | Sent | Open | Replied | Ordered | Lost | Cancelled
+  docstatus?: number // 0 = Draft, 1 = Submitted, 2 = Cancelled
   valid_till: string
   grand_total: number
   currency: string
