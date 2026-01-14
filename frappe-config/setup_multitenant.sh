@@ -12,8 +12,8 @@ set -e  # Exit on error
 # ============================================================================
 
 BENCH_PATH="$HOME/frappe-bench"
-MARIADB_ROOT_PWD="your_root_password_here"  # CHANGE THIS!
-ADMIN_PWD="admin123"                         # CHANGE THIS!
+MARIADB_ROOT_PWD="vedant@21"  # CHANGE THIS!
+ADMIN_PWD="vedant@21"                         # CHANGE THIS!
 DOMAIN="localhost"                           # Change to your domain
 TENANTS=("tenant1" "tenant2" "tenant3")
 
