@@ -103,10 +103,7 @@ export default function NewQuotationPage() {
       qty: 1, 
       rate: 0, 
       amount: 0,
-      is_rental: false,
-      pricing_components: {
-        // Start empty; base cost will be added/filled by user
-      }
+      is_rental: false
     }
   ])
 
