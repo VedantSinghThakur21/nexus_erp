@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { loginUser } from '@/app/actions/user-auth'
-import { signup } from '@/app/actions/signup'
+import { signupUser } from '@/app/actions/signup'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -101,28 +101,28 @@ export default function LoginPage() {
       // Show provisioning status
       setProvisioningStatus('Creating your workspace...')
       
-      const result = await signup({
-        email,
-        password,
-        fullName,
-        organizationName
-      })
+      // Create FormData for the server action
+      const signupFormData = new FormData()
+      signupFormData.append('company_name', organizationName)
+      signupFormData.append('email', email)
+      signupFormData.append('password', password)
       
-      if (result.success && result.data) {
-        setProvisioningStatus('Success! Redirecting to your workspace...')
-        
-        // Show success message with tenant info
-        const siteName = result.data.site.replace('.localhost', '')
-        alert(`🎉 Workspace Created Successfully!\n\nSite: ${result.data.site}\nURL: ${result.data.url}\n\nYou can now log in with your credentials!`)
-        
-        // Redirect to login tab or dashboard
-        window.location.href = '/login'
-      } else {
+      const result = await signupUser(signupFormData)
+      
+      // If we get here, it means there was an error (successful signup redirects)
+      if (result && !result.success) {
         setSignupError(result.error || 'Failed to create account')
         setProvisioningStatus('')
       }
     } catch (error: any) {
+      // Handle redirect (this is actually a success case)
+      if (error.message?.includes('NEXT_REDIRECT')) {
+        setProvisioningStatus('Success! Redirecting...')
+        return
+      }
+      
       setSignupError(error.message || 'An error occurred during signup')
+      setProvisioningStatus('')
     } finally {
       setSignupLoading(false)
     }
