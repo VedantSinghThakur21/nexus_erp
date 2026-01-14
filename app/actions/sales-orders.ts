@@ -25,6 +25,7 @@ export interface SalesOrder {
   territory?: string
   contact_email?: string
   taxes_and_charges?: string
+  terms?: string
 }
 
 export interface SalesOrderItem {
