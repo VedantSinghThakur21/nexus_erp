@@ -279,7 +279,26 @@ export default function EditQuotationPage() {
       }
 
       // Prepare quotation data
-      const quotationData = {
+      const quotationData: {
+        quotation_to: string
+        party_name: string
+        transaction_date: string
+        valid_till: string
+        currency: string
+        order_type: string
+        items: Array<{
+          item_code: string | undefined
+          item_name: string
+          description: string
+          qty: number
+          rate: number
+          amount: number
+        }>
+        payment_terms_template?: string
+        terms?: string
+        opportunity?: string
+        taxes_and_charges?: string
+      } = {
         quotation_to: quotationTo,
         party_name: partyName,
         transaction_date: transactionDate,
