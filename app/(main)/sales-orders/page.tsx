@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Package, Clock, CheckCircle, XCircle, Search, Filter, IndianRupee, Calendar, FileText } from "lucide-react"
 import Link from "next/link"
 import { getSalesOrders, getSalesOrderStats } from "@/app/actions/sales-orders"
-import { getQuotations } from "@/app/actions/crm"
+import { getQuotations } from "@/app/actions/quotations"
 
 export default async function SalesOrdersPage() {
   // Fetch real data from ERPNext
