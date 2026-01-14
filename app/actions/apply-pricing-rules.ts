@@ -4,7 +4,7 @@ import { frappeRequest } from "@/app/lib/api";
 
 interface PricingRuleMatch {
   rule_name: string;
-  rule_title: string;
+  rule_title?: string;
   discount_percentage?: number;
   discount_amount?: number;
   rate?: number;
