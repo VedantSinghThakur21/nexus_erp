@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 /**
- * DNS-Based Multi-Tenant Middleware
+ * DNS-Based Multi-Tenant Proxy (Next.js 16+)
  * - Extracts tenant from hostname (subdomain)
  * - Injects tenant into request headers (x-tenant)
  * - Handles authentication (redirect to /login if not authenticated)
  * - Supports local development (tenant1.localhost, tenant2.localhost)
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') || ''
   

@@ -12,9 +12,9 @@ const nextConfig: NextConfig = {
     },
   },
   
-  // Increase max duration for serverless functions (10 minutes)
-  // This prevents SIGTERM during long-running provisioning operations
-  maxDuration: 600, // 10 minutes
+  // Note: For deployment timeout configuration (long-running operations):
+  // - Vercel: Add maxDuration to vercel.json
+  // - Self-hosted: PM2 handles this via ecosystem.config.js
   
   // Security headers for production
   async headers() {
