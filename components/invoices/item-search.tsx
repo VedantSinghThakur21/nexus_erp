@@ -22,7 +22,7 @@ import { searchItems, getItemGroups } from "@/app/actions/invoices"
 
 interface ItemSearchProps {
   value: string
-  onChange: (value: string, description?: string) => void
+  onChange: (value: string, description?: string, itemName?: string) => void
   itemGroup?: string // Optional filter by item group
 }
 
@@ -79,7 +79,7 @@ export function ItemSearch({ value, onChange, itemGroup }: ItemSearchProps) {
                     keywords={[item.item_name, item.item_code]}
                     className="flex items-center justify-between"
                     onSelect={(currentValue) => {
-                      onChange(item.item_code, item.description)
+                      onChange(item.item_code, item.description, item.item_name)
                       setOpen(false)
                     }}
                   >
