@@ -341,8 +341,14 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                             </h5>
                             <RentalPricingBreakdown
                               item={{
-                                rental_type: item.custom_rental_type || '',
-                                rental_duration: item.custom_rental_duration || 0,
+                                item_code: item.item_code || '',
+                                item_name: item.item_name || '',
+                                description: item.description || '',
+                                qty: item.qty || 1,
+                                rate: item.rate || 0,
+                                amount: item.amount || 0,
+                                rental_type: (item.custom_rental_type || 'days') as 'hours' | 'days' | 'months',
+                                rental_duration: item.custom_rental_duration || 1,
                                 rental_start_date: item.custom_rental_start_date || '',
                                 rental_end_date: item.custom_rental_end_date || '',
                                 rental_start_time: item.custom_rental_start_time || '',
