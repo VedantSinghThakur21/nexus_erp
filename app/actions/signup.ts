@@ -1,180 +1,194 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { frappeRequest } from '../lib/api'
 
-interface SignupData {
-  email: string
-  password: string
-  fullName: string
-  organizationName: string
-}
+const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+const API_KEY = process.env.ERP_API_KEY
+const API_SECRET = process.env.ERP_API_SECRET
 
 interface SignupResult {
   success: boolean
+  site_url?: string
+  tenant_name?: string
   error?: string
-  data?: {
-    userId: string
-    organizationId: string
-  }
 }
 
 /**
- * Simple signup: Creates a user and organization in the default ERPNext site
- * No site provisioning - just user creation in the existing ERPNext instance
+ * Generate a URL-safe subdomain from company name
+ * Examples:
+ *   "Acme Corp" → "acme-corp"
+ *   "ABC Industries!" → "abc-industries"
+ *   "123 Tech Co." → "tech-co"
  */
-export async function signup(data: SignupData): Promise<SignupResult> {
+function generateSubdomain(companyName: string): string {
+  return companyName
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Remove duplicate hyphens
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 63) // DNS label max length
+}
+
+/**
+ * Call the ERPNext internal provisioning API to create a new tenant site
+ */
+async function provisionTenantSite(
+  tenantName: string,
+  adminPassword: string,
+  companyName: string
+): Promise<SignupResult> {
+  if (!API_KEY || !API_SECRET) {
+    throw new Error('Server configuration error: API credentials not found')
+  }
+
+  const endpoint = `${BASE_URL}/api/method/nexus_core.nexus_core.api.create_tenant_site`
+  const authHeader = `token ${API_KEY}:${API_SECRET}`
+
   try {
-    console.log('Starting signup for:', data.email)
-    
-    // Split full name
-    const nameParts = data.fullName.trim().split(' ')
-    const firstName = nameParts[0] || 'User'
-    const lastName = nameParts.slice(1).join(' ') || ''
-    
-    // 1. Create User in ERPNext
-    console.log('Creating user...')
-    try {
-      const user = await frappeRequest('frappe.client.insert', 'POST', {
-        doc: {
-          doctype: 'User',
-          email: data.email,
-          first_name: firstName,
-          last_name: lastName,
-          enabled: 1,
-          send_welcome_email: 0,
-          user_type: 'System User'
-        }
+    console.log('Provisioning tenant site:', { tenantName, companyName })
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        tenant_name: tenantName,
+        admin_password: adminPassword,
+        company_name: companyName,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      console.error('Provisioning API error:', {
+        status: response.status,
+        data,
       })
-      
-      console.log('✅ User created:', user.name)
-      
-      // 2. Set user password
-      await frappeRequest('frappe.client.set_value', 'POST', {
-        doctype: 'User',
-        name: data.email,
-        fieldname: 'new_password',
-        value: data.password
-      })
-      
-      console.log('✅ Password set')
-      
-      // 3. Create Organization (if applicable)
-      let organizationId = null
-      if (data.organizationName) {
-        console.log('Creating organization...')
+
+      // Extract error message from Frappe response
+      let errorMessage = 'Failed to provision tenant site'
+      if (data.exception || data.exc_type) {
+        errorMessage = data.exception || data.exc_type
+      } else if (data.message) {
+        errorMessage = typeof data.message === 'string' 
+          ? data.message 
+          : JSON.stringify(data.message)
+      } else if (data._server_messages) {
         try {
-          const org = await frappeRequest('frappe.client.insert', 'POST', {
-            doc: {
-              doctype: 'Company',
-              company_name: data.organizationName,
-              abbr: data.organizationName.substring(0, 5).toUpperCase(),
-              default_currency: 'USD',
-              country: 'United States'
-            }
-          })
-          
-          organizationId = org.name
-          console.log('✅ Organization created:', organizationId)
-          
-          // Link user to company
-          await frappeRequest('frappe.client.set_value', 'POST', {
-            doctype: 'User',
-            name: data.email,
-            fieldname: 'company',
-            value: organizationId
-          })
-        } catch (orgError: any) {
-          console.warn('Organization creation failed (non-critical):', orgError.message)
+          const messages = JSON.parse(data._server_messages)
+          const firstMessage = JSON.parse(messages[0])
+          errorMessage = firstMessage.message || errorMessage
+        } catch (e) {
+          // Ignore parsing errors
         }
       }
-      
-      // 4. Login the user (get session cookie)
-      console.log('Logging in user...')
-      const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-      const SITE_NAME = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
-      
-      const loginRes = await fetch(`${BASE_URL}/api/method/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frappe-Site-Name': SITE_NAME,
-        },
-        body: JSON.stringify({
-          usr: data.email,
-          pwd: data.password
-        })
-      })
-      
-      if (!loginRes.ok) {
-        throw new Error('Login failed after user creation')
-      }
-      
-      // Extract session cookie
-      const setCookieHeader = loginRes.headers.get('set-cookie')
-      if (setCookieHeader) {
-        const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
-        if (sidMatch) {
-          const sid = sidMatch[1]
-          
-          // Set session cookie for Next.js
-          const cookieStore = await cookies()
-          cookieStore.set('sid', sid, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7 // 7 days
-          })
-          
-          console.log('✅ User logged in')
-        }
-      }
-      
+
       return {
-        success: true,
-        data: {
-          userId: data.email,
-          organizationId: organizationId || ''
-        }
+        success: false,
+        error: errorMessage,
       }
-      
-    } catch (userError: any) {
-      // Handle user already exists
-      if (userError.message?.includes('already exists')) {
-        throw new Error('A user with this email already exists')
-      }
-      throw userError
     }
-    
+
+    // Extract response from Frappe's message wrapper
+    const result = data.message || data
+
+    if (result.success === false) {
+      return {
+        success: false,
+        error: result.error || 'Provisioning failed',
+      }
+    }
+
+    console.log('✅ Tenant provisioned successfully:', result)
+
+    return {
+      success: true,
+      site_url: result.site_url || result.site,
+      tenant_name: result.site || tenantName,
+    }
   } catch (error: any) {
-    console.error('Signup failed:', error)
+    console.error('Provisioning request failed:', error)
     return {
       success: false,
-      error: error.message || 'Signup failed'
+      error: error.message || 'Network error during provisioning',
     }
   }
 }
 
 /**
- * After successful signup, redirect to dashboard
+ * Main signup server action
+ * Called from the signup form
  */
-export async function signupAndRedirect(formData: FormData) {
-  const data: SignupData = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-    fullName: formData.get('fullName') as string,
-    organizationName: formData.get('organizationName') as string,
-  }
-  
-  const result = await signup(data)
-  
-  if (result.success) {
-    redirect('/dashboard')
-  } else {
-    throw new Error(result.error || 'Signup failed')
+export async function signupUser(formData: FormData) {
+  try {
+    // 1. Extract and validate form data
+    const companyName = formData.get('company_name') as string
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    if (!companyName || !email || !password) {
+      return {
+        success: false,
+        error: 'Please fill in all required fields',
+      }
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return {
+        success: false,
+        error: 'Please enter a valid email address',
+      }
+    }
+
+    // Password requirements
+    if (password.length < 8) {
+      return {
+        success: false,
+        error: 'Password must be at least 8 characters long',
+      }
+    }
+
+    // 2. Generate URL-safe subdomain
+    const tenantName = generateSubdomain(companyName)
+
+    if (!tenantName || tenantName.length < 3) {
+      return {
+        success: false,
+        error: 'Company name must be at least 3 characters and contain letters or numbers',
+      }
+    }
+
+    console.log('Signup request:', { companyName, email, tenantName })
+
+    // 3. Call provisioning API
+    const result = await provisionTenantSite(tenantName, password, companyName)
+
+    if (!result.success) {
+      return result
+    }
+
+    // 4. Success - redirect to login with tenant info
+    // Store tenant info in URL params so login page knows where to redirect
+    redirect(`/login?tenant=${result.tenant_name}&email=${encodeURIComponent(email)}&new=1`)
+
+  } catch (error: any) {
+    console.error('Signup error:', error)
+    
+    // Handle redirect throws (not actual errors)
+    if (error.message?.includes('NEXT_REDIRECT')) {
+      throw error
+    }
+
+    return {
+      success: false,
+      error: error.message || 'An unexpected error occurred during signup',
+    }
   }
 }
-
-// Export signup as default for backward compatibility
-export { signup as signupWithTenant }
