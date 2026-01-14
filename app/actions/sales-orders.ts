@@ -21,6 +21,7 @@ export interface SalesOrder {
   net_total?: number
   total_taxes_and_charges?: number
   po_no?: string
+  po_date?: string
   territory?: string
   contact_email?: string
   taxes_and_charges?: string
