@@ -24,7 +24,7 @@ interface Item {
   item_name: string
   description: string
   item_group: string
-  standard_rate: number
+  standard_rate?: number
   stock_qty?: number | null
   available: boolean
   is_stock_item?: number
