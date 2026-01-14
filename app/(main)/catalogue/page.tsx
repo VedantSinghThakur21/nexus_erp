@@ -486,7 +486,7 @@ export default function CataloguePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      ₹{(selectedItem.current_price || selectedItem.standard_rate).toLocaleString('en-IN')}
+                      ₹{(selectedItem.current_price || selectedItem.standard_rate || 0).toLocaleString('en-IN')}
                     </div>
                     <p className="text-xs text-muted-foreground">Per day</p>
                   </CardContent>
