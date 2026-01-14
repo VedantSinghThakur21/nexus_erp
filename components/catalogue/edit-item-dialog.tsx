@@ -36,7 +36,7 @@ interface EditItemDialogProps {
     item_name: string
     item_group: string
     description?: string
-    standard_rate: number
+    standard_rate?: number
     is_stock_item?: number
     brand?: string
     manufacturer?: string
@@ -167,7 +167,7 @@ export function EditItemDialog({ item }: EditItemDialogProps) {
                   name="standard_rate"
                   type="number"
                   step="0.01"
-                  defaultValue={item.standard_rate}
+                  defaultValue={item.standard_rate || 0}
                   required
                 />
               </div>
