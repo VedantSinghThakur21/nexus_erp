@@ -706,7 +706,17 @@ export default function NewQuotationPage() {
                                         rental_start_date: today,
                                         rental_end_date: tomorrow,
                                         rental_duration: 1,
-                                        pricing_components: i.pricing_components?.base_cost ? i.pricing_components : { base_cost: 0 },
+                                        pricing_components: i.pricing_components || {
+                                          base_cost: 0,
+                                          accommodation_charges: 0,
+                                          usage_charges: 0,
+                                          fuel_charges: 0,
+                                          elongation_charges: 0,
+                                          risk_charges: 0,
+                                          commercial_charges: 0,
+                                          incidental_charges: 0,
+                                          other_charges: 0
+                                        },
                                         requires_operator: false,
                                         operator_included: false
                                       }
