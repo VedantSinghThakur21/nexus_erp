@@ -32,84 +32,106 @@ function generateSubdomain(companyName: string): string {
 }
 
 /**
- * Call the ERPNext internal provisioning API to create a new tenant site
+ * Create tenant record and user in ERPNext without nexus_core app
+ * Uses standard Frappe API to create Tenant doctype and User
  */
 async function provisionTenantSite(
   tenantName: string,
   adminPassword: string,
-  companyName: string
+  companyName: string,
+  email: string
 ): Promise<SignupResult> {
   if (!API_KEY || !API_SECRET) {
     throw new Error('Server configuration error: API credentials not found')
   }
 
-  const endpoint = `${BASE_URL}/api/method/nexus_core.nexus_core.api.create_tenant_site`
   const authHeader = `token ${API_KEY}:${API_SECRET}`
 
   try {
-    console.log('Provisioning tenant site:', { tenantName, companyName })
+    console.log('Creating tenant record:', { tenantName, companyName })
 
-    const response = await fetch(endpoint, {
+    // Step 1: Create the User first
+    const userEndpoint = `${BASE_URL}/api/resource/User`
+    const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+    
+    const userResponse = await fetch(userEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
       },
       body: JSON.stringify({
-        tenant_name: tenantName,
-        admin_password: adminPassword,
-        company_name: companyName,
+        doctype: 'User',
+        email: email,
+        username: username,
+        first_name: companyName.split(' ')[0],
+        last_name: companyName.split(' ').slice(1).join(' ') || companyName.split(' ')[0],
+        enabled: 1,
+        new_password: adminPassword,
+        send_welcome_email: 0,
       }),
     })
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      console.error('Provisioning API error:', {
-        status: response.status,
-        data,
-      })
-
-      // Extract error message from Frappe response
-      let errorMessage = 'Failed to provision tenant site'
-      if (data.exception || data.exc_type) {
-        errorMessage = data.exception || data.exc_type
-      } else if (data.message) {
-        errorMessage = typeof data.message === 'string' 
-          ? data.message 
-          : JSON.stringify(data.message)
-      } else if (data._server_messages) {
-        try {
-          const messages = JSON.parse(data._server_messages)
-          const firstMessage = JSON.parse(messages[0])
-          errorMessage = firstMessage.message || errorMessage
-        } catch (e) {
-          // Ignore parsing errors
+    if (!userResponse.ok) {
+      const userData = await userResponse.json()
+      console.error('User creation error:', userData)
+      
+      // Check if user already exists
+      if (userData.exception && userData.exception.includes('DuplicateEntryError')) {
+        return {
+          success: false,
+          error: 'An account with this email already exists. Please login instead.',
         }
       }
-
+      
       return {
         success: false,
-        error: errorMessage,
+        error: userData.exception || userData.message || 'Failed to create user account',
       }
     }
 
-    // Extract response from Frappe's message wrapper
-    const result = data.message || data
+    console.log('✅ User created successfully')
 
-    if (result.success === false) {
+    // Step 2: Create Tenant record
+    const tenantEndpoint = `${BASE_URL}/api/resource/Tenant`
+    const siteUrl = `${BASE_URL}` // Since we're not creating separate sites, use the main site
+    
+    const tenantResponse = await fetch(tenantEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        doctype: 'Tenant',
+        subdomain: tenantName,
+        company_name: companyName,
+        owner_email: email,
+        site_url: siteUrl,
+        status: 'Active',
+        site_config: JSON.stringify({
+          created_at: new Date().toISOString(),
+          single_tenant: true,
+        }),
+      }),
+    })
+
+    if (!tenantResponse.ok) {
+      const tenantData = await tenantResponse.json()
+      console.error('Tenant creation error:', tenantData)
+      
       return {
         success: false,
-        error: result.error || 'Provisioning failed',
+        error: tenantData.exception || tenantData.message || 'Failed to create tenant record',
       }
     }
 
-    console.log('✅ Tenant provisioned successfully:', result)
+    console.log('✅ Tenant record created successfully')
 
     return {
       success: true,
-      site_url: result.site_url || result.site,
-      tenant_name: result.site || tenantName,
+      site_url: siteUrl,
+      tenant_name: tenantName,
     }
   } catch (error: any) {
     console.error('Provisioning request failed:', error)
@@ -167,8 +189,8 @@ export async function signupUser(formData: FormData) {
 
     console.log('Signup request:', { companyName, email, tenantName })
 
-    // 3. Call provisioning API
-    const result = await provisionTenantSite(tenantName, password, companyName)
+    // 3. Call provisioning API (pass email now)
+    const result = await provisionTenantSite(tenantName, password, companyName, email)
 
     if (!result.success) {
       return result
