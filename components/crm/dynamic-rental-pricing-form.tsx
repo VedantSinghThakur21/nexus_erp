@@ -7,22 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Plus, X, DollarSign } from "lucide-react"
-
-export interface RentalPricingComponents {
-  base_cost?: number
-  accommodation_charges?: number
-  usage_charges?: number
-  fuel_charges?: number
-  elongation_charges?: number
-  risk_charges?: number
-  commercial_charges?: number
-  incidental_charges?: number
-  other_charges?: number
-}
+import { RentalPricingComponents } from "@/types/rental-pricing"
 
 interface DynamicRentalPricingFormProps {
-  components: RentalPricingComponents
-  onChange: (components: RentalPricingComponents) => void
+  components: Partial<RentalPricingComponents>
+  onChange: (components: Partial<RentalPricingComponents>) => void
   currency?: string
 }
 
@@ -46,7 +35,7 @@ export function DynamicRentalPricingForm({
   const [showComponentSelector, setShowComponentSelector] = useState(false)
 
   // Get active components (explicitly added or required)
-  const activeComponentKeys = Object.keys(components) as Array<keyof RentalPricingComponents>
+  const activeComponentKeys = Object.keys(components).filter(key => components[key as keyof RentalPricingComponents] !== undefined) as Array<keyof RentalPricingComponents>
 
   // Get available components that can be added
   const availableToAdd = AVAILABLE_COMPONENTS.filter(
@@ -54,7 +43,7 @@ export function DynamicRentalPricingForm({
   )
 
   const updateComponent = (key: keyof RentalPricingComponents, value: number | undefined) => {
-    const next: RentalPricingComponents = { ...components }
+    const next: Partial<RentalPricingComponents> = { ...components }
     if (value === undefined) {
       delete next[key]
     } else {

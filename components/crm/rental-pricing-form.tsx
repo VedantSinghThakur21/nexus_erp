@@ -23,20 +23,9 @@ interface RentalPricingFormProps {
 }
 
 export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricingFormProps) {
-  const [components, setComponents] = useState<RentalPricingComponents>(() => {
-    // Initialize with default values and merge with existing pricing_components
-    const initial = (item.pricing_components || {}) as Partial<RentalPricingComponents>
-    return {
-      base_cost: initial.base_cost || 0,
-      accommodation_charges: initial.accommodation_charges || 0,
-      usage_charges: initial.usage_charges || 0,
-      fuel_charges: initial.fuel_charges || 0,
-      elongation_charges: initial.elongation_charges || 0,
-      risk_charges: initial.risk_charges || 0,
-      commercial_charges: initial.commercial_charges || 0,
-      incidental_charges: initial.incidental_charges || 0,
-      other_charges: initial.other_charges || 0,
-    }
+  const [components, setComponents] = useState<Partial<RentalPricingComponents>>(() => {
+    // Initialize with existing pricing_components or empty object
+    return item.pricing_components || {}
   })
 
   // Check if this category supports time selection
@@ -71,9 +60,22 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
     const updated = { ...components, [field]: value }
     setComponents(updated)
     
-    const totalCost = calculateTotalRentalCost(updated)
+    // Convert partial to complete for calculation
+    const completeComponents: RentalPricingComponents = {
+      base_cost: updated.base_cost ?? 0,
+      accommodation_charges: updated.accommodation_charges ?? 0,
+      usage_charges: updated.usage_charges ?? 0,
+      fuel_charges: updated.fuel_charges ?? 0,
+      elongation_charges: updated.elongation_charges ?? 0,
+      risk_charges: updated.risk_charges ?? 0,
+      commercial_charges: updated.commercial_charges ?? 0,
+      incidental_charges: updated.incidental_charges ?? 0,
+      other_charges: updated.other_charges ?? 0,
+    }
+    
+    const totalCost = calculateTotalRentalCost(completeComponents)
     onChange({
-      pricing_components: updated,
+      pricing_components: completeComponents,
       total_rental_cost: totalCost,
       rate: totalCost,
       amount: (item.qty || 1) * totalCost
@@ -87,7 +89,17 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
     }
   }, [item.pricing_components])
 
-  const totalCost = calculateTotalRentalCost(components)
+  const totalCost = calculateTotalRentalCost({
+    base_cost: components.base_cost ?? 0,
+    accommodation_charges: components.accommodation_charges ?? 0,
+    usage_charges: components.usage_charges ?? 0,
+    fuel_charges: components.fuel_charges ?? 0,
+    elongation_charges: components.elongation_charges ?? 0,
+    risk_charges: components.risk_charges ?? 0,
+    commercial_charges: components.commercial_charges ?? 0,
+    incidental_charges: components.incidental_charges ?? 0,
+    other_charges: components.other_charges ?? 0,
+  })
 
   return (
     <div className="space-y-6">
@@ -200,7 +212,7 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
             <Label>Requires Operator</Label>
             <Switch
               checked={item.requires_operator || false}
-              onCheckedChange={(checked) => onChange({ requires_operator: checked })}
+              onCheckedChange={(checked: boolean) => onChange({ requires_operator: checked })}
             />
           </div>
 
@@ -210,7 +222,7 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
                 <Label>Operator Included in Price</Label>
                 <Switch
                   checked={item.operator_included || false}
-                  onCheckedChange={(checked) => onChange({ operator_included: checked })}
+                  onCheckedChange={(checked: boolean) => onChange({ operator_included: checked })}
                 />
               </div>
 
@@ -235,10 +247,24 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
         onChange={(newComponents) => {
           console.log('[RentalPricingForm] Received new components from DynamicRentalPricingForm:', newComponents)
           setComponents(newComponents)
-          const totalCost = calculateTotalRentalCost(newComponents)
+          
+          // Convert partial to complete for calculation
+          const completeComponents: RentalPricingComponents = {
+            base_cost: newComponents.base_cost ?? 0,
+            accommodation_charges: newComponents.accommodation_charges ?? 0,
+            usage_charges: newComponents.usage_charges ?? 0,
+            fuel_charges: newComponents.fuel_charges ?? 0,
+            elongation_charges: newComponents.elongation_charges ?? 0,
+            risk_charges: newComponents.risk_charges ?? 0,
+            commercial_charges: newComponents.commercial_charges ?? 0,
+            incidental_charges: newComponents.incidental_charges ?? 0,
+            other_charges: newComponents.other_charges ?? 0,
+          }
+          
+          const totalCost = calculateTotalRentalCost(completeComponents)
           console.log('[RentalPricingForm] Total cost calculated:', totalCost)
           onChange({ 
-            pricing_components: newComponents,
+            pricing_components: completeComponents,
             total_rental_cost: totalCost,
             rate: totalCost,
             amount: (item.qty || 1) * totalCost

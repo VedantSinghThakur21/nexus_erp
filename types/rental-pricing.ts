@@ -32,7 +32,7 @@ export interface RentalItem {
   operator_name?: string
   
   // Pricing Components
-  pricing_components: RentalPricingComponents
+  pricing_components?: RentalPricingComponents
   
   // Totals
   total_rental_cost: number
