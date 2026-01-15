@@ -1,6 +1,6 @@
 'use server'
 
-import { redirect } from 'next/navigation'
+import { redirect, isRedirectError } from 'next/navigation'
 
 const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 const API_KEY = process.env.ERP_API_KEY
@@ -34,6 +34,7 @@ function generateSubdomain(companyName: string): string {
 /**
  * Create tenant record and user in ERPNext without nexus_core app
  * Uses standard Frappe API to create Tenant doctype and User
+ * Handles duplicates gracefully for idempotency
  */
 async function provisionTenantSite(
   tenantName: string,
@@ -46,21 +47,12 @@ async function provisionTenantSite(
   }
 
   const authHeader = `token ${API_KEY}:${API_SECRET}`
+  const siteUrl = `${BASE_URL}`
 
   try {
-    console.log('Creating tenant record:', { tenantName, companyName })
+    console.log('Provisioning tenant:', { tenantName, companyName, email })
 
-    // Step 0: Check if user and tenant already exist
-    const checkUserEndpoint = `${BASE_URL}/api/resource/User/${email}`
-    const checkUserResponse = await fetch(checkUserEndpoint, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-      },
-    })
-
-    const userExists = checkUserResponse.ok
-
+    // Step 1: Check if Tenant already exists
     const checkTenantEndpoint = `${BASE_URL}/api/resource/Tenant/${tenantName}`
     const checkTenantResponse = await fetch(checkTenantEndpoint, {
       method: 'GET',
@@ -71,25 +63,73 @@ async function provisionTenantSite(
 
     const tenantExists = checkTenantResponse.ok
 
-    // If both exist, redirect to login
-    if (userExists && tenantExists) {
-      console.log('User and tenant already exist, redirecting to login')
+    if (tenantExists) {
+      console.log('✅ Tenant already exists:', tenantName)
+      // Tenant exists, now ensure User exists too
+    } else {
+      // Step 2: Create Tenant if it doesn't exist
+      const tenantEndpoint = `${BASE_URL}/api/resource/Tenant`
+      
+      const tenantResponse = await fetch(tenantEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({
+          doctype: 'Tenant',
+          subdomain: tenantName,
+          company_name: companyName,
+          owner_email: email,
+          site_url: siteUrl,
+          status: 'active',
+          site_config: JSON.stringify({
+            created_at: new Date().toISOString(),
+            single_tenant: true,
+          }),
+        }),
+      })
+
+      if (!tenantResponse.ok) {
+        const tenantData = await tenantResponse.json()
+        console.error('Tenant creation error:', tenantData)
+        
+        // If duplicate error (race condition), treat as success
+        if (tenantData.exception && tenantData.exception.includes('DuplicateEntryError')) {
+          console.log('✅ Tenant already exists (race condition)')
+        } else {
+          return {
+            success: false,
+            error: tenantData.exception || tenantData.message || 'Failed to create tenant record',
+          }
+        }
+      } else {
+        console.log('✅ Tenant created successfully')
+      }
+    }
+
+    // Step 3: Check if User already exists
+    const checkUserEndpoint = `${BASE_URL}/api/resource/User/${email}`
+    const checkUserResponse = await fetch(checkUserEndpoint, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+      },
+    })
+
+    const userExists = checkUserResponse.ok
+
+    if (userExists) {
+      console.log('✅ User already exists:', email)
+      // User exists, we're done
       return {
         success: true,
-        site_url: `${BASE_URL}`,
+        site_url: siteUrl,
         tenant_name: tenantName,
       }
     }
 
-    // If only user exists, return error
-    if (userExists) {
-      return {
-        success: false,
-        error: 'An account with this email already exists. Please login instead.',
-      }
-    }
-
-    // Step 1: Create the User first
+    // Step 4: Create User if doesn't exist
     const userEndpoint = `${BASE_URL}/api/resource/User`
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
     
@@ -115,11 +155,13 @@ async function provisionTenantSite(
       const userData = await userResponse.json()
       console.error('User creation error:', userData)
       
-      // Check if user already exists
+      // If duplicate error (race condition), treat as success
       if (userData.exception && userData.exception.includes('DuplicateEntryError')) {
+        console.log('✅ User already exists (race condition)')
         return {
-          success: false,
-          error: 'An account with this email already exists. Please login instead.',
+          success: true,
+          site_url: siteUrl,
+          tenant_name: tenantName,
         }
       }
       
@@ -130,52 +172,6 @@ async function provisionTenantSite(
     }
 
     console.log('✅ User created successfully')
-
-    // Step 2: Create Tenant record
-    const tenantEndpoint = `${BASE_URL}/api/resource/Tenant`
-    const siteUrl = `${BASE_URL}` // Since we're not creating separate sites, use the main site
-    
-    const tenantResponse = await fetch(tenantEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: JSON.stringify({
-        doctype: 'Tenant',
-        subdomain: tenantName,
-        company_name: companyName,
-        owner_email: email,
-        site_url: siteUrl,
-        status: 'active',
-        site_config: JSON.stringify({
-          created_at: new Date().toISOString(),
-          single_tenant: true,
-        }),
-      }),
-    })
-
-    if (!tenantResponse.ok) {
-      const tenantData = await tenantResponse.json()
-      console.error('Tenant creation error:', tenantData)
-      
-      // If tenant already exists (from previous partial signup), continue to login
-      if (tenantData.exception && tenantData.exception.includes('DuplicateEntryError')) {
-        console.log('Tenant already exists, proceeding to login')
-        return {
-          success: true,
-          site_url: siteUrl,
-          tenant_name: tenantName,
-        }
-      }
-      
-      return {
-        success: false,
-        error: tenantData.exception || tenantData.message || 'Failed to create tenant record',
-      }
-    }
-
-    console.log('✅ Tenant record created successfully')
 
     return {
       success: true,
@@ -250,12 +246,12 @@ export async function signupUser(formData: FormData) {
     redirect(`/login?tenant=${result.tenant_name}&email=${encodeURIComponent(email)}&new=1`)
 
   } catch (error: any) {
-    console.error('Signup error:', error)
-    
-    // Handle redirect throws (not actual errors)
-    if (error.message?.includes('NEXT_REDIRECT')) {
+    // Re-throw redirect errors (they are not actual errors, just flow control)
+    if (isRedirectError(error)) {
       throw error
     }
+
+    console.error('Signup error:', error)
 
     return {
       success: false,
