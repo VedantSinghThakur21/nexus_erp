@@ -90,8 +90,13 @@ export default function LoginPage() {
         return
       }
       
-      // Validate email format
+      // Validate email format (signup still requires email)
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        setSignupError('Please enter a valid email address (must include @)')
+        setSignupLoading(false)
+        return
+      }
       if (!emailRegex.test(email)) {
         setSignupError('Please enter a valid email address')
         setSignupLoading(false)
