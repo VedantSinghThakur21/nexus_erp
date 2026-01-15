@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
+export const dynamic = 'force-dynamic'
+
 export default async function InvoicesPage() {
   const [invoices, readyForInvoice] = await Promise.all([
     getInvoices(),

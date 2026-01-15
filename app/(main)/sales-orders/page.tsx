@@ -8,6 +8,8 @@ import Link from "next/link"
 import { getSalesOrders, getSalesOrderStats } from "@/app/actions/sales-orders"
 import { getQuotations } from "@/app/actions/quotations"
 
+export const dynamic = 'force-dynamic'
+
 export default async function SalesOrdersPage() {
   // Fetch real data from ERPNext
   const [orders, stats, quotations] = await Promise.all([

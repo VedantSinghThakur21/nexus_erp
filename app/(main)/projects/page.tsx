@@ -4,6 +4,8 @@ import { FolderKanban, Calendar, Clock, CheckCircle2, TrendingUp } from "lucide-
 import Link from "next/link"
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog"
 
+export const dynamic = 'force-dynamic'
+
 export default async function ProjectsPage() {
   const projects = await getProjects()
 

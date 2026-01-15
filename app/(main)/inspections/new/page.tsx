@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
+export const dynamic = 'force-dynamic'
+
 export default async function NewInspectionPage() {
   // Fetch Heavy Equipment items from catalogue
   const equipmentItems = await searchItems('', 'Heavy Equipment Rental')

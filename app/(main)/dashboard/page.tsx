@@ -8,6 +8,8 @@ import { TrendingUp, TrendingDown, Users, Briefcase, DollarSign, Target, Trophy,
 import Link from "next/link"
 import { frappeRequest } from "@/app/lib/api"
 
+export const dynamic = 'force-dynamic'
+
 // Helper to get user name
 async function getUser() {
   try {

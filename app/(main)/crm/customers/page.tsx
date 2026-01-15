@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Users } from "lucide-react"
 import Link from "next/link"
 
+export const dynamic = 'force-dynamic'
+
 export default async function CustomersPage() {
   const customers = await getCustomers()
 

@@ -2,6 +2,8 @@ import { getQuotations } from "@/app/actions/quotations"
 import { getOpportunities } from "@/app/actions/crm"
 import { QuotationsView } from "@/components/crm/quotations-view"
 
+export const dynamic = 'force-dynamic'
+
 export default async function QuotationsPage() {
   const [quotations, opportunities] = await Promise.all([
     getQuotations(),

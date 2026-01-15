@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { CreateOperatorDialog } from "@/components/operators/create-operator-dialog"
 import { HardHat, Phone } from "lucide-react"
 
+export const dynamic = 'force-dynamic'
+
 export default async function OperatorsPage() {
   const operators = await getOperators()
 

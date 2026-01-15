@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { ClipboardCheck, Plus, ArrowRight, CheckCircle2, XCircle } from "lucide-react"
 import Link from "next/link"
 
+export const dynamic = 'force-dynamic'
+
 export default async function InspectionsPage() {
   const inspections = await getInspections()
 

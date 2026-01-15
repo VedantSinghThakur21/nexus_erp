@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { UserMinus, Mail, Clock } from 'lucide-react'
 import { NoHydrationWrapper } from '@/components/no-hydration-wrapper'
 
+export const dynamic = 'force-dynamic'
+
 export default async function TeamPage() {
   const teamMembers = await getTeamMembers()
 

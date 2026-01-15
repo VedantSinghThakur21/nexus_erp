@@ -6,6 +6,8 @@ import { TrendingUp, Calendar, DollarSign, FileText, LayoutGrid, List } from "lu
 import Link from "next/link"
 import { OpportunitiesView } from "@/components/crm/opportunities-view"
 
+export const dynamic = 'force-dynamic'
+
 export default async function OpportunitiesPage() {
   const opportunities = await getOpportunities()
 

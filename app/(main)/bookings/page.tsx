@@ -6,6 +6,8 @@ import { Calendar, Truck, List, CalendarDays } from "lucide-react"
 import Link from "next/link"
 import { BookingsCalendar } from "@/components/bookings/bookings-calendar"
 
+export const dynamic = 'force-dynamic'
+
 export default async function BookingsPage() {
   const bookings = await getBookings()
 

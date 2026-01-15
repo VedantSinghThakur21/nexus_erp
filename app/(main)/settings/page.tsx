@@ -9,6 +9,8 @@ import { CreateBankAccountDialog } from "@/components/settings/create-bank-accou
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Receipt, Building2, Landmark, Palette } from "lucide-react"
 
+export const dynamic = 'force-dynamic'
+
 export default async function SettingsPage() {
   const profile = await getProfile().catch(() => null)
   const team = await getTeam().catch(() => [])
