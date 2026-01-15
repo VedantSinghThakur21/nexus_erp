@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { openai } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { frappeRequest } from '@/app/lib/api';
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     // 3. Start Streaming
     const result = streamText({
-        model: google('gemini-1.5-flash'),
+        model: openai('gpt-4o-mini'),
         messages,
         system: `You are Nexus, an AI assistant for a business running on ERPNext. 
         You have access to real-time data via tools. 
