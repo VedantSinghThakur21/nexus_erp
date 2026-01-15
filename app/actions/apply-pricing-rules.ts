@@ -8,7 +8,7 @@ interface PricingRuleMatch {
   discount_percentage?: number;
   discount_amount?: number;
   rate?: number;
-  apply_on: string;
+  apply_on?: string;
 }
 
 type PricingRuleDoc = {
