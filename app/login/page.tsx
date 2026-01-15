@@ -28,16 +28,16 @@ export default function LoginPage() {
     setLoginLoading(true)
     
     try {
-      const email = formData.get('email') as string
+      const usernameOrEmail = formData.get('email') as string
       const password = formData.get('password') as string
       
-      const result = await loginUser(email, password)
+      const result = await loginUser(usernameOrEmail, password)
       
       if (result.success) {
         // Redirect to tenant's dashboard with subdomain
         window.location.href = result.dashboardUrl || '/dashboard'
       } else {
-        setLoginError(result.error || 'Invalid email or password')
+        setLoginError(result.error || 'Invalid username/email or password')
       }
     } catch (error) {
       setLoginError('An error occurred during login')
@@ -219,13 +219,13 @@ export default function LoginPage() {
               <form action={handleLogin} className="space-y-6">
                 {/* Email Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-sm font-medium text-slate-300">Email address</Label>
+                  <Label htmlFor="login-email" className="text-sm font-medium text-slate-300">Email or Username</Label>
                   <div className="relative">
                     <Input 
                       id="login-email" 
                       name="email" 
-                      type="email" 
-                      placeholder="name@company.com" 
+                      type="text" 
+                      placeholder="name@company.com or username" 
                       required 
                       className="w-full pl-10 bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />

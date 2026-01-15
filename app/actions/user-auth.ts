@@ -14,7 +14,7 @@ function isValidEmail(email: string): boolean {
 /**
  * Login to master site (for admin users, not tenants)
  */
-async function loginToMasterSite(email: string, password: string, masterUrl: string) {
+async function loginToMasterSite(usernameOrEmail: string, password: string, masterUrl: string) {
   try {
     console.log('Attempting master site login to:', masterUrl)
     const response = await fetch(`${masterUrl}/api/method/login`, {
@@ -23,7 +23,7 @@ async function loginToMasterSite(email: string, password: string, masterUrl: str
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        usr: email,
+        usr: usernameOrEmail,
         pwd: password
       })
     })
@@ -48,12 +48,16 @@ async function loginToMasterSite(email: string, password: string, masterUrl: str
         }
       }
 
-      cookieStore.set('user_email', email, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7
-      })
+      // Store user email if available in response, or the input if it was an email
+      const userEmail = data.user || (isValidEmail(usernameOrEmail) ? usernameOrEmail : null)
+      if (userEmail) {
+        cookieStore.set('user_email', userEmail, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7
+        })
+      }
       
       // Mark as master site user (not a tenant)
       cookieStore.set('user_type', 'admin', {
@@ -65,7 +69,7 @@ async function loginToMasterSite(email: string, password: string, masterUrl: str
 
       return { 
         success: true, 
-        user: data.full_name || email,
+        user: data.full_name || usernameOrEmail,
         userType: 'admin',
         dashboardUrl: '/dashboard'
       }
@@ -84,20 +88,21 @@ async function loginToMasterSite(email: string, password: string, masterUrl: str
   }
 }
 
-export async function loginUser(email: string, password: string) {
+export async function loginUser(usernameOrEmail: string, password: string) {
   try {
     // SECURITY: Validate inputs
-    if (!email || !password) {
+    if (!usernameOrEmail || !password) {
       return {
         success: false,
-        error: 'Email and password are required'
+        error: 'Username/Email and password are required'
       }
     }
     
-    if (!isValidEmail(email)) {
+    // Accept either username or email (no strict validation)
+    if (usernameOrEmail.length < 3) {
       return {
         success: false,
-        error: 'Invalid email format'
+        error: 'Invalid username or email'
       }
     }
     
@@ -108,28 +113,69 @@ export async function loginUser(email: string, password: string) {
       }
     }
     
+    // Determine if input is email or username
+    const isEmail = isValidEmail(usernameOrEmail)
+    const email = isEmail ? usernameOrEmail : null
+    
     const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
     const apiKey = process.env.ERP_API_KEY
     const apiSecret = process.env.ERP_API_SECRET
     
-    console.log('Attempting login for:', email)
+    console.log('Attempting login for:', usernameOrEmail)
     
-    // Step 1: Check if this is a tenant user
-    const tenantLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `token ${apiKey}:${apiSecret}`
-      },
-      body: JSON.stringify({
-        doctype: 'Tenant',
-        filters: { owner_email: email },
-        fields: ['subdomain', 'site_url', 'site_config', 'status'],
-        limit_page_length: 1
+    // Step 1: Check if this is a tenant user (only if email provided)
+    let tenantData = { message: [] }
+    if (email) {
+      const tenantLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${apiKey}:${apiSecret}`
+        },
+        body: JSON.stringify({
+          doctype: 'Tenant',
+          filters: { owner_email: email },
+          fields: ['subdomain', 'site_url', 'site_config', 'status'],
+          limit_page_length: 1
+        })
       })
-    })
+      tenantData = await tenantLookupResponse.json()
+    }
+    else {
+      // If username provided, try to find user and get their email
+      const userLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${apiKey}:${apiSecret}`
+        },
+        body: JSON.stringify({
+          doctype: 'User',
+          filters: { username: usernameOrEmail },
+          fields: ['email'],
+          limit_page_length: 1
+        })
+      })
+      const userData = await userLookupResponse.json()
+      if (userData.message && userData.message.length > 0) {
+        const userEmail = userData.message[0].email
+        const tenantLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `token ${apiKey}:${apiSecret}`
+          },
+          body: JSON.stringify({
+            doctype: 'Tenant',
+            filters: { owner_email: userEmail },
+            fields: ['subdomain', 'site_url', 'site_config', 'status'],
+            limit_page_length: 1
+          })
+        })
+        tenantData = await tenantLookupResponse.json()
+      }
+    }
 
-    const tenantData = await tenantLookupResponse.json()
     console.log('Tenant lookup response:', tenantData)
 
     // Check if tenant exists
@@ -141,7 +187,7 @@ export async function loginUser(email: string, password: string) {
       if (!masterUrl) {
         throw new Error('Master site URL not configured')
       }
-      return await loginToMasterSite(email, password, masterUrl)
+      return await loginToMasterSite(usernameOrEmail, password, masterUrl)
     }
 
     const tenant = tenantData.message[0]
@@ -201,7 +247,7 @@ export async function loginUser(email: string, password: string) {
         'X-Frappe-Site-Name': siteName
       },
       body: new URLSearchParams({
-        usr: email,
+        usr: usernameOrEmail,
         pwd: password
       })
     })
@@ -234,13 +280,17 @@ export async function loginUser(email: string, password: string) {
       }
 
       // Store user metadata for routing and session management
-      cookieStore.set('user_email', email, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7,
-        path: '/'
-      })
+      // Use email from response or fallback to input if it was an email
+      const userEmail = data.user || (isEmail ? usernameOrEmail : null)
+      if (userEmail) {
+        cookieStore.set('user_email', userEmail, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/'
+        })
+      }
 
       cookieStore.set('tenant_subdomain', tenant.subdomain, {
         httpOnly: true,
@@ -345,9 +395,13 @@ export async function signupUser(data: {
     
     const [firstName, ...lastNameParts] = data.fullName.split(' ')
     
+    // Generate username from email (part before @)
+    const username = data.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+    
     // Create user with minimal required fields
     const userDoc = {
       doctype: 'User',
+      username: username,
       email: data.email,
       first_name: firstName,
       last_name: lastNameParts.join(' ') || firstName,
