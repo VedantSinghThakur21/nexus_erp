@@ -307,7 +307,7 @@ export default function InvoiceWithRentalForm() {
           // Map rental data to ERPNext custom fields if present
           if (item.rental_type || item.rental_duration) {
             baseItem.custom_is_rental = 1
-            baseItem.custom_rental_type = item.rental_type?.charAt(0).toUpperCase() + item.rental_type?.slice(1)
+            baseItem.custom_rental_type = item.rental_type ? item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1) : undefined
             baseItem.custom_rental_duration = item.rental_duration
             baseItem.custom_rental_start_date = item.rental_start_date
             baseItem.custom_rental_end_date = item.rental_end_date
