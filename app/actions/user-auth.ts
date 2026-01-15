@@ -138,6 +138,9 @@ export async function loginUser(email: string, password: string) {
     if (!isTenantUser) {
       // Not a tenant user - try master site login (for admin users)
       console.log('Not a tenant user, attempting master site login')
+      if (!masterUrl) {
+        throw new Error('Master site URL not configured')
+      }
       return await loginToMasterSite(email, password, masterUrl)
     }
 
