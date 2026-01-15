@@ -10,6 +10,14 @@ async function runSetup() {
   const doctypeResult = await setupERPNextDoctypes()
   const linkResult = await linkOrganizationToExistingDocs()
   
+  // For form actions, redirect to show results
+  redirect('/setup?ran=true')
+}
+
+async function getSetupResults() {
+  const doctypeResult = await setupERPNextDoctypes()
+  const linkResult = await linkOrganizationToExistingDocs()
+  
   return { doctypeResult, linkResult }
 }
 
@@ -19,7 +27,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   
   let setupResults = null
   if (hasRun) {
-    setupResults = await runSetup()
+    setupResults = await getSetupResults()
   }
 
   return (
