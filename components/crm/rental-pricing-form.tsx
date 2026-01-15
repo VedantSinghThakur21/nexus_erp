@@ -24,12 +24,19 @@ interface RentalPricingFormProps {
 
 export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricingFormProps) {
   const [components, setComponents] = useState<RentalPricingComponents>(() => {
-    // Initialize with base_cost if not present
+    // Initialize with default values and merge with existing pricing_components
     const initial = item.pricing_components || {}
-    if (!('base_cost' in initial)) {
-      return { base_cost: 0, ...initial }
+    return {
+      base_cost: initial.base_cost || 0,
+      accommodation_charges: initial.accommodation_charges || 0,
+      usage_charges: initial.usage_charges || 0,
+      fuel_charges: initial.fuel_charges || 0,
+      elongation_charges: initial.elongation_charges || 0,
+      risk_charges: initial.risk_charges || 0,
+      commercial_charges: initial.commercial_charges || 0,
+      incidental_charges: initial.incidental_charges || 0,
+      other_charges: initial.other_charges || 0,
     }
-    return initial
   })
 
   // Check if this category supports time selection
