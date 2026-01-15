@@ -30,50 +30,33 @@ interface PricingRule {
 // Get all pricing rules
 export async function getPricingRules(): Promise<PricingRule[]> {
   try {
-    const response = await frappeRequest<{ data: PricingRule[] }>({
-      method: "GET",
-      endpoint: "/api/resource/Pricing Rule",
-      params: {
-        fields: JSON.stringify([
-          "name",
-          "title",
-          "apply_on",
-          "item_group",
-          "selling",
-          "buying",
-          "rate_or_discount",
-          "discount_percentage",
-          "discount_amount",
-          "rate",
-          "price_or_product_discount",
-          "customer",
-          "customer_group",
-          "territory",
-          "valid_from",
-          "valid_upto",
-          "min_qty",
-          "max_qty",
-          "disable",
-          "priority",
-        ]),
-        limit_page_length: 999,
-      },
-    });
-
-    return response.data || [];
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Pricing Rule',
+        fields: '["name","title","apply_on","item_group","selling","buying","rate_or_discount","discount_percentage","discount_amount","rate","price_or_product_discount","customer","customer_group","territory","valid_from","valid_upto","min_qty","max_qty","disable","priority"]',
+        limit_page_length: 999
+      }
+    )
+    return response.data || []
   } catch (error) {
-    console.error("Error fetching pricing rules:", error);
-    return [];
+    console.error("Error fetching pricing rules:", error)
+    return []
   }
 }
 
 // Get single pricing rule with full details
 export async function getPricingRule(name: string): Promise<PricingRule | null> {
   try {
-    const response = await frappeRequest<{ data: PricingRule }>({
-      method: "GET",
-      endpoint: `/api/resource/Pricing Rule/${name}`,
-    });
+    const response = await frappeRequest(
+      'frappe.client.get',
+      'GET',
+      {
+        doctype: 'Pricing Rule',
+        name: name,
+      }
+    );
 
     return response.data || null;
   } catch (error) {
@@ -244,14 +227,15 @@ export async function deletePricingRule(name: string) {
 // Get customer groups for filtering
 export async function getCustomerGroups(): Promise<string[]> {
   try {
-    const response = await frappeRequest<{ data: { name: string }[] }>({
-      method: "GET",
-      endpoint: "/api/resource/Customer Group",
-      params: {
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Customer Group',
         fields: JSON.stringify(["name"]),
         limit_page_length: 999,
-      },
-    });
+      }
+    )
 
     return response.data?.map((group) => group.name) || [];
   } catch (error) {
@@ -263,14 +247,15 @@ export async function getCustomerGroups(): Promise<string[]> {
 // Get territories for filtering
 export async function getTerritories(): Promise<string[]> {
   try {
-    const response = await frappeRequest<{ data: { name: string }[] }>({
-      method: "GET",
-      endpoint: "/api/resource/Territory",
-      params: {
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Territory',
         fields: JSON.stringify(["name"]),
         limit_page_length: 999,
-      },
-    });
+      }
+    );
 
     return response.data?.map((territory) => territory.name) || [];
   } catch (error) {
