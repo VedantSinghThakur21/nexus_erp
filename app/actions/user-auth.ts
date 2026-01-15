@@ -4,6 +4,17 @@ import { cookies } from 'next/headers'
 import { frappeRequest, userRequest } from '@/app/lib/api'
 
 /**
+ * Tenant data structure from Frappe API
+ */
+interface TenantData {
+  subdomain: string
+  site_url: string
+  site_config?: string
+  status: string
+  owner_email: string
+}
+
+/**
  * Validate email format (same as signup)
  */
 function isValidEmail(email: string): boolean {
@@ -190,7 +201,7 @@ export async function loginUser(usernameOrEmail: string, password: string) {
       return await loginToMasterSite(usernameOrEmail, password, masterUrl)
     }
 
-    const tenant = tenantData.message[0]
+    const tenant = tenantData.message[0] as TenantData
     
     // Validate tenant status before attempting login
     if (tenant.status === 'suspended') {
