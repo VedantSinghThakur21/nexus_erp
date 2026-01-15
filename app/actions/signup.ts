@@ -50,6 +50,45 @@ async function provisionTenantSite(
   try {
     console.log('Creating tenant record:', { tenantName, companyName })
 
+    // Step 0: Check if user and tenant already exist
+    const checkUserEndpoint = `${BASE_URL}/api/resource/User/${email}`
+    const checkUserResponse = await fetch(checkUserEndpoint, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+      },
+    })
+
+    const userExists = checkUserResponse.ok
+
+    const checkTenantEndpoint = `${BASE_URL}/api/resource/Tenant/${tenantName}`
+    const checkTenantResponse = await fetch(checkTenantEndpoint, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+      },
+    })
+
+    const tenantExists = checkTenantResponse.ok
+
+    // If both exist, redirect to login
+    if (userExists && tenantExists) {
+      console.log('User and tenant already exist, redirecting to login')
+      return {
+        success: true,
+        site_url: `${BASE_URL}`,
+        tenant_name: tenantName,
+      }
+    }
+
+    // If only user exists, return error
+    if (userExists) {
+      return {
+        success: false,
+        error: 'An account with this email already exists. Please login instead.',
+      }
+    }
+
     // Step 1: Create the User first
     const userEndpoint = `${BASE_URL}/api/resource/User`
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -119,6 +158,16 @@ async function provisionTenantSite(
     if (!tenantResponse.ok) {
       const tenantData = await tenantResponse.json()
       console.error('Tenant creation error:', tenantData)
+      
+      // If tenant already exists (from previous partial signup), continue to login
+      if (tenantData.exception && tenantData.exception.includes('DuplicateEntryError')) {
+        console.log('Tenant already exists, proceeding to login')
+        return {
+          success: true,
+          site_url: siteUrl,
+          tenant_name: tenantName,
+        }
+      }
       
       return {
         success: false,
