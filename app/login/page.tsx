@@ -227,8 +227,7 @@ export default function LoginPage() {
                       type="email" 
                       placeholder="name@company.com" 
                       required 
-                      className="pl-10 bg-[#1f1f1f] border-[#262626] text-white placeholder:text-gray-500 focus:border-blue-600 focus:ring-blue-600"
-                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                      className="w-full pl-10 bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
                   </div>
