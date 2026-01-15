@@ -235,7 +235,7 @@ export async function getCustomerGroups(): Promise<string[]> {
       }
     )
 
-    return response.data?.map((group) => group.name) || [];
+    return response.data?.map((group: { name: string }) => group.name) || [];
   } catch (error) {
     console.error("Error fetching customer groups:", error);
     return [];
@@ -255,7 +255,7 @@ export async function getTerritories(): Promise<string[]> {
       }
     );
 
-    return response.data?.map((territory) => territory.name) || [];
+    return response.data?.map((territory: { name: string }) => territory.name) || [];
   } catch (error) {
     console.error("Error fetching territories:", error);
     return [];
