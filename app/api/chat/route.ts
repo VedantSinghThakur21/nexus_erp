@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     // 3. Start Streaming
     const result = streamText({
-        model: openai('gpt-4o-mini'),
+        model: openai('gpt-4'),
         messages,
         system: `You are Nexus, an AI assistant for a business running on ERPNext. 
         You have access to real-time data via tools. 
