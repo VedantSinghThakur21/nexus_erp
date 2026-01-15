@@ -25,7 +25,7 @@ interface RentalPricingFormProps {
 export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricingFormProps) {
   const [components, setComponents] = useState<RentalPricingComponents>(() => {
     // Initialize with default values and merge with existing pricing_components
-    const initial = item.pricing_components || {}
+    const initial = (item.pricing_components || {}) as Partial<RentalPricingComponents>
     return {
       base_cost: initial.base_cost || 0,
       accommodation_charges: initial.accommodation_charges || 0,
