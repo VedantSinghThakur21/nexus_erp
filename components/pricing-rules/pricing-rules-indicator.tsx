@@ -12,7 +12,7 @@ interface AppliedRule {
   discount_percentage?: number;
   discount_amount?: number;
   rate?: number;
-  apply_on: string;
+  apply_on?: string;
 }
 
 interface PricingRulesIndicatorProps {
@@ -97,7 +97,7 @@ export function PricingRulesIndicator({
                   {rule.rule_title || rule.rule_name}
                 </h4>
                 <p className="text-xs text-slate-500">
-                  Applies to: <span className="font-medium">{rule.apply_on}</span>
+                  Applies to: <span className="font-medium">{rule.apply_on || 'All Items'}</span>
                 </p>
               </div>
               <Badge variant="outline" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
