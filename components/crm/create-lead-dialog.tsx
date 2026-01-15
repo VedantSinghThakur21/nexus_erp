@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Plus, Loader2 } from "lucide-react"
 import { createLead } from "@/app/actions/crm"
 import { useRouter } from 'next/navigation'
-import { useToast } from "@/hooks/use-toast" // Assumes you installed shadcn toast, if not we use alert
+import { useToast } from "@/components/ui/toast" // Assumes you installed shadcn toast, if not we use alert
 
 export function CreateLeadDialog() {
   const [open, setOpen] = useState(false)
