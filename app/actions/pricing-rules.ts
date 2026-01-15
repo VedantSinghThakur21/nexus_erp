@@ -115,10 +115,8 @@ export async function createPricingRule(formData: FormData) {
     if (maxQty) ruleData.max_qty = parseFloat(maxQty);
     if (priority) ruleData.priority = parseInt(priority);
 
-    await frappeRequest({
-      method: "POST",
-      endpoint: "/api/resource/Pricing Rule",
-      data: ruleData,
+    await frappeRequest('frappe.client.insert', 'POST', {
+      doc: ruleData
     });
 
     revalidatePath("/pricing-rules");
@@ -174,10 +172,10 @@ export async function updatePricingRule(name: string, formData: FormData) {
     if (maxQty) updateData.max_qty = parseFloat(maxQty);
     if (priority) updateData.priority = parseInt(priority);
 
-    await frappeRequest({
-      method: "PUT",
-      endpoint: `/api/resource/Pricing Rule/${name}`,
-      data: updateData,
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Pricing Rule',
+      name: name,
+      fieldname: updateData
     });
 
     revalidatePath("/pricing-rules");
@@ -192,12 +190,12 @@ export async function updatePricingRule(name: string, formData: FormData) {
 // Toggle pricing rule status (enable/disable)
 export async function togglePricingRuleStatus(name: string, disable: number) {
   try {
-    await frappeRequest({
-      method: "PUT",
-      endpoint: `/api/resource/Pricing Rule/${name}`,
-      data: {
-        disable,
-      },
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Pricing Rule',
+      name: name,
+      fieldname: {
+        disable: disable
+      }
     });
 
     revalidatePath("/pricing-rules");
@@ -211,9 +209,9 @@ export async function togglePricingRuleStatus(name: string, disable: number) {
 // Delete pricing rule
 export async function deletePricingRule(name: string) {
   try {
-    await frappeRequest({
-      method: "DELETE",
-      endpoint: `/api/resource/Pricing Rule/${name}`,
+    await frappeRequest('frappe.client.delete', 'POST', {
+      doctype: 'Pricing Rule',
+      name: name
     });
 
     revalidatePath("/pricing-rules");
