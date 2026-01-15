@@ -25,7 +25,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   async function fetchOrganization() {
     try {
-      const { getCurrentUserOrganization } = await import('@/app/actions/auth')
+      const { getCurrentUserOrganization } = await import('@/app/actions/user-auth')
       const org = await getCurrentUserOrganization()
       
       if (org) {
