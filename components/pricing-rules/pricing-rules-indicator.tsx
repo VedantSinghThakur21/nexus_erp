@@ -8,7 +8,7 @@ import { getApplicablePricingRules } from "@/app/actions/apply-pricing-rules";
 
 interface AppliedRule {
   rule_name: string;
-  rule_title: string;
+  rule_title?: string;
   discount_percentage?: number;
   discount_amount?: number;
   rate?: number;
@@ -94,7 +94,7 @@ export function PricingRulesIndicator({
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <h4 className="font-medium text-slate-900 dark:text-white">
-                  {rule.rule_title}
+                  {rule.rule_title || rule.rule_name}
                 </h4>
                 <p className="text-xs text-slate-500">
                   Applies to: <span className="font-medium">{rule.apply_on}</span>
