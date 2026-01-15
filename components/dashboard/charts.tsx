@@ -33,7 +33,7 @@ export function DashboardCharts({ revenueData, recentActivity }: { revenueData: 
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => `₹${value.toLocaleString('en-IN')}`}
+                tickFormatter={(value: any) => `₹${Number(value ?? 0).toLocaleString('en-IN')}`}
               />
               <Tooltip 
                 cursor={{fill: 'transparent'}}

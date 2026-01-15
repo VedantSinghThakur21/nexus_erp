@@ -41,7 +41,7 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    paymentAmount: invoice.outstanding_amount || invoice.grand_total || 0,
+    paymentAmount: Number(invoice.outstanding_amount ?? invoice.grand_total ?? 0),
     paymentDate: new Date().toISOString().split('T')[0],
     modeOfPayment: 'Cash',
     referenceNo: '',

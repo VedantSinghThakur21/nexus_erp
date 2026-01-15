@@ -47,7 +47,7 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
             <span className="text-muted-foreground">₹</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{totalRevenue.toLocaleString('en-IN')}</div>
+            <div className="text-2xl font-bold">₹{Number(totalRevenue ?? 0).toLocaleString('en-IN')}</div>
           </CardContent>
         </Card>
       </div>
@@ -93,7 +93,7 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
                       <td className="p-4 text-slate-600 dark:text-slate-400">{inv.customer_name}</td>
                       <td className="p-4 text-slate-600 dark:text-slate-400">{inv.due_date}</td>
                       <td className="p-4 font-medium text-slate-900 dark:text-white">
-                        {inv.currency} {inv.grand_total.toLocaleString()}
+                        {inv.currency} {Number(inv.grand_total ?? 0).toLocaleString()}
                       </td>
                       <td className="p-4">
                         <Badge className={getStatusColor(inv.status)}>

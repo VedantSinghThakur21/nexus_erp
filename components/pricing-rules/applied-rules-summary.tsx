@@ -26,7 +26,7 @@ export function AppliedRulesSummary({ appliedRules }: AppliedRulesSummaryProps) 
   }
 
   const totalSavings = appliedRules.reduce(
-    (sum, rule) => sum + (rule.savings || 0),
+    (sum, rule) => sum + Number(rule.savings ?? 0),
     0
   );
 
@@ -41,7 +41,7 @@ export function AppliedRulesSummary({ appliedRules }: AppliedRulesSummaryProps) 
       };
     }
     acc[key].items.push(rule);
-    acc[key].totalSavings += rule.savings || 0;
+    acc[key].totalSavings += Number(rule.savings ?? 0);
     return acc;
   }, {} as Record<string, { rule_title: string; items: AppliedPricingRule[]; totalSavings: number }>);
 
@@ -53,7 +53,7 @@ export function AppliedRulesSummary({ appliedRules }: AppliedRulesSummaryProps) 
           <CardTitle className="text-base">Applied Pricing Rules</CardTitle>
         </div>
         <CardDescription>
-          {appliedRules.length} {appliedRules.length === 1 ? "rule" : "rules"} applied • Total savings: ₹{totalSavings.toFixed(2)}
+          {appliedRules.length} {appliedRules.length === 1 ? "rule" : "rules"} applied • Total savings: ₹{Number(totalSavings ?? 0).toFixed(2)}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -73,7 +73,7 @@ export function AppliedRulesSummary({ appliedRules }: AppliedRulesSummaryProps) 
               </div>
               <div className="flex items-center gap-1 text-sm font-semibold text-green-700 dark:text-green-400">
                 <TrendingDown className="h-4 w-4" />
-                ₹{data.totalSavings.toFixed(2)}
+                ₹{Number(data.totalSavings ?? 0).toFixed(2)}
               </div>
             </div>
 
@@ -101,10 +101,10 @@ export function AppliedRulesSummary({ appliedRules }: AppliedRulesSummaryProps) 
                     )}
                     <div className="flex items-center gap-1">
                       <span className="text-slate-400 line-through">
-                        ₹{rule.original_rate.toFixed(2)}
+                        ₹{Number(rule.original_rate ?? 0).toFixed(2)}
                       </span>
                       <span className="font-semibold text-green-700 dark:text-green-400">
-                        ₹{rule.final_rate.toFixed(2)}
+                        ₹{Number(rule.final_rate ?? 0).toFixed(2)}
                       </span>
                     </div>
                   </div>

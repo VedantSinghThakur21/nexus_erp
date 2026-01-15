@@ -47,7 +47,7 @@ export function AnimatedAreaChart({ data, height = 200, delay = 0 }: AnimatedAre
             fontSize={12}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
+            tickFormatter={(value: any) => `₹${(Number(value ?? 0) / 1000).toFixed(0)}K`}
           />
           <Tooltip
             contentStyle={{
@@ -57,7 +57,7 @@ export function AnimatedAreaChart({ data, height = 200, delay = 0 }: AnimatedAre
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
               color: isDark ? "#e2e8f0" : "#1e293b",
             }}
-            formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, "Revenue"]}
+            formatter={(value: any) => [`₹${Number(value ?? 0).toLocaleString('en-IN')}`, "Revenue"]}
           />
           <Area 
             type="monotone" 
@@ -151,7 +151,7 @@ interface FunnelStageProps {
 }
 
 function FunnelStage({ stage, count, value, index, total, maxValue }: FunnelStageProps) {
-  const width = Math.max((value / maxValue) * 100, 70);
+  const width = Math.max((Number(value ?? 0) / Number(maxValue ?? 1)) * 100, 70);
   const isLast = index === total - 1;
   
   const colors = [
@@ -207,7 +207,7 @@ function FunnelStage({ stage, count, value, index, total, maxValue }: FunnelStag
         transition={{ delay: index * 0.1 + 0.2 }}
         className="text-xs font-medium text-slate-600 dark:text-slate-400"
       >
-        ₹{(value / 100000).toFixed(1)}L
+        ₹{(Number(value ?? 0) / 100000).toFixed(1)}L
       </motion.div>
     </motion.div>
   );
@@ -219,7 +219,7 @@ interface AnimatedFunnelChartProps {
 }
 
 export function AnimatedFunnelChart({ data, delay = 0 }: AnimatedFunnelChartProps) {
-  const maxValue = data[0]?.value || 1;
+  const maxValue = Number(data[0]?.value ?? 0) || 1;
   
   return (
     <motion.div
@@ -269,7 +269,7 @@ export function AnimatedLineChart({ data, height = 200, delay = 0 }: AnimatedLin
             stroke="#64748b"
             fontSize={12}
             tickLine={false}
-            tickFormatter={(value) => `${value}`}
+            tickFormatter={(value: any) => `${value ?? 0}`}
           />
           <Tooltip
             contentStyle={{
@@ -313,7 +313,8 @@ export function AnimatedProgressRing({
 }: AnimatedProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percentage / 100) * circumference;
+  const safePercentage = Math.min(Math.max(Number(percentage ?? 0), 0), 100);
+  const offset = circumference - (safePercentage / 100) * circumference;
 
   return (
     <motion.div
@@ -364,7 +365,7 @@ export function AnimatedProgressRing({
         className="absolute inset-0 flex flex-col items-center justify-center"
       >
         <span className="text-2xl font-bold text-slate-900 dark:text-white">
-          {percentage}%
+          {Math.round(safePercentage)}%
         </span>
         {label && (
           <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
