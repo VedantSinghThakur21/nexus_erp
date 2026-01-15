@@ -108,7 +108,7 @@ async function provisionTenantSite(
         company_name: companyName,
         owner_email: email,
         site_url: siteUrl,
-        status: 'Active',
+        status: 'active',
         site_config: JSON.stringify({
           created_at: new Date().toISOString(),
           single_tenant: true,
