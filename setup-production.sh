@@ -60,9 +60,14 @@ echo ""
 
 # Step 7: Configure Nginx
 echo "[7/8] Configuring Nginx..."
-sudo cp nginx-nexus.conf /etc/nginx/sites-available/nexus
-sudo ln -sf /etc/nginx/sites-available/nexus /etc/nginx/sites-enabled/nexus
+# Disable IPv6 in main nginx.conf
+sudo sed -i 's/listen \[::\]:80/# listen [::]:80/g' /etc/nginx/nginx.conf
+sudo sed -i 's/listen \[::\]:443/# listen [::]:443/g' /etc/nginx/nginx.conf
+# Copy our config
+sudo cp nginx-nexus-erp.conf /etc/nginx/sites-available/nexus-erp
+sudo ln -sf /etc/nginx/sites-available/nexus-erp /etc/nginx/sites-enabled/nexus-erp
 sudo rm -f /etc/nginx/sites-enabled/default  # Remove default site
+sudo rm -f /etc/nginx/sites-enabled/nexus    # Remove old config if exists
 sudo nginx -t
 sudo systemctl reload nginx
 echo "✓ Nginx configured"
