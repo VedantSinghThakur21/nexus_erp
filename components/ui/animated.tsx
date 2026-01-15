@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-interface AnimatedCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface AnimatedCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onDragEnter' | 'onDragLeave' | 'onDragOver' | 'onDrop'> {
   children: React.ReactNode;
   variant?: 'default' | 'neon' | 'glass';
   hover?: boolean;
@@ -50,7 +50,7 @@ export function AnimatedCard({
   );
 }
 
-interface AnimatedButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface AnimatedButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onDragEnter' | 'onDragLeave' | 'onDragOver' | 'onDrop'> {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost' | 'neon';
   size?: 'sm' | 'md' | 'lg';
