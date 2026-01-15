@@ -1,6 +1,6 @@
 'use server'
 
-import { redirect, isRedirectError } from 'next/navigation'
+import { redirect } from 'next/navigation'
 
 const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 const API_KEY = process.env.ERP_API_KEY
@@ -247,7 +247,7 @@ export async function signupUser(formData: FormData) {
 
   } catch (error: any) {
     // Re-throw redirect errors (they are not actual errors, just flow control)
-    if (isRedirectError(error)) {
+    if (error.digest?.startsWith('NEXT_REDIRECT')) {
       throw error
     }
 
