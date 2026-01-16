@@ -247,7 +247,23 @@ export async function loginUser(usernameOrEmail: string, password: string) {
     }
 
     // Step 2: Authenticate against the tenant's site
+    // All tenant sites are accessible via localhost:8080 with X-Frappe-Site-Name header
     const tenantSiteUrl = tenant.site_url
+    const tenantLoginUrl = `${masterUrl}/api/method/login`
+    
+    console.log('Attempting tenant site login:', tenantSiteUrl)
+    
+    const tenantResponse = await fetch(tenantLoginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Frappe-Site-Name': tenantSiteUrl,  // Tell Frappe which site to authenticate against
+      },
+      body: new URLSearchParams({
+        usr: usernameOrEmail,
+        pwd: password
+      })
+    })
     const siteName = `${tenant.subdomain}.localhost`
     console.log('Authenticating against tenant site:', tenantSiteUrl, 'Site:', siteName)
     

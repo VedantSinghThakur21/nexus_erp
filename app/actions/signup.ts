@@ -32,6 +32,71 @@ function generateSubdomain(companyName: string): string {
 }
 
 /**
+ * Provision a real Frappe site with separate database for the tenant
+ * Uses Docker exec to run bench commands
+ */
+async function provisionFrappeSite(
+  siteName: string,
+  adminPassword: string,
+  adminEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  const { exec } = await import('child_process')
+  const { promisify } = await import('util')
+  const execAsync = promisify(exec)
+
+  const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker'
+  const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin'
+
+  try {
+    console.log('🚀 Provisioning Frappe site:', siteName)
+
+    // Check if site already exists
+    const checkCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend ls sites/${siteName} 2>/dev/null`
+    try {
+      await execAsync(checkCmd)
+      console.log('✅ Site already exists:', siteName)
+      return { success: true }
+    } catch {
+      // Site doesn't exist, proceed with creation
+    }
+
+    // Create the site with separate database
+    const dbName = siteName.replace(/[.-]/g, '_')
+    const createSiteCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && bench new-site ${siteName} --admin-password '${adminPassword}' --db-name ${dbName} --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket"`
+
+    console.log('📝 Creating new site...')
+    await execAsync(createSiteCmd, { timeout: 120000 }) // 2 minute timeout
+
+    // Install ERPNext
+    const installCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && bench --site ${siteName} install-app erpnext"`
+    
+    console.log('🔧 Installing ERPNext...')
+    await execAsync(installCmd, { timeout: 180000 }) // 3 minute timeout
+
+    // Create admin user
+    const addUserCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && bench --site ${siteName} add-system-manager '${adminEmail}' '${adminPassword}'"`
+    
+    console.log('👤 Creating admin user...')
+    try {
+      await execAsync(addUserCmd, { timeout: 60000 })
+    } catch (error: any) {
+      // Ignore if user already exists
+      console.log('Note: Admin user may already exist')
+    }
+
+    console.log('✅ Site provisioned successfully:', siteName)
+    return { success: true }
+
+  } catch (error: any) {
+    console.error('❌ Site provisioning failed:', error.message)
+    return { 
+      success: false, 
+      error: `Failed to provision site: ${error.message}` 
+    }
+  }
+}
+
+/**
  * Create tenant record and user in ERPNext without nexus_core app
  * Uses standard Frappe API to create Tenant doctype and User
  * Handles duplicates gracefully for idempotency
@@ -47,7 +112,7 @@ async function provisionTenantSite(
   }
 
   const authHeader = `token ${API_KEY}:${API_SECRET}`
-  const siteUrl = `${BASE_URL}`
+  const siteUrl = `${tenantName}.${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'}`
 
   try {
     console.log('Provisioning tenant:', { tenantName, companyName, email })
@@ -234,19 +299,32 @@ export async function signupUser(formData: FormData) {
 
     console.log('Signup request:', { companyName, email, tenantName })
 
-    // 3. Call provisioning API (pass email now)
+    // 3. Provision real Frappe site with separate database
+    const siteName = `${tenantName}.${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'}`
+    const siteResult = await provisionFrappeSite(siteName, password, email)
+
+    if (!siteResult.success) {
+      return {
+        success: false,
+        error: siteResult.error || 'Failed to provision tenant site',
+      }
+    }
+
+    // 4. Create Tenant record in master site for tracking
     const result = await provisionTenantSite(tenantName, password, companyName, email)
 
     if (!result.success) {
       return result
     }
 
-    // 4. Success - Login the user to get real session
-    const loginEndpoint = `${BASE_URL}/api/method/login`
+    // 5. Login the user to the tenant's site
+    const tenantSiteUrl = `http://localhost:8080`  // All sites accessible via same port
+    const loginEndpoint = `${tenantSiteUrl}/api/method/login`
     const loginResponse = await fetch(loginEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Frappe-Site-Name': siteName,  // Tell Frappe which site to use
       },
       body: new URLSearchParams({
         usr: email,
