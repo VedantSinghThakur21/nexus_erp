@@ -241,32 +241,58 @@ export async function signupUser(formData: FormData) {
       return result
     }
 
-    // 4. Success - Auto-login the user
-    const { cookies } = await import('next/headers')
-    const cookieStore = await cookies()
+    // 4. Success - Login the user to get real session
+    const loginEndpoint = `${BASE_URL}/api/method/login`
+    const loginResponse = await fetch(loginEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        usr: email,
+        pwd: password
+      })
+    })
+
+    if (loginResponse.ok) {
+      const { cookies } = await import('next/headers')
+      const cookieStore = await cookies()
+      
+      // Extract session cookies from ERPNext
+      const setCookieHeader = loginResponse.headers.get('set-cookie')
+      if (setCookieHeader) {
+        const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
+        if (sidMatch) {
+          cookieStore.set('sid', sidMatch[1], {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7
+          })
+        }
+      }
+      
+      cookieStore.set('user_email', email, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7
+      })
+      cookieStore.set('tenant_subdomain', result.tenant_name || tenantName, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7
+      })
+    }
     
-    // Set session cookies
-    cookieStore.set('sid', 'guest', { 
-      httpOnly: true, 
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
-    })
-    cookieStore.set('user_email', email, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7
-    })
-    cookieStore.set('tenant_subdomain', result.tenant_name || tenantName, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7
-    })
+    // 5. Redirect to tenant subdomain (e.g., https://vfixit.avariq.in)
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+    const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000'
+    const tenantUrl = `${protocol}://${result.tenant_name || tenantName}.${baseHost}/dashboard`
     
-    // Redirect to dashboard
-    redirect('/dashboard')
+    console.log('Redirecting to tenant subdomain:', tenantUrl)
+    redirect(tenantUrl)
 
   } catch (error: any) {
     // Re-throw redirect errors (they are not actual errors, just flow control)
