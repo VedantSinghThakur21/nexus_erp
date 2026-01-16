@@ -13,7 +13,10 @@ async function getAllTenants() {
     headers: { 'Authorization': authHeader },
   });
   const data = await response.json();
-  return data.data || [];
+  if (typeof data === 'object' && data && 'data' in data && Array.isArray((data as any).data)) {
+    return (data as any).data;
+  }
+  return [];
 }
 
 function siteFolderExists(siteUrl: string) {
