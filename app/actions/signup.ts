@@ -241,9 +241,32 @@ export async function signupUser(formData: FormData) {
       return result
     }
 
-    // 4. Success - redirect to login with tenant info
-    // Store tenant info in URL params so login page knows where to redirect
-    redirect(`/login?tenant=${result.tenant_name}&email=${encodeURIComponent(email)}&new=1`)
+    // 4. Success - Auto-login the user
+    const { cookies } = await import('next/headers')
+    const cookieStore = await cookies()
+    
+    // Set session cookies
+    cookieStore.set('sid', 'guest', { 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    })
+    cookieStore.set('user_email', email, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    })
+    cookieStore.set('tenant_subdomain', result.tenant_name || tenantName, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    })
+    
+    // Redirect to dashboard
+    redirect('/dashboard')
 
   } catch (error: any) {
     // Re-throw redirect errors (they are not actual errors, just flow control)
