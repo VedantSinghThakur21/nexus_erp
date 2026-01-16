@@ -25,7 +25,8 @@ export async function isAdmin(): Promise<boolean> {
     const userEmail = cookieStore.get('user_email')?.value
     
     // Simple check: admin user must be from localhost or have specific email
-    return userEmail === 'administrator' || userEmail?.includes('@admin.')
+    if (!userEmail) return false;
+    return userEmail === 'administrator' || userEmail.includes('@admin.')
   } catch {
     return false
   }
