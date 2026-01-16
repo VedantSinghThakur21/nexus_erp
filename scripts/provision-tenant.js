@@ -200,20 +200,29 @@ async function provision() {
             if (userCheck.stdout.includes('exists')) {
                 console.error('User already exists, updating...');
                 
-                // Update existing user
+                // Update existing user with SYSTEM USER type and System Manager role
                 const updateUserCode = `
                     from frappe.utils.password import update_password
                     user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+                    
+                    # CRITICAL: Set as System User (not Website User)
+                    user.user_type = 'System User'
                     user.enabled = 1
                     user.first_name = '${firstName}'
                     user.last_name = '${lastName}'
+                    
+                    # Ensure System Manager role exists
                     has_role = any(role.role == 'System Manager' for role in user.roles)
                     if not has_role:
-                        user.add_roles('System Manager')
+                        user.append('roles', {'role': 'System Manager'})
+                    
                     user.save(ignore_permissions=True)
                     update_password(user='${ADMIN_EMAIL}', pwd='${PASSWORD}', logout_all_sessions=0)
                     frappe.db.commit()
-                    print('User updated successfully')
+                    
+                    # Verify
+                    roles = [r.role for r in user.roles]
+                    print(f'User updated: type={user.user_type}, roles={roles}')
                 `;
                 
                 await runPythonScript(SITE_NAME, updateUserCode, true);
@@ -223,22 +232,53 @@ async function provision() {
                 // Create user using bench add-system-manager
                 await execBench(`--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL}`, true);
                 
-                // Set password and update details
+                // Set password and update details with SYSTEM USER type
                 const createUserCode = `
                     from frappe.utils.password import update_password
                     user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+                    
+                    # CRITICAL: Ensure System User type
+                    user.user_type = 'System User'
+                    user.enabled = 1
                     user.first_name = '${firstName}'
                     user.last_name = '${lastName}'
+                    
+                    # Verify System Manager role
+                    has_role = any(role.role == 'System Manager' for role in user.roles)
+                    if not has_role:
+                        user.append('roles', {'role': 'System Manager'})
+                    
                     user.save(ignore_permissions=True)
                     update_password(user='${ADMIN_EMAIL}', pwd='${PASSWORD}', logout_all_sessions=0)
                     frappe.db.commit()
-                    print('User created successfully')
+                    
+                    # Verify
+                    roles = [r.role for r in user.roles]
+                    print(f'User created: type={user.user_type}, roles={roles}')
                 `;
                 
                 await runPythonScript(SITE_NAME, createUserCode, true);
             }
             
             console.error('✓ User created/updated successfully');
+            
+            // Verification step
+            console.error('Verifying user permissions...');
+            const verifyCode = `
+                import json
+                user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+                roles = [r.role for r in user.roles]
+                result = {
+                    'user_type': user.user_type,
+                    'roles': roles,
+                    'enabled': user.enabled,
+                    'has_system_manager': 'System Manager' in roles
+                }
+                print(json.dumps(result))
+            `;
+            const verifyResult = await runPythonScript(SITE_NAME, verifyCode, false);
+            console.error('User verification:', verifyResult.stdout);
+            
         } catch (e) {
             throw new Error(`User creation failed: ${e.message}`);
         }

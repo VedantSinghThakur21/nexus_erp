@@ -32,60 +32,179 @@ function generateSubdomain(companyName: string): string {
 }
 
 /**
+ * Verify if a site actually exists by checking the site folder AND database connectivity
+ * Don't trust DB records - verify actual site structure
+ */
+async function verifySiteExists(siteName: string): Promise<boolean> {
+  const { exec } = await import('child_process')
+  const { promisify } = await import('util')
+  const execAsync = promisify(exec)
+  const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker'
+
+  try {
+    // Check 1: Site folder exists
+    const checkFolderCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend test -d sites/${siteName}`
+    await execAsync(checkFolderCmd, { timeout: 10000 })
+
+    // Check 2: Site config file exists
+    const checkConfigCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend test -f sites/${siteName}/site_config.json`
+    await execAsync(checkConfigCmd, { timeout: 10000 })
+
+    // Check 3: Database is accessible (most important check)
+    const checkDbCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && bench --site ${siteName} list-apps"`
+    const result = await execAsync(checkDbCmd, { timeout: 15000 })
+    
+    console.log('✅ Site verification passed:', siteName)
+    return true
+  } catch (error) {
+    console.log('❌ Site verification failed:', siteName)
+    return false
+  }
+}
+
+/**
+ * Ensure user has System Manager role and System User type
+ * This fixes the "No App" error
+ */
+async function ensureUserPermissions(
+  siteName: string,
+  userEmail: string,
+  password: string
+): Promise<{ success: boolean; error?: string }> {
+  const { exec } = await import('child_process')
+  const { promisify } = await import('util')
+  const execAsync = promisify(exec)
+  const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker'
+
+  try {
+    console.log('🔐 Ensuring user permissions for:', userEmail)
+
+    // Python script to set user as System User with System Manager role
+    const pythonScript = `
+import frappe
+frappe.init(site='${siteName}')
+frappe.connect()
+
+try:
+    user = frappe.get_doc('User', '${userEmail}')
+    
+    # Set user type to System User (not Website User)
+    user.user_type = 'System User'
+    user.enabled = 1
+    
+    # Ensure System Manager role exists
+    has_system_manager = False
+    for role in user.roles:
+        if role.role == 'System Manager':
+            has_system_manager = True
+            break
+    
+    if not has_system_manager:
+        user.append('roles', {'role': 'System Manager'})
+    
+    # Update password
+    from frappe.utils.password import update_password
+    update_password(user='${userEmail}', pwd='${password}', logout_all_sessions=0)
+    
+    user.save(ignore_permissions=True)
+    frappe.db.commit()
+    
+    print('SUCCESS: User configured with System Manager role')
+except Exception as e:
+    print(f'ERROR: {str(e)}')
+    raise
+`
+
+    const updateUserCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && echo '${pythonScript}' | /home/frappe/frappe-bench/env/bin/python"`
+    
+    const result = await execAsync(updateUserCmd, { timeout: 30000 })
+    
+    if (result.stdout.includes('SUCCESS')) {
+      console.log('✅ User permissions configured successfully')
+      
+      // Verification: Check roles
+      const verifyScript = `
+import frappe
+import json
+frappe.init(site='${siteName}')
+frappe.connect()
+user = frappe.get_doc('User', '${userEmail}')
+roles = [r.role for r in user.roles]
+print(json.dumps({'user_type': user.user_type, 'roles': roles, 'enabled': user.enabled}))
+`
+      const verifyCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && echo '${verifyScript}' | /home/frappe/frappe-bench/env/bin/python"`
+      const verifyResult = await execAsync(verifyCmd, { timeout: 15000 })
+      
+      console.log('👤 User verification:', verifyResult.stdout)
+      
+      return { success: true }
+    }
+    
+    return { success: false, error: 'Failed to configure user permissions' }
+  } catch (error: any) {
+    console.error('❌ User permission setup failed:', error.message)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
  * Provision a real Frappe site with separate database for the tenant
- * Uses Docker exec to run bench commands
+ * Uses Node.js script for robust provisioning with proper verification
  */
 async function provisionFrappeSite(
   siteName: string,
   adminPassword: string,
-  adminEmail: string
-): Promise<{ success: boolean; error?: string }> {
+  adminEmail: string,
+  companyName: string
+): Promise<{ success: boolean; error?: string; isBackground?: boolean }> {
   const { exec } = await import('child_process')
   const { promisify } = await import('util')
   const execAsync = promisify(exec)
 
   const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker'
-  const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin'
 
   try {
     console.log('🚀 Provisioning Frappe site:', siteName)
 
-    // Check if site already exists
-    const checkCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend ls sites/${siteName} 2>/dev/null`
-    try {
-      await execAsync(checkCmd)
-      console.log('✅ Site already exists:', siteName)
+    // ROBUST CHECK: Verify site actually exists (not just DB record)
+    const siteExists = await verifySiteExists(siteName)
+    
+    if (siteExists) {
+      console.log('✅ Site already exists and is valid:', siteName)
+      
+      // Even if site exists, ensure user has proper permissions
+      const permResult = await ensureUserPermissions(siteName, adminEmail, adminPassword)
+      if (!permResult.success) {
+        console.warn('⚠️ Warning: Could not verify user permissions, but continuing')
+      }
+      
       return { success: true }
-    } catch {
-      // Site doesn't exist, proceed with creation
     }
 
-    // Create the site with separate database
-    const dbName = siteName.replace(/[.-]/g, '_')
-    const createSiteCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && bench new-site ${siteName} --admin-password '${adminPassword}' --db-name ${dbName} --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket"`
-
-    console.log('📝 Creating new site...')
-    await execAsync(createSiteCmd, { timeout: 120000 }) // 2 minute timeout
-
-    // Install ERPNext
-    const installCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && bench --site ${siteName} install-app erpnext"`
+    // Site doesn't exist - trigger background provisioning using the robust Node.js script
+    console.log('🏗️ Site needs provisioning - starting background process')
     
-    console.log('🔧 Installing ERPNext...')
-    await execAsync(installCmd, { timeout: 180000 }) // 3 minute timeout
-
-    // Create admin user
-    const addUserCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && bench --site ${siteName} add-system-manager '${adminEmail}' '${adminPassword}'"`
+    const scriptPath = process.cwd() + '/scripts/provision-tenant.js'
+    const provisionCmd = `node "${scriptPath}" "${siteName.split('.')[0]}" "${adminEmail}" "${companyName}" "${adminPassword}" "${companyName}"`
     
-    console.log('👤 Creating admin user...')
-    try {
-      await execAsync(addUserCmd, { timeout: 60000 })
-    } catch (error: any) {
-      // Ignore if user already exists
-      console.log('Note: Admin user may already exist')
+    console.log('📝 Executing provisioning script (background)...')
+    
+    // Execute in background with detached process
+    exec(provisionCmd, (error, stdout, stderr) => {
+      if (error) {
+        console.error('❌ Background provisioning failed:', error.message)
+        console.error('stderr:', stderr)
+      } else {
+        console.log('✅ Background provisioning completed:', stdout)
+      }
+    })
+    
+    // Return immediately to avoid 504 timeout
+    // The provisioning will continue in background
+    return { 
+      success: true, 
+      isBackground: true 
     }
-
-    console.log('✅ Site provisioned successfully:', siteName)
-    return { success: true }
 
   } catch (error: any) {
     console.error('❌ Site provisioning failed:', error.message)
@@ -301,13 +420,18 @@ export async function signupUser(formData: FormData) {
 
     // 3. Provision real Frappe site with separate database
     const siteName = `${tenantName}.${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'}`
-    const siteResult = await provisionFrappeSite(siteName, password, email)
+    const siteResult = await provisionFrappeSite(siteName, password, email, companyName)
 
     if (!siteResult.success) {
       return {
         success: false,
         error: siteResult.error || 'Failed to provision tenant site',
       }
+    }
+    
+    // If provisioning is happening in background, notify user
+    if (siteResult.isBackground) {
+      console.log('⏳ Site provisioning started in background - may take 2-3 minutes')
     }
 
     // 4. Create Tenant record in master site for tracking
@@ -317,9 +441,26 @@ export async function signupUser(formData: FormData) {
       return result
     }
 
-    // 5. Wait for site to be fully ready (3 seconds)
-    console.log('⏳ Waiting for site to initialize...')
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    // 5. If background provisioning, redirect to status page immediately
+    if (siteResult.isBackground) {
+      console.log('🔀 Redirecting to provisioning status page')
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+      const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000'
+      const statusUrl = `${protocol}://${baseHost}/provisioning?tenant=${result.tenant_name || tenantName}&email=${encodeURIComponent(email)}`
+      
+      redirect(statusUrl)
+    }
+
+    // 5. Wait for site to be fully ready (only for existing sites)
+    const waitTime = 3000
+    console.log(`⏳ Waiting ${waitTime/1000}s for site to initialize...`)
+    await new Promise(resolve => setTimeout(resolve, waitTime))
+    
+    // 5.5. Verify user has proper permissions before login
+    const permCheck = await ensureUserPermissions(siteName, email, password)
+    if (!permCheck.success) {
+      console.warn('⚠️ Could not verify user permissions, attempting login anyway')
+    }
 
     // 6. Login the user to the tenant's site
     const tenantSiteUrl = `http://localhost:8080`  // All sites accessible via same port
