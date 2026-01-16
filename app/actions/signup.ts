@@ -317,21 +317,29 @@ export async function signupUser(formData: FormData) {
       return result
     }
 
-    // 5. Login the user to the tenant's site
+    // 5. Wait for site to be fully ready (3 seconds)
+    console.log('⏳ Waiting for site to initialize...')
+    await new Promise(resolve => setTimeout(resolve, 3000))
+
+    // 6. Login the user to the tenant's site
     const tenantSiteUrl = `http://localhost:8080`  // All sites accessible via same port
     const loginEndpoint = `${tenantSiteUrl}/api/method/login`
-    const loginResponse = await fetch(loginEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Frappe-Site-Name': siteName,  // Tell Frappe which site to use
-      },
-      body: new URLSearchParams({
-        usr: email,
-        pwd: password
+    
+    try {
+      const loginResponse = await fetch(loginEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Frappe-Site-Name': siteName,  // Tell Frappe which site to use
+        },
+        body: new URLSearchParams({
+          usr: email,
+          pwd: password
+        }),
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       })
-    })
 
+    
     if (loginResponse.ok) {
       const { cookies } = await import('next/headers')
       const cookieStore = await cookies()
@@ -362,9 +370,15 @@ export async function signupUser(formData: FormData) {
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7
       })
+    } else {
+      console.warn('Login failed after provisioning, redirecting to login page')
+    }
+    } catch (loginError: any) {
+      console.error('Login attempt failed:', loginError.message)
+      // Continue with redirect even if login fails - user can login manually
     }
     
-    // 5. Redirect to tenant subdomain (e.g., https://vfixit.avariq.in)
+    // 7. Redirect to tenant subdomain (e.g., https://vfixit.avariq.in)
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
     const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000'
     const tenantUrl = `${protocol}://${result.tenant_name || tenantName}.${baseHost}/dashboard`
