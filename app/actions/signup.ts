@@ -111,7 +111,7 @@ try:
     
     print('SUCCESS: User configured with System Manager role')
 except Exception as e:
-    print(f'ERROR: {str(e)}')
+    print('ERROR: ' + str(e))
     raise
 `
 

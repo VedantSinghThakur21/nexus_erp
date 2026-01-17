@@ -111,6 +111,7 @@ async function execInContainer(command, throwOnError = true, timeoutMs = 600000,
         if (logCommand) {
             timer.complete();
             if (stderr) logProgress(`⚠ stderr: ${stderr.substring(0, 200)}`);
+            if (stdout) logProgress(`📤 stdout: ${stdout.substring(0, 500)}`);
         }
         
         return { 
@@ -318,6 +319,24 @@ async function provision() {
             createTimer.complete();
             logProgress('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             logProgress('');
+            
+            // CRITICAL DEBUG: Verify site was actually created
+            logProgress('🔍 DEBUG: Checking if site directory exists...');
+            const checkDir = await execInContainer(`ls -la sites/${SITE_NAME}`, false, 5000, true);
+            if (checkDir.success) {
+                logProgress(`✅ Site directory confirmed: ${checkDir.stdout.substring(0, 200)}`);
+            } else {
+                logProgress(`❌ WARNING: Site directory not found immediately after creation!`);
+            }
+            
+            // Check database was created
+            logProgress('🔍 DEBUG: Checking if database exists...');
+            const checkDb = await execInContainer(`mysql -uroot -p${DB_ROOT_PASSWORD} -e "SHOW DATABASES LIKE '%${SITE_NAME.replace(/\./g, '_')}%';"`, false, 5000, true);
+            if (checkDb.success) {
+                logProgress(`✅ Database confirmed: ${checkDb.stdout}`);
+            } else {
+                logProgress(`❌ WARNING: Database not found!`);
+            }
             
             // Verify the site was created properly
             logProgress('Validating site configuration...');
