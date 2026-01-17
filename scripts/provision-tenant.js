@@ -170,11 +170,19 @@ async function execPythonFile(pythonCode, siteName, description) {
     const localTempPath = path.join(os.tmpdir(), filename);
     
     try {
-        // Wrap code to ensure proper Frappe context
-        const wrappedCode = `
+        // Wrap code with proper Frappe initialization for direct Python execution
+        const wrappedCode = `#!/usr/bin/env python3
+import sys
 import frappe
 
-${pythonCode}
+frappe.init(site='${siteName}')
+frappe.connect()
+
+try:
+${pythonCode.split('\n').map(line => '    ' + line).join('\n')}
+finally:
+    frappe.db.commit()
+    frappe.destroy()
 `;
         
         // Write Python code to local temp file
@@ -184,11 +192,13 @@ ${pythonCode}
         const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
-        // Execute by piping the file to bench console via stdin
-        // Note: execWithProgress already sets working directory with -w flag
-        const benchCommand = `bench --site ${siteName} console < ${containerTempPath}`;
+        // Make executable and run directly with bench's Python environment
+        await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} chmod +x ${containerTempPath}`);
+        
+        // Execute using bench's Python directly (non-interactive)
+        const pythonPath = `${BENCH_PATH}/env/bin/python`;
         const result = await execWithProgress(
-            benchCommand,
+            `${pythonPath} ${containerTempPath}`,
             description
         );
         
