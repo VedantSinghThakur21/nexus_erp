@@ -30,15 +30,63 @@ const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const BENCH_PATH = '/home/frappe/frappe-bench';
 
+// Utility to get timestamp for logging
+function timestamp() {
+    return new Date().toISOString().replace('T', ' ').substring(0, 19);
+}
+
+// Utility to log with timestamp
+function logProgress(message) {
+    console.error(`[${timestamp()}] ${message}`);
+}
+
+// Helper to track operation duration
+class OperationTimer {
+    constructor(operationName) {
+        this.name = operationName;
+        this.startTime = Date.now();
+    }
+    
+    elapsed() {
+        return Math.floor((Date.now() - this.startTime) / 1000);
+    }
+    
+    log(message) {
+        logProgress(`[${this.name}] ${message} (${this.elapsed()}s elapsed)`);
+    }
+    
+    complete() {
+        logProgress(`✓ ${this.name} completed in ${this.elapsed()}s`);
+    }
+}
+
 // Helper to execute commands in container with correct working directory
-async function execInContainer(command, throwOnError = true, timeoutMs = 600000) {
+async function execInContainer(command, throwOnError = true, timeoutMs = 600000, logCommand = true) {
+    const timer = new OperationTimer('Container Command');
+    
     try {
         const fullCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -w ${BENCH_PATH} -T ${DOCKER_SERVICE} ${command}`;
+        
+        if (logCommand) {
+            logProgress(`🔧 Executing: ${command.substring(0, 100)}${command.length > 100 ? '...' : ''}`);
+        }
+        
+        // Set up heartbeat for long-running commands
+        const heartbeatInterval = setInterval(() => {
+            timer.log(`Still executing... waiting for output`);
+        }, 15000);
         
         const { stdout, stderr } = await execPromise(fullCommand, { 
             maxBuffer: 10 * 1024 * 1024, 
             timeout: timeoutMs 
         });
+        
+        clearInterval(heartbeatInterval);
+        
+        if (logCommand) {
+            timer.complete();
+            if (stderr) logProgress(`⚠ stderr: ${stderr.substring(0, 200)}`);
+        }
         
         return { 
             stdout: stdout.trim(), 
@@ -46,6 +94,7 @@ async function execInContainer(command, throwOnError = true, timeoutMs = 600000)
             success: true 
         };
     } catch (error) {
+        logProgress(`❌ Command failed after ${timer.elapsed()}s: ${error.message}`);
         if (throwOnError) {
             throw new Error(`Container command failed: ${command}\n${error.message}`);
         }
@@ -159,137 +208,198 @@ async function isSiteValid(siteName) {
 }
 
 async function provision() {
+    const provisionTimer = new OperationTimer('Full Provisioning');
+    
+    // Global heartbeat to show process is alive
+    const heartbeatInterval = setInterval(() => {
+        logProgress(`⏱️  Provisioning heartbeat: ${provisionTimer.elapsed()}s elapsed`);
+    }, 10000);
+    
     try {
-        console.error(`🚀 Starting provisioning for ${SITE_NAME}`);
-        console.error(`📂 Working Directory: ${DOCKER_COMPOSE_DIR}`);
-        console.error(`🏗️  Bench Path: ${BENCH_PATH}`);
+        logProgress(`🚀 Starting provisioning for ${SITE_NAME}`);
+        logProgress(`📂 Working Directory: ${DOCKER_COMPOSE_DIR}`);
+        logProgress(`🏗️  Bench Path: ${BENCH_PATH}`);
+        logProgress(`👤 Admin Email: ${ADMIN_EMAIL}`);
+        logProgress(`🏢 Company: ${COMPANY_NAME}`);
+        logProgress(`⏰ Timeout: 10 minutes`);
+        logProgress('');
 
         // 1. Check/Create Site
-        console.error('[1/5] Checking/creating site...');
+        logProgress('[1/5] ═══════════════════════════════════════');
+        logProgress('[1/5] STEP 1: Checking/creating site');
+        const step1Timer = new OperationTimer('Step 1');
         
+        logProgress('Validating existing site...');
         const siteValid = await isSiteValid(SITE_NAME);
         
         if (siteValid) {
-            console.error('✓ Site exists and is valid');
+            step1Timer.complete();
+            logProgress('✓ Site exists and is valid');
         } else {
-            console.error('⚠ Site missing or corrupted, recreating...');
+            logProgress('⚠ Site missing or corrupted, recreating...');
             
             // Clean up any broken site remnants
+            logProgress('Cleaning up existing site remnants...');
             try {
                 await execBench(`drop-site ${SITE_NAME} --force --no-backup`, false);
-                console.error('✓ Cleaned up existing site');
+                logProgress('✓ Cleaned up database entries');
             } catch (e) {
-                // Site might not exist in database, that's fine
+                logProgress('No database entries to clean');
             }
             
             // Remove site directory if it exists without proper config
+            logProgress('Removing site directory...');
             try {
-                await execInContainer(`rm -rf sites/${SITE_NAME}`, false);
+                await execInContainer(`rm -rf sites/${SITE_NAME}`, false, 30000, false);
+                logProgress('✓ Directory removed');
             } catch (e) {
-                // Ignore errors
+                logProgress('No directory to remove');
             }
             
             // Create fresh site
-            console.error('[Creating new site - this may take 2-3 minutes]');
-            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.error('⏳ Starting site creation...');
+            logProgress('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            logProgress('⏳ CREATING NEW SITE - Expected duration: 60-120 seconds');
+            logProgress('This involves: database setup, schema migration, default data');
+            logProgress('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             
+            const createTimer = new OperationTimer('Site Creation');
             const createSiteCommand = `bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket`;
-            await execInContainer(createSiteCommand, true);
             
-            console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.error('✓ Site creation completed');
-            console.error('');
+            // Set up progress monitoring for site creation
+            const siteCreationHeartbeat = setInterval(() => {
+                createTimer.log('Site creation in progress... (Database initialization can take time)');
+            }, 15000);
+            
+            await execInContainer(createSiteCommand, true, 600000);
+            
+            clearInterval(siteCreationHeartbeat);
+            createTimer.complete();
+            logProgress('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            logProgress('');
             
             // Verify the site was created properly
-            console.error('Validating site configuration...');
+            logProgress('Validating site configuration...');
             const newSiteValid = await isSiteValid(SITE_NAME);
             if (!newSiteValid) {
                 throw new Error('Site creation failed - site is not properly initialized');
             }
             
-            console.error('✓ Site created and validated');
+            step1Timer.complete();
+            logProgress('✓ Site created and validated');
         }
+        logProgress('[1/5] ═══════════════════════════════════════');
+        logProgress('');
 
         // 2. Install App (if nexus_core exists)
-        console.error('[2/5] Installing nexus_core app...');
+        logProgress('[2/5] ═══════════════════════════════════════');
+        logProgress('[2/5] STEP 2: Installing nexus_core app');
+        const step2Timer = new OperationTimer('Step 2');
+        const step2Timer = new OperationTimer('Step 2');
         try {
+            logProgress('Checking installed apps...');
             const { stdout } = await execBench(`--site ${SITE_NAME} list-apps`, false);
             if (stdout.includes('nexus_core')) {
-                console.error('✓ App already installed');
+                step2Timer.complete();
+                logProgress('✓ App already installed');
             } else {
-                console.error('⏳ Installing nexus_core...');
+                logProgress('⏳ Installing nexus_core (30-60 seconds expected)...');
+                const installTimer = new OperationTimer('App Installation');
                 await execBench(`--site ${SITE_NAME} install-app nexus_core`, false);
-                console.error('✓ App installed successfully');
+                installTimer.complete();
+                step2Timer.complete();
+                logProgress('✓ App installed successfully');
             }
         } catch (e) {
-            console.error(`⚠ App install skipped: ${e.message}`);
-            // Continue even if app install fails
+            logProgress(`⚠ App install skipped: ${e.message}`);
         }
+        logProgress('[2/5] ═══════════════════════════════════════');
+        logProgress('');
 
         // 3. Create Admin User
-        console.error(`[3/5] Creating admin user: ${ADMIN_EMAIL}...`);
+        logProgress('[3/5] ═══════════════════════════════════════');
+        logProgress(`[3/5] STEP 3: Creating admin user: ${ADMIN_EMAIL}`);
+        const step3Timer = new OperationTimer('Step 3');
+        const step3Timer = new OperationTimer('Step 3');
         
         // Split full name
         const nameParts = FULL_NAME.trim().split(' ');
         const firstName = nameParts[0] || 'Admin';
         const lastName = nameParts.slice(1).join(' ') || '';
         
+        logProgress(`Name: ${firstName} ${lastName}`);
+        
         try {
-            // Always use bench add-system-manager (it's idempotent)
-            // This command creates the user as System User with System Manager role automatically
-            console.error('Creating/updating system manager user...');
+            logProgress('Creating system manager user...');
+            const userTimer = new OperationTimer('User Creation');
             
-            // This creates the user if it doesn't exist, or updates if it does
             const addUserResult = await execBench(`--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL} --first-name "${firstName}" --last-name "${lastName}"`, false);
             
             if (!addUserResult.success) {
-                // If command failed but it's because user exists, that's okay
                 if (addUserResult.stderr.includes('already exists') || addUserResult.stdout.includes('already exists')) {
-                    console.error('User already exists, will update password');
+                    logProgress('User already exists, will update password');
                 } else {
                     throw new Error(`Failed to create user: ${addUserResult.stderr}`);
                 }
+            } else {
+                userTimer.complete();
             }
             
-            // Set/update password using bench command (more reliable than Python script)
-            console.error('Setting user password...');
-            const setPasswordCmd = await execBench(`--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`, true);
+            logProgress('Setting user password...');
+            const passwordTimer = new OperationTimer('Password Update');
+            await execBench(`--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`, true);
+            passwordTimer.complete();
             
-            console.error('✓ User created/updated successfully');
-            
-            // Verification step using bench console
-            console.error('Verifying user permissions...');
+            logProgress('Verifying user permissions...');
             const verifyCmd = `--site ${SITE_NAME} console "from frappe import get_doc; import json; user = get_doc('User', '${ADMIN_EMAIL}'); print(json.dumps({'user_type': user.user_type, 'roles': [r.role for r in user.roles], 'enabled': user.enabled}))"`;
             const verifyResult = await execBench(verifyCmd, false);
-            console.error('User verification:', verifyResult.stdout);
+            logProgress(`User details: ${verifyResult.stdout.substring(0, 200)}`);
+            
+            step3Timer.complete();
+            logProgress('✓ User created/updated successfully');
             
         } catch (e) {
             throw new Error(`User creation failed: ${e.message}`);
         }
+        logProgress('[3/5] ═══════════════════════════════════════');
+        logProgress('');
 
         // 4. Create Company
-        console.error('[4/5] Creating company...');
+        logProgress('[4/5] ═══════════════════════════════════════');
+        logProgress('[4/5] STEP 4: Creating company');
+        const step4Timer = new OperationTimer('Step 4');
+        const step4Timer = new OperationTimer('Step 4');
         try {
+            logProgress(`Checking if company '${COMPANY_NAME}' exists...`);
             const companyCheckCode = `company_exists = frappe.db.exists('Company', '${COMPANY_NAME}'); print('exists' if company_exists else 'not_exists')`;
             
             const companyCheck = await runPythonScript(SITE_NAME, companyCheckCode, false);
             
             if (companyCheck.stdout.includes('exists')) {
-                console.error('✓ Company already exists');
+                step4Timer.complete();
+                logProgress('✓ Company already exists');
             } else {
+                logProgress('Creating new company...');
+                const companyTimer = new OperationTimer('Company Creation');
                 const createCompanyCode = `company = frappe.new_doc('Company'); company.company_name = '${COMPANY_NAME}'; company.abbr = '${COMPANY_NAME.substring(0, 5).toUpperCase()}'; company.default_currency = 'USD'; company.country = 'United States'; company.insert(ignore_permissions=True); frappe.db.commit(); print('Company created')`;
                 
                 await runPythonScript(SITE_NAME, createCompanyCode, true);
-                console.error('✓ Company created successfully');
+                companyTimer.complete();
+                step4Timer.complete();
+                logProgress('✓ Company created successfully');
             }
         } catch (e) {
-            console.error('⚠ Company creation skipped (non-critical)');
+            logProgress(`⚠ Company creation skipped (non-critical): ${e.message}`);
         }
+        logProgress('[4/5] ═══════════════════════════════════════');
+        logProgress('');
 
         // 5. Generate API Keys
-        console.error('[5/5] Generating API keys...');
+        logProgress('[5/5] ═══════════════════════════════════════');
+        logProgress('[5/5] STEP 5: Generating API keys');
+        const step5Timer = new OperationTimer('Step 5');
+        const step5Timer = new OperationTimer('Step 5');
         
+        logProgress('Preparing API key generation script...');
         // Python code for API key generation (bench run-python handles frappe context automatically)
         const generateKeysCode = `import frappe
 import json
@@ -311,8 +421,10 @@ print('===JSON_START===')
 print(json.dumps({'api_key': user.api_key, 'api_secret': api_secret}))
 print('===JSON_END===')`;
         
+        logProgress('Executing API key generation...');
         const keysResult = await execPythonFile(generateKeysCode, SITE_NAME, true);
         
+        logProgress('Parsing API key response...');
         // Extract JSON from output
         const match = keysResult.stdout.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/);
         
@@ -321,7 +433,19 @@ print('===JSON_END===')`;
         }
         
         const keys = JSON.parse(match[1]);
-        console.error('✓ API keys generated');
+        step5Timer.complete();
+        logProgress('✓ API keys generated');
+        logProgress('[5/5] ═══════════════════════════════════════');
+        logProgress('');
+        
+        // Cleanup heartbeat
+        clearInterval(heartbeatInterval);
+        provisionTimer.complete();
+        
+        logProgress('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        logProgress('🎉 PROVISIONING COMPLETED SUCCESSFULLY');
+        logProgress(`⏱️  Total time: ${provisionTimer.elapsed()}s`);
+        logProgress('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
         // SUCCESS OUTPUT
         console.log(JSON.stringify({
@@ -335,7 +459,11 @@ print('===JSON_END===')`;
         }));
 
     } catch (error) {
-        console.error(`❌ Error: ${error.message}`);
+        clearInterval(heartbeatInterval);
+        logProgress('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        logProgress(`❌ PROVISIONING FAILED after ${provisionTimer.elapsed()}s`);
+        logProgress(`❌ Error: ${error.message}`);
+        logProgress('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log(JSON.stringify({ 
             success: false, 
             error: error.message,
@@ -345,4 +473,20 @@ print('===JSON_END===')`;
     }
 }
 
-provision();
+// Wrap provision() with timeout
+async function provisionWithTimeout() {
+    const PROVISION_TIMEOUT = 600000; // 10 minutes
+    
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`Provisioning timeout after ${PROVISION_TIMEOUT / 1000} seconds (10 minutes). Process may be hung.`)), PROVISION_TIMEOUT)
+    );
+    
+    try {
+        await Promise.race([provision(), timeoutPromise]);
+    } catch (error) {
+        logProgress(`❌ FATAL: ${error.message}`);
+        process.exit(1);
+    }
+}
+
+provisionWithTimeout();
