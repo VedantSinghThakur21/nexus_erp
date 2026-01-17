@@ -285,8 +285,22 @@ export async function loginUser(usernameOrEmail: string, password: string) {
       })
     })
 
-    const data = await response.json()
-    console.log('Login response:', data)
+    // Handle non-JSON responses gracefully
+    let data: any
+    const responseText = await response.text()
+    
+    try {
+      data = JSON.parse(responseText)
+      console.log('Login response:', data)
+    } catch (e) {
+      console.error('Failed to parse login response as JSON')
+      console.error('Response status:', response.status, response.statusText)
+      console.error('Response body:', responseText.substring(0, 500))
+      return {
+        success: false,
+        error: 'Unable to connect to your workspace. Please ensure your site is properly configured.'
+      }
+    }
 
     if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
       const cookieStore = await cookies()
