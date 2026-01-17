@@ -157,16 +157,30 @@ async function execPythonFile(pythonCode, siteName, description) {
     const containerTempPath = `/tmp/${filename}`;
     
     try {
+        // Split user code into imports and body
+        const lines = pythonCode.split('\n');
+        const importLines = [];
+        const bodyLines = [];
+        
+        for (const line of lines) {
+            if (/^\s*import\s+|^\s*from\s+/.test(line)) {
+                importLines.push(line);
+            } else {
+                bodyLines.push(line);
+            }
+        }
+        
         // Wrap code with frappe.init() and frappe.connect()
         const wrappedCode = `
 import frappe
 import sys
+${importLines.join('\n')}
 
 try:
     frappe.init(site='${siteName}')
     frappe.connect()
     
-${pythonCode}
+${bodyLines.join('\n')}
     
 finally:
     frappe.destroy()
