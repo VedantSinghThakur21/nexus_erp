@@ -112,11 +112,12 @@ async function execPythonFile(pythonCode, siteName, description) {
 
     try {
         // Prepare Python Code with proper Context Setup
+        // FIX: Force working directory to BENCH_PATH before importing frappe
+        // FIX: Remove sites_path='.' from frappe.init to allow default resolution
         const wrappedCode = `
 import sys
 import os
 
-# 1. Set Working Directory explicitly to bench root
 try:
     os.chdir('${BENCH_PATH}')
 except:
@@ -200,17 +201,17 @@ async function provision() {
         // ---------------------------------------------------------
         log(`[3/5] Creating admin user: ${ADMIN_EMAIL}...`);
         
-        // Validate site path exists before running python
-        if (!(await siteExists(SITE_NAME))) {
-            throw new Error(`Site ${SITE_NAME} missing after creation step. Provisioning aborted.`);
+        // Ensure site really exists before python tries to load it
+        if (!await siteExists(SITE_NAME)) {
+            throw new Error(`Critical: Site ${SITE_NAME} folder not found after creation.`);
         }
 
         const userScript = `
 import frappe
 from frappe.utils.password import update_password
 
-# Initialize with explicit sites_path='.' to fix IncorrectSitePath error
-frappe.init(site='${SITE_NAME}', sites_path='.')
+# Initialize without explicit sites_path to use default bench config
+frappe.init(site='${SITE_NAME}')
 frappe.connect()
 
 try:
@@ -256,8 +257,7 @@ finally:
         log('[4/5] Initializing subscription...');
         const settingsScript = `
 import frappe
-# Initialize with explicit sites_path='.'
-frappe.init(site='${SITE_NAME}', sites_path='.')
+frappe.init(site='${SITE_NAME}')
 frappe.connect()
 try:
     if frappe.db.exists('DocType', 'SaaS Settings'):
@@ -287,8 +287,7 @@ import frappe
 import json
 import sys
 
-# Initialize with explicit sites_path='.'
-frappe.init(site='${SITE_NAME}', sites_path='.')
+frappe.init(site='${SITE_NAME}')
 frappe.connect()
 
 try:
