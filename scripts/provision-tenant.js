@@ -2,6 +2,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const os = require('os');
 const path = require('path');
+const fs = require('fs').promises;
 
 const execPromise = util.promisify(exec);
 
@@ -85,7 +86,38 @@ PYTHON_CODE_EOF`;
     return execInContainer(command, throwOnError);
 }
 
-// Check if site is properly initialized (now checks for site_config.json)
+// Helper to execute Python code via temp file using bench run-python (production-grade approach)
+async function execPythonFile(pythonCode, siteName, throwOnError = true) {
+    const timestamp = Date.now();
+    const filename = `provision_api_keys_${timestamp}.py`;
+    const localTempPath = path.join(os.tmpdir(), filename);
+    const containerTempPath = `/tmp/${filename}`;
+    
+    try {
+        // 1. Write Python code to local temp file
+        await fs.writeFile(localTempPath, pythonCode, 'utf8');
+        
+        // 2. Copy file to Docker container
+        const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
+        await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
+        
+        // 3. Execute with bench run-python (automatically handles frappe context)
+        const result = await execInContainer(
+            `bench --site ${siteName} run-python ${containerTempPath}`,
+            throwOnError
+        );
+        
+        return result;
+        
+    } finally {
+        // 4. Cleanup: Remove temp files from both local and container
+        try {
+            await fs.unlink(localTempPath).catch(() => {});
+            await execInContainer(`rm -f ${containerTempPath}`, false);
+        } catch (cleanupError) {
+            console.error(`Warning: Temp file cleanup failed: ${cleanupError.message}`);
+        }
+    }
 async function isSiteValid(siteName) {
     try {
         // Check 1: site_config.json exists (critical file)
@@ -258,21 +290,28 @@ async function provision() {
         // 5. Generate API Keys
         console.error('[5/5] Generating API keys...');
         
+        // Python code for API key generation (bench run-python handles frappe context automatically)
         const generateKeysCode = `import frappe
 import json
 
+# Get user document
 user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+
+# Generate API keys
 api_secret = frappe.generate_hash(length=15)
 user.api_key = user.api_key or frappe.generate_hash(length=15)
 user.api_secret = api_secret
+
+# Save and commit
 user.save(ignore_permissions=True)
 frappe.db.commit()
 
+# Output JSON with clear delimiters
 print('===JSON_START===')
 print(json.dumps({'api_key': user.api_key, 'api_secret': api_secret}))
 print('===JSON_END===')`;
         
-        const keysResult = await runPythonCode(SITE_NAME, generateKeysCode, true);
+        const keysResult = await execPythonFile(generateKeysCode, SITE_NAME, true);
         
         // Extract JSON from output
         const match = keysResult.stdout.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/);
