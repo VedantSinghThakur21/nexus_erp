@@ -31,7 +31,7 @@ if (!SUBDOMAIN || !ADMIN_EMAIL || !PASSWORD) {
 const SITE_NAME = `${SUBDOMAIN}.avariq.in`;
 const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || path.join(os.homedir(), 'frappe_docker');
 const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
-const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin';
+const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'vedant@21';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const BENCH_PATH = '/home/frappe/frappe-bench';
 
@@ -281,10 +281,10 @@ async function siteExists(siteName) {
 async function provision() {
     const totalTimer = new Timer('Full Provisioning');
     
-    // Global heartbeat to show process is alive
+    // Global heartbeat to show process is alive (every 30 seconds)
     const heartbeatInterval = setInterval(() => {
-        log(`⏱️  Provisioning heartbeat: ${totalTimer.elapsed()}s elapsed`);
-    }, 10000);
+        log(`⏱️  Still provisioning: ${totalTimer.elapsed()}s elapsed`);
+    }, 30000);
     
     try {
         log(`🚀 Starting provisioning for ${SITE_NAME}`);
@@ -392,24 +392,41 @@ async function provision() {
         
         log(`Creating user: ${ADMIN_EMAIL} (${firstName} ${lastName})`);
         
+        // Create system manager user (without name flags as they're not supported)
         try {
             const addUserResult = await execBench(
-                `--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL} --first-name "${firstName}" --last-name "${lastName}"`,
+                `--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL}`,
                 'Creating system manager user'
             );
             
             if (addUserResult.stdout.includes('already exists') || addUserResult.stderr.includes('already exists')) {
-                log(`User already exists, updating password...`);
+                log(`User already exists`);
             }
         } catch (error) {
             if (error.message.includes('already exists')) {
-                log(`User already exists, updating password...`);
+                log(`User already exists`);
             } else {
                 throw error;
             }
         }
         
+        // Update user's first and last name using Python
+        log(`Updating user name...`);
+        const updateNameCode = `
+import frappe
+user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+user.first_name = '${firstName}'
+user.last_name = '${lastName}'
+user.enabled = 1
+user.save(ignore_permissions=True)
+frappe.db.commit()
+print('Name updated successfully')
+`;
+        
+        await execPythonFile(updateNameCode, SITE_NAME, 'Updating user name');
+        
         // Set password
+        log(`Setting user password...`);
         await execWithTimeout(
             execBench(
                 `--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`,
@@ -476,12 +493,15 @@ print('exists' if company_exists else 'not_exists')
             } else {
                 log(`Creating company: ${COMPANY_NAME}`);
                 
+                // Generate safe abbreviation (alphanumeric only, max 5 chars)
+                const safeAbbr = COMPANY_NAME.replace(/[^a-zA-Z0-9]/g, '').substring(0, 5).toUpperCase() || 'COMP';
+                
                 const createCompanyCode = `
 import frappe
 
 company = frappe.new_doc('Company')
 company.company_name = '${COMPANY_NAME}'
-company.abbr = '${COMPANY_NAME.substring(0, 5).toUpperCase()}'
+company.abbr = '${safeAbbr}'
 company.default_currency = 'USD'
 company.country = 'United States'
 
