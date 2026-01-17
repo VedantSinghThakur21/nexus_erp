@@ -174,7 +174,11 @@ async function execPythonFile(pythonCode, siteName, description) {
         const wrappedCode = `
 import frappe
 import sys
+import os
 ${importLines.join('\n')}
+
+# Change to bench directory so Frappe can find sites/
+os.chdir('${BENCH_PATH}')
 
 try:
     frappe.init(site='${siteName}')
