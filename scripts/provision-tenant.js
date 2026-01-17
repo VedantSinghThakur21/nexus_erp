@@ -165,24 +165,18 @@ async function execBench(command, description) {
 // Execute Python file by running it directly with proper Frappe context
 async function execPythonFile(pythonCode, siteName, description) {
     const timestamp = Date.now();
+    const functionName = `exec_${timestamp}`;
     const filename = `provision_${timestamp}.py`;
     const containerTempPath = `/tmp/${filename}`;
     const localTempPath = path.join(os.tmpdir(), filename);
     
     try {
-        // Wrap code with proper Frappe initialization for direct Python execution
-        const wrappedCode = `#!/usr/bin/env python3
-import sys
-import frappe
+        // Create a module with a function that bench execute can call
+        // This is the cleanest way to run Python code with Frappe context
+        const wrappedCode = `import frappe
 
-frappe.init(site='${siteName}')
-frappe.connect()
-
-try:
+def ${functionName}():
 ${pythonCode.split('\n').map(line => '    ' + line).join('\n')}
-finally:
-    frappe.db.commit()
-    frappe.destroy()
 `;
         
         // Write Python code to local temp file
@@ -192,13 +186,11 @@ finally:
         const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
-        // Make executable and run directly with bench's Python environment
-        await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} chmod +x ${containerTempPath}`);
-        
-        // Execute using bench's Python directly (non-interactive)
-        const pythonPath = `${BENCH_PATH}/env/bin/python`;
+        // Use bench execute which properly handles Frappe context
+        // This executes a Python function with full Frappe initialization
+        const benchCommand = `bench --site ${siteName} execute "import sys; sys.path.insert(0, '/tmp'); from ${filename.replace('.py', '')} import ${functionName}; ${functionName}()"`;
         const result = await execWithProgress(
-            `${pythonPath} ${containerTempPath}`,
+            benchCommand,
             description
         );
         
