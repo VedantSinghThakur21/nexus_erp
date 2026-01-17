@@ -172,7 +172,8 @@ ${pythonCode}
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
         // Execute using bench console command which properly sets up the site context
-        const benchCommand = `cd ${BENCH_PATH} && bench --site ${siteName} console ${containerTempPath}`;
+        // Note: execWithProgress already sets working directory with -w flag
+        const benchCommand = `bench --site ${siteName} console ${containerTempPath}`;
         const result = await execWithProgress(
             benchCommand,
             description
