@@ -70,6 +70,21 @@ async function runPythonScript(siteName, pythonCode, throwOnError = true) {
     return execInContainer(command, throwOnError);
 }
 
+// Helper to run Python code using bench console (more reliable than direct execution)
+async function runPythonCode(siteName, pythonCode, throwOnError = true) {
+    // Escape the Python code for shell and add exit() at the end
+    const codeWithExit = `${pythonCode}\nexit()`;
+    const escapedCode = codeWithExit.replace(/"/g, '\\"').replace(/'/g, "'\\'''");
+    
+    // Use bench console with heredoc to avoid shell escaping issues
+    const command = `bench --site ${siteName} console <<'PYTHON_CODE_EOF'
+${pythonCode}
+exit()
+PYTHON_CODE_EOF`;
+    
+    return execInContainer(command, throwOnError);
+}
+
 // Check if site is properly initialized (now checks for site_config.json)
 async function isSiteValid(siteName) {
     try {
@@ -243,9 +258,21 @@ async function provision() {
         // 5. Generate API Keys
         console.error('[5/5] Generating API keys...');
         
-        const generateKeysCode = `import json; user = frappe.get_doc('User', '${ADMIN_EMAIL}'); api_secret = frappe.generate_hash(length=15); user.api_key = user.api_key or frappe.generate_hash(length=15); user.api_secret = api_secret; user.save(ignore_permissions=True); frappe.db.commit(); print('===JSON_START==='); print(json.dumps({'api_key': user.api_key, 'api_secret': api_secret})); print('===JSON_END===')`;
+        const generateKeysCode = `import frappe
+import json
+
+user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+api_secret = frappe.generate_hash(length=15)
+user.api_key = user.api_key or frappe.generate_hash(length=15)
+user.api_secret = api_secret
+user.save(ignore_permissions=True)
+frappe.db.commit()
+
+print('===JSON_START===')
+print(json.dumps({'api_key': user.api_key, 'api_secret': api_secret}))
+print('===JSON_END===')`;
         
-        const keysResult = await runPythonScript(SITE_NAME, generateKeysCode, true);
+        const keysResult = await runPythonCode(SITE_NAME, generateKeysCode, true);
         
         // Extract JSON from output
         const match = keysResult.stdout.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/);
