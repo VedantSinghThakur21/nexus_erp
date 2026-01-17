@@ -294,7 +294,6 @@ async function provision() {
         logProgress('[2/5] ═══════════════════════════════════════');
         logProgress('[2/5] STEP 2: Installing nexus_core app');
         const step2Timer = new OperationTimer('Step 2');
-        const step2Timer = new OperationTimer('Step 2');
         try {
             logProgress('Checking installed apps...');
             const { stdout } = await execBench(`--site ${SITE_NAME} list-apps`, false);
@@ -318,7 +317,6 @@ async function provision() {
         // 3. Create Admin User
         logProgress('[3/5] ═══════════════════════════════════════');
         logProgress(`[3/5] STEP 3: Creating admin user: ${ADMIN_EMAIL}`);
-        const step3Timer = new OperationTimer('Step 3');
         const step3Timer = new OperationTimer('Step 3');
         
         // Split full name
@@ -367,7 +365,6 @@ async function provision() {
         logProgress('[4/5] ═══════════════════════════════════════');
         logProgress('[4/5] STEP 4: Creating company');
         const step4Timer = new OperationTimer('Step 4');
-        const step4Timer = new OperationTimer('Step 4');
         try {
             logProgress(`Checking if company '${COMPANY_NAME}' exists...`);
             const companyCheckCode = `company_exists = frappe.db.exists('Company', '${COMPANY_NAME}'); print('exists' if company_exists else 'not_exists')`;
@@ -396,7 +393,6 @@ async function provision() {
         // 5. Generate API Keys
         logProgress('[5/5] ═══════════════════════════════════════');
         logProgress('[5/5] STEP 5: Generating API keys');
-        const step5Timer = new OperationTimer('Step 5');
         const step5Timer = new OperationTimer('Step 5');
         
         logProgress('Preparing API key generation script...');
