@@ -175,9 +175,9 @@ async function execPythonFile(pythonCode, siteName, throwOnError = true) {
         const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
-        // 3. Execute with bench run-python (automatically handles frappe context)
+        // 3. Execute with bench execute (correct command, not run-python)
         const result = await execInContainer(
-            `bench --site ${siteName} run-python ${containerTempPath}`,
+            `bench --site ${siteName} execute ${containerTempPath}`,
             throwOnError
         );
         
@@ -421,20 +421,21 @@ async function provision() {
         const step4Timer = new OperationTimer('Step 4');
         try {
             logProgress(`Checking if company '${COMPANY_NAME}' exists...`);
-            const companyCheckCode = `company_exists = frappe.db.exists('Company', '${COMPANY_NAME}'); print('exists' if company_exists else 'not_exists')`;
+            const companyCheckCode = `import frappe\nimport json\ncompany_exists = frappe.db.exists('Company', '${COMPANY_NAME}')\nprint('exists' if company_exists else 'not_exists')`;
             
-            const companyCheck = await runPythonScript(SITE_NAME, companyCheckCode, false);
+            // Use bench execute instead of direct Python
+            const companyCheckResult = await execPythonFile(companyCheckCode, SITE_NAME, false);
             
-            if (companyCheck.stdout.includes('exists')) {
+            if (companyCheckResult.stdout.includes('exists')) {
                 step4Timer.complete();
                 logProgress('✓ Company already exists');
             } else {
                 logProgress('Creating new company...');
                 const companyTimer = new OperationTimer('Company Creation');
-                const createCompanyCode = `company = frappe.new_doc('Company'); company.company_name = '${COMPANY_NAME}'; company.abbr = '${COMPANY_NAME.substring(0, 5).toUpperCase()}'; company.default_currency = 'USD'; company.country = 'United States'; company.insert(ignore_permissions=True); frappe.db.commit(); print('Company created')`;
+                const createCompanyCode = `import frappe\nimport json\ncompany = frappe.new_doc('Company')\ncompany.company_name = '${COMPANY_NAME}'\ncompany.abbr = '${COMPANY_NAME.substring(0, 5).toUpperCase()}'\ncompany.default_currency = 'USD'\ncompany.country = 'United States'\ncompany.insert(ignore_permissions=True)\nfrappe.db.commit()\nprint('Company created')`;
                 
                 await withTimeout(
-                    runPythonScript(SITE_NAME, createCompanyCode, true),
+                    execPythonFile(createCompanyCode, SITE_NAME, true),
                     TIMEOUTS.COMPANY_CREATE,
                     'Company Creation'
                 );
