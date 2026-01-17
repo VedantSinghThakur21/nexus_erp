@@ -189,36 +189,32 @@ async function provision() {
         const lastName = nameParts.slice(1).join(' ') || '';
         
         try {
-            // Check if user exists
-            const userCheckCode = `user_exists = frappe.db.exists('User', '${ADMIN_EMAIL}'); print('exists' if user_exists else 'not_exists')`;
+            // Always use bench add-system-manager (it's idempotent)
+            // This command creates the user as System User with System Manager role automatically
+            console.error('Creating/updating system manager user...');
             
-            const userCheck = await runPythonScript(SITE_NAME, userCheckCode, false);
+            // This creates the user if it doesn't exist, or updates if it does
+            const addUserResult = await execBench(`--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL} --first-name "${firstName}" --last-name "${lastName}"`, false);
             
-            if (userCheck.stdout.includes('exists')) {
-                console.error('User already exists, updating...');
-                
-                // Update existing user with SYSTEM USER type and System Manager role
-                const updateUserCode = `from frappe.utils.password import update_password; user = frappe.get_doc('User', '${ADMIN_EMAIL}'); user.user_type = 'System User'; user.enabled = 1; user.first_name = '${firstName}'; user.last_name = '${lastName}'; has_role = any(role.role == 'System Manager' for role in user.roles); user.append('roles', {'role': 'System Manager'}) if not has_role else None; user.save(ignore_permissions=True); update_password(user='${ADMIN_EMAIL}', pwd='${PASSWORD}', logout_all_sessions=0); frappe.db.commit(); roles = [r.role for r in user.roles]; print('User updated: type=' + user.user_type + ', roles=' + str(roles))`;
-                
-                await runPythonScript(SITE_NAME, updateUserCode, true);
-            } else {
-                console.error('Creating new user...');
-                
-                // Create user using bench add-system-manager
-                await execBench(`--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL}`, true);
-                
-                // Set password and update details with SYSTEM USER type
-                const createUserCode = `from frappe.utils.password import update_password; user = frappe.get_doc('User', '${ADMIN_EMAIL}'); user.user_type = 'System User'; user.enabled = 1; user.first_name = '${firstName}'; user.last_name = '${lastName}'; has_role = any(role.role == 'System Manager' for role in user.roles); user.append('roles', {'role': 'System Manager'}) if not has_role else None; user.save(ignore_permissions=True); update_password(user='${ADMIN_EMAIL}', pwd='${PASSWORD}', logout_all_sessions=0); frappe.db.commit(); roles = [r.role for r in user.roles]; print('User created: type=' + user.user_type + ', roles=' + str(roles))`;
-                
-                await runPythonScript(SITE_NAME, createUserCode, true);
+            if (!addUserResult.success) {
+                // If command failed but it's because user exists, that's okay
+                if (addUserResult.stderr.includes('already exists') || addUserResult.stdout.includes('already exists')) {
+                    console.error('User already exists, will update password');
+                } else {
+                    throw new Error(`Failed to create user: ${addUserResult.stderr}`);
+                }
             }
+            
+            // Set/update password using bench command (more reliable than Python script)
+            console.error('Setting user password...');
+            const setPasswordCmd = await execBench(`--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`, true);
             
             console.error('✓ User created/updated successfully');
             
-            // Verification step
+            // Verification step using bench console
             console.error('Verifying user permissions...');
-            const verifyCode = `import json; user = frappe.get_doc('User', '${ADMIN_EMAIL}'); roles = [r.role for r in user.roles]; result = {'user_type': user.user_type, 'roles': roles, 'enabled': user.enabled, 'has_system_manager': 'System Manager' in roles}; print(json.dumps(result))`;
-            const verifyResult = await runPythonScript(SITE_NAME, verifyCode, false);
+            const verifyCmd = `--site ${SITE_NAME} console "from frappe import get_doc; import json; user = get_doc('User', '${ADMIN_EMAIL}'); print(json.dumps({'user_type': user.user_type, 'roles': [r.role for r in user.roles], 'enabled': user.enabled}))"`;
+            const verifyResult = await execBench(verifyCmd, false);
             console.error('User verification:', verifyResult.stdout);
             
         } catch (e) {
