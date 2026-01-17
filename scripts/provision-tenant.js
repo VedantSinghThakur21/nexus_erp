@@ -176,9 +176,9 @@ async function execPythonFile(pythonCode, siteName, throwOnError = true) {
         const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
-        // 3. Execute with bench execute (correct command, not run-python)
+        // 3. Execute using direct Python with frappe context (NOT bench execute which expects method names)
         const result = await execInContainer(
-            `bench --site ${siteName} execute ${containerTempPath}`,
+            `/home/frappe/frappe-bench/env/bin/python -c "import frappe; frappe.init(site='${siteName}'); frappe.connect(); exec(open('${containerTempPath}').read())"`,
             throwOnError
         );
         
