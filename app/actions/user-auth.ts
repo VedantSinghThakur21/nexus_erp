@@ -253,31 +253,14 @@ export async function loginUser(usernameOrEmail: string, password: string) {
     }
 
     // Step 2: Authenticate against the tenant's site
-    // All tenant sites are accessible via localhost:8080 with X-Frappe-Site-Name header
-    const tenantSiteUrl = tenant.site_url
-    const tenantLoginUrl = `${masterUrl}/api/method/login`
-    
-    console.log('Attempting tenant site login:', tenantSiteUrl)
-    
-    const tenantResponse = await fetch(tenantLoginUrl, {
+    // All tenant sites are accessible via the master Frappe URL with X-Frappe-Site-Name header
+    const siteName = tenant.site_url.replace(/^https?:\/\//, ''); // Remove protocol for site name
+    console.log('Authenticating against tenant site via master URL:', masterUrl, 'Site:', siteName);
+    const response = await fetch(`${masterUrl}/api/method/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Frappe-Site-Name': tenantSiteUrl,  // Tell Frappe which site to authenticate against
-      },
-      body: new URLSearchParams({
-        usr: usernameOrEmail,
-        pwd: password
-      })
-    })
-    const siteName = `${tenant.subdomain}.localhost`
-    console.log('Authenticating against tenant site:', tenantSiteUrl, 'Site:', siteName)
-    
-    const response = await fetch(`${tenantSiteUrl}/api/method/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Frappe-Site-Name': siteName
+        'X-Frappe-Site-Name': siteName // Tell Frappe which site to authenticate against
       },
       body: new URLSearchParams({
         usr: usernameOrEmail,
@@ -347,19 +330,12 @@ export async function loginUser(usernameOrEmail: string, password: string) {
         path: '/'
       })
 
-      cookieStore.set('tenant_site_url', tenantSiteUrl, {
+      cookieStore.set('tenant_site_url', tenant.site_url, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
         path: '/'
-      })
-      
-      cookieStore.set('tenant_subdomain', tenant.subdomain, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7
       })
       
       // Mark as tenant user
