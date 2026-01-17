@@ -180,7 +180,7 @@ try:
     frappe.init(site='${siteName}')
     frappe.connect()
     
-${bodyLines.join('\n')}
+${bodyLines.map(line => line.trim() ? '    ' + line : '').join('\n')}
     
 finally:
     frappe.destroy()
