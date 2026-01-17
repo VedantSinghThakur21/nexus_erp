@@ -59,6 +59,19 @@ function log(message) {
     console.error(`[${ts()}] ${message}`);
 }
 
+// Output JSON progress update (goes to stdout for parsing)
+function outputProgress(step, progress, message, details = {}) {
+    const update = {
+        type: 'progress',
+        step,
+        progress,
+        message,
+        timestamp: new Date().toISOString(),
+        ...details
+    };
+    console.log(`__PROGRESS__${JSON.stringify(update)}__END__`);
+}
+
 // Timer class for tracking operation duration
 class Timer {
     constructor(name) {
@@ -157,7 +170,7 @@ async function execPythonFile(pythonCode, siteName, description) {
     const localTempPath = path.join(os.tmpdir(), filename);
     
     try {
-        // Don't wrap with frappe.init - let bench handle it
+        // Wrap code to ensure proper Frappe context
         const wrappedCode = `
 import frappe
 
@@ -171,9 +184,9 @@ ${pythonCode}
         const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
-        // Execute using bench console command which properly sets up the site context
+        // Execute by piping the file to bench console via stdin
         // Note: execWithProgress already sets working directory with -w flag
-        const benchCommand = `bench --site ${siteName} console ${containerTempPath}`;
+        const benchCommand = `bench --site ${siteName} console < ${containerTempPath}`;
         const result = await execWithProgress(
             benchCommand,
             description
@@ -310,6 +323,7 @@ async function provision() {
         
         log('[1/5] ═══════════════════════════════════════');
         log('[1/5] STEP 1: Create Site');
+        outputProgress(1, 0, 'Creating site database');
         const step1Timer = new Timer('Step 1');
         
         const exists = await siteExists(SITE_NAME);
@@ -345,6 +359,7 @@ async function provision() {
             step1Timer.complete();
         }
         
+        outputProgress(1, 20, 'Site created successfully');
         log('[1/5] ═══════════════════════════════════════');
         log('');
         
@@ -354,6 +369,7 @@ async function provision() {
         
         log('[2/5] ═══════════════════════════════════════');
         log('[2/5] STEP 2: Install nexus_core app');
+        outputProgress(2, 20, 'Installing applications');
         const step2Timer = new Timer('Step 2');
         
         try {
@@ -380,6 +396,7 @@ async function provision() {
             }
             
             step2Timer.complete();
+            outputProgress(2, 40, 'Applications installed');
         } catch (error) {
             log(`⚠ App installation skipped: ${error.message}`);
         }
@@ -393,6 +410,7 @@ async function provision() {
         
         log('[3/5] ═══════════════════════════════════════');
         log('[3/5] STEP 3: Create Admin User');
+        outputProgress(3, 40, 'Configuring admin user');
         const step3Timer = new Timer('Step 3');
         
         const nameParts = FULL_NAME.trim().split(' ');
@@ -470,6 +488,7 @@ print(json.dumps({
         log(`User details: ${verifyResult.substring(0, 200)}`);
         
         step3Timer.complete();
+        outputProgress(3, 60, 'Admin user configured');
         log('[3/5] ═══════════════════════════════════════');
         log('');
         
@@ -479,6 +498,7 @@ print(json.dumps({
         
         log('[4/5] ═══════════════════════════════════════');
         log('[4/5] STEP 4: Create Company');
+        outputProgress(4, 60, 'Setting up company');
         const step4Timer = new Timer('Step 4');
         
         try {
@@ -534,6 +554,7 @@ print('Company created successfully')
             }
             
             step4Timer.complete();
+            outputProgress(4, 80, 'Company created');
         } catch (error) {
             log(`⚠ Company creation skipped (non-critical): ${error.message}`);
         }
@@ -547,6 +568,7 @@ print('Company created successfully')
         
         log('[5/5] ═══════════════════════════════════════');
         log('[5/5] STEP 5: Generate API Keys');
+        outputProgress(5, 80, 'Generating API keys');
         const step5Timer = new Timer('Step 5');
         
         const generateKeysCode = `
@@ -594,6 +616,7 @@ print('===JSON_END===')
         const keys = JSON.parse(match[1]);
         
         step5Timer.complete();
+        outputProgress(5, 100, 'Workspace ready!');
         log('[5/5] ═══════════════════════════════════════');
         log('');
         

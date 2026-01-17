@@ -58,9 +58,8 @@ function ProvisioningContent() {
       try {
         setStatus('checking')
         
-        // Check if site is ready by attempting to login
-        const siteName = `${tenant}.${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'}`
-        const response = await fetch(`/api/check-site-status?site=${siteName}`, {
+        // Check provisioning status via API
+        const response = await fetch(`/api/provisioning-status?tenant=${tenant}`, {
           method: 'GET',
         })
 
@@ -85,6 +84,10 @@ function ProvisioningContent() {
             }, 2000)
           } else {
             setStatus('provisioning')
+            // Update message based on API response
+            if (data.message) {
+              setMessage(data.message)
+            }
           }
         } else {
           setStatus('provisioning')
