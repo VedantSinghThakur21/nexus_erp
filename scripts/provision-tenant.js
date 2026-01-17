@@ -100,22 +100,22 @@ async function execWithProgress(command, description) {
         let stderr = '';
         
         proc.stdout.on('data', (data) => {
-            const lines = data.toString().split('\n').filter(line => line.trim());
+            const output = data.toString();
+            stdout += output;
+            const lines = output.split('\n').filter(line => line.trim());
             lines.forEach(line => {
-                if (line.trim()) {
-                    log(`  ${line.substring(0, 100)}`);
-                }
-                stdout += line + '\n';
+                log(`  ${line.substring(0, 100)}`);
             });
         });
         
         proc.stderr.on('data', (data) => {
-            const lines = data.toString().split('\n').filter(line => line.trim());
+            const output = data.toString();
+            stderr += output;
+            const lines = output.split('\n').filter(line => line.trim());
             lines.forEach(line => {
-                if (line.trim() && !line.includes('Duplicate entry')) {
+                if (!line.includes('Duplicate entry')) {
                     log(`  ⚠ ${line.substring(0, 100)}`);
                 }
-                stderr += line + '\n';
             });
         });
         
@@ -131,6 +131,11 @@ async function execWithProgress(command, description) {
             reject(new Error(`${description} process error: ${error.message}`));
         });
     });
+}
+
+// Execute bench command
+async function execBench(command, description) {
+    return execWithProgress(`bench ${command}`, description);
 }
 
 // Execute Python code using temp file
@@ -299,7 +304,7 @@ async function provision() {
         log('[2/5] Installing nexus_core app...');
         try {
             await execWithTimeout(
-                execWithProgress(`bench --site ${SITE_NAME} install-app nexus_core`, 'Installing nexus_core'),
+                execBench(`--site ${SITE_NAME} install-app nexus_core`, 'Installing nexus_core'),
                 TIMEOUTS.APP_INSTALL,
                 'App Install'
             );
@@ -309,7 +314,7 @@ async function provision() {
         }
 
         // ---------------------------------------------------------
-        // STEP 3: CREATE ADMIN USER
+        // STEP 3: CREATE ADMIN USER (using bench commands)
         // ---------------------------------------------------------
         log(`[3/5] Creating admin user: ${ADMIN_EMAIL}...`);
         
@@ -321,43 +326,54 @@ async function provision() {
         const firstName = nameParts[0] || 'Admin';
         const lastName = nameParts.slice(1).join(' ') || '';
 
-        const userScript = `
+        // Create system manager using bench command
+        log('Creating/updating system manager user...');
+        try {
+            await execBench(
+                `--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL}`,
+                'Creating system manager'
+            );
+        } catch (e) {
+            if (e.message.includes('already exists')) {
+                log('User already exists');
+            } else {
+                throw e;
+            }
+        }
+
+        // Set password using bench command
+        log('Setting user password...');
+        await execBench(
+            `--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`,
+            'Setting password'
+        );
+
+        // Update user details using Python
+        log('Updating user details...');
+        const updateUserScript = `
 from frappe.utils.password import update_password
 
-email = '${ADMIN_EMAIL}'
+user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+user.first_name = '${firstName}'
+user.last_name = '${lastName}'
+user.enabled = 1
 
-if frappe.db.exists('User', email):
-    user = frappe.get_doc('User', email)
-    user.enabled = 1
-    user.first_name = '${firstName}'
-    user.last_name = '${lastName}'
-    user.save(ignore_permissions=True)
-    print("User updated")
-else:
-    user = frappe.get_doc({
-        'doctype': 'User',
-        'email': email,
-        'first_name': '${firstName}',
-        'last_name': '${lastName}',
-        'enabled': 1,
-        'send_welcome_email': 0,
-        'user_type': 'System User'
-    })
-    user.insert(ignore_permissions=True)
+# Ensure System Manager role
+has_role = any(role.role == 'System Manager' for role in user.roles)
+if not has_role:
     user.add_roles('System Manager')
-    print("User created")
 
-update_password(user=email, pwd='${PASSWORD}', logout_all_sessions=0)
+user.save(ignore_permissions=True)
 frappe.db.commit()
-print("User configured successfully")
+print("User details updated")
 `;
 
         await execWithTimeout(
-            execPythonFile(userScript, SITE_NAME, 'Creating/updating user'),
+            execPythonFile(updateUserScript, SITE_NAME, 'Updating user details'),
             TIMEOUTS.USER_CREATION,
-            'User Creation'
+            'User Update'
         );
-        log('✓ User configured');
+        log('✓ User configured successfully');
 
         // ---------------------------------------------------------
         // STEP 4: SUBSCRIPTION SETTINGS
