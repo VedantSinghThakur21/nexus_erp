@@ -273,7 +273,8 @@ async function provisionTenantSite(
   }
 
   const authHeader = `token ${API_KEY}:${API_SECRET}`
-  const siteUrl = siteName
+  // Always store site_url with protocol for consistency
+  const siteUrl = siteName.startsWith('http') ? siteName : `https://${siteName}`
 
   try {
     console.log('Provisioning tenant:', { tenantName, companyName, email })

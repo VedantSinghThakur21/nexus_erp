@@ -237,13 +237,19 @@ export async function loginUser(usernameOrEmail: string, password: string) {
       }
     }
 
-    // Validate site_url format
-    if (!tenant.site_url || !tenant.site_url.startsWith('http')) {
-      console.error('Invalid site_url for tenant:', tenant.subdomain, tenant.site_url)
+    // Normalize site_url - add protocol if missing
+    if (!tenant.site_url) {
+      console.error('Missing site_url for tenant:', tenant.subdomain)
       return {
         success: false,
         error: 'Account configuration error. Please contact support.'
       }
+    }
+    
+    // Add protocol if missing
+    if (!tenant.site_url.startsWith('http')) {
+      tenant.site_url = `https://${tenant.site_url}`
+      console.log('Normalized site_url:', tenant.site_url)
     }
 
     // Step 2: Authenticate against the tenant's site
