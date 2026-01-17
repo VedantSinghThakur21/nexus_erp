@@ -82,10 +82,12 @@ async function ensureUserPermissions(
     // Python script to set user as System User with System Manager role
     const pythonScript = `
 import frappe
-frappe.init(site='${siteName}')
-frappe.connect()
+import sys
 
 try:
+    frappe.init(site='${siteName}')
+    frappe.connect()
+    
     user = frappe.get_doc('User', '${userEmail}')
     
     # Set user type to System User (not Website User)
@@ -113,11 +115,31 @@ try:
 except Exception as e:
     print('ERROR: ' + str(e))
     raise
+finally:
+    frappe.destroy()
 `
 
-    const updateUserCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && echo '${pythonScript}' | /home/frappe/frappe-bench/env/bin/python"`
+    // Write to temp file to avoid shell escaping issues
+    const { writeFileSync, unlinkSync } = await import('fs')
+    const { tmpdir } = await import('os')
+    const { join } = await import('path')
+    const tempFile = join(tmpdir(), `user_perms_${Date.now()}.py`)
+    const containerTempFile = `/tmp/user_perms_${Date.now()}.py`
+    
+    writeFileSync(tempFile, pythonScript, 'utf8')
+    
+    const copyCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${tempFile} backend:${containerTempFile}`
+    await execAsync(copyCmd)
+    
+    const updateUserCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend /home/frappe/frappe-bench/env/bin/python ${containerTempFile}`
     
     const result = await execAsync(updateUserCmd, { timeout: 30000 })
+    
+    // Cleanup temp files
+    try {
+      unlinkSync(tempFile)
+      await execAsync(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend rm -f ${containerTempFile}`).catch(() => {})
+    } catch (e) {}
     
     if (result.stdout.includes('SUCCESS')) {
       console.log('✅ User permissions configured successfully')
@@ -126,14 +148,33 @@ except Exception as e:
       const verifyScript = `
 import frappe
 import json
-frappe.init(site='${siteName}')
-frappe.connect()
-user = frappe.get_doc('User', '${userEmail}')
-roles = [r.role for r in user.roles]
-print(json.dumps({'user_type': user.user_type, 'roles': roles, 'enabled': user.enabled}))
+import sys
+
+try:
+    frappe.init(site='${siteName}')
+    frappe.connect()
+    user = frappe.get_doc('User', '${userEmail}')
+    roles = [r.role for r in user.roles]
+    print(json.dumps({'user_type': user.user_type, 'roles': roles, 'enabled': user.enabled}))
+finally:
+    frappe.destroy()
 `
-      const verifyCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && echo '${verifyScript}' | /home/frappe/frappe-bench/env/bin/python"`
+      const verifyTempFile = join(tmpdir(), `user_verify_${Date.now()}.py`)
+      const verifyContainerFile = `/tmp/user_verify_${Date.now()}.py`
+      
+      writeFileSync(verifyTempFile, verifyScript, 'utf8')
+      
+      const verifyCopyCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${verifyTempFile} backend:${verifyContainerFile}`
+      await execAsync(verifyCopyCmd)
+      
+      const verifyCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend /home/frappe/frappe-bench/env/bin/python ${verifyContainerFile}`
       const verifyResult = await execAsync(verifyCmd, { timeout: 15000 })
+      
+      // Cleanup verify temp files
+      try {
+        unlinkSync(verifyTempFile)
+        await execAsync(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend rm -f ${verifyContainerFile}`).catch(() => {})
+      } catch (e) {}
       
       console.log('👤 User verification:', verifyResult.stdout)
       
