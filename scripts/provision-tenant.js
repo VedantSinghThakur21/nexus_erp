@@ -149,7 +149,7 @@ async function execBench(command, description) {
     return execWithProgress(`bench ${command}`, description);
 }
 
-// Execute Python file using bench run-python
+// Execute Python file by running it directly with proper Frappe context
 async function execPythonFile(pythonCode, siteName, description) {
     const timestamp = Date.now();
     const filename = `provision_script_${timestamp}.py`;
@@ -157,16 +157,31 @@ async function execPythonFile(pythonCode, siteName, description) {
     const containerTempPath = `/tmp/${filename}`;
     
     try {
+        // Wrap code with frappe.init() and frappe.connect()
+        const wrappedCode = `
+import frappe
+import sys
+
+try:
+    frappe.init(site='${siteName}')
+    frappe.connect()
+    
+${pythonCode}
+    
+finally:
+    frappe.destroy()
+`;
+        
         // Write Python code to local temp file
-        await fs.writeFile(localTempPath, pythonCode, 'utf8');
+        await fs.writeFile(localTempPath, wrappedCode, 'utf8');
         
         // Copy file to Docker container
         const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
-        // Execute using bench run-python
+        // Execute using Python directly
         const result = await execWithProgress(
-            `bench --site ${siteName} run-python ${containerTempPath}`,
+            `/home/frappe/frappe-bench/env/bin/python ${containerTempPath}`,
             description
         );
         
