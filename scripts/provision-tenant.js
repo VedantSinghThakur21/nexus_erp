@@ -165,18 +165,15 @@ async function execBench(command, description) {
 // Execute Python file by running it directly with proper Frappe context
 async function execPythonFile(pythonCode, siteName, description) {
     const timestamp = Date.now();
-    const functionName = `exec_${timestamp}`;
     const filename = `provision_${timestamp}.py`;
     const containerTempPath = `/tmp/${filename}`;
     const localTempPath = path.join(os.tmpdir(), filename);
     
     try {
-        // Create a module with a function that bench execute can call
-        // This is the cleanest way to run Python code with Frappe context
+        // Wrap code - bench console will handle frappe.init automatically
         const wrappedCode = `import frappe
 
-def ${functionName}():
-${pythonCode.split('\n').map(line => '    ' + line).join('\n')}
+${pythonCode}
 `;
         
         // Write Python code to local temp file
@@ -186,9 +183,9 @@ ${pythonCode.split('\n').map(line => '    ' + line).join('\n')}
         const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
-        // Use bench execute which properly handles Frappe context
-        // This executes a Python function with full Frappe initialization
-        const benchCommand = `bench --site ${siteName} execute "import sys; sys.path.insert(0, '/tmp'); from ${filename.replace('.py', '')} import ${functionName}; ${functionName}()"`;
+        // Execute by piping the file to bench console via stdin
+        // bench console provides interactive IPython shell but we pipe input
+        const benchCommand = `bench --site ${siteName} console < ${containerTempPath}`;
         const result = await execWithProgress(
             benchCommand,
             description
@@ -608,14 +605,29 @@ print('===JSON_END===')
             'API Key Generation'
         );
         
-        // Extract JSON from output
-        const match = keysResult.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/);
+        // Extract JSON from output (filter out IPython prompts)
+        const match = keysResult.match(/===JSON_START===([\s\S]*?)===JSON_END===/m);
         
         if (!match) {
             throw new Error(`Failed to retrieve API keys. Output was:\n${keysResult}`);
         }
         
-        const keys = JSON.parse(match[1]);
+        // Clean up IPython noise from the JSON string
+        // Remove lines starting with 'In [', 'Out[', or other IPython prompts
+        const jsonString = match[1]
+            .split('\n')
+            .filter(line => {
+                const trimmed = line.trim();
+                return trimmed && 
+                       !trimmed.startsWith('In [') && 
+                       !trimmed.startsWith('Out[') &&
+                       !trimmed.startsWith('...:');
+            })
+            .join('\n')
+            .trim();
+        
+        log(`Extracted JSON: ${jsonString}`);
+        const keys = JSON.parse(jsonString);
         
         step5Timer.complete();
         outputProgress(5, 100, 'Workspace ready!');
