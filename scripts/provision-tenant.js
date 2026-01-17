@@ -11,6 +11,7 @@ const execPromise = util.promisify(exec);
 // CONFIGURATION
 // ============================================================================
 
+// Command line arguments
 const args = process.argv.slice(2);
 const SUBDOMAIN = args[0];
 const ADMIN_EMAIL = args[1];
@@ -27,56 +28,68 @@ if (!SUBDOMAIN || !ADMIN_EMAIL || !PASSWORD) {
     process.exit(1);
 }
 
-// Environment Config
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in';
-const SITE_NAME = `${SUBDOMAIN}.${ROOT_DOMAIN}`;
+const SITE_NAME = `${SUBDOMAIN}.avariq.in`;
 const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || path.join(os.homedir(), 'frappe_docker');
 const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
 const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'vedant@21';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const BENCH_PATH = '/home/frappe/frappe-bench';
 
-// Timeouts (ms)
+// Strict timeouts for each operation (fail-fast approach)
 const TIMEOUTS = {
-    SITE_CREATION: 300000,
-    APP_INSTALL: 180000,
-    USER_CREATION: 60000,
-    COMPANY_SETUP: 60000,
-    API_KEYS: 30000,
-    TOTAL: 600000
+    SITE_CREATION: 300000,    // 5 minutes
+    APP_INSTALL: 180000,      // 3 minutes
+    USER_CREATION: 60000,     // 1 minute
+    COMPANY_SETUP: 60000,     // 1 minute
+    API_KEYS: 30000,          // 30 seconds
+    TOTAL: 600000             // 10 minutes absolute max
 };
 
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
-function log(message) {
-    console.error(`[${new Date().toISOString().slice(11, 19)}] ${message}`);
+// Get timestamp for logging
+function ts() {
+    return new Date().toISOString().split('T')[1].slice(0, 8);
 }
 
+// Log with timestamp
+function log(message) {
+    console.error(`[${ts()}] ${message}`);
+}
+
+// Timer class for tracking operation duration
 class Timer {
     constructor(name) {
         this.name = name;
         this.start = Date.now();
     }
+    
     elapsed() {
-        return ((Date.now() - this.start) / 1000).toFixed(1);
+        return Math.floor((Date.now() - this.start) / 1000);
     }
+    
     complete() {
         log(`✓ ${this.name} completed in ${this.elapsed()}s`);
     }
 }
 
-// Execute with Timeout
+// Execute command with timeout and automatic process killing
 async function execWithTimeout(promise, timeoutMs, operationName) {
     let timeoutHandle;
+    
     const timeoutPromise = new Promise((_, reject) => {
         timeoutHandle = setTimeout(() => {
             log(`⏰ TIMEOUT: ${operationName} exceeded ${timeoutMs / 1000}s limit`);
-            reject(new Error(`${operationName} timeout`));
+            
+            // Attempt to kill any hanging processes
+            exec(`pkill -f "${operationName}"`, () => {});
+            
+            reject(new Error(`${operationName} timeout after ${timeoutMs / 1000}s`));
         }, timeoutMs);
     });
-
+    
     try {
         const result = await Promise.race([promise, timeoutPromise]);
         clearTimeout(timeoutHandle);
@@ -87,7 +100,7 @@ async function execWithTimeout(promise, timeoutMs, operationName) {
     }
 }
 
-// Execute command with real-time progress
+// Execute command in Docker container with real-time progress output
 async function execWithProgress(command, description) {
     return new Promise((resolve, reject) => {
         log(`🔧 ${description}...`);
@@ -100,22 +113,20 @@ async function execWithProgress(command, description) {
         let stderr = '';
         
         proc.stdout.on('data', (data) => {
-            const output = data.toString();
-            stdout += output;
-            const lines = output.split('\n').filter(line => line.trim());
+            const lines = data.toString().split('\n').filter(line => line.trim());
             lines.forEach(line => {
                 log(`  ${line.substring(0, 100)}`);
+                stdout += line + '\n';
             });
         });
         
         proc.stderr.on('data', (data) => {
-            const output = data.toString();
-            stderr += output;
-            const lines = output.split('\n').filter(line => line.trim());
+            const lines = data.toString().split('\n').filter(line => line.trim());
             lines.forEach(line => {
                 if (!line.includes('Duplicate entry')) {
                     log(`  ⚠ ${line.substring(0, 100)}`);
                 }
+                stderr += line + '\n';
             });
         });
         
@@ -138,84 +149,78 @@ async function execBench(command, description) {
     return execWithProgress(`bench ${command}`, description);
 }
 
-// Execute Python code using temp file
+// Execute Python file by running it directly with proper Frappe context
 async function execPythonFile(pythonCode, siteName, description) {
     const timestamp = Date.now();
     const filename = `provision_${timestamp}.py`;
-    const localTempPath = path.join(os.tmpdir(), filename);
     const containerTempPath = `/tmp/${filename}`;
-
+    const localTempPath = path.join(os.tmpdir(), filename);
+    
     try {
-        // Wrap code with frappe initialization
+        // Don't wrap with frappe.init - let bench handle it
         const wrappedCode = `
 import frappe
-import sys
-import os
 
-# Change to bench directory so Frappe can find sites/
-os.chdir('${BENCH_PATH}')
-
-frappe.init(site='${siteName}')
-frappe.connect()
-
-try:
-${pythonCode.split('\n').map(line => '    ' + line).join('\n')}
-finally:
-    frappe.destroy()
+${pythonCode}
 `;
-
-        // Write to local temp file
+        
+        // Write Python code to local temp file
         await fs.writeFile(localTempPath, wrappedCode, 'utf8');
-
-        // Copy to container
-        await execPromise(
-            `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`,
-            { maxBuffer: 10 * 1024 * 1024 }
-        );
-
-        // Execute using Python
+        
+        // Copy file to Docker container
+        const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
+        await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
+        
+        // Execute using bench console command which properly sets up the site context
+        const benchCommand = `cd ${BENCH_PATH} && bench --site ${siteName} console ${containerTempPath}`;
         const result = await execWithProgress(
-            `/home/frappe/frappe-bench/env/bin/python ${containerTempPath}`,
+            benchCommand,
             description
         );
         
         return result.stdout;
-
+        
     } finally {
-        // Cleanup
-        try { await fs.unlink(localTempPath); } catch(e){}
-        try { 
-            await execPromise(
-                `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} rm -f ${containerTempPath}`
-            );
-        } catch(e){}
+        // Cleanup temp files
+        try {
+            await fs.unlink(localTempPath).catch(() => {});
+            await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} rm -f ${containerTempPath}`).catch(() => {});
+        } catch (cleanupError) {
+            log(`⚠ Temp file cleanup warning: ${cleanupError.message}`);
+        }
     }
 }
 
-// Validate Site Exists
-async function siteExists(siteName) {
+// Validate site has all required configuration
+async function validateSite(siteName) {
     try {
-        await execPromise(
+        // Check site_config.json exists
+        const checkConfig = await execPromise(
             `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} test -f ${BENCH_PATH}/sites/${siteName}/site_config.json`,
             { timeout: 5000 }
         );
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-// Validate site has encryption_key
-async function validateSite(siteName) {
-    try {
-        const { stdout } = await execPromise(
+        
+        // Check encryption_key is present
+        const readConfig = await execPromise(
             `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} cat ${BENCH_PATH}/sites/${siteName}/site_config.json`,
             { timeout: 5000 }
         );
-        const config = JSON.parse(stdout);
+        
+        const config = JSON.parse(readConfig.stdout);
         
         if (!config.encryption_key) {
             log(`⚠ Missing encryption_key in site_config.json`);
+            return false;
+        }
+        
+        // Check database is accessible
+        const listApps = await execPromise(
+            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} bash -c "cd ${BENCH_PATH} && bench --site ${siteName} list-apps"`,
+            { timeout: 10000 }
+        );
+        
+        if (!listApps.stdout.includes('frappe')) {
+            log(`⚠ Database connection failed`);
             return false;
         }
         
@@ -231,25 +236,30 @@ async function ensureEncryptionKey(siteName) {
     try {
         log(`🔐 Adding encryption_key to site_config.json...`);
         
+        // Generate encryption key
         const encryptionKey = crypto.randomBytes(32).toString('base64');
         
-        const { stdout } = await execPromise(
+        // Read current config
+        const readConfig = await execPromise(
             `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} cat ${BENCH_PATH}/sites/${siteName}/site_config.json`,
             { timeout: 5000 }
         );
         
-        const config = JSON.parse(stdout);
+        const config = JSON.parse(readConfig.stdout);
         config.encryption_key = encryptionKey;
         
+        // Write updated config to temp file
+        const tempFile = `/tmp/site_config_${Date.now()}.json`;
         const localTempPath = path.join(os.tmpdir(), `site_config_${Date.now()}.json`);
-        const containerTempPath = `/tmp/site_config_${Date.now()}.json`;
         
-        await fs.writeFile(localTempPath, JSON.stringify(config, null, 1), 'utf8');
+        await fs.writeFile(localTempPath, JSON.stringify(config, null, 2), 'utf8');
         
-        await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`);
-        await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} cp ${containerTempPath} ${BENCH_PATH}/sites/${siteName}/site_config.json`);
-        await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} rm ${containerTempPath}`);
+        // Copy to container and replace
+        await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${tempFile}`);
+        await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} cp ${tempFile} ${BENCH_PATH}/sites/${siteName}/site_config.json`);
+        await execPromise(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} rm ${tempFile}`);
         
+        // Cleanup local temp
         await fs.unlink(localTempPath).catch(() => {});
         
         log(`✓ Encryption key added successfully`);
@@ -259,15 +269,28 @@ async function ensureEncryptionKey(siteName) {
     }
 }
 
+// Check if site already exists
+async function siteExists(siteName) {
+    try {
+        await execPromise(
+            `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T ${DOCKER_SERVICE} test -d ${BENCH_PATH}/sites/${siteName}`,
+            { timeout: 5000 }
+        );
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 // ============================================================================
-// MAIN LOGIC
+// MAIN PROVISIONING LOGIC
 // ============================================================================
 
 async function provision() {
     const totalTimer = new Timer('Full Provisioning');
     
-    // Heartbeat every 30 seconds
-    const heartbeat = setInterval(() => {
+    // Global heartbeat to show process is alive (every 30 seconds)
+    const heartbeatInterval = setInterval(() => {
         log(`⏱️  Still provisioning: ${totalTimer.elapsed()}s elapsed`);
     }, 30000);
     
@@ -275,149 +298,262 @@ async function provision() {
         log(`🚀 Starting provisioning for ${SITE_NAME}`);
         log(`📂 Docker Compose Dir: ${DOCKER_COMPOSE_DIR}`);
         log(`🏗️  Bench Path: ${BENCH_PATH}`);
+        log(`👤 Admin Email: ${ADMIN_EMAIL}`);
+        log(`🏢 Company: ${COMPANY_NAME}`);
+        log(`⏰ Total Timeout: ${TIMEOUTS.TOTAL / 1000}s`);
+        log('');
         
-        // ---------------------------------------------------------
+        // ====================================================================
         // STEP 1: CREATE SITE
-        // ---------------------------------------------------------
-        log('[1/5] Checking/creating site...');
-        if (await siteExists(SITE_NAME)) {
+        // ====================================================================
+        
+        log('[1/5] ═══════════════════════════════════════');
+        log('[1/5] STEP 1: Create Site');
+        const step1Timer = new Timer('Step 1');
+        
+        const exists = await siteExists(SITE_NAME);
+        
+        if (exists) {
             log(`✓ Site ${SITE_NAME} already exists`);
             
+            // Validate existing site
             const valid = await validateSite(SITE_NAME);
             if (!valid) {
                 await ensureEncryptionKey(SITE_NAME);
             }
+            
+            step1Timer.complete();
         } else {
-            const cmd = `bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket`;
+            log(`Creating new site: ${SITE_NAME}`);
+            
+            const createCommand = `bench new-site ${SITE_NAME} --admin-password '${ADMIN_PASSWORD}' --mariadb-root-password '${DB_ROOT_PASSWORD}' --no-mariadb-socket`;
+            
             await execWithTimeout(
-                execWithProgress(cmd, 'Creating site'),
+                execWithProgress(createCommand, 'Creating site'),
                 TIMEOUTS.SITE_CREATION,
                 'Site Creation'
             );
-            log(`✓ Site created successfully`);
             
+            // Validate and fix if needed
+            log(`Validating site configuration...`);
             const valid = await validateSite(SITE_NAME);
             if (!valid) {
                 await ensureEncryptionKey(SITE_NAME);
             }
+            
+            step1Timer.complete();
         }
-
-        // ---------------------------------------------------------
-        // STEP 2: INSTALL APP
-        // ---------------------------------------------------------
-        log('[2/5] Installing nexus_core app...');
-        try {
-            await execWithTimeout(
-                execBench(`--site ${SITE_NAME} install-app nexus_core`, 'Installing nexus_core'),
-                TIMEOUTS.APP_INSTALL,
-                'App Install'
-            );
-            log(`✓ nexus_core installed`);
-        } catch (e) {
-            log(`⚠ App install warning: ${e.message.split('\n')[0]}`);
-        }
-
-        // ---------------------------------------------------------
-        // STEP 3: CREATE ADMIN USER (using bench commands)
-        // ---------------------------------------------------------
-        log(`[3/5] Creating admin user: ${ADMIN_EMAIL}...`);
         
-        if (!await siteExists(SITE_NAME)) {
-            throw new Error(`Critical: Site ${SITE_NAME} not found`);
+        log('[1/5] ═══════════════════════════════════════');
+        log('');
+        
+        // ====================================================================
+        // STEP 2: INSTALL APP (if nexus_core exists)
+        // ====================================================================
+        
+        log('[2/5] ═══════════════════════════════════════');
+        log('[2/5] STEP 2: Install nexus_core app');
+        const step2Timer = new Timer('Step 2');
+        
+        try {
+            const listAppsResult = await execBench(
+                `--site ${SITE_NAME} list-apps`,
+                'Checking installed apps'
+            );
+            
+            if (listAppsResult.stdout.includes('nexus_core')) {
+                log(`✓ nexus_core already installed`);
+            } else {
+                log(`Installing nexus_core app...`);
+                
+                await execWithTimeout(
+                    execBench(
+                        `--site ${SITE_NAME} install-app nexus_core`,
+                        'Installing nexus_core'
+                    ),
+                    TIMEOUTS.APP_INSTALL,
+                    'App Installation'
+                );
+                
+                log(`✓ nexus_core installed successfully`);
+            }
+            
+            step2Timer.complete();
+        } catch (error) {
+            log(`⚠ App installation skipped: ${error.message}`);
         }
-
+        
+        log('[2/5] ═══════════════════════════════════════');
+        log('');
+        
+        // ====================================================================
+        // STEP 3: CREATE ADMIN USER
+        // ====================================================================
+        
+        log('[3/5] ═══════════════════════════════════════');
+        log('[3/5] STEP 3: Create Admin User');
+        const step3Timer = new Timer('Step 3');
+        
         const nameParts = FULL_NAME.trim().split(' ');
         const firstName = nameParts[0] || 'Admin';
         const lastName = nameParts.slice(1).join(' ') || '';
-
-        // Create system manager using bench command
-        log('Creating/updating system manager user...');
+        
+        log(`Creating user: ${ADMIN_EMAIL} (${firstName} ${lastName})`);
+        
+        // Create system manager user (without name flags as they're not supported)
         try {
-            await execBench(
+            const addUserResult = await execBench(
                 `--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL}`,
-                'Creating system manager'
+                'Creating system manager user'
             );
-        } catch (e) {
-            if (e.message.includes('already exists')) {
-                log('User already exists');
+            
+            if (addUserResult.stdout.includes('already exists') || addUserResult.stderr.includes('already exists')) {
+                log(`User already exists`);
+            }
+        } catch (error) {
+            if (error.message.includes('already exists')) {
+                log(`User already exists`);
             } else {
-                throw e;
+                throw error;
             }
         }
-
-        // Set password using bench command
-        log('Setting user password...');
-        await execBench(
-            `--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`,
-            'Setting password'
-        );
-
-        // Update user details using Python
-        log('Updating user details...');
-        const updateUserScript = `
-from frappe.utils.password import update_password
-
+        
+        // Update user's first and last name using Python
+        log(`Updating user name...`);
+        const updateNameCode = `
+import frappe
 user = frappe.get_doc('User', '${ADMIN_EMAIL}')
 user.first_name = '${firstName}'
 user.last_name = '${lastName}'
 user.enabled = 1
-
-# Ensure System Manager role
-has_role = any(role.role == 'System Manager' for role in user.roles)
-if not has_role:
-    user.add_roles('System Manager')
-
 user.save(ignore_permissions=True)
 frappe.db.commit()
-print("User details updated")
+print('Name updated successfully')
 `;
-
+        
+        await execPythonFile(updateNameCode, SITE_NAME, 'Updating user name');
+        
+        // Set password
+        log(`Setting user password...`);
         await execWithTimeout(
-            execPythonFile(updateUserScript, SITE_NAME, 'Updating user details'),
+            execBench(
+                `--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`,
+                'Setting user password'
+            ),
             TIMEOUTS.USER_CREATION,
-            'User Update'
+            'Password Update'
         );
-        log('✓ User configured successfully');
-
-        // ---------------------------------------------------------
-        // STEP 4: SUBSCRIPTION SETTINGS
-        // ---------------------------------------------------------
-        log('[4/5] Initializing subscription...');
-        const settingsScript = `
-if frappe.db.exists('DocType', 'SaaS Settings'):
-    if not frappe.db.exists('SaaS Settings', 'SaaS Settings'):
-        s = frappe.new_doc('SaaS Settings')
-        s.insert(ignore_permissions=True)
-    
-    doc = frappe.get_doc('SaaS Settings', 'SaaS Settings')
-    doc.plan_name = 'Free'
-    doc.max_users = 5
-    doc.save(ignore_permissions=True)
-    frappe.db.commit()
-    print("Settings initialized")
-else:
-    print("SaaS Settings DocType not found")
-`;
-
-        try {
-            await execWithTimeout(
-                execPythonFile(settingsScript, SITE_NAME, 'Initializing settings'),
-                TIMEOUTS.COMPANY_SETUP,
-                'Settings Init'
-            );
-            log('✓ Subscription set');
-        } catch (e) {
-            log('⚠ Settings initialization skipped (non-critical)');
-        }
-
-        // ---------------------------------------------------------
-        // STEP 5: GENERATE KEYS
-        // ---------------------------------------------------------
-        log('[5/5] Generating API keys...');
-        const keyScript = `
+        
+        // Verify user permissions
+        log(`Verifying user permissions...`);
+        const verifyUserCode = `
+import frappe
 import json
 
 user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+roles = [r.role for r in user.roles]
+
+print(json.dumps({
+    'user_type': user.user_type,
+    'roles': roles,
+    'enabled': user.enabled
+}))
+`;
+        
+        const verifyResult = await execPythonFile(
+            verifyUserCode,
+            SITE_NAME,
+            'Verifying user'
+        );
+        
+        log(`User details: ${verifyResult.substring(0, 200)}`);
+        
+        step3Timer.complete();
+        log('[3/5] ═══════════════════════════════════════');
+        log('');
+        
+        // ====================================================================
+        // STEP 4: CREATE COMPANY
+        // ====================================================================
+        
+        log('[4/5] ═══════════════════════════════════════');
+        log('[4/5] STEP 4: Create Company');
+        const step4Timer = new Timer('Step 4');
+        
+        try {
+            log(`Checking if company '${COMPANY_NAME}' exists...`);
+            
+            const companyCheckCode = `
+import frappe
+
+company_exists = frappe.db.exists('Company', '${COMPANY_NAME}')
+print('exists' if company_exists else 'not_exists')
+`;
+            
+            const checkResult = await execPythonFile(
+                companyCheckCode,
+                SITE_NAME,
+                'Checking company'
+            );
+            
+            if (checkResult.includes('exists')) {
+                log(`✓ Company already exists`);
+            } else {
+                log(`Creating company: ${COMPANY_NAME}`);
+                
+                // Generate safe abbreviation (alphanumeric only, max 5 chars)
+                const safeAbbr = COMPANY_NAME.replace(/[^a-zA-Z0-9]/g, '').substring(0, 5).toUpperCase() || 'COMP';
+                
+                const createCompanyCode = `
+import frappe
+
+company = frappe.new_doc('Company')
+company.company_name = '${COMPANY_NAME}'
+company.abbr = '${safeAbbr}'
+company.default_currency = 'USD'
+company.country = 'United States'
+
+company.insert(ignore_permissions=True)
+frappe.db.commit()
+
+print('Company created successfully')
+`;
+                
+                await execWithTimeout(
+                    execPythonFile(
+                        createCompanyCode,
+                        SITE_NAME,
+                        'Creating company'
+                    ),
+                    TIMEOUTS.COMPANY_SETUP,
+                    'Company Creation'
+                );
+                
+                log(`✓ Company created successfully`);
+            }
+            
+            step4Timer.complete();
+        } catch (error) {
+            log(`⚠ Company creation skipped (non-critical): ${error.message}`);
+        }
+        
+        log('[4/5] ═══════════════════════════════════════');
+        log('');
+        
+        // ====================================================================
+        // STEP 5: GENERATE API KEYS
+        // ====================================================================
+        
+        log('[5/5] ═══════════════════════════════════════');
+        log('[5/5] STEP 5: Generate API Keys');
+        const step5Timer = new Timer('Step 5');
+        
+        const generateKeysCode = `
+import frappe
+import json
+
+user = frappe.get_doc('User', '${ADMIN_EMAIL}')
+
 api_secret = frappe.generate_hash(length=15)
 
 if not user.api_key:
@@ -427,32 +563,44 @@ user.api_secret = api_secret
 user.save(ignore_permissions=True)
 frappe.db.commit()
 
-print("===JSON_START===")
+print('===JSON_START===')
 print(json.dumps({
-    "api_key": user.api_key,
-    "api_secret": api_secret
+    'api_key': user.api_key,
+    'api_secret': api_secret
 }))
-print("===JSON_END===")
+print('===JSON_END===')
 `;
-
-        const output = await execWithTimeout(
-            execPythonFile(keyScript, SITE_NAME, 'Generating API keys'),
+        
+        log(`Generating API keys for ${ADMIN_EMAIL}...`);
+        
+        const keysResult = await execWithTimeout(
+            execPythonFile(
+                generateKeysCode,
+                SITE_NAME,
+                'Generating API keys'
+            ),
             TIMEOUTS.API_KEYS,
             'API Key Generation'
         );
         
-        const match = output.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/);
+        // Extract JSON from output
+        const match = keysResult.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/);
         
         if (!match) {
-            throw new Error(`Could not parse API keys. Output: ${output.substring(0, 200)}`);
+            throw new Error(`Failed to retrieve API keys. Output was:\n${keysResult}`);
         }
         
         const keys = JSON.parse(match[1]);
-
+        
+        step5Timer.complete();
+        log('[5/5] ═══════════════════════════════════════');
+        log('');
+        
         // ====================================================================
-        // SUCCESS
+        // COMPLETION
         // ====================================================================
-        clearInterval(heartbeat);
+        
+        clearInterval(heartbeatInterval);
         totalTimer.complete();
         
         log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -460,6 +608,7 @@ print("===JSON_END===")
         log(`⏱️  Total time: ${totalTimer.elapsed()}s`);
         log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
+        // Output success JSON to stdout
         console.log(JSON.stringify({
             success: true,
             site: SITE_NAME,
@@ -470,23 +619,23 @@ print("===JSON_END===")
             organizationName: COMPANY_NAME,
             duration: `${totalTimer.elapsed()}s`
         }));
-
-        process.exit(0);
-
+        
     } catch (error) {
-        clearInterval(heartbeat);
+        clearInterval(heartbeatInterval);
         
         log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         log(`❌ PROVISIONING FAILED after ${totalTimer.elapsed()}s`);
         log(`❌ Error: ${error.message}`);
         log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
+        // Output error JSON to stdout
         console.log(JSON.stringify({
             success: false,
             error: error.message,
-            site: SITE_NAME,
+            stack: error.stack,
             duration: `${totalTimer.elapsed()}s`
         }));
+        
         process.exit(1);
     }
 }
@@ -498,7 +647,7 @@ print("===JSON_END===")
 async function provisionWithTimeout() {
     const globalTimeoutPromise = new Promise((_, reject) =>
         setTimeout(() => {
-            log(`❌ FATAL: Global timeout after ${TIMEOUTS.TOTAL / 1000}s`);
+            log(`❌ FATAL: Global timeout after ${TIMEOUTS.TOTAL / 1000}s (10 minutes)`);
             reject(new Error(`Provisioning timeout after ${TIMEOUTS.TOTAL / 1000} seconds`));
         }, TIMEOUTS.TOTAL)
     );
@@ -509,10 +658,12 @@ async function provisionWithTimeout() {
         log(`❌ FATAL: ${error.message}`);
         console.log(JSON.stringify({
             success: false,
-            error: error.message
+            error: error.message,
+            stack: error.stack
         }));
         process.exit(1);
     }
 }
 
+// Start provisioning
 provisionWithTimeout();
