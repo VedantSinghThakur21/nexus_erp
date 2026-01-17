@@ -245,7 +245,7 @@ async function provisionTenantSite(
       },
     })
 
-    const tenantExists = checkTenantResponse.ok
+    let tenantExists = checkTenantResponse.ok
 
     // If tenant exists but site doesn't exist, we need to recreate everything
     // This handles cases where tenant record exists but site was dropped
