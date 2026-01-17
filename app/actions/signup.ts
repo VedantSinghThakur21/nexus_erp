@@ -224,14 +224,15 @@ async function provisionTenantSite(
   tenantName: string,
   adminPassword: string,
   companyName: string,
-  email: string
+  email: string,
+  siteName: string
 ): Promise<SignupResult> {
   if (!API_KEY || !API_SECRET) {
     throw new Error('Server configuration error: API credentials not found')
   }
 
   const authHeader = `token ${API_KEY}:${API_SECRET}`
-  const siteUrl = `${tenantName}.${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'}`
+  const siteUrl = siteName
 
   try {
     console.log('Provisioning tenant:', { tenantName, companyName, email })
@@ -454,7 +455,7 @@ export async function signupUser(formData: FormData) {
     }
 
     // 4. Create Tenant record in master site for tracking (only if site provisioning succeeded)
-    const result = await provisionTenantSite(tenantName, password, companyName, email)
+    const result = await provisionTenantSite(tenantName, password, companyName, email, siteName)
 
     if (!result.success) {
       return result
