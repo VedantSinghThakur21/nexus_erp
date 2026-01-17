@@ -226,9 +226,12 @@ async function provisionFrappeSite(
     console.log('🏗️ Site needs provisioning - starting background process')
     
     const scriptPath = process.cwd() + '/scripts/provision-tenant.js'
+    // Pass arguments in correct order: subdomain, email, fullname, password, companyName
+    // Use companyName as fullname since we don't have a separate field
     const provisionCmd = `node "${scriptPath}" "${siteName.split('.')[0]}" "${adminEmail}" "${companyName}" "${adminPassword}" "${companyName}"`
     
     console.log('📝 Executing provisioning script (background)...')
+    console.log('🔐 Using password from signup for tenant admin user')
     
     // Execute in background with detached process
     exec(provisionCmd, (error, stdout, stderr) => {
