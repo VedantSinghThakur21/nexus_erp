@@ -30,6 +30,15 @@ const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const BENCH_PATH = '/home/frappe/frappe-bench';
 
+// Strict timeouts for each operation (fail-fast approach)
+const TIMEOUTS = {
+    SITE_CREATE: 300000,   // 5 minutes max
+    APP_INSTALL: 180000,   // 3 minutes max
+    USER_CREATE: 60000,    // 1 minute max
+    COMPANY_CREATE: 60000, // 1 minute max
+    API_KEYS: 30000        // 30 seconds max
+};
+
 // Utility to get timestamp for logging
 function timestamp() {
     return new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -57,6 +66,22 @@ class OperationTimer {
     
     complete() {
         logProgress(`✓ ${this.name} completed in ${this.elapsed()}s`);
+    }
+}
+
+// Timeout wrapper for fail-fast approach
+async function withTimeout(promise, timeoutMs, operationName) {
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`${operationName} timeout after ${timeoutMs/1000}s`)), timeoutMs)
+    );
+    
+    try {
+        return await Promise.race([promise, timeoutPromise]);
+    } catch (error) {
+        if (error.message.includes('timeout')) {
+            logProgress(`⏰ TIMEOUT: ${operationName} exceeded ${timeoutMs/1000}s limit`);
+        }
+        throw error;
     }
 }
 
@@ -167,6 +192,9 @@ async function execPythonFile(pythonCode, siteName, throwOnError = true) {
             console.error(`Warning: Temp file cleanup failed: ${cleanupError.message}`);
         }
     }
+}
+
+// Check if site is properly initialized (now checks for site_config.json)
 async function isSiteValid(siteName) {
     try {
         // Check 1: site_config.json exists (critical file)
@@ -270,7 +298,21 @@ async function provision() {
                 createTimer.log('Site creation in progress... (Database initialization can take time)');
             }, 15000);
             
-            await execInContainer(createSiteCommand, true, 600000);
+            try {
+                await withTimeout(
+                    execInContainer(createSiteCommand, true, TIMEOUTS.SITE_CREATE),
+                    TIMEOUTS.SITE_CREATE,
+                    'Site Creation'
+                );
+            } catch (err) {
+                clearInterval(siteCreationHeartbeat);
+                if (err.message.includes('timeout')) {
+                    // Kill any hanging processes
+                    await execInContainer(`pkill -f "new-site ${SITE_NAME}"`, false, 5000, false);
+                    throw new Error(`Site creation timeout - killed after ${TIMEOUTS.SITE_CREATE/1000}s. Check Docker/MariaDB status.`);
+                }
+                throw err;
+            }
             
             clearInterval(siteCreationHeartbeat);
             createTimer.complete();
@@ -303,7 +345,11 @@ async function provision() {
             } else {
                 logProgress('⏳ Installing nexus_core (30-60 seconds expected)...');
                 const installTimer = new OperationTimer('App Installation');
-                await execBench(`--site ${SITE_NAME} install-app nexus_core`, false);
+                await withTimeout(
+                    execBench(`--site ${SITE_NAME} install-app nexus_core`, false),
+                    TIMEOUTS.APP_INSTALL,
+                    'App Installation'
+                );
                 installTimer.complete();
                 step2Timer.complete();
                 logProgress('✓ App installed successfully');
@@ -330,7 +376,11 @@ async function provision() {
             logProgress('Creating system manager user...');
             const userTimer = new OperationTimer('User Creation');
             
-            const addUserResult = await execBench(`--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL} --first-name "${firstName}" --last-name "${lastName}"`, false);
+            const addUserResult = await withTimeout(
+                execBench(`--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL} --first-name "${firstName}" --last-name "${lastName}"`, false),
+                TIMEOUTS.USER_CREATE,
+                'User Creation'
+            );
             
             if (!addUserResult.success) {
                 if (addUserResult.stderr.includes('already exists') || addUserResult.stdout.includes('already exists')) {
@@ -344,7 +394,11 @@ async function provision() {
             
             logProgress('Setting user password...');
             const passwordTimer = new OperationTimer('Password Update');
-            await execBench(`--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`, true);
+            await withTimeout(
+                execBench(`--site ${SITE_NAME} set-password ${ADMIN_EMAIL} ${PASSWORD}`, true),
+                TIMEOUTS.USER_CREATE,
+                'Password Update'
+            );
             passwordTimer.complete();
             
             logProgress('Verifying user permissions...');
@@ -379,7 +433,11 @@ async function provision() {
                 const companyTimer = new OperationTimer('Company Creation');
                 const createCompanyCode = `company = frappe.new_doc('Company'); company.company_name = '${COMPANY_NAME}'; company.abbr = '${COMPANY_NAME.substring(0, 5).toUpperCase()}'; company.default_currency = 'USD'; company.country = 'United States'; company.insert(ignore_permissions=True); frappe.db.commit(); print('Company created')`;
                 
-                await runPythonScript(SITE_NAME, createCompanyCode, true);
+                await withTimeout(
+                    runPythonScript(SITE_NAME, createCompanyCode, true),
+                    TIMEOUTS.COMPANY_CREATE,
+                    'Company Creation'
+                );
                 companyTimer.complete();
                 step4Timer.complete();
                 logProgress('✓ Company created successfully');
@@ -418,7 +476,11 @@ print(json.dumps({'api_key': user.api_key, 'api_secret': api_secret}))
 print('===JSON_END===')`;
         
         logProgress('Executing API key generation...');
-        const keysResult = await execPythonFile(generateKeysCode, SITE_NAME, true);
+        const keysResult = await withTimeout(
+            execPythonFile(generateKeysCode, SITE_NAME, true),
+            TIMEOUTS.API_KEYS,
+            'API Key Generation'
+        );
         
         logProgress('Parsing API key response...');
         // Extract JSON from output
