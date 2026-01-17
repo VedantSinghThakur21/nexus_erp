@@ -247,13 +247,37 @@ async function provisionTenantSite(
 
     const tenantExists = checkTenantResponse.ok
 
+    // If tenant exists but site doesn't exist, we need to recreate everything
+    // This handles cases where tenant record exists but site was dropped
     if (tenantExists) {
-      console.log('✅ Tenant already exists:', tenantName)
-      // Tenant exists, now ensure User exists too
-    } else {
+      console.log('✅ Tenant record exists:', tenantName)
+
+      // Check if the actual site exists
+      const siteExists = await verifySiteExists(siteName)
+      if (!siteExists) {
+        console.log('⚠️ Tenant record exists but site is missing - will recreate site')
+
+        // Delete the old tenant record so we can recreate it
+        try {
+          const deleteTenantEndpoint = `${BASE_URL}/api/resource/Tenant/${tenantName}`
+          await fetch(deleteTenantEndpoint, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': authHeader,
+            },
+          })
+          console.log('🗑️ Deleted old tenant record')
+          tenantExists = false // Force recreation
+        } catch (deleteError) {
+          console.warn('⚠️ Could not delete old tenant record, continuing anyway')
+        }
+      }
+    }
+
+    if (!tenantExists) {
       // Step 2: Create Tenant if it doesn't exist
       const tenantEndpoint = `${BASE_URL}/api/resource/Tenant`
-      
+
       const tenantResponse = await fetch(tenantEndpoint, {
         method: 'POST',
         headers: {
@@ -277,7 +301,7 @@ async function provisionTenantSite(
       if (!tenantResponse.ok) {
         const tenantData = await tenantResponse.json()
         console.error('Tenant creation error:', tenantData)
-        
+
         // If duplicate error (race condition), treat as success
         if (tenantData.exception && tenantData.exception.includes('DuplicateEntryError')) {
           console.log('✅ Tenant already exists (race condition)')
@@ -316,7 +340,7 @@ async function provisionTenantSite(
     // Step 4: Create User if doesn't exist
     const userEndpoint = `${BASE_URL}/api/resource/User`
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
-    
+
     const userResponse = await fetch(userEndpoint, {
       method: 'POST',
       headers: {
@@ -338,7 +362,7 @@ async function provisionTenantSite(
     if (!userResponse.ok) {
       const userData = await userResponse.json()
       console.error('User creation error:', userData)
-      
+
       // If duplicate error (race condition), treat as success
       if (userData.exception && userData.exception.includes('DuplicateEntryError')) {
         console.log('✅ User already exists (race condition)')
@@ -348,7 +372,7 @@ async function provisionTenantSite(
           tenant_name: tenantName,
         }
       }
-      
+
       return {
         success: false,
         error: userData.exception || userData.message || 'Failed to create user account',
@@ -428,26 +452,21 @@ export async function signupUser(formData: FormData) {
         error: siteResult.error || 'Failed to provision tenant site',
       }
     }
-    
-    // If provisioning is happening in background, notify user
-    if (siteResult.isBackground) {
-      console.log('⏳ Site provisioning started in background - may take 2-3 minutes')
-    }
 
-    // 4. Create Tenant record in master site for tracking
+    // 4. Create Tenant record in master site for tracking (only if site provisioning succeeded)
     const result = await provisionTenantSite(tenantName, password, companyName, email)
 
     if (!result.success) {
       return result
     }
 
-    // 5. If background provisioning, redirect to status page immediately
+    // If background provisioning, redirect to status page immediately
     if (siteResult.isBackground) {
       console.log('🔀 Redirecting to provisioning status page')
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
       const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000'
       const statusUrl = `${protocol}://${baseHost}/provisioning?tenant=${result.tenant_name || tenantName}&email=${encodeURIComponent(email)}`
-      
+
       redirect(statusUrl)
     }
 
