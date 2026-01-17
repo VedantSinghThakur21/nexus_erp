@@ -199,12 +199,18 @@ async function provision() {
         // STEP 3: CREATE ADMIN USER
         // ---------------------------------------------------------
         log(`[3/5] Creating admin user: ${ADMIN_EMAIL}...`);
+        
+        // Validate site path exists before running python
+        if (!(await siteExists(SITE_NAME))) {
+            throw new Error(`Site ${SITE_NAME} missing after creation step. Provisioning aborted.`);
+        }
+
         const userScript = `
 import frappe
 from frappe.utils.password import update_password
 
-# Initialize WITHOUT sites_path argument to allow default resolution
-frappe.init(site='${SITE_NAME}')
+# Initialize with explicit sites_path='.' to fix IncorrectSitePath error
+frappe.init(site='${SITE_NAME}', sites_path='.')
 frappe.connect()
 
 try:
@@ -250,7 +256,8 @@ finally:
         log('[4/5] Initializing subscription...');
         const settingsScript = `
 import frappe
-frappe.init(site='${SITE_NAME}')
+# Initialize with explicit sites_path='.'
+frappe.init(site='${SITE_NAME}', sites_path='.')
 frappe.connect()
 try:
     if frappe.db.exists('DocType', 'SaaS Settings'):
@@ -280,7 +287,8 @@ import frappe
 import json
 import sys
 
-frappe.init(site='${SITE_NAME}')
+# Initialize with explicit sites_path='.'
+frappe.init(site='${SITE_NAME}', sites_path='.')
 frappe.connect()
 
 try:
