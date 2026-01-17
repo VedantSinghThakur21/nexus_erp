@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default function ProvisioningPage() {
+function ProvisioningContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tenant = searchParams.get('tenant')
@@ -232,5 +232,31 @@ export default function ProvisioningPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function ProvisioningPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <Card className="w-full max-w-2xl">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold">🚀 Setting Up Your Workspace</CardTitle>
+            <CardDescription className="text-lg mt-2">
+              Please wait while we create your dedicated ERPNext instance
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <div className="flex space-x-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <ProvisioningContent />
+    </Suspense>
   )
 }
