@@ -112,8 +112,6 @@ async function execPythonFile(pythonCode, siteName, description) {
 
     try {
         // Prepare Python Code with proper Context Setup
-        // FIX: Force working directory to BENCH_PATH before importing frappe
-        // FIX: Remove sites_path='.' from frappe.init to allow default resolution
         const wrappedCode = `
 import sys
 import os
@@ -210,8 +208,8 @@ async function provision() {
 import frappe
 from frappe.utils.password import update_password
 
-# Initialize without explicit sites_path to use default bench config
-frappe.init(site='${SITE_NAME}')
+# FIX: Initialize with explicit sites_path='sites' to locate the site folder
+frappe.init(site='${SITE_NAME}', sites_path='sites')
 frappe.connect()
 
 try:
@@ -257,7 +255,8 @@ finally:
         log('[4/5] Initializing subscription...');
         const settingsScript = `
 import frappe
-frappe.init(site='${SITE_NAME}')
+# FIX: Explicit sites_path='sites'
+frappe.init(site='${SITE_NAME}', sites_path='sites')
 frappe.connect()
 try:
     if frappe.db.exists('DocType', 'SaaS Settings'):
@@ -287,7 +286,8 @@ import frappe
 import json
 import sys
 
-frappe.init(site='${SITE_NAME}')
+# FIX: Explicit sites_path='sites'
+frappe.init(site='${SITE_NAME}', sites_path='sites')
 frappe.connect()
 
 try:
