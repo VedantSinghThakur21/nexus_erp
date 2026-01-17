@@ -12,15 +12,10 @@ const nextConfig: NextConfig = {
     },
   },
   
-  // For long-running server actions (signup/provisioning)
-  // Increase timeout to 5 minutes (300 seconds)
-  serverActions: {
-    bodySizeLimit: '10mb',
-  },
-  
   // Note: For deployment timeout configuration (long-running operations):
   // - Vercel: Add maxDuration to vercel.json
   // - Self-hosted: PM2 handles this via ecosystem.config.js
+  // - Nginx: proxy_read_timeout should be set to 300s or more
   // - Nginx: proxy_read_timeout should be set to 300s or more
   
   // Security headers for production
