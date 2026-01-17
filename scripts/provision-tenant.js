@@ -161,10 +161,10 @@ PYTHON_CODE_EOF`;
     return execInContainer(command, throwOnError);
 }
 
-// Helper to execute Python code via temp file using bench run-python (production-grade approach)
+// Helper to execute Python code via temp file using bench console (production-grade approach)
 async function execPythonFile(pythonCode, siteName, throwOnError = true) {
     const timestamp = Date.now();
-    const filename = `provision_api_keys_${timestamp}.py`;
+    const filename = `provision_script_${timestamp}.py`;
     const localTempPath = path.join(os.tmpdir(), filename);
     const containerTempPath = `/tmp/${filename}`;
     
@@ -176,9 +176,9 @@ async function execPythonFile(pythonCode, siteName, throwOnError = true) {
         const copyCommand = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${localTempPath} ${DOCKER_SERVICE}:${containerTempPath}`;
         await execPromise(copyCommand, { maxBuffer: 10 * 1024 * 1024 });
         
-        // 3. Execute using direct Python with frappe context (NOT bench execute which expects method names)
+        // 3. Execute using bench console with heredoc (properly handles Frappe context and site paths)
         const result = await execInContainer(
-            `/home/frappe/frappe-bench/env/bin/python -c "import frappe; frappe.init(site='${siteName}'); frappe.connect(); exec(open('${containerTempPath}').read())"`,
+            `bench --site ${siteName} console <<'FRAPPE_SCRIPT_EOF'\nexec(open('${containerTempPath}').read())\nexit()\nFRAPPE_SCRIPT_EOF`,
             throwOnError
         );
         
