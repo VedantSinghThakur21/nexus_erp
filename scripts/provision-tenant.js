@@ -190,10 +190,7 @@ async function provision() {
         
         try {
             // Check if user exists
-            const userCheckCode = `
-                user_exists = frappe.db.exists('User', '${ADMIN_EMAIL}')
-                print('exists' if user_exists else 'not_exists')
-            `;
+            const userCheckCode = `user_exists = frappe.db.exists('User', '${ADMIN_EMAIL}'); print('exists' if user_exists else 'not_exists')`;
             
             const userCheck = await runPythonScript(SITE_NAME, userCheckCode, false);
             
@@ -201,29 +198,7 @@ async function provision() {
                 console.error('User already exists, updating...');
                 
                 // Update existing user with SYSTEM USER type and System Manager role
-                const updateUserCode = `
-                    from frappe.utils.password import update_password
-                    user = frappe.get_doc('User', '${ADMIN_EMAIL}')
-                    
-                    # CRITICAL: Set as System User (not Website User)
-                    user.user_type = 'System User'
-                    user.enabled = 1
-                    user.first_name = '${firstName}'
-                    user.last_name = '${lastName}'
-                    
-                    # Ensure System Manager role exists
-                    has_role = any(role.role == 'System Manager' for role in user.roles)
-                    if not has_role:
-                        user.append('roles', {'role': 'System Manager'})
-                    
-                    user.save(ignore_permissions=True)
-                    update_password(user='${ADMIN_EMAIL}', pwd='${PASSWORD}', logout_all_sessions=0)
-                    frappe.db.commit()
-                    
-                    # Verify
-                    roles = [r.role for r in user.roles]
-                    print(f'User updated: type={user.user_type}, roles={roles}')
-                `;
+                const updateUserCode = `from frappe.utils.password import update_password; user = frappe.get_doc('User', '${ADMIN_EMAIL}'); user.user_type = 'System User'; user.enabled = 1; user.first_name = '${firstName}'; user.last_name = '${lastName}'; has_role = any(role.role == 'System Manager' for role in user.roles); user.append('roles', {'role': 'System Manager'}) if not has_role else None; user.save(ignore_permissions=True); update_password(user='${ADMIN_EMAIL}', pwd='${PASSWORD}', logout_all_sessions=0); frappe.db.commit(); roles = [r.role for r in user.roles]; print('User updated: type=' + user.user_type + ', roles=' + str(roles))`;
                 
                 await runPythonScript(SITE_NAME, updateUserCode, true);
             } else {
@@ -233,29 +208,7 @@ async function provision() {
                 await execBench(`--site ${SITE_NAME} add-system-manager ${ADMIN_EMAIL}`, true);
                 
                 // Set password and update details with SYSTEM USER type
-                const createUserCode = `
-                    from frappe.utils.password import update_password
-                    user = frappe.get_doc('User', '${ADMIN_EMAIL}')
-                    
-                    # CRITICAL: Ensure System User type
-                    user.user_type = 'System User'
-                    user.enabled = 1
-                    user.first_name = '${firstName}'
-                    user.last_name = '${lastName}'
-                    
-                    # Verify System Manager role
-                    has_role = any(role.role == 'System Manager' for role in user.roles)
-                    if not has_role:
-                        user.append('roles', {'role': 'System Manager'})
-                    
-                    user.save(ignore_permissions=True)
-                    update_password(user='${ADMIN_EMAIL}', pwd='${PASSWORD}', logout_all_sessions=0)
-                    frappe.db.commit()
-                    
-                    # Verify
-                    roles = [r.role for r in user.roles]
-                    print(f'User created: type={user.user_type}, roles={roles}')
-                `;
+                const createUserCode = `from frappe.utils.password import update_password; user = frappe.get_doc('User', '${ADMIN_EMAIL}'); user.user_type = 'System User'; user.enabled = 1; user.first_name = '${firstName}'; user.last_name = '${lastName}'; has_role = any(role.role == 'System Manager' for role in user.roles); user.append('roles', {'role': 'System Manager'}) if not has_role else None; user.save(ignore_permissions=True); update_password(user='${ADMIN_EMAIL}', pwd='${PASSWORD}', logout_all_sessions=0); frappe.db.commit(); roles = [r.role for r in user.roles]; print('User created: type=' + user.user_type + ', roles=' + str(roles))`;
                 
                 await runPythonScript(SITE_NAME, createUserCode, true);
             }
@@ -264,18 +217,7 @@ async function provision() {
             
             // Verification step
             console.error('Verifying user permissions...');
-            const verifyCode = `
-                import json
-                user = frappe.get_doc('User', '${ADMIN_EMAIL}')
-                roles = [r.role for r in user.roles]
-                result = {
-                    'user_type': user.user_type,
-                    'roles': roles,
-                    'enabled': user.enabled,
-                    'has_system_manager': 'System Manager' in roles
-                }
-                print(json.dumps(result))
-            `;
+            const verifyCode = `import json; user = frappe.get_doc('User', '${ADMIN_EMAIL}'); roles = [r.role for r in user.roles]; result = {'user_type': user.user_type, 'roles': roles, 'enabled': user.enabled, 'has_system_manager': 'System Manager' in roles}; print(json.dumps(result))`;
             const verifyResult = await runPythonScript(SITE_NAME, verifyCode, false);
             console.error('User verification:', verifyResult.stdout);
             
@@ -286,26 +228,14 @@ async function provision() {
         // 4. Create Company
         console.error('[4/5] Creating company...');
         try {
-            const companyCheckCode = `
-                company_exists = frappe.db.exists('Company', '${COMPANY_NAME}')
-                print('exists' if company_exists else 'not_exists')
-            `;
+            const companyCheckCode = `company_exists = frappe.db.exists('Company', '${COMPANY_NAME}'); print('exists' if company_exists else 'not_exists')`;
             
             const companyCheck = await runPythonScript(SITE_NAME, companyCheckCode, false);
             
             if (companyCheck.stdout.includes('exists')) {
                 console.error('✓ Company already exists');
             } else {
-                const createCompanyCode = `
-                    company = frappe.new_doc('Company')
-                    company.company_name = '${COMPANY_NAME}'
-                    company.abbr = '${COMPANY_NAME.substring(0, 5).toUpperCase()}'
-                    company.default_currency = 'USD'
-                    company.country = 'United States'
-                    company.insert(ignore_permissions=True)
-                    frappe.db.commit()
-                    print('Company created')
-                `;
+                const createCompanyCode = `company = frappe.new_doc('Company'); company.company_name = '${COMPANY_NAME}'; company.abbr = '${COMPANY_NAME.substring(0, 5).toUpperCase()}'; company.default_currency = 'USD'; company.country = 'United States'; company.insert(ignore_permissions=True); frappe.db.commit(); print('Company created')`;
                 
                 await runPythonScript(SITE_NAME, createCompanyCode, true);
                 console.error('✓ Company created successfully');
@@ -317,19 +247,7 @@ async function provision() {
         // 5. Generate API Keys
         console.error('[5/5] Generating API keys...');
         
-        const generateKeysCode = `
-            import json
-            user = frappe.get_doc('User', '${ADMIN_EMAIL}')
-            api_secret = frappe.generate_hash(length=15)
-            if not user.api_key:
-                user.api_key = frappe.generate_hash(length=15)
-            user.api_secret = api_secret
-            user.save(ignore_permissions=True)
-            frappe.db.commit()
-            print('===JSON_START===')
-            print(json.dumps({'api_key': user.api_key, 'api_secret': api_secret}))
-            print('===JSON_END===')
-        `;
+        const generateKeysCode = `import json; user = frappe.get_doc('User', '${ADMIN_EMAIL}'); api_secret = frappe.generate_hash(length=15); user.api_key = user.api_key or frappe.generate_hash(length=15); user.api_secret = api_secret; user.save(ignore_permissions=True); frappe.db.commit(); print('===JSON_START==='); print(json.dumps({'api_key': user.api_key, 'api_secret': api_secret})); print('===JSON_END===')`;
         
         const keysResult = await runPythonScript(SITE_NAME, generateKeysCode, true);
         
