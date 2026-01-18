@@ -1,7 +1,100 @@
 'use server'
 
 import { cookies } from 'next/headers'
-import { frappeRequest, userRequest } from '@/app/lib/api'
+
+/**
+ * Enhanced Frappe API request helper with proper multi-tenancy support
+ */
+export async function frappeRequest(
+  method: string,
+  httpMethod: 'GET' | 'POST' = 'POST',
+  params: any = {},
+  options: { useUserSession?: boolean; forceSite?: string } = {}
+) {
+  const cookieStore = await cookies()
+  const userType = cookieStore.get('user_type')?.value
+  const tenantSubdomain = cookieStore.get('tenant_subdomain')?.value
+  const sid = cookieStore.get('sid')?.value
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  // CRITICAL FIX: Add X-Frappe-Site-Name header for tenant users
+  let siteNameToUse: string | undefined
+  
+  if (options.forceSite) {
+    siteNameToUse = options.forceSite
+  } else if (userType === 'tenant' && tenantSubdomain) {
+    // Use full domain format: subdomain.rootdomain
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+    siteNameToUse = `${tenantSubdomain}.${rootDomain}`
+  }
+
+  if (siteNameToUse) {
+    headers['X-Frappe-Site-Name'] = siteNameToUse
+    console.log(`[frappeRequest] Targeting site: ${siteNameToUse}`)
+  } else {
+    console.log(`[frappeRequest] Targeting master site`)
+  }
+
+  // Authentication
+  if (options.useUserSession !== false && sid) {
+    // Use session cookie for user-context requests
+    headers['Cookie'] = `sid=${sid}`
+    console.log(`[frappeRequest] Using session auth (sid: ${sid.substring(0, 8)}...)`)
+  } else {
+    // Use API key for admin/system requests
+    const apiKey = process.env.ERP_API_KEY
+    const apiSecret = process.env.ERP_API_SECRET
+    if (apiKey && apiSecret) {
+      headers['Authorization'] = `token ${apiKey}:${apiSecret}`
+      console.log(`[frappeRequest] Using API key auth`)
+    }
+  }
+
+  const baseUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
+  const url = `${baseUrl}/api/method/${method}`
+
+  console.log(`[frappeRequest] ${httpMethod} ${method}`)
+  console.log(`[frappeRequest] Site: ${siteNameToUse || '(master)'}`)
+
+  try {
+    const fetchOptions: RequestInit = {
+      method: httpMethod,
+      headers,
+      credentials: 'include'
+    }
+
+    if (httpMethod === 'POST') {
+      fetchOptions.body = JSON.stringify(params)
+    } else if (httpMethod === 'GET' && Object.keys(params).length > 0) {
+      const queryParams = new URLSearchParams(params).toString()
+      const finalUrl = `${url}?${queryParams}`
+      const response = await fetch(finalUrl, fetchOptions)
+      const data = await response.json()
+      return data.message || data
+    }
+
+    const response = await fetch(url, fetchOptions)
+    const data = await response.json()
+    return data.message || data
+  } catch (error) {
+    console.error(`[frappeRequest] Error:`, error)
+    throw error
+  }
+}
+
+/**
+ * User-specific request (always uses session authentication + tenant site)
+ */
+export async function userRequest(
+  method: string,
+  httpMethod: 'GET' | 'POST' = 'POST',
+  params: any = {}
+) {
+  return frappeRequest(method, httpMethod, params, { useUserSession: true })
+}
 
 /**
  * Tenant data structure from Frappe API
@@ -23,7 +116,7 @@ type LoginResult =
   | { success: false; error: string }
 
 /**
- * Validate email format (same as signup)
+ * Validate email format
  */
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -31,7 +124,7 @@ function isValidEmail(email: string): boolean {
 }
 
 /**
- * Login to master site (for admin users, not tenants)
+ * Login to master site (for admin users)
  */
 async function loginToMasterSite(usernameOrEmail: string, password: string, masterUrl: string): Promise<LoginResult> {
   try {
@@ -67,7 +160,6 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
         }
       }
 
-      // Store user email if available in response, or the input if it was an email
       const userEmail = data.user || (isValidEmail(usernameOrEmail) ? usernameOrEmail : null)
       if (userEmail) {
         cookieStore.set('user_email', userEmail, {
@@ -78,7 +170,6 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
         })
       }
       
-      // Mark as master site user (not a tenant)
       cookieStore.set('user_type', 'admin', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -109,7 +200,6 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
 
 export async function loginUser(usernameOrEmail: string, password: string): Promise<LoginResult> {
   try {
-    // SECURITY: Validate inputs
     if (!usernameOrEmail || !password) {
       return {
         success: false,
@@ -117,7 +207,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
     }
     
-    // Accept either username or email (no strict validation)
     if (usernameOrEmail.length < 3) {
       return {
         success: false,
@@ -132,7 +221,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
     }
     
-    // Determine if input is email or username
     const isEmail = isValidEmail(usernameOrEmail)
     const email = isEmail ? usernameOrEmail : null
     
@@ -142,7 +230,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     
     console.log('Attempting login for:', usernameOrEmail)
     
-    // Step 1: Check if this is a tenant user (only if email provided)
+    // Step 1: Check if this is a tenant user (use admin API key - no tenant context needed)
     let tenantData = { message: [] }
     if (email) {
       const tenantLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
@@ -150,6 +238,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `token ${apiKey}:${apiSecret}`
+          // NO X-Frappe-Site-Name here - we're querying master database
         },
         body: JSON.stringify({
           doctype: 'Tenant',
@@ -161,7 +250,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       tenantData = await tenantLookupResponse.json()
     }
     else {
-      // If username provided, try to find user and get their email
       const userLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
@@ -197,11 +285,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
     console.log('Tenant lookup response:', tenantData)
 
-    // Check if tenant exists
     const isTenantUser = tenantData.message && tenantData.message.length > 0
     
     if (!isTenantUser) {
-      // Not a tenant user - try master site login (for admin users)
       console.log('Not a tenant user, attempting master site login')
       if (!masterUrl) {
         throw new Error('Master site URL not configured')
@@ -211,9 +297,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
     const tenant = tenantData.message[0] as TenantData
     
-    // Validate tenant status before attempting login
+    // Validate tenant status
     if (tenant.status === 'suspended') {
-      // If suspended but site_config is missing, provisioning failed
       if (!tenant.site_config) {
         console.error('Tenant provisioning incomplete:', tenant.subdomain)
         return { 
@@ -236,7 +321,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
     }
     
-    // Check if provisioning is still pending
     if (tenant.status === 'pending') {
       console.info('Tenant provisioning in progress:', tenant.subdomain)
       return { 
@@ -245,7 +329,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
     }
 
-    // Normalize site_url - add protocol if missing
     if (!tenant.site_url) {
       console.error('Missing site_url for tenant:', tenant.subdomain)
       return {
@@ -254,21 +337,20 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
     }
     
-    // Add protocol if missing
     if (!tenant.site_url.startsWith('http')) {
       tenant.site_url = `https://${tenant.site_url}`
       console.log('Normalized site_url:', tenant.site_url)
     }
 
-    // Step 2: Authenticate against the tenant's site
-    // All tenant sites are accessible via the master Frappe URL with X-Frappe-Site-Name header
-    const siteName = tenant.site_url.replace(/^https?:\/\//, ''); // Remove protocol for site name
-    console.log('Authenticating against tenant site via master URL:', masterUrl, 'Site:', siteName);
+    // Step 2: Authenticate against the tenant's site using X-Frappe-Site-Name
+    const siteName = tenant.site_url.replace(/^https?:\/\//, '')
+    console.log('Authenticating against tenant site:', siteName)
+    
     const response = await fetch(`${masterUrl}/api/method/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Frappe-Site-Name': siteName // Tell Frappe which site to authenticate against
+        'X-Frappe-Site-Name': siteName // CRITICAL: Tell Frappe which site to auth against
       },
       body: new URLSearchParams({
         usr: usernameOrEmail,
@@ -276,7 +358,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       })
     })
 
-    // Handle non-JSON responses gracefully
     let data: any
     const responseText = await response.text()
     
@@ -286,11 +367,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     } catch (e) {
       console.error('❌ Failed to parse login response as JSON')
       console.error('Response status:', response.status, response.statusText)
-      console.error('Response headers:', Object.fromEntries(response.headers.entries()))
-      const preview = responseText.substring(0, 1000)
-      console.error('Response body preview:', preview)
       
-      // If Frappe returned HTML, it's likely an error page
       if (response.status === 404) {
         return {
           success: false,
@@ -320,7 +397,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       const cookieStore = await cookies()
       const setCookieHeader = response.headers.get('set-cookie')
       
-      // Extract and store session cookie (sid) from Frappe
       if (setCookieHeader) {
         const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
         if (sidMatch) {
@@ -329,19 +405,13 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
+            maxAge: 60 * 60 * 24 * 7,
             path: '/'
           })
           console.log('✅ Session cookie set for user:', email)
-        } else {
-          console.warn('⚠️ No session ID found in response')
         }
-      } else {
-        console.warn('⚠️ No set-cookie header in response')
       }
 
-      // Store user metadata for routing and session management
-      // Use email from response or fallback to input if it was an email
       const userEmail = data.user || (isEmail ? usernameOrEmail : null)
       if (userEmail) {
         cookieStore.set('user_email', userEmail, {
@@ -353,6 +423,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         })
       }
 
+      // CRITICAL: Store tenant subdomain for X-Frappe-Site-Name in future requests
       cookieStore.set('tenant_subdomain', tenant.subdomain, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -369,7 +440,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         path: '/'
       })
       
-      // Mark as tenant user
       cookieStore.set('user_type', 'tenant', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -377,12 +447,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         maxAge: 60 * 60 * 24 * 7
       })
 
-      // Determine the correct redirect URL based on where the user logged in from
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
       const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'
-      
-      // If logging in from main domain (avariq.in), redirect to tenant subdomain
-      // Otherwise stay on current subdomain
       const redirectUrl = `${protocol}://${tenant.subdomain}.${baseHost}/dashboard`
       
       return { 
@@ -390,7 +456,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         user: data.full_name || email,
         subdomain: tenant.subdomain,
         userType: 'tenant',
-        redirectUrl // Full URL to tenant subdomain
+        redirectUrl
       }
     }
 
@@ -410,7 +476,6 @@ export async function signupUser(data: {
   try {
     console.log('Starting signup process for:', data.email)
     
-    // Validate password strength (ERPNext requirements)
     const passwordErrors = []
     if (data.password.length < 8) {
       passwordErrors.push('at least 8 characters')
@@ -435,14 +500,13 @@ export async function signupUser(data: {
       }
     }
     
-    // First check if user already exists
     try {
       const existingUsers = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'User',
         filters: JSON.stringify({ email: data.email }),
         fields: JSON.stringify(['name', 'email']),
         limit_page_length: 1
-      })
+      }, { useUserSession: false }) // Use API key for user lookup
       
       if (existingUsers && existingUsers.length > 0) {
         console.log('User already exists:', data.email)
@@ -456,11 +520,8 @@ export async function signupUser(data: {
     }
     
     const [firstName, ...lastNameParts] = data.fullName.split(' ')
-    
-    // Generate username from email (part before @)
     const username = data.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
     
-    // Create user with minimal required fields
     const userDoc = {
       doctype: 'User',
       username: username,
@@ -477,7 +538,7 @@ export async function signupUser(data: {
     try {
       const userResult = await frappeRequest('frappe.client.insert', 'POST', {
         doc: userDoc
-      })
+      }, { useUserSession: false }) // Use API key for user creation
 
       if (!userResult) {
         return { success: false, error: 'Failed to create user account. Please try again.' }
@@ -485,10 +546,8 @@ export async function signupUser(data: {
 
       console.log('User created successfully:', userResult)
 
-      // Give ERPNext a moment to process the user creation
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-      // Now login with the new user credentials
       console.log('Attempting to login new user...')
       const loginResult = await loginUser(data.email, data.password)
       
@@ -513,7 +572,6 @@ export async function signupUser(data: {
       
       const errorMsg = createError.message || ''
       
-      // Check for password validation errors
       if (errorMsg.includes('Invalid Password') || errorMsg.includes('password')) {
         return {
           success: false,
@@ -521,7 +579,6 @@ export async function signupUser(data: {
         }
       }
       
-      // Check for common error patterns
       if (errorMsg.includes('already exists') || errorMsg.includes('duplicate')) {
         return { 
           success: false, 
@@ -543,7 +600,6 @@ export async function signupUser(data: {
         }
       }
       
-      // Generic error with helpful message
       return { 
         success: false, 
         error: `Failed to create account: ${errorMsg.substring(0, 100)}. Please contact support if the issue persists.` 
@@ -562,7 +618,6 @@ export async function logoutUser() {
   try {
     const erpUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
     
-    // Call ERPNext logout endpoint
     try {
       await fetch(`${erpUrl}/api/method/logout`, {
         method: 'POST',
@@ -575,12 +630,12 @@ export async function logoutUser() {
       console.error('ERPNext logout error:', error)
     }
     
-    // Delete all session cookies
     const cookieStore = await cookies()
     cookieStore.delete('sid')
     cookieStore.delete('user_email')
     cookieStore.delete('user_type')
     cookieStore.delete('tenant_subdomain')
+    cookieStore.delete('tenant_site_url')
     
     return { success: true }
   } catch (error: any) {
@@ -591,7 +646,6 @@ export async function logoutUser() {
 
 export async function getCurrentUser() {
   try {
-    // Get logged-in user from cookies (set by Frappe during login)
     const cookieStore = await cookies()
     const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
     
@@ -618,7 +672,6 @@ export async function getCurrentUserOrganization() {
 
     console.log('Fetching organization for user:', user)
 
-    // Use userRequest for user-specific data
     const orgs = await userRequest('frappe.client.get_list', 'GET', {
       doctype: 'Organization Member',
       filters: JSON.stringify({ email: user }),
