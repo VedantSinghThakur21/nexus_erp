@@ -119,26 +119,46 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
 }
 
 /**
- * Make request with API credentials (for admin operations)
- * Use this for system-level operations like creating users/organizations
+ * Make request with API credentials (for admin operations OR tenant user operations)
+ * CRITICAL: Uses API token authentication which works with X-Frappe-Site-Name header
+ * Session cookies don't work for multi-tenant routing in Frappe
  */
 export async function frappeRequest(endpoint: string, method = 'GET', body: any = null) {
-  if (!API_KEY || !API_SECRET) {
-    throw new Error('ERP_API_KEY and ERP_API_SECRET must be set in environment variables')
+  const cookieStore = await cookies()
+  const userType = cookieStore.get('user_type')?.value
+  const tenantSubdomain = cookieStore.get('tenant_subdomain')?.value
+  const tenantApiKey = cookieStore.get('tenant_api_key')?.value
+  const tenantApiSecret = cookieStore.get('tenant_api_secret')?.value
+  
+  let authHeader: string
+  let siteName: string
+  
+  // CRITICAL FIX: Use tenant API credentials for tenant users
+  if (userType === 'tenant' && tenantSubdomain) {
+    const baseDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'
+    siteName = `${tenantSubdomain}.${baseDomain}`
+    
+    if (tenantApiKey && tenantApiSecret) {
+      authHeader = `token ${tenantApiKey}:${tenantApiSecret}`
+      console.log(`[frappeRequest] Using tenant API token for site: ${siteName}`)
+    } else {
+      console.error('⚠️ Tenant API credentials not found')
+      throw new Error('Tenant API credentials not found. Please log in again.')
+    }
+  } else {
+    // Admin users use master API key
+    if (!API_KEY || !API_SECRET) {
+      throw new Error('ERP_API_KEY and ERP_API_SECRET must be set in environment variables')
+    }
+    authHeader = `token ${API_KEY}:${API_SECRET}`
+    siteName = SITE_NAME
+    console.log(`[frappeRequest] Using master API token for site: ${siteName}`)
   }
-
-  const authHeader = `token ${API_KEY}:${API_SECRET}`
-  
-  // Get tenant-specific site name
-  const siteName = await getTenantSiteName()
-  
-  console.log(`[frappeRequest] Endpoint: ${endpoint}, Site: ${siteName}`)
   
   const headers: HeadersInit = {
     'Accept': 'application/json',
     'Authorization': authHeader,
-    'Host': siteName, // Required for DNS multi-tenancy routing
-    'X-Frappe-Site-Name': siteName,
+    'X-Frappe-Site-Name': siteName, // API tokens work with this header!
   }
 
   if (method !== 'GET') {

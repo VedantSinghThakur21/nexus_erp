@@ -447,6 +447,53 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         maxAge: 60 * 60 * 24 * 7
       })
 
+      // CRITICAL FIX: Fetch tenant user's API keys for token-based auth
+      // Session cookies don't work with X-Frappe-Site-Name, API tokens do
+      console.log('Fetching tenant API credentials...')
+      try {
+        const apiKeysResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `token ${apiKey}:${apiSecret}`,
+            'X-Frappe-Site-Name': siteName
+          },
+          body: JSON.stringify({
+            doctype: 'User',
+            name: userEmail,
+            fieldname: JSON.stringify(['api_key', 'api_secret'])
+          })
+        })
+
+        const apiKeysData = await apiKeysResponse.json()
+        console.log('API keys response:', apiKeysData)
+
+        if (apiKeysData.message && apiKeysData.message.api_key) {
+          cookieStore.set('tenant_api_key', apiKeysData.message.api_key, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7,
+            path: '/'
+          })
+          
+          cookieStore.set('tenant_api_secret', apiKeysData.message.api_secret, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7,
+            path: '/'
+          })
+          
+          console.log('✅ Tenant API credentials stored')
+        } else {
+          console.warn('⚠️ No API keys found for tenant user - will need to generate them')
+        }
+      } catch (apiError) {
+        console.error('Failed to fetch API keys:', apiError)
+        // Continue anyway - user can still use the app, just might have issues
+      }
+
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
       const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'
       const redirectUrl = `${protocol}://${tenant.subdomain}.${baseHost}/dashboard`
@@ -636,6 +683,8 @@ export async function logoutUser() {
     cookieStore.delete('user_type')
     cookieStore.delete('tenant_subdomain')
     cookieStore.delete('tenant_site_url')
+    cookieStore.delete('tenant_api_key')
+    cookieStore.delete('tenant_api_secret')
     
     return { success: true }
   } catch (error: any) {
