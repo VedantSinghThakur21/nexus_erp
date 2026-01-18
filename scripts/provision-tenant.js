@@ -612,29 +612,24 @@ print('===JSON_END===')
             throw new Error(`Failed to retrieve API keys. Output was:\n${keysResult}`);
         }
         
-        // Clean up IPython noise from the JSON string
-        // Remove lines starting with 'In [', 'Out[', or other IPython prompts
-        const jsonString = match[1]
+        // Extract the JSON by removing IPython prompts
+        // The JSON might be on the same line as "In [X]:" or "...:""
+        let jsonString = match[1]
             .split('\n')
-            .filter(line => {
-                const trimmed = line.trim();
-                // Keep the line if it's not empty and doesn't start with IPython prompts
-                // But KEEP lines that look like JSON (start with { or " or contain :)
-                return trimmed && 
-                       (trimmed.startsWith('{') || 
-                        trimmed.startsWith('"') || 
-                        trimmed.includes(':') || 
-                        trimmed === '}') &&
-                       !trimmed.startsWith('In [') && 
-                       !trimmed.startsWith('Out[') &&
-                       !trimmed.startsWith('...:');
+            .map(line => {
+                // Remove IPython prompts from the start of lines
+                return line
+                    .replace(/^\s*In \[\d+\]:\s*/, '')
+                    .replace(/^\s*Out\[\d+\]:\s*/, '')
+                    .replace(/^\s*\.\.\.:\s*/, '')
+                    .trim();
             })
-            .join('\n')
-            .trim();
+            .filter(line => line.length > 0) // Remove empty lines
+            .join('');
         
         log(`Extracted JSON: ${jsonString}`);
         
-        if (!jsonString) {
+        if (!jsonString || !jsonString.startsWith('{')) {
             throw new Error(`Failed to extract valid JSON. Raw match was:\n${match[1]}`);
         }
         
