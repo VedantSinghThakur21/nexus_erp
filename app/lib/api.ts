@@ -65,13 +65,16 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
   
   console.log(`[userRequest] Endpoint: ${endpoint}, Site: ${siteName}, Session: ${sessionCookie.value.substring(0, 20)}...`)
   
-  // For multi-tenant routing, use direct site URL if available
-  let requestUrl = BASE_URL
+  // CRITICAL: For Frappe DNS multi-tenancy with session cookies,
+  // we MUST use the Host header matching the site name.
+  // Frappe routes sessions based on Host header, not X-Frappe-Site-Name.
+  const requestUrl = BASE_URL
   
   const headers: HeadersInit = {
     'Accept': 'application/json',
     'Cookie': `sid=${sessionCookie.value}`,
-    'X-Frappe-Site-Name': siteName,
+    'Host': siteName, // Critical for session routing
+    'X-Frappe-Site-Name': siteName, // Backup header
   }
 
   if (method !== 'GET') {
@@ -134,6 +137,7 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
   const headers: HeadersInit = {
     'Accept': 'application/json',
     'Authorization': authHeader,
+    'Host': siteName, // Required for DNS multi-tenancy routing
     'X-Frappe-Site-Name': siteName,
   }
 
