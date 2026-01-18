@@ -170,8 +170,13 @@ async function execPythonFile(pythonCode, siteName, description) {
     const localTempPath = path.join(os.tmpdir(), filename);
     
     try {
-        // Wrap code - bench console will handle frappe.init automatically
-        const wrappedCode = `import frappe
+        // Wrap code with proper path and frappe initialization
+        const wrappedCode = `import os
+os.chdir('/home/frappe/frappe-bench')
+
+import frappe
+frappe.init(site='${siteName}')
+frappe.connect()
 
 ${pythonCode}
 `;
@@ -439,12 +444,18 @@ async function provision() {
         // Update user's first and last name using Python
         log(`Updating user name...`);
         const updateNameCode = `
-import frappe
 user = frappe.get_doc('User', '${ADMIN_EMAIL}')
 user.first_name = '${firstName}'
 user.last_name = '${lastName}'
 user.enabled = 1
+user.user_type = 'System User'
 user.save(ignore_permissions=True)
+
+# Ensure System Manager role is added
+if not any(r.role == 'System Manager' for r in user.roles):
+    user.add_roles('System Manager')
+    user.save(ignore_permissions=True)
+
 frappe.db.commit()
 print('Name updated successfully')
 `;
@@ -465,7 +476,6 @@ print('Name updated successfully')
         // Verify user permissions
         log(`Verifying user permissions...`);
         const verifyUserCode = `
-import frappe
 import json
 
 user = frappe.get_doc('User', '${ADMIN_EMAIL}')
@@ -504,8 +514,6 @@ print(json.dumps({
             log(`Checking if company '${COMPANY_NAME}' exists...`);
             
             const companyCheckCode = `
-import frappe
-
 company_exists = frappe.db.exists('Company', '${COMPANY_NAME}')
 print('exists' if company_exists else 'not_exists')
 `;
@@ -525,8 +533,6 @@ print('exists' if company_exists else 'not_exists')
                 const safeAbbr = COMPANY_NAME.replace(/[^a-zA-Z0-9]/g, '').substring(0, 5).toUpperCase() || 'COMP';
                 
                 const createCompanyCode = `
-import frappe
-
 company = frappe.new_doc('Company')
 company.company_name = '${COMPANY_NAME}'
 company.abbr = '${safeAbbr}'
@@ -571,7 +577,6 @@ print('Company created successfully')
         const step5Timer = new Timer('Step 5');
         
         const generateKeysCode = `
-import frappe
 import json
 
 user = frappe.get_doc('User', '${ADMIN_EMAIL}')
