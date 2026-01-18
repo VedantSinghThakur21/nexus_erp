@@ -652,9 +652,22 @@ print('===JSON_END===')
         log(`⏱️  Total time: ${totalTimer.elapsed()}s`);
         log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
-        // Update tenant record in master database with API credentials
+        // ====================================================================
+        // STEP 6: UPDATE MASTER DATABASE WITH API CREDENTIALS
+        // ====================================================================
+        // This step updates/creates the SaaS Tenant record in the master database
+        // with the generated API credentials. This is NON-CRITICAL - if it fails,
+        // the site provisioning is still successful.
+        
+        let masterDbUpdateStatus = 'pending';
+        let masterDbError = null;
+        
         try {
-            log('Updating tenant record with API credentials...');
+            log('');
+            log('[6/6] ═══════════════════════════════════════');
+            log('[6/6] STEP 6: Update Master Database');
+            log('📝 Saving API credentials to master site...');
+            
             const updateResponse = await fetch('http://localhost:3000/api/tenant/update-credentials', {
                 method: 'POST',
                 headers: {
@@ -667,15 +680,42 @@ print('===JSON_END===')
                 })
             });
             
+            const updateData = await updateResponse.json();
+            
             if (updateResponse.ok) {
-                log('✅ Tenant record updated with API credentials');
+                masterDbUpdateStatus = 'success';
+                log(`✅ Master DB ${updateData.action || 'updated'}: ${updateData.tenantRecord || SUBDOMAIN}`);
+            } else if (updateResponse.status === 207) {
+                // Multi-Status: Partial success
+                masterDbUpdateStatus = 'partial';
+                masterDbError = updateData.warning || updateData.error;
+                log(`⚠️ Provisioning succeeded but master DB update had warnings`);
+                log(`⚠️ ${updateData.warning || 'Unknown warning'}`);
             } else {
-                const errorText = await updateResponse.text();
-                log(`⚠️ Failed to update tenant record: ${errorText}`);
+                masterDbUpdateStatus = 'failed';
+                masterDbError = updateData.error || 'Unknown error';
+                log(`⚠️ Failed to update master database: ${masterDbError}`);
+                log(`⚠️ This does not affect the provisioned site - you can update manually`);
             }
+            
+            log('[6/6] ═══════════════════════════════════════');
+            
         } catch (updateError) {
-            log(`⚠️ Could not update tenant record: ${updateError.message}`);
+            masterDbUpdateStatus = 'error';
+            masterDbError = updateError.message;
+            log(`⚠️ Error contacting master database API: ${updateError.message}`);
+            log(`⚠️ Site provisioning succeeded - master DB update can be retried later`);
         }
+        
+        log('');
+        log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        log('✅ SITE PROVISIONING COMPLETE');
+        if (masterDbUpdateStatus === 'success') {
+            log('✅ Master database synchronized');
+        } else {
+            log('⚠️  Master database sync incomplete (non-critical)');
+        }
+        log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
         // Output success JSON to stdout
         console.log(JSON.stringify({
@@ -686,7 +726,11 @@ print('===JSON_END===')
             apiSecret: keys.api_secret,
             email: ADMIN_EMAIL,
             organizationName: COMPANY_NAME,
-            duration: `${totalTimer.elapsed()}s`
+            duration: `${totalTimer.elapsed()}s`,
+            masterDbSync: {
+                status: masterDbUpdateStatus,
+                error: masterDbError
+            }
         }));
         
     } catch (error) {

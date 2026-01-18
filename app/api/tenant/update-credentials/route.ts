@@ -28,22 +28,15 @@ export async function POST(request: NextRequest) {
     }
 
     const authHeader = `token ${API_KEY}:${API_SECRET}`
+    const siteUrl = `https://${tenantName}.avariq.in`
 
-    console.log(`Searching for tenant with subdomain: ${tenantName}`)
+    console.log(`🔍 Looking up tenant with subdomain: ${tenantName}`)
 
-    // First, find the tenant record by subdomain field
-    const searchEndpoint = `${BASE_URL}/api/method/frappe.client.get_list`
-    const searchResponse = await fetch(searchEndpoint, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-      },
-    })
-    
+    // STEP 1: Find the tenant record by subdomain field (NOT by name)
     const searchParams = new URLSearchParams({
       doctype: 'SaaS Tenant',
       filters: JSON.stringify([['subdomain', '=', tenantName]]),
-      fields: JSON.stringify(['name']),
+      fields: JSON.stringify(['name', 'subdomain', 'owner_email']),
       limit_page_length: '1'
     })
 
@@ -56,60 +49,106 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    let tenantRecordName: string | null = null
+    let shouldCreateRecord = false
+
     if (!findResponse.ok) {
-      console.error('Failed to search for tenant:', await findResponse.text())
-      return NextResponse.json(
-        { error: 'Failed to find tenant record' },
-        { status: 404 }
-      )
+      console.warn('⚠️ Search API failed, will attempt to create tenant record')
+      shouldCreateRecord = true
+    } else {
+      const findData = await findResponse.json()
+      const tenants = findData.message || []
+
+      if (tenants.length === 0) {
+        console.log(`📝 No tenant record found for subdomain '${tenantName}' - will create`)
+        shouldCreateRecord = true
+      } else {
+        tenantRecordName = tenants[0].name
+        console.log(`✅ Found existing tenant record: ${tenantRecordName}`)
+      }
     }
 
-    const findData = await findResponse.json()
-    const tenants = findData.message || []
+    // STEP 2: UPSERT Logic - Update existing or Create new
+    if (shouldCreateRecord) {
+      // CREATE: Tenant record doesn't exist, create it now
+      console.log(`🆕 Creating new SaaS Tenant record for subdomain: ${tenantName}`)
+      
+      const createEndpoint = `${BASE_URL}/api/resource/SaaS Tenant`
+      const createResponse = await fetch(createEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({
+          subdomain: tenantName,
+          site_url: siteUrl,
+          status: 'Active',
+          api_key: apiKey,
+          api_secret: apiSecret,
+          site_config: JSON.stringify({
+            created_at: new Date().toISOString(),
+            provisioned: true
+          })
+        }),
+      })
 
-    if (tenants.length === 0) {
-      console.error(`No tenant found with subdomain: ${tenantName}`)
-      return NextResponse.json(
-        { error: `Tenant with subdomain '${tenantName}' not found` },
-        { status: 404 }
-      )
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json()
+        console.error('❌ Failed to create tenant record:', errorData)
+        
+        // Don't fail provisioning just because metadata creation failed
+        return NextResponse.json({
+          success: true,
+          warning: 'Site provisioned successfully but failed to create master DB record',
+          error: errorData.exception || errorData.message
+        }, { status: 207 }) // 207 Multi-Status
+      }
+
+      const createData = await createResponse.json()
+      tenantRecordName = createData.data?.name || tenantName
+      console.log(`✅ Created tenant record: ${tenantRecordName}`)
+
+    } else {
+      // UPDATE: Tenant record exists, update with API credentials
+      const updateEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantRecordName}`
+      
+      console.log(`🔄 Updating tenant ${tenantRecordName} with API credentials...`)
+
+      const updateResponse = await fetch(updateEndpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({
+          api_key: apiKey,
+          api_secret: apiSecret,
+          site_url: siteUrl,
+          status: 'Active'
+        }),
+      })
+
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json()
+        console.error('❌ Failed to update tenant:', errorData)
+        
+        // Don't fail provisioning just because metadata update failed
+        return NextResponse.json({
+          success: true,
+          warning: 'Site provisioned successfully but failed to update master DB record',
+          error: errorData.exception || errorData.message
+        }, { status: 207 }) // 207 Multi-Status
+      }
+
+      console.log(`✅ Tenant ${tenantRecordName} API credentials updated successfully`)
     }
-
-    const tenantRecordName = tenants[0].name
-    console.log(`Found tenant record: ${tenantRecordName}`)
-
-    // Update the SaaS Tenant record in master database using the actual record name
-    const updateEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantRecordName}`
-    
-    console.log(`Updating tenant ${tenantRecordName} with API credentials...`)
-
-    const updateResponse = await fetch(updateEndpoint, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: JSON.stringify({
-        api_key: apiKey,
-        api_secret: apiSecret
-      }),
-    })
-
-    if (!updateResponse.ok) {
-      const errorData = await updateResponse.json()
-      console.error('Failed to update tenant:', errorData)
-      return NextResponse.json(
-        { error: errorData.message || 'Failed to update tenant record' },
-        { status: updateResponse.status }
-      )
-    }
-
-    console.log(`✅ Tenant ${tenantRecordName} API credentials updated successfully`)
 
     return NextResponse.json({
       success: true,
-      message: 'Tenant API credentials updated successfully',
-      tenantRecord: tenantRecordName
+      message: 'Tenant API credentials saved successfully',
+      tenantRecord: tenantRecordName,
+      action: shouldCreateRecord ? 'created' : 'updated'
     })
 
   } catch (error: any) {
