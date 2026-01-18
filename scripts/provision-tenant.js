@@ -618,7 +618,13 @@ print('===JSON_END===')
             .split('\n')
             .filter(line => {
                 const trimmed = line.trim();
+                // Keep the line if it's not empty and doesn't start with IPython prompts
+                // But KEEP lines that look like JSON (start with { or " or contain :)
                 return trimmed && 
+                       (trimmed.startsWith('{') || 
+                        trimmed.startsWith('"') || 
+                        trimmed.includes(':') || 
+                        trimmed === '}') &&
                        !trimmed.startsWith('In [') && 
                        !trimmed.startsWith('Out[') &&
                        !trimmed.startsWith('...:');
@@ -627,6 +633,11 @@ print('===JSON_END===')
             .trim();
         
         log(`Extracted JSON: ${jsonString}`);
+        
+        if (!jsonString) {
+            throw new Error(`Failed to extract valid JSON. Raw match was:\n${match[1]}`);
+        }
+        
         const keys = JSON.parse(jsonString);
         
         step5Timer.complete();
