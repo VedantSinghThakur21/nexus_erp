@@ -35,12 +35,12 @@ export default function LoginPage() {
       
       if (result.success) {
         // Redirect to tenant subdomain (full URL) or dashboard (relative URL)
-        if (result.redirectUrl) {
+        if (result.userType === 'tenant') {
           // Full URL redirect to tenant subdomain
           window.location.href = result.redirectUrl
         } else {
           // Fallback to relative redirect
-          window.location.href = '/dashboard'
+          window.location.href = result.dashboardUrl
         }
       } else {
         setLoginError(result.error || 'Invalid username/email or password')

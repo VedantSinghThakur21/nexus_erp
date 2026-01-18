@@ -15,6 +15,14 @@ interface TenantData {
 }
 
 /**
+ * Login result type
+ */
+type LoginResult = 
+  | { success: true; user: string; userType: 'admin'; dashboardUrl: string }
+  | { success: true; user: string; subdomain: string; userType: 'tenant'; redirectUrl: string }
+  | { success: false; error: string }
+
+/**
  * Validate email format (same as signup)
  */
 function isValidEmail(email: string): boolean {
@@ -25,7 +33,7 @@ function isValidEmail(email: string): boolean {
 /**
  * Login to master site (for admin users, not tenants)
  */
-async function loginToMasterSite(usernameOrEmail: string, password: string, masterUrl: string) {
+async function loginToMasterSite(usernameOrEmail: string, password: string, masterUrl: string): Promise<LoginResult> {
   try {
     console.log('Attempting master site login to:', masterUrl)
     const response = await fetch(`${masterUrl}/api/method/login`, {
@@ -99,7 +107,7 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
   }
 }
 
-export async function loginUser(usernameOrEmail: string, password: string) {
+export async function loginUser(usernameOrEmail: string, password: string): Promise<LoginResult> {
   try {
     // SECURITY: Validate inputs
     if (!usernameOrEmail || !password) {
