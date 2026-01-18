@@ -346,12 +346,20 @@ export async function loginUser(usernameOrEmail: string, password: string) {
         maxAge: 60 * 60 * 24 * 7
       })
 
+      // Determine the correct redirect URL based on where the user logged in from
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+      const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'
+      
+      // If logging in from main domain (avariq.in), redirect to tenant subdomain
+      // Otherwise stay on current subdomain
+      const redirectUrl = `${protocol}://${tenant.subdomain}.${baseHost}/dashboard`
+      
       return { 
         success: true, 
         user: data.full_name || email,
         subdomain: tenant.subdomain,
         userType: 'tenant',
-        dashboardUrl: '/dashboard' // Simple redirect, middleware handles tenant routing
+        redirectUrl // Full URL to tenant subdomain
       }
     }
 
