@@ -24,37 +24,38 @@ export async function GET(request: NextRequest) {
       // Try to get site info from the main ERPNext instance
       const siteInfo = await frappeRequest(
         'frappe.client.get_list',
-        'POST',
+        'GET',
         {
-          doctype: 'Tenant',
-          filters: { subdomain: tenant },
-          fields: ['status', 'site_url', 'subdomain']
+          doctype: 'SaaS Tenant',
+          filters: JSON.stringify([['subdomain', '=', tenant]]),
+          fields: JSON.stringify(['status', 'site_url', 'subdomain', 'api_key'])
         }
       )
       
       if (siteInfo && siteInfo.length > 0) {
-        const tenant = siteInfo[0]
+        const tenantRecord = siteInfo[0]
         
-        if (tenant.status === 'active') {
+        // Check if API keys are set (means provisioning is complete)
+        if (tenantRecord.api_key && tenantRecord.status === 'Active') {
           return NextResponse.json({
             ready: true,
             status: 'active',
             siteName,
             message: 'Workspace is ready'
           })
-        } else if (tenant.status === 'provisioning') {
+        } else if (tenantRecord.status === 'Active') {
+          return NextResponse.json({
+            ready: false,
+            status: 'provisioning',
+            siteName,
+            message: 'Finalizing workspace setup...'
+          })
+        } else {
           return NextResponse.json({
             ready: false,
             status: 'provisioning',
             siteName,
             message: 'Workspace is being created'
-          })
-        } else if (tenant.status === 'failed') {
-          return NextResponse.json({
-            ready: false,
-            status: 'failed',
-            siteName,
-            message: 'Provisioning failed. Please contact support.'
           })
         }
       }

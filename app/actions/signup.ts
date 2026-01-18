@@ -333,7 +333,7 @@ async function provisionTenantSite(
     console.log('Provisioning tenant:', { tenantName, companyName, email })
 
     // Step 1: Check if Tenant already exists
-    const checkTenantEndpoint = `${BASE_URL}/api/resource/Tenant/${tenantName}`
+    const checkTenantEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantName}`
     const checkTenantResponse = await fetch(checkTenantEndpoint, {
       method: 'GET',
       headers: {
@@ -355,7 +355,7 @@ async function provisionTenantSite(
 
         // Delete the old tenant record so we can recreate it
         try {
-          const deleteTenantEndpoint = `${BASE_URL}/api/resource/Tenant/${tenantName}`
+          const deleteTenantEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantName}`
           await fetch(deleteTenantEndpoint, {
             method: 'DELETE',
             headers: {
@@ -381,6 +381,7 @@ async function provisionTenantSite(
           'Authorization': authHeader,
         },
         body: JSON.stringify({
+          name: tenantName,
           subdomain: tenantName,
           company_name: companyName,
           owner_email: email,
