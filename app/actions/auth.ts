@@ -82,6 +82,7 @@ export async function login(prevState: any, formData: FormData) {
       // 4. Set Context Cookies
       cookieStore.set('user_id', email, { path: '/' })
       if (tenant) {
+          cookieStore.set('user_type', 'tenant', { path: '/' })
           cookieStore.set('tenant_id', tenant.subdomain, { path: '/' })
           cookieStore.set('tenant_site_url', tenant.site_url || `https://${tenant.subdomain}.avariq.in`, { path: '/' })
           
@@ -94,6 +95,8 @@ export async function login(prevState: any, formData: FormData) {
               console.log(`⚠️ No API credentials found in master database for tenant: ${tenant.subdomain}`)
               console.log(`Please ensure the SaaS Tenant record has api_key and api_secret fields populated`)
           }
+      } else {
+          cookieStore.set('user_type', 'admin', { path: '/' })
       }
 
       console.log("Login successful.");
