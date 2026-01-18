@@ -284,9 +284,32 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       data = JSON.parse(responseText)
       console.log('Login response:', data)
     } catch (e) {
-      console.error('Failed to parse login response as JSON')
+      console.error('❌ Failed to parse login response as JSON')
       console.error('Response status:', response.status, response.statusText)
-      console.error('Response body:', responseText.substring(0, 500))
+      console.error('Response headers:', Object.fromEntries(response.headers.entries()))
+      const preview = responseText.substring(0, 1000)
+      console.error('Response body preview:', preview)
+      
+      // If Frappe returned HTML, it's likely an error page
+      if (response.status === 404) {
+        return {
+          success: false,
+          error: 'Workspace not found. Please check your site URL and try again.'
+        }
+      }
+      if (response.status === 403 || response.status === 401) {
+        return {
+          success: false,
+          error: 'Invalid credentials or access denied.'
+        }
+      }
+      if (response.status >= 500) {
+        return {
+          success: false,
+          error: 'Server error. Please try again later.'
+        }
+      }
+      
       return {
         success: false,
         error: 'Unable to connect to your workspace. Please ensure your site is properly configured.'
