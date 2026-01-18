@@ -175,7 +175,7 @@ async function execPythonFile(pythonCode, siteName, description) {
 os.chdir('/home/frappe/frappe-bench')
 
 import frappe
-frappe.init(site='${siteName}')
+frappe.init(site='${siteName}', sites_path='/home/frappe/frappe-bench/sites')
 frappe.connect()
 
 ${pythonCode}
