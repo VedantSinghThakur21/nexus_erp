@@ -451,12 +451,14 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // Each Frappe site has separate User records with their own API keys
       console.log('Fetching tenant API credentials from tenant site...')
       try {
-        // Use the session cookie to authenticate against the tenant site
-        const apiKeysResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
+        const sessionCookie = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
+        
+        // First, try to get existing API keys
+        let apiKeysResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Cookie': `sid=${setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''}`,
+            'Cookie': `sid=${sessionCookie}`,
             'X-Frappe-Site-Name': siteName
           },
           body: JSON.stringify({
@@ -466,10 +468,36 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           })
         })
 
-        const apiKeysData = await apiKeysResponse.json()
+        let apiKeysData = await apiKeysResponse.json()
         console.log('API keys response:', apiKeysData)
 
-        if (apiKeysData.message && apiKeysData.message.api_key) {
+        // If no API keys exist, generate them
+        if (!apiKeysData.message?.api_key || !apiKeysData.message?.api_secret) {
+          console.log('Generating new API keys for tenant user...')
+          
+          const generateResponse = await fetch(`${masterUrl}/api/method/frappe.core.doctype.user.user.generate_keys`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cookie': `sid=${sessionCookie}`,
+              'X-Frappe-Site-Name': siteName
+            },
+            body: JSON.stringify({
+              user: userEmail
+            })
+          })
+          
+          const generateData = await generateResponse.json()
+          console.log('Generate API keys response:', generateData)
+          
+          if (generateData.message) {
+            apiKeysData = { message: generateData.message }
+          } else {
+            console.warn('⚠️ Failed to generate API keys')
+          }
+        }
+
+        if (apiKeysData.message?.api_key && apiKeysData.message?.api_secret) {
           cookieStore.set('tenant_api_key', apiKeysData.message.api_key, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
