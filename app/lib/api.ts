@@ -63,6 +63,8 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
   // Get tenant-specific site name
   const siteName = await getTenantSiteName()
   
+  console.log(`[userRequest] Endpoint: ${endpoint}, Site: ${siteName}, Session: ${sessionCookie.value.substring(0, 20)}...`)
+  
   const headers: HeadersInit = {
     'Accept': 'application/json',
     'Cookie': `sid=${sessionCookie.value}`,
@@ -98,10 +100,11 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
     const data = await res.json()
 
     if (!res.ok) {
-      console.error('User API Error:', { status: res.status, data, siteName })
+      console.error('User API Error:', { status: res.status, data, siteName, endpoint })
       throw new Error(data.message || data._server_messages || 'Request failed')
     }
 
+    console.log(`[userRequest] Success: ${endpoint} returned ${Array.isArray(data.message) ? data.message.length : typeof data.message} items`)
     return data.message || data.data || data
   } catch (error: any) {
     console.error('User Request Failed:', error.message)
@@ -122,6 +125,8 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
   
   // Get tenant-specific site name
   const siteName = await getTenantSiteName()
+  
+  console.log(`[frappeRequest] Endpoint: ${endpoint}, Site: ${siteName}`)
   
   const headers: HeadersInit = {
     'Accept': 'application/json',

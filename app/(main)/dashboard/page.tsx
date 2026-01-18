@@ -1,4 +1,5 @@
 import { getDashboardStats, getSalesPipelineFunnel, getDealsByStage, getMyOpenLeads, getMyOpenOpportunities } from "@/app/actions/dashboard"
+import { debugDatabaseConnection } from "@/app/actions/debug"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -68,6 +69,10 @@ async function getRevenueData() {
 }
 
 export default async function DashboardPage() {
+  // DEBUG: Check database connection
+  const debugInfo = await debugDatabaseConnection().catch((e) => ({ error: e.message }))
+  console.log('=== DASHBOARD DEBUG INFO ===', debugInfo)
+  
   // Fetch all data with error handling
   const user = await getUser().catch(() => ({ full_name: 'User' }))
   const stats = await getDashboardStats().catch(() => ({
