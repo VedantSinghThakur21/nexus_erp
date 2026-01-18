@@ -142,8 +142,9 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
       authHeader = `token ${tenantApiKey}:${tenantApiSecret}`
       console.log(`[frappeRequest] Using tenant API token for site: ${siteName}`)
     } else {
-      console.error('⚠️ Tenant API credentials not found')
-      throw new Error('Tenant API credentials not found. Please log in again.')
+      console.error('⚠️ Tenant API credentials not found in cookies')
+      console.error(`The SaaS Tenant record in the master database must have api_key and api_secret fields populated`)
+      throw new Error(`Tenant API credentials not found. Please ensure the tenant was provisioned with API credentials and log in again.`)
     }
   } else {
     // Admin users use master API key

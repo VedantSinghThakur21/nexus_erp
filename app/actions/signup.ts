@@ -260,6 +260,56 @@ async function provisionFrappeSite(
 }
 
 /**
+ * Update tenant record with API credentials after site provisioning
+ */
+async function updateTenantApiCredentials(
+  tenantName: string,
+  apiKey: string,
+  apiSecret: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!API_KEY || !API_SECRET) {
+    throw new Error('Server configuration error: API credentials not found')
+  }
+
+  const authHeader = `token ${API_KEY}:${API_SECRET}`
+
+  try {
+    console.log('Updating tenant API credentials:', tenantName)
+
+    const updateEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantName}`
+    const updateResponse = await fetch(updateEndpoint, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        api_key: apiKey,
+        api_secret: apiSecret
+      }),
+    })
+
+    if (!updateResponse.ok) {
+      const errorData = await updateResponse.json()
+      console.error('Failed to update tenant API credentials:', errorData)
+      return {
+        success: false,
+        error: errorData.message || 'Failed to update API credentials'
+      }
+    }
+
+    console.log('✅ Tenant API credentials updated successfully')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error updating tenant API credentials:', error)
+    return {
+      success: false,
+      error: error.message || 'Network error updating API credentials'
+    }
+  }
+}
+
+/**
  * Create tenant record and user in ERPNext without nexus_core app
  * Uses standard Frappe API to create Tenant doctype and User
  * Handles duplicates gracefully for idempotency
@@ -322,7 +372,7 @@ async function provisionTenantSite(
 
     if (!tenantExists) {
       // Step 2: Create Tenant if it doesn't exist
-      const tenantEndpoint = `${BASE_URL}/api/resource/Tenant`
+      const tenantEndpoint = `${BASE_URL}/api/resource/SaaS Tenant`
 
       const tenantResponse = await fetch(tenantEndpoint, {
         method: 'POST',
@@ -331,16 +381,18 @@ async function provisionTenantSite(
           'Authorization': authHeader,
         },
         body: JSON.stringify({
-          doctype: 'Tenant',
           subdomain: tenantName,
           company_name: companyName,
           owner_email: email,
           site_url: siteUrl,
-          status: 'active',
+          status: 'Active',
           site_config: JSON.stringify({
             created_at: new Date().toISOString(),
             single_tenant: true,
           }),
+          // API credentials will be updated after site provisioning
+          api_key: '',
+          api_secret: ''
         }),
       })
 

@@ -14,7 +14,7 @@ async function findTenantForEmail(email: string) {
         {
             doctype: 'SaaS Tenant',
             filters: `[["owner_email", "=", "${email}"]]`,
-            fields: '["subdomain", "site_url", "site_config", "status"]',
+            fields: '["subdomain", "site_url", "site_config", "status", "api_key", "api_secret"]',
             limit_page_length: 1
         }
     )
@@ -83,6 +83,17 @@ export async function login(prevState: any, formData: FormData) {
       cookieStore.set('user_id', email, { path: '/' })
       if (tenant) {
           cookieStore.set('tenant_id', tenant.subdomain, { path: '/' })
+          cookieStore.set('tenant_site_url', tenant.site_url || `https://${tenant.subdomain}.avariq.in`, { path: '/' })
+          
+          // Store tenant API credentials fetched from master database
+          if (tenant.api_key && tenant.api_secret) {
+              console.log(`✅ Tenant API credentials loaded for: ${tenant.subdomain}`)
+              cookieStore.set('tenant_api_key', tenant.api_key, { httpOnly: true, secure: process.env.NODE_ENV === 'production', path: '/' })
+              cookieStore.set('tenant_api_secret', tenant.api_secret, { httpOnly: true, secure: process.env.NODE_ENV === 'production', path: '/' })
+          } else {
+              console.log(`⚠️ No API credentials found in master database for tenant: ${tenant.subdomain}`)
+              console.log(`Please ensure the SaaS Tenant record has api_key and api_secret fields populated`)
+          }
       }
 
       console.log("Login successful.");

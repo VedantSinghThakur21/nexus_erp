@@ -646,6 +646,31 @@ print('===JSON_END===')
         log(`⏱️  Total time: ${totalTimer.elapsed()}s`);
         log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
+        // Update tenant record in master database with API credentials
+        try {
+            log('Updating tenant record with API credentials...');
+            const updateResponse = await fetch('http://localhost:3000/api/tenant/update-credentials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tenantName: SUBDOMAIN,
+                    apiKey: keys.api_key,
+                    apiSecret: keys.api_secret
+                })
+            });
+            
+            if (updateResponse.ok) {
+                log('✅ Tenant record updated with API credentials');
+            } else {
+                const errorText = await updateResponse.text();
+                log(`⚠️ Failed to update tenant record: ${errorText}`);
+            }
+        } catch (updateError) {
+            log(`⚠️ Could not update tenant record: ${updateError.message}`);
+        }
+        
         // Output success JSON to stdout
         console.log(JSON.stringify({
             success: true,
