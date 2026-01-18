@@ -447,15 +447,16 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         maxAge: 60 * 60 * 24 * 7
       })
 
-      // CRITICAL FIX: Fetch tenant user's API keys for token-based auth
-      // Session cookies don't work with X-Frappe-Site-Name, API tokens do
-      console.log('Fetching tenant API credentials...')
+      // CRITICAL FIX: Fetch tenant user's API keys from TENANT site (not master)
+      // Each Frappe site has separate User records with their own API keys
+      console.log('Fetching tenant API credentials from tenant site...')
       try {
+        // Use the session cookie to authenticate against the tenant site
         const apiKeysResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token ${apiKey}:${apiSecret}`,
+            'Cookie': `sid=${setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''}`,
             'X-Frappe-Site-Name': siteName
           },
           body: JSON.stringify({
