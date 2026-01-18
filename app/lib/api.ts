@@ -68,6 +68,7 @@ export async function userRequest(endpoint: string, method = 'GET', body: any = 
   const headers: HeadersInit = {
     'Accept': 'application/json',
     'Cookie': `sid=${sessionCookie.value}`,
+    'Host': siteName,
     'X-Frappe-Site-Name': siteName,
   }
 
@@ -131,6 +132,7 @@ export async function frappeRequest(endpoint: string, method = 'GET', body: any 
   const headers: HeadersInit = {
     'Accept': 'application/json',
     'Authorization': authHeader,
+    'Host': siteName,
     'X-Frappe-Site-Name': siteName,
   }
 
