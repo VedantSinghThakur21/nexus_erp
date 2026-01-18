@@ -7,30 +7,41 @@ const API_SECRET = process.env.ERP_API_SECRET
 const SITE_NAME = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
 
 /**
- * Get the current tenant's Frappe site name based on subdomain
+ * Get the current tenant's Frappe site name based on session cookies
  * Returns the full site name that Frappe should connect to
  */
 async function getTenantSiteName(): Promise<string> {
   try {
+    const cookieStore = await cookies()
+    
+    // Check if user is logged in as a tenant (set during login)
+    const userType = cookieStore.get('user_type')?.value
+    const tenantSiteUrl = cookieStore.get('tenant_site_url')?.value
+    
+    if (userType === 'tenant' && tenantSiteUrl) {
+      // Extract site name from URL (remove protocol)
+      const siteName = tenantSiteUrl.replace(/^https?:\/\//, '')
+      console.log('Using tenant site:', siteName)
+      return siteName
+    }
+    
+    // Fallback: check for subdomain in headers (legacy support)
     const headersList = await headers()
     const tenantId = headersList.get('x-tenant-id') || ''
     
-    if (!tenantId) {
-      // No tenant - use master site
-      return SITE_NAME
+    if (tenantId) {
+      const baseDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'
+      const isLocalhost = baseDomain.includes('localhost')
+      
+      if (isLocalhost) {
+        return `${tenantId}.localhost`
+      }
+      return `${tenantId}.${baseDomain}`
     }
     
-    // Construct tenant site name
-    const baseDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'
-    const isLocalhost = baseDomain.includes('localhost')
-    
-    if (isLocalhost) {
-      // Development: vfixit.localhost
-      return `${tenantId}.localhost`
-    }
-    
-    // Production: vfixit.avariq.in
-    return `${tenantId}.${baseDomain}`
+    // No tenant - use master site
+    console.log('Using master site:', SITE_NAME)
+    return SITE_NAME
   } catch (error) {
     console.warn('Failed to get tenant site name, falling back to master site:', error)
     return SITE_NAME
