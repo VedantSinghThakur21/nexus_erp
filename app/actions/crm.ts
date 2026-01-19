@@ -576,13 +576,13 @@ export async function getQuotations() {
 }
 
 // 3. READ: Get Single Quotation
-export async function getQuotation(id: string) {
+export async function getQuotation(id: string): Promise<Quotation | null> {
   try {
     const quotation = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
       name: decodeURIComponent(id)
     })
-    return quotation
+    return quotation as Quotation
   } catch (error) {
     console.error("Failed to fetch quotation:", error)
     return null
