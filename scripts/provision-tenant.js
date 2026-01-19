@@ -34,6 +34,7 @@ const DOCKER_SERVICE = process.env.DOCKER_SERVICE || 'backend';
 const DB_ROOT_PASSWORD = process.env.DB_ROOT_PASSWORD || 'vedant@21';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const BENCH_PATH = '/home/frappe/frappe-bench';
+const MASTER_APP_URL = process.env.MASTER_APP_URL || 'http://localhost:3000';
 
 // Strict timeouts for each operation (fail-fast approach)
 const TIMEOUTS = {
@@ -668,33 +669,62 @@ print('===JSON_END===')
             log('[6/6] STEP 6: Update Master Database');
             log('📝 Saving API credentials to master site...');
             
-            const updateResponse = await fetch('http://localhost:3000/api/tenant/update-credentials', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    tenantName: SUBDOMAIN,
-                    apiKey: keys.api_key,
-                    apiSecret: keys.api_secret
-                })
-            });
+            const maxRetries = 3;
+            const retryDelayMs = 2000;
+            let lastError = null;
             
-            const updateData = await updateResponse.json();
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    log(`Attempt ${attempt}/${maxRetries}: Calling ${MASTER_APP_URL}/api/tenant/update-credentials`);
+                    
+                    const updateResponse = await fetch(`${MASTER_APP_URL}/api/tenant/update-credentials`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tenantName: SUBDOMAIN,
+                            apiKey: keys.api_key,
+                            apiSecret: keys.api_secret,
+                            ownerEmail: ADMIN_EMAIL
+                        })
+                    });
+                    
+                    const updateData = await updateResponse.json();
+                    
+                    if (updateResponse.ok) {
+                        masterDbUpdateStatus = 'success';
+                        log(`✅ Master DB ${updateData.action || 'updated'}: ${updateData.tenantRecord || SUBDOMAIN}`);
+                        break;
+                    } else if (updateResponse.status === 207) {
+                        // Multi-Status: Partial success
+                        masterDbUpdateStatus = 'partial';
+                        masterDbError = updateData.warning || updateData.error;
+                        log(`⚠️ Provisioning succeeded but master DB update had warnings`);
+                        log(`⚠️ ${updateData.warning || 'Unknown warning'}`);
+                        break;
+                    } else {
+                        lastError = updateData.error || 'Unknown error';
+                        log(`⚠️ Attempt ${attempt} failed: ${lastError}`);
+                        if (attempt < maxRetries) {
+                            log(`Retrying in ${retryDelayMs / 1000}s...`);
+                            await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+                        }
+                    }
+                } catch (fetchError) {
+                    lastError = fetchError.message;
+                    log(`⚠️ Attempt ${attempt} error: ${lastError}`);
+                    if (attempt < maxRetries) {
+                        log(`Retrying in ${retryDelayMs / 1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+                    }
+                }
+            }
             
-            if (updateResponse.ok) {
-                masterDbUpdateStatus = 'success';
-                log(`✅ Master DB ${updateData.action || 'updated'}: ${updateData.tenantRecord || SUBDOMAIN}`);
-            } else if (updateResponse.status === 207) {
-                // Multi-Status: Partial success
-                masterDbUpdateStatus = 'partial';
-                masterDbError = updateData.warning || updateData.error;
-                log(`⚠️ Provisioning succeeded but master DB update had warnings`);
-                log(`⚠️ ${updateData.warning || 'Unknown warning'}`);
-            } else {
+            if (masterDbUpdateStatus === 'pending') {
                 masterDbUpdateStatus = 'failed';
-                masterDbError = updateData.error || 'Unknown error';
-                log(`⚠️ Failed to update master database: ${masterDbError}`);
+                masterDbError = lastError || 'All retry attempts failed';
+                log(`⚠️ Failed to update master database after ${maxRetries} attempts: ${masterDbError}`);
                 log(`⚠️ This does not affect the provisioned site - you can update manually`);
             }
             

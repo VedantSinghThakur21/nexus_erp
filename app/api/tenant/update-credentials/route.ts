@@ -3,15 +3,16 @@ import { NextRequest, NextResponse } from 'next/server'
 const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 const API_KEY = process.env.ERP_API_KEY
 const API_SECRET = process.env.ERP_API_SECRET
+const MASTER_SITE_NAME = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
 
 /**
  * API endpoint for provision script to update tenant API credentials
  * POST /api/tenant/update-credentials
- * Body: { tenantName, apiKey, apiSecret }
+ * Body: { tenantName, apiKey, apiSecret, ownerEmail?, siteUrl? }
  */
 export async function POST(request: NextRequest) {
   try {
-    const { tenantName, apiKey, apiSecret } = await request.json()
+    const { tenantName, apiKey, apiSecret, ownerEmail, siteUrl: providedSiteUrl } = await request.json()
 
     if (!tenantName || !apiKey || !apiSecret) {
       return NextResponse.json(
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const authHeader = `token ${API_KEY}:${API_SECRET}`
-    const siteUrl = `https://${tenantName}.avariq.in`
+    const siteUrl = providedSiteUrl || `https://${tenantName}.avariq.in`
 
     console.log(`🔍 Looking up tenant with subdomain: ${tenantName}`)
 
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
+        'X-Frappe-Site-Name': MASTER_SITE_NAME,
       },
     })
 
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': authHeader,
+          'X-Frappe-Site-Name': MASTER_SITE_NAME,
         },
         body: JSON.stringify({
           subdomain: tenantName,
@@ -86,6 +89,7 @@ export async function POST(request: NextRequest) {
           status: 'Active',
           api_key: apiKey,
           api_secret: apiSecret,
+          owner_email: ownerEmail,
           site_config: JSON.stringify({
             created_at: new Date().toISOString(),
             provisioned: true
@@ -120,12 +124,14 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': authHeader,
+          'X-Frappe-Site-Name': MASTER_SITE_NAME,
         },
         body: JSON.stringify({
           api_key: apiKey,
           api_secret: apiSecret,
           site_url: siteUrl,
-          status: 'Active'
+          status: 'Active',
+          ...(ownerEmail && { owner_email: ownerEmail }),
         }),
       })
 

@@ -2,17 +2,6 @@
 
 import { redirect } from 'next/navigation'
 
-const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-const API_KEY = process.env.ERP_API_KEY
-const API_SECRET = process.env.ERP_API_SECRET
-
-interface SignupResult {
-  success: boolean
-  site_url?: string
-  tenant_name?: string
-  error?: string
-}
-
 /**
  * Generate a URL-safe subdomain from company name
  * Examples:
@@ -52,145 +41,19 @@ async function verifySiteExists(siteName: string): Promise<boolean> {
 
     // Check 3: Database is accessible (most important check)
     const checkDbCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend bash -c "cd /home/frappe/frappe-bench && bench --site ${siteName} list-apps"`
-    const result = await execAsync(checkDbCmd, { timeout: 15000 })
+    await execAsync(checkDbCmd, { timeout: 15000 })
     
     console.log('✅ Site verification passed:', siteName)
     return true
-  } catch (error) {
+  } catch {
     console.log('❌ Site verification failed:', siteName)
     return false
   }
 }
 
 /**
- * Ensure user has System Manager role and System User type
- * This fixes the "No App" error
- */
-async function ensureUserPermissions(
-  siteName: string,
-  userEmail: string,
-  password: string
-): Promise<{ success: boolean; error?: string }> {
-  const { exec } = await import('child_process')
-  const { promisify } = await import('util')
-  const execAsync = promisify(exec)
-  const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker'
-
-  try {
-    console.log('🔐 Ensuring user permissions for:', userEmail)
-
-    // Python script to set user as System User with System Manager role
-    const pythonScript = `
-import frappe
-import sys
-
-try:
-    frappe.init(site='${siteName}')
-    frappe.connect()
-    
-    user = frappe.get_doc('User', '${userEmail}')
-    
-    # Set user type to System User (not Website User)
-    user.user_type = 'System User'
-    user.enabled = 1
-    
-    # Ensure System Manager role exists
-    has_system_manager = False
-    for role in user.roles:
-        if role.role == 'System Manager':
-            has_system_manager = True
-            break
-    
-    if not has_system_manager:
-        user.append('roles', {'role': 'System Manager'})
-    
-    # Update password
-    from frappe.utils.password import update_password
-    update_password(user='${userEmail}', pwd='${password}', logout_all_sessions=0)
-    
-    user.save(ignore_permissions=True)
-    frappe.db.commit()
-    
-    print('SUCCESS: User configured with System Manager role')
-except Exception as e:
-    print('ERROR: ' + str(e))
-    raise
-finally:
-    frappe.destroy()
-`
-
-    // Write to temp file to avoid shell escaping issues
-    const { writeFileSync, unlinkSync } = await import('fs')
-    const { tmpdir } = await import('os')
-    const { join } = await import('path')
-    const tempFile = join(tmpdir(), `user_perms_${Date.now()}.py`)
-    const containerTempFile = `/tmp/user_perms_${Date.now()}.py`
-    
-    writeFileSync(tempFile, pythonScript, 'utf8')
-    
-    const copyCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${tempFile} backend:${containerTempFile}`
-    await execAsync(copyCmd)
-    
-    const updateUserCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend /home/frappe/frappe-bench/env/bin/python ${containerTempFile}`
-    
-    const result = await execAsync(updateUserCmd, { timeout: 30000 })
-    
-    // Cleanup temp files
-    try {
-      unlinkSync(tempFile)
-      await execAsync(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend rm -f ${containerTempFile}`).catch(() => {})
-    } catch (e) {}
-    
-    if (result.stdout.includes('SUCCESS')) {
-      console.log('✅ User permissions configured successfully')
-      
-      // Verification: Check roles
-      const verifyScript = `
-import frappe
-import json
-import sys
-
-try:
-    frappe.init(site='${siteName}')
-    frappe.connect()
-    user = frappe.get_doc('User', '${userEmail}')
-    roles = [r.role for r in user.roles]
-    print(json.dumps({'user_type': user.user_type, 'roles': roles, 'enabled': user.enabled}))
-finally:
-    frappe.destroy()
-`
-      const verifyTempFile = join(tmpdir(), `user_verify_${Date.now()}.py`)
-      const verifyContainerFile = `/tmp/user_verify_${Date.now()}.py`
-      
-      writeFileSync(verifyTempFile, verifyScript, 'utf8')
-      
-      const verifyCopyCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose cp ${verifyTempFile} backend:${verifyContainerFile}`
-      await execAsync(verifyCopyCmd)
-      
-      const verifyCmd = `cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend /home/frappe/frappe-bench/env/bin/python ${verifyContainerFile}`
-      const verifyResult = await execAsync(verifyCmd, { timeout: 15000 })
-      
-      // Cleanup verify temp files
-      try {
-        unlinkSync(verifyTempFile)
-        await execAsync(`cd ${DOCKER_COMPOSE_DIR} && docker compose exec -T backend rm -f ${verifyContainerFile}`).catch(() => {})
-      } catch (e) {}
-      
-      console.log('👤 User verification:', verifyResult.stdout)
-      
-      return { success: true }
-    }
-    
-    return { success: false, error: 'Failed to configure user permissions' }
-  } catch (error: any) {
-    console.error('❌ User permission setup failed:', error.message)
-    return { success: false, error: error.message }
-  }
-}
-
-/**
- * Provision a real Frappe site with separate database for the tenant
- * Uses Node.js script for robust provisioning with proper verification
+ * Start provisioning of a Frappe site in background
+ * Returns immediately - provisioning continues asynchronously
  */
 async function provisionFrappeSite(
   siteName: string,
@@ -199,41 +62,28 @@ async function provisionFrappeSite(
   companyName: string
 ): Promise<{ success: boolean; error?: string; isBackground?: boolean }> {
   const { exec } = await import('child_process')
-  const { promisify } = await import('util')
-  const execAsync = promisify(exec)
-
-  const DOCKER_COMPOSE_DIR = process.env.DOCKER_COMPOSE_DIR || '/home/ubuntu/frappe_docker'
 
   try {
-    console.log('🚀 Provisioning Frappe site:', siteName)
+    console.log('🚀 Checking Frappe site:', siteName)
 
-    // ROBUST CHECK: Verify site actually exists (not just DB record)
+    // Check if site already exists
     const siteExists = await verifySiteExists(siteName)
     
     if (siteExists) {
-      console.log('✅ Site already exists and is valid:', siteName)
-      
-      // Even if site exists, ensure user has proper permissions
-      const permResult = await ensureUserPermissions(siteName, adminEmail, adminPassword)
-      if (!permResult.success) {
-        console.warn('⚠️ Warning: Could not verify user permissions, but continuing')
-      }
-      
-      return { success: true }
+      console.log('✅ Site already exists:', siteName)
+      return { success: true, isBackground: false }
     }
 
-    // Site doesn't exist - trigger background provisioning using the robust Node.js script
+    // Site doesn't exist - trigger background provisioning
     console.log('🏗️ Site needs provisioning - starting background process')
     
     const scriptPath = process.cwd() + '/scripts/provision-tenant.js'
-    // Pass arguments in correct order: subdomain, email, fullname, password, companyName
-    // Use companyName as fullname since we don't have a separate field
-    const provisionCmd = `node "${scriptPath}" "${siteName.split('.')[0]}" "${adminEmail}" "${companyName}" "${adminPassword}" "${companyName}"`
+    const subdomain = siteName.split('.')[0]
+    const provisionCmd = `node "${scriptPath}" "${subdomain}" "${adminEmail}" "${companyName}" "${adminPassword}" "${companyName}"`
     
     console.log('📝 Executing provisioning script (background)...')
-    console.log('🔐 Using password from signup for tenant admin user')
     
-    // Execute in background with detached process
+    // Execute in background - don't await
     exec(provisionCmd, (error, stdout, stderr) => {
       if (error) {
         console.error('❌ Background provisioning failed:', error.message)
@@ -243,260 +93,20 @@ async function provisionFrappeSite(
       }
     })
     
-    // Return immediately to avoid 504 timeout
-    // The provisioning will continue in background
     return { 
       success: true, 
       isBackground: true 
     }
-
-  } catch (error: any) {
-    console.error('❌ Site provisioning failed:', error.message)
-    return { 
-      success: false, 
-      error: `Failed to provision site: ${error.message}` 
-    }
-  }
-}
-
-/**
- * Update tenant record with API credentials after site provisioning
- */
-async function updateTenantApiCredentials(
-  tenantName: string,
-  apiKey: string,
-  apiSecret: string
-): Promise<{ success: boolean; error?: string }> {
-  if (!API_KEY || !API_SECRET) {
-    throw new Error('Server configuration error: API credentials not found')
-  }
-
-  const authHeader = `token ${API_KEY}:${API_SECRET}`
-
-  try {
-    console.log('Updating tenant API credentials:', tenantName)
-
-    const updateEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantName}`
-    const updateResponse = await fetch(updateEndpoint, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: JSON.stringify({
-        api_key: apiKey,
-        api_secret: apiSecret
-      }),
-    })
-
-    if (!updateResponse.ok) {
-      const errorData = await updateResponse.json()
-      console.error('Failed to update tenant API credentials:', errorData)
-      return {
-        success: false,
-        error: errorData.message || 'Failed to update API credentials'
-      }
-    }
-
-    console.log('✅ Tenant API credentials updated successfully')
-    return { success: true }
-  } catch (error: any) {
-    console.error('Error updating tenant API credentials:', error)
-    return {
-      success: false,
-      error: error.message || 'Network error updating API credentials'
-    }
-  }
-}
-
-/**
- * Create tenant record and user in ERPNext without nexus_core app
- * Uses standard Frappe API to create Tenant doctype and User
- * Handles duplicates gracefully for idempotency
- */
-async function provisionTenantSite(
-  tenantName: string,
-  adminPassword: string,
-  companyName: string,
-  email: string,
-  siteName: string
-): Promise<SignupResult> {
-  if (!API_KEY || !API_SECRET) {
-    throw new Error('Server configuration error: API credentials not found')
-  }
-
-  const authHeader = `token ${API_KEY}:${API_SECRET}`
-  // Always store site_url with protocol for consistency
-  const siteUrl = siteName.startsWith('http') ? siteName : `https://${siteName}`
-
-  try {
-    console.log('Provisioning tenant:', { tenantName, companyName, email })
-
-    // Step 1: Check if Tenant already exists
-    const checkTenantEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantName}`
-    const checkTenantResponse = await fetch(checkTenantEndpoint, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-      },
-    })
-
-    let tenantExists = checkTenantResponse.ok
-
-    // If tenant exists but site doesn't exist, we need to recreate everything
-    // This handles cases where tenant record exists but site was dropped
-    if (tenantExists) {
-      console.log('✅ Tenant record exists:', tenantName)
-
-      // Check if the actual site exists
-      const siteExists = await verifySiteExists(siteName)
-      if (!siteExists) {
-        console.log('⚠️ Tenant record exists but site is missing - will recreate site')
-
-        // Delete the old tenant record so we can recreate it
-        try {
-          const deleteTenantEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantName}`
-          await fetch(deleteTenantEndpoint, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': authHeader,
-            },
-          })
-          console.log('🗑️ Deleted old tenant record')
-          tenantExists = false // Force recreation
-        } catch (deleteError) {
-          console.warn('⚠️ Could not delete old tenant record, continuing anyway')
-        }
-      }
-    }
-
-    if (!tenantExists) {
-      // Step 2: Create Tenant if it doesn't exist
-      const tenantEndpoint = `${BASE_URL}/api/resource/SaaS Tenant`
-
-      const tenantResponse = await fetch(tenantEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          name: tenantName,
-          subdomain: tenantName,
-          company_name: companyName,
-          owner_email: email,
-          site_url: siteUrl,
-          status: 'Active',
-          site_config: JSON.stringify({
-            created_at: new Date().toISOString(),
-            single_tenant: true,
-          }),
-          // API credentials will be updated after site provisioning
-          api_key: '',
-          api_secret: ''
-        }),
-      })
-
-      if (!tenantResponse.ok) {
-        const tenantData = await tenantResponse.json()
-        console.error('Tenant creation error:', tenantData)
-
-        // If duplicate error (race condition), treat as success
-        if (tenantData.exception && tenantData.exception.includes('DuplicateEntryError')) {
-          console.log('✅ Tenant already exists (race condition)')
-        } else {
-          return {
-            success: false,
-            error: tenantData.exception || tenantData.message || 'Failed to create tenant record',
-          }
-        }
-      } else {
-        console.log('✅ Tenant created successfully')
-      }
-    }
-
-    // Step 3: Check if User already exists
-    const checkUserEndpoint = `${BASE_URL}/api/resource/User/${email}`
-    const checkUserResponse = await fetch(checkUserEndpoint, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-      },
-    })
-
-    const userExists = checkUserResponse.ok
-
-    if (userExists) {
-      console.log('✅ User already exists:', email)
-      // User exists, we're done
-      return {
-        success: true,
-        site_url: siteUrl,
-        tenant_name: tenantName,
-      }
-    }
-
-    // Step 4: Create User if doesn't exist
-    const userEndpoint = `${BASE_URL}/api/resource/User`
-    const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
-
-    const userResponse = await fetch(userEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: JSON.stringify({
-        doctype: 'User',
-        email: email,
-        username: username,
-        first_name: companyName.split(' ')[0],
-        last_name: companyName.split(' ').slice(1).join(' ') || companyName.split(' ')[0],
-        enabled: 1,
-        new_password: adminPassword,
-        send_welcome_email: 0,
-      }),
-    })
-
-    if (!userResponse.ok) {
-      const userData = await userResponse.json()
-      console.error('User creation error:', userData)
-
-      // If duplicate error (race condition), treat as success
-      if (userData.exception && userData.exception.includes('DuplicateEntryError')) {
-        console.log('✅ User already exists (race condition)')
-        return {
-          success: true,
-          site_url: siteUrl,
-          tenant_name: tenantName,
-        }
-      }
-
-      return {
-        success: false,
-        error: userData.exception || userData.message || 'Failed to create user account',
-      }
-    }
-
-    console.log('✅ User created successfully')
-
-    return {
-      success: true,
-      site_url: siteUrl,
-      tenant_name: tenantName,
-    }
-  } catch (error: any) {
-    console.error('Provisioning request failed:', error)
-    return {
-      success: false,
-      error: error.message || 'Network error during provisioning',
-    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('❌ Provisioning failed:', errorMessage)
+    return { success: false, error: errorMessage }
   }
 }
 
 /**
  * Main signup server action
- * Called from the signup form
+ * Validates form, triggers background provisioning, redirects to login
  */
 export async function signupUser(formData: FormData) {
   try {
@@ -541,121 +151,43 @@ export async function signupUser(formData: FormData) {
 
     console.log('Signup request:', { companyName, email, tenantName })
 
-    // 3. Provision real Frappe site with separate database
+    // 3. Start background provisioning
     const siteName = `${tenantName}.${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'}`
     const siteResult = await provisionFrappeSite(siteName, password, email, companyName)
 
     if (!siteResult.success) {
       return {
         success: false,
-        error: siteResult.error || 'Failed to provision tenant site',
+        error: siteResult.error || 'Failed to start tenant provisioning',
       }
     }
 
-    // 4. Create Tenant record in master site for tracking (only if site provisioning succeeded)
-    const result = await provisionTenantSite(tenantName, password, companyName, email, siteName)
-
-    if (!result.success) {
-      return result
-    }
-
-    // If background provisioning, redirect to status page immediately
-    if (siteResult.isBackground) {
-      console.log('🔀 Redirecting to provisioning status page')
-      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
-      const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000'
-      const statusUrl = `${protocol}://${baseHost}/provisioning?tenant=${result.tenant_name || tenantName}&email=${encodeURIComponent(email)}`
-
-      redirect(statusUrl)
-    }
-
-    // 5. Wait for site to be fully ready (only for existing sites)
-    const waitTime = 3000
-    console.log(`⏳ Waiting ${waitTime/1000}s for site to initialize...`)
-    await new Promise(resolve => setTimeout(resolve, waitTime))
-    
-    // 5.5. Verify user has proper permissions before login
-    const permCheck = await ensureUserPermissions(siteName, email, password)
-    if (!permCheck.success) {
-      console.warn('⚠️ Could not verify user permissions, attempting login anyway')
-    }
-
-    // 6. Login the user to the tenant's site
-    const tenantSiteUrl = `http://localhost:8080`  // All sites accessible via same port
-    const loginEndpoint = `${tenantSiteUrl}/api/method/login`
-    
-    try {
-      const loginResponse = await fetch(loginEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Frappe-Site-Name': siteName,  // Tell Frappe which site to use
-        },
-        body: new URLSearchParams({
-          usr: email,
-          pwd: password
-        }),
-        signal: AbortSignal.timeout(10000) // 10 second timeout
-      })
-
-    
-    if (loginResponse.ok) {
-      const { cookies } = await import('next/headers')
-      const cookieStore = await cookies()
-      
-      // Extract session cookies from ERPNext
-      const setCookieHeader = loginResponse.headers.get('set-cookie')
-      if (setCookieHeader) {
-        const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
-        if (sidMatch) {
-          cookieStore.set('sid', sidMatch[1], {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7
-          })
-        }
-      }
-      
-      cookieStore.set('user_email', email, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7
-      })
-      cookieStore.set('tenant_subdomain', result.tenant_name || tenantName, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7
-      })
-    } else {
-      console.warn('Login failed after provisioning, redirecting to login page')
-    }
-    } catch (loginError: any) {
-      console.error('Login attempt failed:', loginError.message)
-      // Continue with redirect even if login fails - user can login manually
-    }
-    
-    // 7. Redirect to tenant subdomain (e.g., https://vfixit.avariq.in)
+    // 4. Redirect to login page with success params
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
     const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000'
-    const tenantUrl = `${protocol}://${result.tenant_name || tenantName}.${baseHost}/dashboard`
     
-    console.log('Redirecting to tenant subdomain:', tenantUrl)
-    redirect(tenantUrl)
+    const loginUrl = siteResult.isBackground
+      ? `${protocol}://${baseHost}/provisioning?tenant=${tenantName}&email=${encodeURIComponent(email)}`
+      : `${protocol}://${tenantName}.${baseHost}/login?signup=success&tenant=${tenantName}`
+    
+    console.log('Redirecting to:', loginUrl)
+    redirect(loginUrl)
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Re-throw redirect errors (they are not actual errors, just flow control)
-    if (error.digest?.startsWith('NEXT_REDIRECT')) {
-      throw error
+    if (error && typeof error === 'object' && 'digest' in error) {
+      const digestError = error as { digest?: string }
+      if (digestError.digest?.startsWith('NEXT_REDIRECT')) {
+        throw error
+      }
     }
 
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during signup'
     console.error('Signup error:', error)
 
     return {
       success: false,
-      error: error.message || 'An unexpected error occurred during signup',
+      error: errorMessage,
     }
   }
 }
