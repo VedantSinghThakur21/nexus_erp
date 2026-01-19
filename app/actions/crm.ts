@@ -78,13 +78,13 @@ export async function getOpportunities() {
 }
 
 // 2. READ: Get Single Opportunity
-export async function getOpportunity(id: string) {
+export async function getOpportunity(id: string): Promise<Opportunity | null> {
   try {
     const opportunity = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Opportunity',
       name: decodeURIComponent(id)
     })
-    return opportunity
+    return opportunity as Opportunity
   } catch (error) {
     console.error("Failed to fetch opportunity:", error)
     return null
