@@ -149,7 +149,7 @@ export async function createBooking(formData: FormData) {
       ]),
       fields: JSON.stringify(['name', 'delivery_date', 'transaction_date']),
       limit_page_length: 0
-    })
+    }) as any[]
 
     // Check for date overlaps
     const start = new Date(startDate)
