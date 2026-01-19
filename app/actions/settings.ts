@@ -268,8 +268,7 @@ export async function getBankAccounts() {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 1
-    })
-    
+    }) as any[];
     if (!companies || companies.length === 0) return []
     const companyName = companies[0].name
 
@@ -300,8 +299,7 @@ export async function createBankAccount(data: {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 1
-    })
-    
+    }) as any[];
     if (!companies || companies.length === 0) {
       return { error: 'No company found. Please set up company first.' }
     }
