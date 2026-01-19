@@ -69,7 +69,7 @@ export async function applyItemPricingRules(data: {
       customer: data.customer,
       qty: data.qty,
       transaction_date: data.transaction_date
-    })
+    }) as { discount_percentage?: number }
 
     // If this is a rental item and pricing rules are applied, adjust rental components proportionally
     let adjustedRentalComponents = data.rental_components
