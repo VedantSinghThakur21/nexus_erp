@@ -74,7 +74,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
     setIsLoading(true)
     try {
       const quotation = await createQuotationFromOpportunity(typeof opportunity.name === "string" ? opportunity.name : "")
-      router.push(`/crm/quotations/${encodeURIComponent(quotation.name)}`)
+      router.push(`/crm/quotations/${encodeURIComponent(typeof quotation.name === "string" ? quotation.name : "")}`)
     } catch (error) {
       console.error("Quotation creation failed:", error)
       alert("Failed to create quotation. Please try again.")
