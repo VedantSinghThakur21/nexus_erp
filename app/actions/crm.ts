@@ -280,7 +280,7 @@ export async function convertLeadToCustomer(leadId: string) {
     const lead = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Lead', 
         name: leadId 
-    })
+    }) as Lead
 
     if (!lead) throw new Error("Lead not found")
 
@@ -319,7 +319,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
     const lead = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Lead',
       name: leadId
-    })
+    }) as Lead
 
     if (!lead) throw new Error("Lead not found")
 
