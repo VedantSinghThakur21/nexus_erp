@@ -192,7 +192,7 @@ export async function createBooking(formData: FormData) {
         status: 'Draft'
     }
 
-    const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc })
+    const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc }) as { name: string }
     
     revalidatePath('/bookings')
     revalidatePath('/catalogue')
