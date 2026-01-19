@@ -31,7 +31,7 @@ async function getBankDetails(companyName: string) {
         filters: `[["company", "=", "${companyName}"], ["is_default", "=", 1]]`,
         fields: '["bank", "bank_account_no", "branch_code"]',
         limit_page_length: 1
-    })
+    }) as Array<{ bank: string; bank_account_no: string; branch_code: string }>;
     return banks[0] || null
   } catch (e) {
     return null
