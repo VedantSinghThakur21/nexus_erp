@@ -7,8 +7,21 @@ import { EditLeadSheet } from "@/components/crm/edit-lead-sheet"
 import { ConvertLeadDialog } from "@/components/crm/convert-lead-dialog"
 import { CustomerPricingAnalytics } from "@/components/crm/customer-pricing-analytics"
 
+interface Lead {
+  name: string
+  lead_name: string
+  email_id: string
+  mobile_no: string
+  status: string
+  company_name: string
+  job_title?: string
+  territory?: string
+  source?: string
+  industry?: string
+}
+
 // Fetch single lead data from ERPNext
-async function getLead(id: string) {
+async function getLead(id: string): Promise<Lead | null> {
   // Decode the ID because URLs replace spaces with %20
   const leadName = decodeURIComponent(id)
   
@@ -18,7 +31,7 @@ async function getLead(id: string) {
       doctype: 'Lead',
       name: leadName
     })
-    return lead
+    return lead as Lead
   } catch (e) {
     console.error("Error fetching lead:", e)
     return null
