@@ -29,7 +29,7 @@ export function ConvertLeadDialog({ leadId, leadName }: { leadId: string; leadNa
     try {
       const opportunity = await convertLeadToOpportunity(typeof leadId === "string" ? leadId : "", createCustomer, opportunityAmount)
       setIsOpen(false)
-      router.push(`/crm/opportunities/${encodeURIComponent(opportunity.opportunityId)}`)
+      router.push(`/crm/opportunities/${encodeURIComponent(typeof opportunity.opportunityId === "string" ? opportunity.opportunityId : "")}`)
     } catch (error) {
       console.error("Conversion failed:", error)
       alert("Failed to convert lead. Please try again.")
