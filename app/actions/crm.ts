@@ -295,7 +295,7 @@ export async function convertLeadToCustomer(leadId: string) {
     }
 
     // 3. Save to ERPNext
-    const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData })
+    const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData }) as { name: string }
     
     // 4. Update Lead Status to 'Converted'
     await frappeRequest('frappe.client.set_value', 'POST', {
@@ -347,7 +347,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       customer_name: lead.lead_name
     }
 
-    const opportunity = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData })
+    const opportunity = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData }) as { name: string }
 
     // 4. Update Lead Status to "Opportunity" (valid ERPNext status)
     if (!customerId) {
@@ -377,7 +377,7 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
       'erpnext.crm.doctype.opportunity.opportunity.make_quotation',
       'POST',
       { source_name: opportunityId }
-    )
+    ) as { message?: any } | any
 
     console.log('ERPNext make_quotation draft response:', JSON.stringify(draftQuotation, null, 2))
 
@@ -397,7 +397,7 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
     // Insert the document to create the actual quotation
     const savedQuotation = await frappeRequest('frappe.client.insert', 'POST', {
       doc: quotationDoc
-    })
+    }) as { name?: string }
 
     console.log('Saved quotation response:', JSON.stringify(savedQuotation, null, 2))
 
@@ -520,7 +520,7 @@ export async function createQuotation(quotationData: {
         const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
           doctype: 'Sales Taxes and Charges Template',
           name: quotationData.taxes_and_charges
-        })
+        }) as { taxes?: any[] }
         
         // Add the tax rows to the quotation
         if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
@@ -542,7 +542,7 @@ export async function createQuotation(quotationData: {
     // Create the quotation
     const quotation = await frappeRequest('frappe.client.insert', 'POST', {
       doc
-    })
+    }) as { name?: string }
 
     if (!quotation || !quotation.name) {
       throw new Error("Failed to create quotation")
@@ -625,7 +625,7 @@ export async function updateQuotation(quotationId: string, quotationData: {
     }
 
     // Prepare updated document
-    const updatedQuotation = {
+    const updatedQuotation: any = {
       ...existingQuotation,
       quotation_to: quotationData.quotation_to,
       party_name: quotationData.party_name,
@@ -667,7 +667,7 @@ export async function updateQuotation(quotationId: string, quotationData: {
         const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
           doctype: 'Sales Taxes and Charges Template',
           name: quotationData.taxes_and_charges
-        })
+        }) as { taxes?: any[] }
         
         // Add the tax rows to the quotation
         if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
@@ -711,7 +711,7 @@ export async function submitQuotation(quotationId: string) {
     const doc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
       name: quotationId
-    })
+    }) as any
 
     // Submit the quotation by saving with docstatus = 1
     await frappeRequest('frappe.client.save', 'POST', {
@@ -740,7 +740,7 @@ export async function deleteQuotation(quotationId: string) {
     const quotation = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
       name: quotationId
-    })
+    }) as { docstatus: number }
 
     if (quotation.docstatus !== 0) {
       throw new Error('Only Draft quotations can be deleted')
@@ -792,7 +792,7 @@ export async function getCompanyDetails() {
       doctype: 'Company',
       fields: '["name", "tax_id"]',
       limit_page_length: 1
-    });
+    }) as any[];
     
     if (!companies || companies.length === 0) return null;
     
@@ -811,7 +811,7 @@ export async function getBankDetails() {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 1
-    });
+    }) as any[];
     
     if (!companies || companies.length === 0) return null;
     const companyName = companies[0].name;
@@ -821,7 +821,7 @@ export async function getBankDetails() {
         filters: `[["company", "=", "${companyName}"], ["is_default", "=", 1]]`,
         fields: '["bank", "bank_account_no", "branch_code"]',
         limit_page_length: 1
-    })
+    }) as any[]
     
     return banks[0] || null
   } catch (e) {
@@ -838,7 +838,7 @@ export async function markOpportunityAsWon(opportunityId: string, createCustomer
     const opportunity = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Opportunity',
       name: opportunityId
-    })
+    }) as Opportunity
 
     if (!opportunity) throw new Error("Opportunity not found")
 
@@ -875,7 +875,7 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
     const opportunity = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Opportunity',
       name: opportunityId
-    })
+    }) as Opportunity
 
     if (!opportunity) throw new Error("Opportunity not found")
 
@@ -895,7 +895,7 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
         const lead = await frappeRequest('frappe.client.get', 'GET', {
           doctype: 'Lead',
           name: opportunity.party_name
-        })
+        }) as Lead
         customerName = lead.company_name || lead.lead_name
         email = lead.email_id
         mobile = lead.mobile_no
@@ -915,7 +915,7 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
       mobile_no: mobile
     }
 
-    const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData })
+    const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData }) as { name: string }
 
     // 5. Update Opportunity to link to Customer
     await frappeRequest('frappe.client.set_value', 'POST', {
@@ -927,12 +927,17 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
       }
     })
 
-    // 6. If from Lead, update Lead status to Converted
-    if (opportunity.opportunity_from === 'Lead') {
+    // 6. If from Lead, update Lead status to Converted (refetch to get updated data)
+    const updatedOpportunity = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Opportunity',
+      name: opportunityId
+    }) as Opportunity
+    
+    if (updatedOpportunity.opportunity_from === 'Lead') {
       try {
         await frappeRequest('frappe.client.set_value', 'POST', {
           doctype: 'Lead',
-          name: opportunity.party_name,
+          name: updatedOpportunity.party_name,
           fieldname: 'status',
           value: 'Converted'
         })
