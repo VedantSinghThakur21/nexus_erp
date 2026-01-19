@@ -348,24 +348,44 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
         title: `${lead.company_name || lead.lead_name} - Sales Opportunity`,
         customer_name: lead.lead_name
       }
-      console.log('[DEBUG] Attempting to create Opportunity:', JSON.stringify(opportunityData, null, 2))
-      opportunity = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData }) as { name: string }
-      console.log('[DEBUG] Opportunity creation result:', JSON.stringify(opportunity, null, 2))
+      console.log('[DEBUG] Attempting to create Opportunity with data:', JSON.stringify(opportunityData, null, 2))
+      
+      const response = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData })
+      console.log('[DEBUG] Raw frappeRequest response:', JSON.stringify(response, null, 2))
+      
+      if (response && typeof response === 'object') {
+        if ((response as any).message && typeof (response as any).message === 'object') {
+          opportunity = (response as any).message as { name: string }
+        } else if ((response as any).name) {
+          opportunity = response as { name: string }
+        } else {
+          console.log('[DEBUG] Response structure:', Object.keys(response))
+          opportunity = response as { name: string }
+        }
+      }
+      
+      console.log('[DEBUG] Parsed opportunity:', JSON.stringify(opportunity, null, 2))
+      
       if (!opportunity || !opportunity.name) {
-        throw new Error('No Opportunity name returned from ERPNext')
+        throw new Error(`Failed to extract Opportunity name from response. Response: ${JSON.stringify(response)}`)
       }
     } catch (err: any) {
       opportunityError = err
-      console.error('[DEBUG] Error creating Opportunity:', err)
+      console.error('[DEBUG] Error creating Opportunity:', JSON.stringify(err, null, 2))
     }
 
     // 4. Update Lead Status to "Opportunity" (always, regardless of customer creation)
-    await frappeRequest('frappe.client.set_value', 'PUT', {
-      doctype: 'Lead',
-      name: leadId,
-      fieldname: 'status',
-      value: 'Opportunity'
-    })
+    try {
+      await frappeRequest('frappe.client.set_value', 'PUT', {
+        doctype: 'Lead',
+        name: leadId,
+        fieldname: 'status',
+        value: 'Opportunity'
+      })
+      console.log('[DEBUG] Lead status updated to Opportunity')
+    } catch (statusErr) {
+      console.error('[DEBUG] Error updating lead status:', statusErr)
+    }
 
     revalidatePath('/crm')
     revalidatePath('/crm/leads')
@@ -373,8 +393,10 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
     revalidatePath('/crm/opportunities')
 
     if (opportunity && opportunity.name) {
+      console.log('[DEBUG] Success: Opportunity created with ID:', opportunity.name)
       return { success: true, opportunityId: opportunity.name }
     } else {
+      console.error('[DEBUG] Failed: No opportunity created. Error:', opportunityError?.message)
       return { error: (opportunityError && opportunityError.message) || 'Failed to create opportunity' }
     }
   } catch (error: any) {
