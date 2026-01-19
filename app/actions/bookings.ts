@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 
 export interface Booking {
   name: string
+  customer: string
   customer_name: string
   transaction_date: string
   delivery_date: string
@@ -203,13 +204,13 @@ export async function createBooking(formData: FormData) {
 }
 
 // 2. READ: Single Booking
-export async function getBooking(id: string) {
+export async function getBooking(id: string): Promise<Booking | null> {
   try {
     const booking = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: decodeURIComponent(id)
     })
-    return booking
+    return booking as Booking
   } catch (error) {
     return null
   }
