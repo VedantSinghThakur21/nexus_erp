@@ -18,6 +18,9 @@ interface Lead {
   territory?: string
   source?: string
   industry?: string
+  city?: string
+  country?: string
+  notes?: string
 }
 
 // Fetch single lead data from ERPNext
