@@ -348,13 +348,15 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
         title: `${lead.company_name || lead.lead_name} - Sales Opportunity`,
         customer_name: lead.lead_name
       }
+      console.log('[DEBUG] Attempting to create Opportunity:', JSON.stringify(opportunityData, null, 2))
       opportunity = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData }) as { name: string }
+      console.log('[DEBUG] Opportunity creation result:', JSON.stringify(opportunity, null, 2))
       if (!opportunity || !opportunity.name) {
         throw new Error('No Opportunity name returned from ERPNext')
       }
     } catch (err: any) {
       opportunityError = err
-      console.error('Error creating Opportunity:', err)
+      console.error('[DEBUG] Error creating Opportunity:', err)
     }
 
     // 4. Update Lead Status to "Opportunity" (always, regardless of customer creation)

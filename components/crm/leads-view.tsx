@@ -174,14 +174,15 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
         const result = await convertLeadToOpportunity(leadName, false)
         
         if (result.error) {
+          alert('❌ Failed to convert lead to opportunity.\n' + (result.error || 'Unknown error. See server logs for details.'))
           throw new Error(result.error)
         }
 
-        alert('✅ Successfully converted lead to opportunity! Redirecting...')
+        alert('✅ Successfully converted lead to opportunity!\n\nOpportunity ID: ' + result.opportunityId)
         router.push('/crm/opportunities')
       } catch (error) {
         console.error('Error converting lead to opportunity:', error)
-        alert('❌ Failed to convert lead to opportunity. Please try again.')
+        alert('❌ Failed to convert lead to opportunity. Please try again. See console for details.')
       } finally {
         setUpdatingStatus(null)
       }
