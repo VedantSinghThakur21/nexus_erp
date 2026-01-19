@@ -35,7 +35,7 @@ export function DynamicRentalPricingForm({
   const [showComponentSelector, setShowComponentSelector] = useState(false)
 
   // Get active components (explicitly added or required)
-  const activeComponentKeys = Object.keys(components).filter(key => components[key as keyof RentalPricingComponents] !== undefined) as Array<keyof RentalPricingComponents>
+  const activeComponentKeys = Object.keys(components) as Array<keyof RentalPricingComponents>
 
   // Get available components that can be added
   const availableToAdd = AVAILABLE_COMPONENTS.filter(
@@ -63,7 +63,7 @@ export function DynamicRentalPricingForm({
   const addComponent = (key: keyof RentalPricingComponents) => {
     onChange({
       ...components,
-      [key]: undefined
+      [key]: 0
     })
     setShowComponentSelector(false)
   }
@@ -124,7 +124,7 @@ export function DynamicRentalPricingForm({
         {/* Active Components */}
         <div className="space-y-2">
           {AVAILABLE_COMPONENTS.filter(
-            comp => activeComponentKeys.includes(comp.key as keyof RentalPricingComponents) || comp.required
+            comp => comp.required || activeComponentKeys.includes(comp.key as keyof RentalPricingComponents)
           ).map((comp) => {
             const isRequired = comp.required
             const rawValue = components[comp.key as keyof RentalPricingComponents]
