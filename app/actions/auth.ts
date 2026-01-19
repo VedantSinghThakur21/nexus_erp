@@ -67,7 +67,7 @@ async function findTenantForEmail(email: string): Promise<{
         fields: '["subdomain", "status", "api_key", "api_secret"]',
         limit_page_length: 1
       }
-    )
+    ) as any[]
 
     if (tenants && tenants.length > 0) {
       const tenant = tenants[0]
