@@ -8,7 +8,7 @@ async function getSalesOrder(id: string) {
     return await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: decodeURIComponent(id)
-    })
+    }) as any
   } catch (e) {
     return null
   }
@@ -19,9 +19,9 @@ async function getCompany(companyName: string) {
     return await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Company',
       name: companyName
-    })
+    }) as any
   } catch (e) {
-    return {}
+    return {} as any
   }
 }
 
@@ -29,10 +29,10 @@ async function getBankDetails(companyName: string) {
   try {
     const accounts = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Bank Account',
-      filters: `[["company", "=", "${companyName}"], ["is_company_account", "=", 1], ["is_default", "=", 1]]`,
+      filters: `[ ["company", "=", "${companyName}"], ["is_company_account", "=", 1], ["is_default", "=", 1] ]`,
       fields: '["bank", "bank_account_no", "branch_code"]',
       limit_page_length: 1
-    })
+    }) as any[];
     return accounts[0] || null
   } catch (e) {
     return null
@@ -41,13 +41,13 @@ async function getBankDetails(companyName: string) {
 
 export default async function PrintSalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const order = await getSalesOrder(id)
+  const order = await getSalesOrder(id) as any
 
   if (!order) return <div className="p-8">Sales Order Not Found</div>
 
   const [company, bank] = await Promise.all([
-    getCompany(order.company || 'Your Company'),
-    getBankDetails(order.company || 'Your Company')
+    getCompany(order.company || 'Your Company') as Promise<any>,
+    getBankDetails(order.company || 'Your Company') as Promise<any>
   ])
 
   return (
