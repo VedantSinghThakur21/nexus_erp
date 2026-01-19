@@ -28,6 +28,18 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     )
   }
 
+  if (!opportunity) {
+    return (
+      <div className="p-8 flex flex-col gap-4">
+        <h1 className="text-2xl font-bold">Opportunity Not Found</h1>
+        <p className="text-muted-foreground">The opportunity "{opportunityName}" could not be found.</p>
+        <Link href="/crm/opportunities">
+          <Button variant="outline">Back to Pipeline</Button>
+        </Link>
+      </div>
+    )
+  }
+
   // Sales stage colors (ERPNext default stages)
   const stageColors: Record<string, string> = {
     'Prospecting': 'bg-gray-100 text-gray-700',
