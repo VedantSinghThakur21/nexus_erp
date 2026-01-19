@@ -224,7 +224,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                         </div>
                         
                         {/* Tax Breakdown */}
-                        {invoice.taxes?.length > 0 ? (
+                        {invoice.taxes && invoice.taxes.length > 0 ? (
                             invoice.taxes.map((tax: any, i: number) => (
                                 <div key={i} className="flex justify-between text-xs text-slate-500">
                                     <span>{tax.description}</span>
