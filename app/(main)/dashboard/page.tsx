@@ -37,7 +37,7 @@ async function getRevenueData() {
             filters: '[["docstatus", "=", 1]]',
             order_by: 'posting_date asc',
             limit_page_length: 1000
-        });
+        }) as Array<{ grand_total: number; posting_date: string }>;
 
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const now = new Date();
