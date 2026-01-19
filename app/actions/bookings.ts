@@ -304,7 +304,7 @@ export async function returnAsset(bookingId: string) {
     // Check current asset status
     let asset;
     try {
-        asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId });
+        asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string };
     } catch (e) {
         throw new Error("Asset not found in system");
     }
