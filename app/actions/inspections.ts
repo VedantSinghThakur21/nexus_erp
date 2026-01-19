@@ -64,13 +64,13 @@ export async function createInspection(formData: FormData) {
 }
 
 // 3. READ: Get Single Inspection
-export async function getInspection(id: string) {
+export async function getInspection(id: string): Promise<Inspection | null> {
   try {
     const inspection = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quality Inspection',
       name: decodeURIComponent(id)
     })
-    return inspection
+    return inspection as Inspection
   } catch (error) {
     console.error("Failed to fetch inspection:", error)
     return null
