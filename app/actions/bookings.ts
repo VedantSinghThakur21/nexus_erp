@@ -228,7 +228,7 @@ export async function mobilizeAsset(formData: FormData) {
     const assetId = booking.po_no.replace('RENT-', '')
 
     // 1. Check Asset Status & Location
-    let asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId })
+    let asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
     let sourceWarehouse = asset.warehouse;
 
     // Self-Healing Inventory Logic
