@@ -324,7 +324,6 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
     if (!lead) throw new Error("Lead not found")
 
     let customerId = null
-    
     // 2. Optionally create customer first
     if (createCustomer) {
       const customerResult = await convertLeadToCustomer(leadId)
@@ -332,22 +331,31 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       customerId = customerResult.customerId
     }
 
-    // 3. Create Opportunity
-    const opportunityData = {
-      doctype: 'Opportunity',
-      opportunity_from: customerId ? 'Customer' : 'Lead',
-      party_name: customerId || leadId,
-      opportunity_type: 'Sales',
-      status: 'Open',
-      sales_stage: 'Qualification',
-      probability: 20,
-      currency: 'INR',
-      opportunity_amount: opportunityAmount,
-      title: `${lead.company_name || lead.lead_name} - Sales Opportunity`,
-      customer_name: lead.lead_name
+    // 3. Create Opportunity (always attempt, log errors)
+    let opportunity = null
+    let opportunityError = null
+    try {
+      const opportunityData = {
+        doctype: 'Opportunity',
+        opportunity_from: customerId ? 'Customer' : 'Lead',
+        party_name: customerId || leadId,
+        opportunity_type: 'Sales',
+        status: 'Open',
+        sales_stage: 'Qualification',
+        probability: 20,
+        currency: 'INR',
+        opportunity_amount: opportunityAmount,
+        title: `${lead.company_name || lead.lead_name} - Sales Opportunity`,
+        customer_name: lead.lead_name
+      }
+      opportunity = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData }) as { name: string }
+      if (!opportunity || !opportunity.name) {
+        throw new Error('No Opportunity name returned from ERPNext')
+      }
+    } catch (err: any) {
+      opportunityError = err
+      console.error('Error creating Opportunity:', err)
     }
-
-    const opportunity = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData }) as { name: string }
 
     // 4. Update Lead Status to "Opportunity" (always, regardless of customer creation)
     await frappeRequest('frappe.client.set_value', 'PUT', {
@@ -361,7 +369,12 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
     revalidatePath('/crm/leads')
     revalidatePath(`/crm/leads/${leadId}`)
     revalidatePath('/crm/opportunities')
-    return { success: true, opportunityId: opportunity.name }
+
+    if (opportunity && opportunity.name) {
+      return { success: true, opportunityId: opportunity.name }
+    } else {
+      return { error: (opportunityError && opportunityError.message) || 'Failed to create opportunity' }
+    }
   } catch (error: any) {
     console.error("Convert to opportunity error:", error)
     return { error: error.message || 'Failed to create opportunity' }
