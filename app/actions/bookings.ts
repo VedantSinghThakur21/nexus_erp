@@ -51,7 +51,7 @@ export async function getCustomerBookingHistory(customerName: string) {
         order_by: 'creation desc',
         limit_page_length: 10
       }
-    )
+    ) as any[]
     
     // Calculate total bookings and total spent
     const totalBookings = bookings.length
