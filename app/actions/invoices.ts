@@ -39,6 +39,9 @@ export interface PaymentEntry {
   paid_from?: string
   paid_to?: string
   paid_from_account_currency?: string
+  creation?: string
+  modified?: string
+  owner?: string
 }
 
 // CREATE/UPDATE ITEM
