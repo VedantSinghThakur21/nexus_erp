@@ -259,13 +259,75 @@ export async function getSalesOrderStats() {
 // 8. CREATE: Create Sales Order from Quotation
 export async function createSalesOrderFromQuotation(quotationId: string) {
   try {
+    // 1. Fetch Quotation to verify it's submitted
+    const quotation = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Quotation',
+      name: quotationId
+    }) as any
+
+    if (!quotation) {
+      return { error: 'Quotation not found' }
+    }
+
+    // 2. Verify quotation is submitted (docstatus = 1)
+    if (quotation.docstatus !== 1) {
+      return { 
+        error: 'Quotation must be submitted before creating Sales Order. Please submit the quotation first.',
+        needsSubmission: true
+      }
+    }
+
+    // 3. Check if quotation is already ordered
+    if (quotation.status === 'Ordered') {
+      return { error: 'This quotation has already been converted to a Sales Order' }
+    }
+
+    // 4. Use ERPNext's built-in method to create sales order from quotation
     const result = await frappeRequest('erpnext.selling.doctype.quotation.quotation.make_sales_order', 'POST', {
       source_name: quotationId
+    }) as any
+
+    if (!result || !result.name) {
+      return { error: 'Failed to create sales order' }
+    }
+
+    const salesOrderDoc = result.message || result
+    
+    // 5. Save the sales order
+    const savedOrder = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: salesOrderDoc
+    }) as any
+
+    if (!savedOrder || !savedOrder.name) {
+      return { error: 'Failed to save sales order' }
+    }
+
+    // 6. Update Quotation status to \"Ordered\"
+    await frappeRequest('frappe.client.set_value', 'PUT', {
+      doctype: 'Quotation',
+      name: quotationId,
+      fieldname: 'status',
+      value: 'Ordered'
     })
+
+    // 7. If there's a linked opportunity, update it to \"Converted\"
+    if (quotation.opportunity) {
+      await frappeRequest('frappe.client.set_value', 'PUT', {
+        doctype: 'Opportunity',
+        name: quotation.opportunity,
+        fieldname: 'status',
+        value: 'Converted'
+      })
+    }
     
     revalidatePath('/sales-orders')
-    revalidatePath('/quotations')
-    return { success: true, data: result }
+    revalidatePath('/crm/quotations')
+    revalidatePath(`/crm/quotations/${quotationId}`)
+    if (quotation.opportunity) {
+      revalidatePath(`/crm/opportunities/${quotation.opportunity}`)
+    }
+    
+    return { success: true, name: savedOrder.name, salesOrder: savedOrder }
   } catch (error: any) {
     console.error("Failed to create sales order from quotation:", error)
     return { error: error.message || 'Failed to create sales order from quotation' }

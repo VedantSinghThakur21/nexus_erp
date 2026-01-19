@@ -274,14 +274,22 @@ export async function mobilizeAsset(formData: FormData) {
         docstatus: 1 // Submit immediately
     }
 
-    await frappeRequest('frappe.client.insert', 'POST', { doc: deliveryDoc })
+    const deliveryNote = await frappeRequest('frappe.client.insert', 'POST', { doc: deliveryDoc }) as { name: string }
 
-    // 3. Update Asset Status
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    // 3. Update Asset Status to "Issued" (indicating it's been mobilized/delivered to customer)
+    await frappeRequest('frappe.client.set_value', 'PUT', {
         doctype: 'Serial No',
         name: assetId,
         fieldname: 'status',
-        value: 'Delivered' 
+        value: 'Issued' 
+    })
+
+    // 4. Update Sales Order (Booking) status to reflect mobilization
+    await frappeRequest('frappe.client.set_value', 'PUT', {
+        doctype: 'Sales Order',
+        name: booking.name,
+        fieldname: 'status',
+        value: 'To Bill'
     })
 
     revalidatePath(`/bookings/${bookingId}`)
@@ -341,15 +349,16 @@ export async function returnAsset(bookingId: string) {
         await frappeRequest('frappe.client.insert', 'POST', { doc: stockEntry })
         
         // Update Serial No with warehouse
-        await frappeRequest('frappe.client.set_value', 'POST', {
+        await frappeRequest('frappe.client.set_value', 'PUT', {
             doctype: 'Serial No',
             name: assetId,
-            fieldname: { warehouse: targetWarehouse }
+            fieldname: 'warehouse',
+            value: targetWarehouse
         })
     }
 
     // Always update Serial No status to Active
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'PUT', {
         doctype: 'Serial No',
         name: assetId,
         fieldname: 'status',
@@ -357,24 +366,18 @@ export async function returnAsset(bookingId: string) {
     })
 
     // Properly close the Sales Order by updating both status and per_delivered
-    // First, fetch the latest sales order document
-    const latestBooking = await frappeRequest('frappe.client.get', 'GET', {
-        doctype: 'Sales Order',
-        name: bookingId
-    }) as { status: string; per_delivered: number }
-
-    // Update the document with completed status
-    latestBooking.status = 'Completed'
-    latestBooking.per_delivered = 100
-    
-    // Save the updated document
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'PUT', {
         doctype: 'Sales Order',
         name: bookingId,
-        fieldname: {
-            status: 'Completed',
-            per_delivered: 100
-        }
+        fieldname: 'status',
+        value: 'Completed'
+    })
+    
+    await frappeRequest('frappe.client.set_value', 'PUT', {
+        doctype: 'Sales Order',
+        name: bookingId,
+        fieldname: 'per_delivered',
+        value: 100
     })
 
     revalidatePath(`/bookings/${bookingId}`)

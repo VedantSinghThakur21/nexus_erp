@@ -189,6 +189,16 @@ export default function EditQuotationPage() {
                   commercial_charges: rentalData.commercialCost || 0,
                   incidental_charges: rentalData.incidentalCost || 0,
                   other_charges: rentalData.otherCost || 0,
+                } : item.pricing_components ? {
+                  base_cost: item.pricing_components.base_cost || 0,
+                  accommodation_charges: item.pricing_components.accommodation_charges || 0,
+                  usage_charges: item.pricing_components.usage_charges || 0,
+                  fuel_charges: item.pricing_components.fuel_charges || 0,
+                  elongation_charges: item.pricing_components.elongation_charges || 0,
+                  risk_charges: item.pricing_components.risk_charges || 0,
+                  commercial_charges: item.pricing_components.commercial_charges || 0,
+                  incidental_charges: item.pricing_components.incidental_charges || 0,
+                  other_charges: item.pricing_components.other_charges || 0,
                 } : {
                   base_cost: 0,
                   accommodation_charges: 0,

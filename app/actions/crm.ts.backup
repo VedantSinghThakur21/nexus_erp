@@ -349,18 +349,17 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 
     const opportunity = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData }) as { name: string }
 
-    // 4. Update Lead Status to "Opportunity" (always, regardless of customer creation)
-    await frappeRequest('frappe.client.set_value', 'PUT', {
-      doctype: 'Lead',
-      name: leadId,
-      fieldname: 'status',
-      value: 'Opportunity'
-    })
+    // 4. Update Lead Status to "Opportunity" (valid ERPNext status)
+    if (!customerId) {
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Lead',
+        name: leadId,
+        fieldname: 'status',
+        value: 'Opportunity'
+      })
+    }
 
     revalidatePath('/crm')
-    revalidatePath('/crm/leads')
-    revalidatePath(`/crm/leads/${leadId}`)
-    revalidatePath('/crm/opportunities')
     return { success: true, opportunityId: opportunity.name }
   } catch (error: any) {
     console.error("Convert to opportunity error:", error)
@@ -405,14 +404,6 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
     if (!savedQuotation || !savedQuotation.name) {
       throw new Error("Failed to save quotation - no name returned")
     }
-
-    // Update Opportunity status to "Quotation"
-    await frappeRequest('frappe.client.set_value', 'PUT', {
-      doctype: 'Opportunity',
-      name: opportunityId,
-      fieldname: 'status',
-      value: 'Quotation'
-    })
 
     // The server method automatically:
     // - Creates the quotation with all opportunity items
