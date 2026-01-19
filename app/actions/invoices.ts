@@ -12,7 +12,14 @@ export interface Invoice {
   status: string
   due_date: string
   currency: string
-  docstatus?: number 
+  docstatus?: number
+  company: string
+  total_taxes_and_charges?: number
+  net_total?: number
+  posting_date?: string
+  place_of_supply?: string
+  items?: any[]
+  taxes?: any[]
 }
 
 // CREATE/UPDATE ITEM

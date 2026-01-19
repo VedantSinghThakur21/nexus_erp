@@ -6,16 +6,17 @@ import { ArrowLeft, Building2, Clock, User } from "lucide-react"
 import Link from "next/link"
 import { InvoiceActions } from "@/components/invoices/invoice-actions"
 import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
+import { Invoice } from "@/app/actions/invoices"
 
 // Fetch single invoice with child items
-async function getInvoice(id: string) {
+async function getInvoice(id: string): Promise<Invoice | null> {
   const name = decodeURIComponent(id)
   try {
     // Fetch full document including child tables (items, taxes)
     const doc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Invoice',
       name: name
-    })
+    }) as Invoice
     return doc
   } catch (e) {
     console.error("Error fetching invoice:", e)
