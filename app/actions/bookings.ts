@@ -320,7 +320,7 @@ export async function returnAsset(bookingId: string) {
                 doctype: 'Warehouse',
                 filters: '[["is_group", "=", 0]]',
                 limit_page_length: 1
-            })
+            }) as any[];
             if (warehouses.length > 0) targetWarehouse = warehouses[0].name;
         } catch (e) {}
 
