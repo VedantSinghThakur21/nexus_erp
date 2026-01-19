@@ -92,7 +92,7 @@ export async function getItemRentalAnalytics(itemCode: string) {
         filters: `[["po_no", "like", "RENT-${itemCode}%"]]`,
         order_by: 'creation desc',
       }
-    )
+    ) as any[]
     
     const totalRentals = salesOrders.length
     const totalRevenue = salesOrders.reduce((sum: number, order: any) => sum + order.grand_total, 0)
