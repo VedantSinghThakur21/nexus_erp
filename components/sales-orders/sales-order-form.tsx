@@ -104,7 +104,7 @@ export default function SalesOrderForm() {
         getTaxTemplates(),
         getWarehouses()
       ])
-      setTaxTemplates(templates)
+      setTaxTemplates(Array.isArray(templates) ? templates : [])
       setWarehouses(warehouseList)
     }
     fetchData()
@@ -124,7 +124,7 @@ export default function SalesOrderForm() {
         const quotation = await getQuotation(quotationParam)
         console.log('Fetched quotation:', quotation)
         console.log('Quotation items:', quotation?.items)
-        console.log('Quotation taxes_and_charges:', quotation?.taxes_and_charges)
+        console.log('Quotation taxes_and_charges:', (quotation as any)?.taxes_and_charges)
         if (quotation?.items && quotation.items.length > 0) {
           quotation.items.forEach((item: any, idx: number) => {
             console.log(`Item ${idx}:`, {
@@ -139,24 +139,24 @@ export default function SalesOrderForm() {
         
         if (quotation) {
           // Determine correct customer ID based on quotation_to
-          const customerId = quotation.quotation_to === 'Customer' 
-            ? quotation.party_name 
-            : quotation.customer || quotation.party_name
+          const customerId = (quotation as any).quotation_to === 'Customer' 
+            ? (quotation as any).party_name 
+            : (quotation as any).customer || (quotation as any).party_name
           
           // Populate form with quotation data
           setFormData({
             customer: customerId || '',
-            customer_name: quotation.customer_name || quotation.party_name || '',
+            customer_name: (quotation as any).customer_name || (quotation as any).party_name || '',
             transaction_date: new Date().toISOString().split('T')[0],
-            delivery_date: quotation.delivery_date || quotation.valid_till || '',
-            currency: quotation.currency || 'INR',
-            terms: quotation.terms || '',
-            contact_email: quotation.contact_email || '',
-            territory: quotation.territory || '',
-            taxes_and_charges: quotation.taxes_and_charges || '',
-            quotation_no: quotation.name || '',
-            po_no: quotation.po_no || '',
-            po_date: quotation.po_date || ''
+            delivery_date: (quotation as any).delivery_date || (quotation as any).valid_till || '',
+            currency: (quotation as any).currency || 'INR',
+            terms: (quotation as any).terms || '',
+            contact_email: (quotation as any).contact_email || '',
+            territory: (quotation as any).territory || '',
+            taxes_and_charges: (quotation as any).taxes_and_charges || '',
+            quotation_no: (quotation as any).name || '',
+            po_no: (quotation as any).po_no || '',
+            po_date: (quotation as any).po_date || ''
           })
 
           // Populate items from quotation
@@ -333,7 +333,7 @@ export default function SalesOrderForm() {
     const fetchTaxRate = async () => {
       if (formData.taxes_and_charges && netTotal > 0) {
         try {
-          const taxTemplate = await getTaxTemplateDetails(formData.taxes_and_charges)
+          const taxTemplate = await getTaxTemplateDetails(formData.taxes_and_charges) as any
           if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
             const totalRate = taxTemplate.taxes.reduce((sum: number, tax: any) => sum + (tax.rate || 0), 0)
             setTaxRate(totalRate)

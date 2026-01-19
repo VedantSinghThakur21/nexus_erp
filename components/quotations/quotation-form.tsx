@@ -66,7 +66,7 @@ export default function QuotationForm() {
   useEffect(() => {
     const fetchTaxTemplates = async () => {
       const templates = await getTaxTemplates()
-      setTaxTemplates(templates)
+      setTaxTemplates(Array.isArray(templates) ? templates : [])
     }
     fetchTaxTemplates()
   }, [])

@@ -27,7 +27,7 @@ export function ConvertLeadDialog({ leadId, leadName }: { leadId: string; leadNa
   const handleConvert = async () => {
     setIsLoading(true)
     try {
-      const opportunity = await convertLeadToOpportunity(leadId, createCustomer, opportunityAmount)
+      const opportunity = await convertLeadToOpportunity(typeof leadId === "string" ? leadId : "", createCustomer, opportunityAmount)
       setIsOpen(false)
       router.push(`/crm/opportunities/${encodeURIComponent(opportunity.opportunityId)}`)
     } catch (error) {

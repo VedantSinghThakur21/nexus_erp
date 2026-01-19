@@ -97,7 +97,7 @@ export default function InvoiceWithRentalForm() {
         getTaxTemplates(),
         getWarehouses()
       ])
-      setTaxTemplates(templates)
+      setTaxTemplates(Array.isArray(templates) ? templates : [])
       setWarehouses(warehouseList)
     }
     fetchData()
@@ -260,7 +260,7 @@ export default function InvoiceWithRentalForm() {
     const fetchTaxRate = async () => {
       if (formData.taxes_and_charges && netTotal > 0) {
         try {
-          const taxTemplate = await getTaxTemplateDetails(formData.taxes_and_charges)
+          const taxTemplate = await getTaxTemplateDetails(formData.taxes_and_charges) as any
           if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
             const totalRate = taxTemplate.taxes.reduce((sum: number, tax: any) => sum + (tax.rate || 0), 0)
             setTaxRate(totalRate)
