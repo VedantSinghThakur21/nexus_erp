@@ -30,9 +30,9 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         fields: '["name", "instructions"]',
         order_by: 'creation desc',
         limit_page_length: 1
-      });
+      }) as Array<{ name: string; instructions: string }>;
       
-      if (deliveryNotes.length > 0 && deliveryNotes[0].instructions) {
+      if (deliveryNotes && deliveryNotes.length > 0 && deliveryNotes[0].instructions) {
         const match = deliveryNotes[0].instructions.match(/Operator:\s*(.+?)(?:\||$)/);
         if (match) {
           assignedOperator = match[1].trim();
