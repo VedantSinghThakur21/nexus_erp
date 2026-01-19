@@ -35,7 +35,7 @@ export async function getWarehouses() {
       doctype: 'Warehouse',
       fields: '["name"]',
       limit_page_length: 50
-    })
+    }) as any[]
     return warehouseList?.map((w: any) => w.name) || []
   } catch (error) {
     console.error('Failed to fetch warehouses:', error)
