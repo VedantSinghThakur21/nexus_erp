@@ -248,7 +248,7 @@ export async function linkOrganizationToExistingDocs() {
           doctype: 'Custom Field',
           filters: JSON.stringify({ dt: doctype, fieldname: 'organization_slug' }),
           limit_page_length: 1
-        })
+        }) as any[]
 
         if (existing && existing.length > 0) {
           results[doctype] = { status: 'exists', message: 'Field already exists' }

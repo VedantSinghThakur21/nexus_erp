@@ -38,7 +38,7 @@ export async function getPricingRules(): Promise<PricingRule[]> {
         fields: '["name","title","apply_on","item_group","selling","buying","rate_or_discount","discount_percentage","discount_amount","rate","price_or_product_discount","customer","customer_group","territory","valid_from","valid_upto","min_qty","max_qty","disable","priority"]',
         limit_page_length: 999
       }
-    )
+    ) as { data?: any[] }
     return response.data || []
   } catch (error) {
     console.error("Error fetching pricing rules:", error)
@@ -56,7 +56,7 @@ export async function getPricingRule(name: string): Promise<PricingRule | null> 
         doctype: 'Pricing Rule',
         name: name,
       }
-    );
+    ) as { data?: any };
 
     return response.data || null;
   } catch (error) {
@@ -233,7 +233,7 @@ export async function getCustomerGroups(): Promise<string[]> {
         fields: JSON.stringify(["name"]),
         limit_page_length: 999,
       }
-    )
+    ) as { data?: { name: string }[] }
 
     return response.data?.map((group: { name: string }) => group.name) || [];
   } catch (error) {
@@ -253,7 +253,7 @@ export async function getTerritories(): Promise<string[]> {
         fields: JSON.stringify(["name"]),
         limit_page_length: 999,
       }
-    );
+    ) as { data?: { name: string }[] };
 
     return response.data?.map((territory: { name: string }) => territory.name) || [];
   } catch (error) {

@@ -36,7 +36,7 @@ export async function inviteTeamMember(data: {
       doctype: 'User',
       filters: `[["email", "=", "${data.email}"]]`,
       limit_page_length: 1
-    })
+    }) as any[]
     
     if (existingUsers && existingUsers.length > 0) {
       return {

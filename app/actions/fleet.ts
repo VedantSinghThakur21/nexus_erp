@@ -61,7 +61,7 @@ export async function getCustomerBookingHistory(customerId: string) {
       filters: `[["customer", "=", "${customerId}"], ["po_no", "like", "RENT-%"]]`,
       order_by: 'transaction_date desc',
       limit_page_length: 20
-    })
+    }) as any[]
     
     return bookings.map((booking: any) => ({
       ...booking,
@@ -107,7 +107,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
             filters: `[["name", "like", "${name}%"]]`,
             fields: '["name"]',
             limit_page_length: 1
-        });
+        }) as any[];
         if (list && list.length > 0) {
             return list[0].name;
         }
@@ -123,7 +123,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
                 doctype: 'Warehouse',
                 filters: '[["is_group", "=", 1], ["parent_warehouse", "=", ""]]',
                 limit_page_length: 1
-            });
+            }) as any[];
             
             if (roots && roots.length > 0) {
                 finalFields.parent_warehouse = roots[0].name;
@@ -132,7 +132,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
                     doctype: 'Warehouse',
                     filters: '[["is_group", "=", 1]]',
                     limit_page_length: 1
-                });
+                }) as any[];
                 if (anyGroup && anyGroup.length > 0) finalFields.parent_warehouse = anyGroup[0].name;
             }
         }
@@ -143,7 +143,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
                 [doctype === 'Brand' ? 'brand' : 'warehouse_name']: name, 
                 ...finalFields 
             }
-        });
+        }) as { name: string };
         return newDoc.name;
 
     } catch (createError: any) {
@@ -154,7 +154,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
                 filters: `[["name", "like", "${name}%"]]`,
                 fields: '["name"]',
                 limit_page_length: 1
-            });
+            }) as any[];
             if (list && list.length > 0) return list[0].name;
         }
         return name; // Fallback
@@ -268,7 +268,7 @@ export async function bookMachine(formData: FormData) {
       ]),
       fields: JSON.stringify(['name', 'delivery_date', 'transaction_date']),
       limit_page_length: 0
-    })
+    }) as any[]
 
     // Check for date overlaps
     const start = new Date(startDate)
@@ -313,7 +313,7 @@ export async function bookMachine(formData: FormData) {
         status: 'Draft'
     }
 
-    const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc })
+    const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc }) as { name: string }
     
     revalidatePath(`/fleet/${assetId}`)
     revalidatePath('/bookings')

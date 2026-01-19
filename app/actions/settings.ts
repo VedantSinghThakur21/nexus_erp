@@ -216,7 +216,7 @@ export async function getCompany() {
       doctype: 'Company',
       fields: '["name", "company_name", "abbr", "tax_id", "country", "default_currency"]',
       limit_page_length: 1
-    })
+    }) as any[]
     return companies[0] as Company || null
   } catch (error) {
     console.error("Failed to fetch company:", error)

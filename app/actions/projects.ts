@@ -161,7 +161,7 @@ export async function getProjectSalesOrders(projectId: string) {
       filters: `[["project", "=", "${decodeURIComponent(projectId)}"]]`,
       fields: '["name", "customer_name", "transaction_date", "grand_total", "status"]',
       order_by: 'creation desc'
-    })
+    }) as any[]
     
     // Get items for each order
     const ordersWithItems = await Promise.all(
@@ -170,7 +170,7 @@ export async function getProjectSalesOrders(projectId: string) {
           const fullOrder = await frappeRequest('frappe.client.get', 'GET', {
             doctype: 'Sales Order',
             name: order.name
-          })
+          }) as any
           return { ...order, items: fullOrder.items }
         } catch {
           return order

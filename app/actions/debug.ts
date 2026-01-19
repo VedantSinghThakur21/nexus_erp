@@ -48,8 +48,8 @@ export async function debugDatabaseConnection() {
       userType,
       currentUser,
       leadCount,
-      tenantCount,
-      isOnMasterDB: tenantCount > 0
+      tenantCount: tenantCount as number,
+      isOnMasterDB: (tenantCount as number) > 0
     }
   } catch (error: any) {
     console.error('Debug error:', error)

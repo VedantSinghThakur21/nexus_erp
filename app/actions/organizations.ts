@@ -88,7 +88,7 @@ export async function getOrganization(slug: string) {
     const result = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Organization',
       filters: JSON.stringify({ slug: slug })
-    })
+    }) as any
     return result
   } catch (error) {
     console.error('Error fetching organization:', error)
@@ -155,7 +155,7 @@ export async function updateSubscription(
         subscription_status: 'active',
         updated_at: new Date().toISOString()
       }
-    })
+    }) as { name: string }
 
     return { success: true, organization: result }
   } catch (error: any) {
@@ -183,16 +183,16 @@ export async function updateUsage(
       storage: 'usage_storage'
     }
 
-    const currentValue = org[fieldMap[usageType]] || 0
+    const currentValue = (org as any)[fieldMap[usageType]] || 0
     const newValue = currentValue + increment
 
     const result = await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Organization',
-      name: org.name,
+      name: (org as any).name,
       fieldname: {
         [fieldMap[usageType]]: newValue
       }
-    })
+    }) as { name: string }
 
     return { success: true, usage: newValue }
   } catch (error: any) {
@@ -213,7 +213,7 @@ export async function canPerformAction(
     }
 
     const { SUBSCRIPTION_PLANS } = await import('@/types/subscription')
-    const plan = SUBSCRIPTION_PLANS[org.subscription_plan as SubscriptionTier]
+    const plan = SUBSCRIPTION_PLANS[(org as any).subscription_plan as SubscriptionTier]
     
     const limitMap = {
       users: plan.features.maxUsers,
@@ -224,11 +224,11 @@ export async function canPerformAction(
     }
 
     const usageMap = {
-      users: org.usage_users || 0,
-      leads: org.usage_leads || 0,
-      projects: org.usage_projects || 0,
-      invoices: org.usage_invoices || 0,
-      storage: org.usage_storage || 0
+      users: (org as any).usage_users || 0,
+      leads: (org as any).usage_leads || 0,
+      projects: (org as any).usage_projects || 0,
+      invoices: (org as any).usage_invoices || 0,
+      storage: (org as any).usage_storage || 0
     }
 
     const limit = limitMap[actionType]

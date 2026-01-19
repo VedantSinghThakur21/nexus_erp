@@ -154,7 +154,7 @@ async function createTaxAccount(accountName: string, company: string) {
             filters: `[["account_name", "like", "%Duties and Taxes%"], ["is_group", "=", 1], ["company", "=", "${company}"]]`,
             fields: '["name"]',
             limit_page_length: 1
-        });
+        }) as any[];
         
         const parentAccount = parentAccounts[0]?.name || `Duties and Taxes - ${company}`;
         
@@ -168,7 +168,7 @@ async function createTaxAccount(accountName: string, company: string) {
                 account_type: 'Tax',
                 is_group: 0
             }
-        });
+        }) as { name: string };
         
         console.log(`✅ Created tax account: ${accountName} for ${company}`);
         return newAccount.name;
@@ -185,7 +185,7 @@ async function getTaxAccount(search: string, company: string) {
             doctype: 'Account',
             filters: `[["account_name", "like", "%${search}%"], ["is_group", "=", 0], ["company", "=", "${company}"]]`,
             limit_page_length: 1
-        });
+        }) as any[];
         
         if (accounts && accounts.length > 0) {
             return accounts[0]?.name;
@@ -217,7 +217,7 @@ async function ensureTaxTemplate(templateName: string) {
                 doctype: 'Company',
                 fields: '["name"]',
                 limit_page_length: 1
-            });
+            }) as any[];
             const companyName = companies[0]?.name;
             if (!companyName) throw new Error('No company found');
             
@@ -355,7 +355,7 @@ export async function createInvoice(data: any) {
       const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Sales Taxes and Charges Template',
         name: data.taxes_and_charges
-      })
+      }) as { taxes?: any[] }
       
       // Add the tax rows to the invoice
       if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
@@ -377,7 +377,7 @@ export async function createInvoice(data: any) {
   try {
     const newDoc = await frappeRequest('frappe.client.insert', 'POST', {
       doc: invoiceDoc
-    })
+    }) as { name: string }
     
     // Increment usage counter
     if (subdomain) {
@@ -489,7 +489,7 @@ export async function searchItems(query: string, itemGroup?: string) {
         fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item"]',
         limit_page_length: 50,
         order_by: 'item_group asc, item_code asc'
-    })
+    }) as any[]
     
     // Enhance items with stock info for stock items
     const enhancedItems = await Promise.all(items.map(async (item: any) => {
@@ -500,7 +500,7 @@ export async function searchItems(query: string, itemGroup?: string) {
             filters: `[["item_code", "=", "${item.item_code}"]]`,
             fields: '["actual_qty"]',
             limit_page_length: 0
-          })
+          }) as any[]
           const stockQty = stockData.reduce((sum: number, bin: any) => sum + (bin.actual_qty || 0), 0)
           return { ...item, stock_qty: stockQty, available: stockQty > 0 }
         } catch (e) {
@@ -533,7 +533,7 @@ export async function getItemGroups() {
       fields: '["name"]',
       limit_page_length: 0,
       order_by: 'name asc'
-    })
+    }) as any[]
     return groups.map((g: any) => g.name) as string[]
   } catch (error) {
     return ['Heavy Equipment Rental', 'Construction Services', 'Consulting']
@@ -582,7 +582,7 @@ export async function getItemDetails(itemCode: string) {
     const item = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Item',
       name: itemCode
-    })
+    }) as any
     
     // Get stock balance across all warehouses
     let stockQty = 0
@@ -592,7 +592,7 @@ export async function getItemDetails(itemCode: string) {
         filters: `[["item_code", "=", "${itemCode}"]]`,
         fields: '["actual_qty", "warehouse"]',
         limit_page_length: 0
-      })
+      }) as any[]
       stockQty = stockData.reduce((sum: number, bin: any) => sum + (bin.actual_qty || 0), 0)
     } catch (e) {
       // Stock tracking may not be enabled
@@ -607,7 +607,7 @@ export async function getItemDetails(itemCode: string) {
         fields: '["price_list_rate"]',
         order_by: 'modified desc',
         limit_page_length: 1
-      })
+      }) as any[];
       if (priceList.length > 0) {
         price = priceList[0].price_list_rate
       }
@@ -634,7 +634,7 @@ export async function getCompanyDetails() {
       doctype: 'Company',
       fields: '["name", "tax_id"]',
       limit_page_length: 1
-    });
+    }) as any[];
     
     if (!companies || companies.length === 0) return null;
     
@@ -654,7 +654,7 @@ export async function getBankDetails() {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 1
-    });
+    }) as any[];
     
     if (!companies || companies.length === 0) return null;
     const companyName = companies[0].name;
@@ -664,7 +664,7 @@ export async function getBankDetails() {
         filters: `[["company", "=", "${companyName}"], ["is_default", "=", 1]]`,
         fields: '["bank", "bank_account_no", "branch_code"]',
         limit_page_length: 1
-    })
+    }) as any[]
     
     return banks[0] || null
   } catch (e) {
@@ -678,7 +678,7 @@ export async function getCustomerDetails(customerId: string) {
     const customer = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Customer',
       name: customerId
-    })
+    }) as any
 
     let addressDisplay = ""
     if (customer.customer_primary_address) {
@@ -686,7 +686,7 @@ export async function getCustomerDetails(customerId: string) {
             const address = await frappeRequest('frappe.client.get', 'GET', {
                 doctype: 'Address',
                 name: customer.customer_primary_address
-            })
+            }) as any
             addressDisplay = [address.address_line1, address.city, address.state].filter(Boolean).join(', ')
         } catch (addrError) {}
     }
@@ -700,7 +700,7 @@ export async function getCustomerDetails(customerId: string) {
 // 10. DELETE INVOICE
 export async function deleteInvoice(id: string) {
   try {
-    const invoice = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Sales Invoice', name: id })
+    const invoice = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Sales Invoice', name: id }) as { docstatus: number }
     if (invoice.docstatus === 1) throw new Error("Cannot delete Submitted invoice")
 
     await frappeRequest('frappe.client.delete', 'POST', { doctype: 'Sales Invoice', name: id })
@@ -740,7 +740,7 @@ export async function createPaymentEntry(data: {
     const invoice = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Invoice',
       name: data.invoiceName
-    })
+    }) as any
 
     if (invoice.docstatus !== 1) {
       throw new Error('Invoice must be submitted before creating payment entry')
@@ -758,7 +758,7 @@ export async function createPaymentEntry(data: {
         filters: `[["company", "=", "${company}"], ["is_default", "=", 1]]`,
         fields: '["account"]',
         limit_page_length: 1
-      })
+      }) as any[]
       paidToAccount = bankAccounts[0]?.account
     } catch (e) {
       console.log('No default bank account found, will use company default')
@@ -772,7 +772,7 @@ export async function createPaymentEntry(data: {
           filters: `[["account_type", "=", "Cash"], ["company", "=", "${company}"], ["is_group", "=", 0]]`,
           fields: '["name"]',
           limit_page_length: 1
-        })
+        }) as any[]
         paidToAccount = cashAccounts[0]?.name
       } catch (e) {
         throw new Error('No default payment account found for company')
@@ -806,7 +806,7 @@ export async function createPaymentEntry(data: {
           }
         ]
       }
-    })
+    }) as { name: string }
 
     // Submit the payment entry
     await frappeRequest('frappe.client.submit', 'POST', {

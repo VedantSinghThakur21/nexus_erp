@@ -155,7 +155,7 @@ export async function createSalesOrder(data: any) {
         const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
           doctype: 'Sales Taxes and Charges Template',
           name: data.taxes_and_charges
-        })
+        }) as { taxes?: any[] }
         
         // Add the tax rows to the sales order
         if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {

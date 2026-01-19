@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
           filters: JSON.stringify([['subdomain', '=', tenant]]),
           fields: JSON.stringify(['status', 'site_url', 'subdomain', 'api_key'])
         }
-      )
+      ) as any[]
       
       if (siteInfo && siteInfo.length > 0) {
         const tenantRecord = siteInfo[0]

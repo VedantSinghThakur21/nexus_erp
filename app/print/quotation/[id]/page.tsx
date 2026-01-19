@@ -11,7 +11,7 @@ async function getQuotation(id: string) {
     const doc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
       name: decodeURIComponent(id)
-    })
+    }) as any
     return doc
   } catch (e) {
     return null
@@ -24,7 +24,7 @@ async function getCompany(companyName: string) {
     const doc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Company',
       name: companyName
-    })
+    }) as any
     return doc
   } catch (e) {
     return {}
@@ -39,7 +39,7 @@ async function getBankDetails(companyName: string) {
       filters: `[["company", "=", "${companyName}"], ["is_company_account", "=", 1], ["is_default", "=", 1]]`,
       fields: '["bank", "bank_account_no", "branch_code"]',
       limit_page_length: 1
-    })
+    }) as any[]
     return accounts[0] || null
   } catch (e) {
     return null
