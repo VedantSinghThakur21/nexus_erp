@@ -361,7 +361,7 @@ export async function returnAsset(bookingId: string) {
     const latestBooking = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Sales Order',
         name: bookingId
-    })
+    }) as { status: string; per_delivered: number }
 
     // Update the document with completed status
     latestBooking.status = 'Completed'
