@@ -7,9 +7,15 @@
 ## Architecture
 - **Next.js 16** (App Router) multi-tenant SaaS ERP for equipment rental/projects
 - **Frontend**: React 19, Tailwind CSS 4, Radix UI, shadcn/ui components
-- **Backend**: Frappe ERPNext (external) - accessed via `lib/api-client.ts` REST calls
-- **Multi-tenancy**: Subdomain-based (`tenant1.localhost:3000` → `api.tenant1.localhost:8080`)
-- **Auth**: OAuth tokens in localStorage, managed via `lib/api-client.ts`
+- **Backend**: Frappe ERPNext (external) - accessed via `app/lib/api.ts` REST calls
+- **Multi-tenancy**: Subdomain-based (`tenant1.avariq.in` → `X-Frappe-Site-Name: tenant1.avariq.in`)
+- **Auth**: API tokens stored in httpOnly cookies, set during login from Master DB
+
+## Key Environment Variables
+- `NEXT_PUBLIC_ROOT_DOMAIN` - Root domain for cookie scope (e.g., `avariq.in`)
+- `ERP_NEXT_URL` - Frappe backend URL (e.g., `http://127.0.0.1:8080`)
+- `ERP_API_KEY` / `ERP_API_SECRET` - Master site API credentials
+- `FRAPPE_SITE_NAME` - Master site name (e.g., `erp.localhost`)
 
 ## Key Directories
 - `app/` - Next.js App Router pages and API routes
