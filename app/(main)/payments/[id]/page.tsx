@@ -201,7 +201,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               <div>
                 <label className="text-slate-500">Created</label>
                 <p className="mt-1">
-                  {new Date(payment.creation).toLocaleDateString('en-IN', {
+                  {new Date(payment.creation!).toLocaleDateString('en-IN', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric',
@@ -213,7 +213,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               <div>
                 <label className="text-slate-500">Modified</label>
                 <p className="mt-1">
-                  {new Date(payment.modified).toLocaleDateString('en-IN', {
+                  {new Date(payment.modified!).toLocaleDateString('en-IN', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric',
