@@ -88,14 +88,14 @@ export async function inviteTeamMember(data: {
 /**
  * Get list of team members for current tenant
  */
-export async function getTeamMembers() {
+export async function getTeamMembers(): Promise<any[]> {
   try {
     const users = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'User',
       filters: `[["enabled", "=", 1], ["name", "!=", "Administrator"], ["name", "!=", "Guest"]]`,
       fields: '["name", "email", "first_name", "last_name", "enabled", "creation", "last_login", "user_type"]',
       limit_page_length: 100
-    })
+    }) as any[]
     
     return users || []
   } catch (error) {
