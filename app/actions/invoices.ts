@@ -22,6 +22,25 @@ export interface Invoice {
   taxes?: any[]
 }
 
+export interface PaymentEntry {
+  name: string
+  docstatus?: number
+  party_name: string
+  payment_type: string
+  mode_of_payment?: string
+  posting_date: string
+  party_type: string
+  paid_amount?: number
+  received_amount?: number
+  difference_amount?: number
+  reference_no?: string
+  reference_date?: string
+  references?: any[]
+  paid_from?: string
+  paid_to?: string
+  paid_from_account_currency?: string
+}
+
 // CREATE/UPDATE ITEM
 export async function createItem(formData: FormData) {
   try {
@@ -822,12 +841,12 @@ export async function getPaymentEntries() {
 }
 
 // 14. GET SINGLE PAYMENT ENTRY
-export async function getPaymentEntry(id: string) {
+export async function getPaymentEntry(id: string): Promise<PaymentEntry | null> {
   try {
     const payment = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Payment Entry',
       name: id
-    })
+    }) as PaymentEntry
     return payment
   } catch (error) {
     console.error('Failed to fetch payment entry:', error)
