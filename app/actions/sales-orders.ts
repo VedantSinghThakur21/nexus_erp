@@ -292,7 +292,7 @@ export async function updateSalesOrderStatus(orderId: string, status: string) {
 }
 
 // 10. READ: Get Sales Orders Ready for Invoice
-export async function getSalesOrdersReadyForInvoice() {
+export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
   try {
     const orders = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
@@ -312,7 +312,7 @@ export async function getSalesOrdersReadyForInvoice() {
       ]),
       limit_page_length: 50,
       order_by: 'transaction_date desc'
-    })
+    }) as SalesOrder[]
     
     return orders || []
   } catch (error: any) {
