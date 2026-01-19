@@ -237,7 +237,7 @@ export async function mobilizeAsset(formData: FormData) {
             doctype: 'Warehouse', 
             filters: '[["is_group", "=", 0]]', 
             limit_page_length: 1
-        });
+        }) as any[];
         const defaultWh = warehouses[0]?.name || "Stores - ERP - A";
         
         await frappeRequest('frappe.client.insert', 'POST', {
