@@ -11,6 +11,8 @@ export interface Inspection {
   status: string
   inspected_by: string
   report_date: string
+  remarks?: string
+  reference_type?: string
 }
 
 // 1. READ: List
