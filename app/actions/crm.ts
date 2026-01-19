@@ -49,10 +49,13 @@ export interface Quotation {
   status: string // Draft | Open | Ordered | Lost
   valid_till: string
   grand_total: number
+  net_total?: number
+  total_taxes_and_charges?: number
   currency: string
   items: any[]
   opportunity?: string
   transaction_date?: string
+  terms?: string
 }
 
 // ========== OPPORTUNITIES ==========
