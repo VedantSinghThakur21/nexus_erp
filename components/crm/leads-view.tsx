@@ -61,6 +61,12 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [showConvertModal, setShowConvertModal] = useState(false)
+  const [convertLeadId, setConvertLeadId] = useState<string | null>(null)
+  const [convertLeadName, setConvertLeadName] = useState<string>("")
+  const [convertOpportunityAmount, setConvertOpportunityAmount] = useState<number>(0)
+  const [convertCreateCustomer, setConvertCreateCustomer] = useState(false)
+  const [convertLoading, setConvertLoading] = useState(false)
   const router = useRouter()
   const itemsPerPage = 15
 
@@ -99,39 +105,14 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
   const handleDrop = async (e: React.DragEvent, targetStage: string) => {
     e.preventDefault()
     setDragOverStage(null)
-    
     if (!draggedItem) return
-
     // Special handling for "Opportunity" status
     if (targetStage === 'Opportunity') {
       setDraggedItem(null)
-      const confirmConvert = confirm(
-        '⚠️ Converting to Opportunity\n\n' +
-        'Moving a lead to "Opportunity" status requires creating an Opportunity record. ' +
-        'This will:\n' +
-        '• Create a new Opportunity linked to this lead\n' +
-        '• Update the lead status to "Opportunity"\n\n' +
-        'Do you want to proceed?'
-      )
-      
-      if (!confirmConvert) return
-
-      try {
-        // Import the conversion function
-        const { convertLeadToOpportunity } = await import('@/app/actions/crm')
-        const result = await convertLeadToOpportunity(draggedItem, false)
-        
-        if (result.error) {
-          throw new Error(result.error)
-        }
-
-        alert('✅ Successfully converted lead to opportunity! Redirecting...')
-        // Redirect to the opportunities page
-        router.push('/crm/opportunities')
-      } catch (error) {
-        console.error('Error converting lead to opportunity:', error)
-        alert('❌ Failed to convert lead to opportunity. Please try again or use the "Convert to Opportunity" button on the lead detail page.')
-      }
+      setConvertLeadId(draggedItem)
+      const leadObj = leads.find(l => l.name === draggedItem)
+      setConvertLeadName(leadObj?.lead_name || draggedItem || "")
+      setShowConvertModal(true)
       return
     }
 
@@ -156,36 +137,10 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
   const handleStatusChange = async (leadName: string, newStatus: string) => {
     // Special handling for "Opportunity" status
     if (newStatus === 'Opportunity') {
-      const confirmConvert = confirm(
-        '⚠️ Converting to Opportunity\n\n' +
-        'Changing status to "Opportunity" requires creating an Opportunity record. ' +
-        'This will:\n' +
-        '• Create a new Opportunity linked to this lead\n' +
-        '• Update the lead status to "Opportunity"\n\n' +
-        'Do you want to proceed?'
-      )
-      
-      if (!confirmConvert) return
-
-      setUpdatingStatus(leadName)
-      try {
-        // Import the conversion function
-        const { convertLeadToOpportunity } = await import('@/app/actions/crm')
-        const result = await convertLeadToOpportunity(leadName, false)
-        
-        if (result.error) {
-          alert('❌ Failed to convert lead to opportunity.\n' + (result.error || 'Unknown error. See server logs for details.'))
-          throw new Error(result.error)
-        }
-
-        alert('✅ Successfully converted lead to opportunity!\n\nOpportunity ID: ' + result.opportunityId)
-        router.push('/crm/opportunities')
-      } catch (error) {
-        console.error('Error converting lead to opportunity:', error)
-        alert('❌ Failed to convert lead to opportunity. Please try again. See console for details.')
-      } finally {
-        setUpdatingStatus(null)
-      }
+      setConvertLeadId(leadName)
+      const leadObj = leads.find(l => l.name === leadName)
+      setConvertLeadName(leadObj?.lead_name || leadName || "")
+      setShowConvertModal(true)
       return
     }
 
@@ -209,6 +164,80 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
 
   return (
     <div className="space-y-4">
+      {/* Convert Lead to Opportunity Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-2">Convert Lead to Opportunity</h2>
+            <p className="mb-4">Create an opportunity from lead: <strong>{convertLeadName}</strong></p>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="opportunityAmount" className="block text-sm font-medium mb-1">Estimated Opportunity Value (₹)</label>
+                <Input
+                  id="opportunityAmount"
+                  type="number"
+                  placeholder="Enter estimated deal value"
+                  value={convertOpportunityAmount === 0 ? '' : (convertOpportunityAmount || '')}
+                  onChange={e => setConvertOpportunityAmount(parseFloat(e.target.value) || 0)}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">This helps track pipeline value and forecast revenue</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="convertCreateCustomer"
+                  checked={convertCreateCustomer}
+                  onChange={e => setConvertCreateCustomer(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <label htmlFor="convertCreateCustomer" className="text-sm font-normal cursor-pointer">Also create Customer record</label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This will create a new Opportunity linked to this lead.
+                {convertCreateCustomer && " A Customer record will also be created."}
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => { setShowConvertModal(false); setConvertLeadId(null); }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setConvertLoading(true)
+                  try {
+                    const { convertLeadToOpportunity } = await import('@/app/actions/crm')
+                    // Ensure convertLeadId is a string
+                    const leadIdToConvert = convertLeadId ?? "";
+                    // Ensure opportunity amount is a number
+                    const opportunityAmountToUse = typeof convertOpportunityAmount === "number" && !isNaN(convertOpportunityAmount) ? convertOpportunityAmount : 0;
+                    const result = await convertLeadToOpportunity(leadIdToConvert, convertCreateCustomer, opportunityAmountToUse);
+                    if (result.error) {
+                      alert('❌ Failed to convert lead to opportunity.\n' + (result.error || 'Unknown error. See server logs for details.'));
+                      throw new Error(result.error);
+                    }
+                    alert('✅ Successfully converted lead to opportunity!\n\nOpportunity ID: ' + result.opportunityId);
+                    setShowConvertModal(false);
+                    setConvertLeadId(null);
+                    if (result.opportunityId) {
+                      router.push(`/crm/opportunities/${encodeURIComponent(result.opportunityId)}`);
+                    }
+                  } catch (error) {
+                    console.error('Error converting lead to opportunity:', error);
+                    alert('❌ Failed to convert lead to opportunity. Please try again. See console for details.');
+                  } finally {
+                    setConvertLoading(false);
+                  }
+                }}
+                disabled={convertLoading}
+              >
+                {convertLoading ? "Converting..." : "Convert"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* View Toggle Buttons */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
