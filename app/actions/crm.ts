@@ -398,7 +398,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       // Preserve important lead fields
       territory: lead.territory || 'All Territories',
       source: lead.source,
-      company: lead.company,
+      // company: lead.company, // Removed: Lead type does not have company field
       // Contact information
       contact_person: lead.lead_name,
       contact_email: lead.email_id,
