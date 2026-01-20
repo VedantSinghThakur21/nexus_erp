@@ -109,6 +109,9 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
     // Special handling for "Opportunity" status
     if (targetStage === 'Opportunity') {
       setDraggedItem(null)
+      // Reset form state before showing modal
+      setConvertOpportunityAmount(0)
+      setConvertCreateCustomer(false)
       setConvertLeadId(draggedItem)
       const leadObj = leads.find(l => l.name === draggedItem)
       setConvertLeadName(leadObj?.lead_name || draggedItem || "")
@@ -137,6 +140,9 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
   const handleStatusChange = async (leadName: string, newStatus: string) => {
     // Special handling for "Opportunity" status
     if (newStatus === 'Opportunity') {
+      // Reset form state before showing modal
+      setConvertOpportunityAmount(0)
+      setConvertCreateCustomer(false)
       setConvertLeadId(leadName)
       const leadObj = leads.find(l => l.name === leadName)
       setConvertLeadName(leadObj?.lead_name || leadName || "")
@@ -177,7 +183,7 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
                   id="opportunityAmount"
                   type="number"
                   placeholder="Enter estimated deal value"
-                  value={convertOpportunityAmount === 0 ? '' : (convertOpportunityAmount || '')}
+                  value={String(convertOpportunityAmount === 0 ? '' : convertOpportunityAmount)}
                   onChange={e => setConvertOpportunityAmount(parseFloat(e.target.value) || 0)}
                   className="w-full"
                 />
