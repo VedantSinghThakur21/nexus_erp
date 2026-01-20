@@ -4,6 +4,7 @@ import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 import { canCreateLead, incrementUsage } from "./usage-limits"
 import { headers } from "next/headers"
+import { cookies } from "next/headers"
 
 export interface Lead {
   name: string
@@ -59,6 +60,41 @@ export interface Quotation {
 }
 
 // ========== OPPORTUNITIES ==========
+
+// Helper: Get tenant site name from request context
+async function getTenantSiteName(): Promise<string> {
+  try {
+    const headersList = await headers()
+    const cookieStore = await cookies()
+    
+    // First check cookies
+    const cookieTenant = cookieStore.get('tenant_subdomain')?.value
+    if (cookieTenant) {
+      console.log(`[DEBUG] Tenant from cookie: ${cookieTenant}`)
+      return `${cookieTenant}.localhost`
+    }
+    
+    // Then check X-Subdomain header (set by middleware)
+    const headerSubdomain = headersList.get('X-Subdomain')
+    if (headerSubdomain) {
+      console.log(`[DEBUG] Tenant from header: ${headerSubdomain}`)
+      return `${headerSubdomain}.localhost`
+    }
+    
+    // Check x-tenant-id header
+    const tenantHeader = headersList.get('x-tenant-id')
+    if (tenantHeader) {
+      console.log(`[DEBUG] Tenant from x-tenant-id: ${tenantHeader}`)
+      return `${tenantHeader}.localhost`
+    }
+    
+    console.log(`[DEBUG] No tenant context found, using master site`)
+    return 'erp.localhost'
+  } catch (error) {
+    console.error('[DEBUG] Error getting tenant site name:', error)
+    return 'erp.localhost'
+  }
+}
 
 // 1. READ: Get All Opportunities
 export async function getOpportunities() {
@@ -315,93 +351,101 @@ export async function convertLeadToCustomer(leadId: string) {
 // 3. CONVERT: Create Opportunity from Lead (Interested or Replied status)
 export async function convertLeadToOpportunity(leadId: string, createCustomer: boolean = false, opportunityAmount: number = 0) {
   try {
-    // 1. Fetch Lead
+    console.log('[convertLeadToOpportunity] Starting conversion for lead:', leadId)
+    
+    // 1. Fetch Lead details
     const lead = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Lead',
       name: leadId
     }) as Lead
 
-    if (!lead) throw new Error("Lead not found")
+    if (!lead) {
+      throw new Error("Lead not found")
+    }
+    console.log('[convertLeadToOpportunity] Lead fetched:', lead.name, lead.lead_name)
 
     let customerId = null
+    let opportunityFrom = 'Lead'
+    let partyName = leadId
+
     // 2. Optionally create customer first
     if (createCustomer) {
+      console.log('[convertLeadToOpportunity] Creating customer from lead...')
       const customerResult = await convertLeadToCustomer(leadId)
-      if (customerResult.error) throw new Error(customerResult.error)
+      if (customerResult.error) {
+        throw new Error(`Customer creation failed: ${customerResult.error}`)
+      }
       customerId = customerResult.customerId
+      opportunityFrom = 'Customer'
+      partyName = customerId!
+      console.log('[convertLeadToOpportunity] Customer created:', customerId)
     }
 
-    // 3. Create Opportunity (always attempt, log errors)
-    let opportunity = null
-    let opportunityError = null
-    try {
-      const opportunityData = {
-        doctype: 'Opportunity',
-        opportunity_from: customerId ? 'Customer' : 'Lead',
-        party_name: customerId || leadId,
-        opportunity_type: 'Sales',
-        status: 'Open',
-        sales_stage: 'Qualification',
-        probability: 20,
-        currency: 'INR',
-        opportunity_amount: opportunityAmount,
-        title: `${lead.company_name || lead.lead_name} - Sales Opportunity`,
-        customer_name: lead.lead_name
-      }
-      console.log('[DEBUG] Attempting to create Opportunity with data:', JSON.stringify(opportunityData, null, 2))
-      
-      const response = await frappeRequest('frappe.client.insert', 'POST', { doc: opportunityData })
-      console.log('[DEBUG] Raw frappeRequest response:', JSON.stringify(response, null, 2))
-      
-      if (response && typeof response === 'object') {
-        if ((response as any).message && typeof (response as any).message === 'object') {
-          opportunity = (response as any).message as { name: string }
-        } else if ((response as any).name) {
-          opportunity = response as { name: string }
-        } else {
-          console.log('[DEBUG] Response structure:', Object.keys(response))
-          opportunity = response as { name: string }
-        }
-      }
-      
-      console.log('[DEBUG] Parsed opportunity:', JSON.stringify(opportunity, null, 2))
-      
-      if (!opportunity || !opportunity.name) {
-        throw new Error(`Failed to extract Opportunity name from response. Response: ${JSON.stringify(response)}`)
-      }
-    } catch (err: any) {
-      opportunityError = err
-      console.error('[DEBUG] Error creating Opportunity:', JSON.stringify(err, null, 2))
+    // 3. Prepare Opportunity document following ERPNext standards
+    const opportunityDoc = {
+      doctype: 'Opportunity',
+      opportunity_from: opportunityFrom,
+      party_name: partyName,
+      opportunity_type: 'Sales',
+      status: 'Open',
+      sales_stage: 'Qualification',
+      probability: 20,
+      currency: 'INR',
+      opportunity_amount: opportunityAmount || 0,
+      // Use company_name if available, otherwise lead_name
+      title: lead.company_name || lead.lead_name,
+      customer_name: lead.lead_name,
+      // Preserve important lead fields
+      territory: lead.territory || 'All Territories',
+      source: lead.source,
+      company: lead.company,
+      // Contact information
+      contact_person: lead.lead_name,
+      contact_email: lead.email_id,
+      contact_mobile: lead.mobile_no
     }
 
-    // 4. Update Lead Status to "Opportunity" (always, regardless of customer creation)
-    try {
-      await frappeRequest('frappe.client.set_value', 'PUT', {
-        doctype: 'Lead',
-        name: leadId,
-        fieldname: 'status',
-        value: 'Opportunity'
-      })
-      console.log('[DEBUG] Lead status updated to Opportunity')
-    } catch (statusErr) {
-      console.error('[DEBUG] Error updating lead status:', statusErr)
+    console.log('[convertLeadToOpportunity] Creating opportunity with data:', JSON.stringify(opportunityDoc, null, 2))
+
+    // 4. Insert the opportunity document
+    const savedOpportunity = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: opportunityDoc
+    }) as { name?: string }
+
+    console.log('[convertLeadToOpportunity] Opportunity creation response:', JSON.stringify(savedOpportunity, null, 2))
+
+    if (!savedOpportunity || !savedOpportunity.name) {
+      throw new Error("Failed to create opportunity - no name returned from ERPNext")
     }
 
+    const opportunityId = savedOpportunity.name
+    console.log('[convertLeadToOpportunity] Opportunity created successfully:', opportunityId)
+
+    // 5. Update Lead status to "Opportunity"
+    await frappeRequest('frappe.client.set_value', 'PUT', {
+      doctype: 'Lead',
+      name: leadId,
+      fieldname: 'status',
+      value: 'Opportunity'
+    })
+    console.log('[convertLeadToOpportunity] Lead status updated to "Opportunity"')
+
+    // 6. Revalidate paths to refresh UI
     revalidatePath('/crm')
     revalidatePath('/crm/leads')
     revalidatePath(`/crm/leads/${leadId}`)
     revalidatePath('/crm/opportunities')
+    revalidatePath(`/crm/opportunities/${opportunityId}`)
 
-    if (opportunity && opportunity.name) {
-      console.log('[DEBUG] Success: Opportunity created with ID:', opportunity.name)
-      return { success: true, opportunityId: opportunity.name }
-    } else {
-      console.error('[DEBUG] Failed: No opportunity created. Error:', opportunityError?.message)
-      return { error: (opportunityError && opportunityError.message) || 'Failed to create opportunity' }
-    }
+    console.log('[convertLeadToOpportunity] Conversion completed successfully')
+    return { success: true, opportunityId }
+
   } catch (error: any) {
-    console.error("Convert to opportunity error:", error)
-    return { error: error.message || 'Failed to create opportunity' }
+    console.error('[convertLeadToOpportunity] Error during conversion:', error)
+    return { 
+      error: error.message || 'Failed to convert lead to opportunity',
+      details: error
+    }
   }
 }
 
