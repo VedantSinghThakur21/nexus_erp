@@ -43,7 +43,7 @@ export async function getQuotations() {
       'GET',
       {
         doctype: 'Quotation',
-        fields: '["name", "quotation_to", "party_name", "customer_name", "status", "valid_till", "grand_total", "currency", "transaction_date", "total_qty"]',
+        fields: '["name", "quotation_to", "party_name", "customer_name", "status", "valid_till", "grand_total", "currency", "transaction_date", "total_qty", "docstatus"]',
         order_by: 'creation desc',
         limit_page_length: 100
       }
