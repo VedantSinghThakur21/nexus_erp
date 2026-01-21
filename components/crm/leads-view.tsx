@@ -70,6 +70,9 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
   const router = useRouter()
   const itemsPerPage = 15
 
+  // Debug: Log modal state changes
+  console.log('[LeadsView] Render - showConvertModal:', showConvertModal, 'convertLeadId:', convertLeadId)
+
   // Filter leads for list view
   let filteredLeads = leads.filter(lead => {
     const matchesSearch = searchQuery === "" || 
@@ -138,8 +141,10 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
   }
 
   const handleStatusChange = async (leadName: string, newStatus: string) => {
+    console.log('[handleStatusChange] Called with:', { leadName, newStatus })
     // Special handling for "Opportunity" status
     if (newStatus === 'Opportunity') {
+      console.log('[handleStatusChange] Triggering opportunity conversion modal')
       // Reset form state before showing modal
       setConvertOpportunityAmount(0)
       setConvertCreateCustomer(false)
@@ -147,21 +152,25 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
       const leadObj = leads.find(l => l.name === leadName)
       setConvertLeadName(leadObj?.lead_name || leadName || "")
       setShowConvertModal(true)
+      console.log('[handleStatusChange] Modal state set to true')
       return
     }
 
     // For other statuses, just update the status
+    console.log('[handleStatusChange] Updating status to:', newStatus)
     setUpdatingStatus(leadName)
     try {
       const result = await updateLeadStatus(leadName, newStatus)
+      console.log('[handleStatusChange] Update result:', result)
       
       if (result.error) {
         throw new Error(result.error)
       }
 
+      console.log('[handleStatusChange] Status updated successfully, refreshing...')
       router.refresh()
     } catch (error) {
-      console.error('Error updating lead status:', error)
+      console.error('[handleStatusChange] Error updating lead status:', error)
       alert('Failed to update lead status. Please try again.')
     } finally {
       setUpdatingStatus(null)
@@ -172,7 +181,16 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
     <div className="space-y-4">
       {/* Convert Lead to Opportunity Modal */}
       {showConvertModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+          onClick={(e) => {
+            // Close modal if clicking on backdrop
+            if (e.target === e.currentTarget) {
+              setShowConvertModal(false);
+              setConvertLeadId(null);
+            }
+          }}
+        >
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 w-full max-w-md">
             <h2 className="text-lg font-semibold mb-2">Convert Lead to Opportunity</h2>
             <p className="mb-4">Create an opportunity from lead: <strong>{convertLeadName}</strong></p>
@@ -210,6 +228,7 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
               </Button>
               <Button
                 onClick={async () => {
+                  console.log('[Modal] Convert button clicked')
                   setConvertLoading(true)
                   try {
                     const { convertLeadToOpportunity } = await import('@/app/actions/crm')
@@ -217,7 +236,9 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
                     const leadIdToConvert = convertLeadId ?? "";
                     // Ensure opportunity amount is a number
                     const opportunityAmountToUse = typeof convertOpportunityAmount === "number" && !isNaN(convertOpportunityAmount) ? convertOpportunityAmount : 0;
+                    console.log('[Modal] Calling convertLeadToOpportunity with:', { leadIdToConvert, convertCreateCustomer, opportunityAmountToUse })
                     const result = await convertLeadToOpportunity(leadIdToConvert, convertCreateCustomer, opportunityAmountToUse);
+                    console.log('[Modal] Conversion result:', result)
                     if (result.error) {
                       alert('❌ Failed to convert lead to opportunity.\n' + (result.error || 'Unknown error. See server logs for details.'));
                       throw new Error(result.error);
@@ -229,7 +250,7 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
                       router.push(`/crm/opportunities/${encodeURIComponent(result.opportunityId)}`);
                     }
                   } catch (error) {
-                    console.error('Error converting lead to opportunity:', error);
+                    console.error('[Modal] Error converting lead to opportunity:', error);
                     alert('❌ Failed to convert lead to opportunity. Please try again. See console for details.');
                   } finally {
                     setConvertLoading(false);

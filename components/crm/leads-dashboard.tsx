@@ -4,10 +4,11 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Search, Filter, Download, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
-import { updateLeadStatus } from "@/app/actions/crm"
+import { updateLeadStatus, convertLeadToOpportunity } from "@/app/actions/crm"
 import { useRouter } from "next/navigation"
 
 interface Lead {
@@ -32,6 +33,15 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
   const [draggedLead, setDraggedLead] = useState<any>(null)
+  
+  // Conversion modal state
+  const [showConvertModal, setShowConvertModal] = useState(false)
+  const [convertLeadId, setConvertLeadId] = useState<string | null>(null)
+  const [convertLeadName, setConvertLeadName] = useState<string>("")
+  const [convertOpportunityAmount, setConvertOpportunityAmount] = useState<number>(0)
+  const [convertCreateCustomer, setConvertCreateCustomer] = useState(false)
+  const [convertLoading, setConvertLoading] = useState(false)
+  
   const itemsPerPage = 10
 
   // ERPNext lead statuses
@@ -95,6 +105,87 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
+      {/* Convert Lead to Opportunity Modal */}
+      {showConvertModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowConvertModal(false);
+              setConvertLeadId(null);
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-2">Convert Lead to Opportunity</h2>
+            <p className="mb-4">Create an opportunity from lead: <strong>{convertLeadName}</strong></p>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="opportunityAmount" className="block text-sm font-medium mb-1">Estimated Opportunity Value (₹)</label>
+                <Input
+                  id="opportunityAmount"
+                  type="number"
+                  placeholder="Enter estimated deal value"
+                  value={String(convertOpportunityAmount === 0 ? '' : convertOpportunityAmount)}
+                  onChange={e => setConvertOpportunityAmount(parseFloat(e.target.value) || 0)}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">This helps track pipeline value and forecast revenue</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="convertCreateCustomer"
+                  checked={convertCreateCustomer}
+                  onChange={e => setConvertCreateCustomer(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <label htmlFor="convertCreateCustomer" className="text-sm font-normal cursor-pointer">Also create Customer record</label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This will create a new Opportunity linked to this lead.
+                {convertCreateCustomer && " A Customer record will also be created."}
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => { setShowConvertModal(false); setConvertLeadId(null); }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setConvertLoading(true)
+                  try {
+                    const leadIdToConvert = convertLeadId ?? "";
+                    const opportunityAmountToUse = typeof convertOpportunityAmount === "number" && !isNaN(convertOpportunityAmount) ? convertOpportunityAmount : 0;
+                    const result = await convertLeadToOpportunity(leadIdToConvert, convertCreateCustomer, opportunityAmountToUse);
+                    if (result.error) {
+                      alert('❌ Failed to convert lead to opportunity.\n' + (result.error || 'Unknown error. See server logs for details.'));
+                      throw new Error(result.error);
+                    }
+                    alert('✅ Successfully converted lead to opportunity!\n\nOpportunity ID: ' + result.opportunityId);
+                    setShowConvertModal(false);
+                    setConvertLeadId(null);
+                    if (result.opportunityId) {
+                      router.push(`/crm/opportunities/${encodeURIComponent(result.opportunityId)}`);
+                    } else {
+                      router.refresh();
+                    }
+                  } catch (error) {
+                    console.error('Error converting lead to opportunity:', error);
+                    alert('❌ Failed to convert lead to opportunity. Please try again. See console for details.');
+                  } finally {
+                    setConvertLoading(false);
+                  }
+                }}
+                disabled={convertLoading}
+              >
+                {convertLoading ? "Converting..." : "Convert"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex justify-between items-start">
         <div className="flex-1">
@@ -351,7 +442,20 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                           className="w-full text-xs px-2 py-1 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                           value={lead.status}
                           onChange={async (e) => {
-                            const result = await updateLeadStatus(lead.name, e.target.value)
+                            const newStatus = e.target.value
+                            
+                            // Special handling for Opportunity status
+                            if (newStatus === 'Opportunity') {
+                              setConvertOpportunityAmount(0)
+                              setConvertCreateCustomer(false)
+                              setConvertLeadId(lead.name)
+                              setConvertLeadName(lead.lead_name)
+                              setShowConvertModal(true)
+                              return
+                            }
+                            
+                            // For other statuses, just update
+                            const result = await updateLeadStatus(lead.name, newStatus)
                             if (result.success) {
                               router.refresh()
                             } else {
