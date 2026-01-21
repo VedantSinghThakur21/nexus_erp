@@ -395,10 +395,10 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       title: lead.company_name || lead.lead_name,
       customer_name: lead.lead_name,
       territory: lead.territory || 'All Territories',
-      source: lead.source,
-      contact_person: lead.lead_name,
-      contact_email: lead.email_id,
-      contact_mobile: lead.mobile_no
+      source: lead.source
+      // Do NOT set contact_person, contact_email, contact_mobile
+      // These are Link fields that require Contact documents to exist
+      // Contact documents should be created separately if needed
     }
 
     console.log('[convertLeadToOpportunity] Creating opportunity with data:', JSON.stringify(opportunityDoc, null, 2))
