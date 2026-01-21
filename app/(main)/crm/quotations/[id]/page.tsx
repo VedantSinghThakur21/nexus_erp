@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, FileText, Building2, Pencil, Printer, Clock, User 
 import Link from "next/link"
 import { DeleteQuotationButton } from "@/components/crm/delete-quotation-button"
 import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
+import { QuotationStatusDropdown } from "@/components/crm/quotation-status-dropdown"
 
 export default async function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -96,9 +97,10 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
             quotationId={quotation.name} 
             quotationStatus={quotation.status} 
           />
-          <Badge className={statusColors[quotation.status] || 'bg-slate-100 text-slate-800'}>
-            {quotation.status}
-          </Badge>
+          <QuotationStatusDropdown 
+            quotationId={quotation.name}
+            currentStatus={quotation.status}
+          />
           {isExpired && quotation.status === 'Open' && (
             <Badge className="bg-orange-100 text-orange-800">Expired</Badge>
           )}

@@ -327,28 +327,14 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
                             </div>
                           </Link>
                           
-                          {/* Submit Button for Draft Quotations */}
-                          {quotation.status === 'Draft' && (
-                            <div className="ml-4 shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                onClick={() => handleSubmitQuotation(quotation.name)}
-                                disabled={submittingQuotation === quotation.name}
-                                className="h-10 px-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {submittingQuotation === quotation.name ? (
-                                  <>
-                                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                                    Submitting...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Mark Ready
-                                  </>
-                                )}
+                          {/* Status dropdown for all quotations */}
+                          <div className="ml-4 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <Link href={`/crm/quotations/${encodeURIComponent(quotation.name)}`}>
+                              <Button variant="outline" size="sm">
+                                View Details
                               </Button>
-                            </div>
-                          )}
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     )

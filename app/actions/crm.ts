@@ -872,7 +872,9 @@ export async function updateQuotationStatus(quotationId: string, newStatus: stri
 
     revalidatePath('/crm')
     revalidatePath('/crm/quotations')
+    revalidatePath(`/crm/quotations/${quotationId}`)
     revalidatePath('/quotations')
+    revalidatePath('/sales-orders')
     return { success: true }
   } catch (error: any) {
     console.error("Update quotation status error:", error)
