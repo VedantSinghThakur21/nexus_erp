@@ -7,7 +7,6 @@ import { EditLeadSheet } from "@/components/crm/edit-lead-sheet"
 import { ConvertLeadDialog } from "@/components/crm/convert-lead-dialog"
 import { CustomerPricingAnalytics } from "@/components/crm/customer-pricing-analytics"
 import { DeleteLeadForm } from "@/components/crm/delete-lead-form"
-import { DeleteLeadForm } from "@/components/crm/delete-lead-form"
 
 interface Lead {
   name: string
