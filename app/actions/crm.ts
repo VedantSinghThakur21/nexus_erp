@@ -264,6 +264,7 @@ export async function updateLead(leadId: string, formData: FormData) {
 }
 
 // 4. UPDATE STATUS: For Kanban Drag-and-Drop
+// Update Lead status (robust, deduplicated)
 export async function updateLeadStatus(leadId: string, newStatus: string) {
   try {
     await frappeRequest('frappe.client.set_value', 'POST', {
@@ -271,13 +272,12 @@ export async function updateLeadStatus(leadId: string, newStatus: string) {
       name: leadId,
       fieldname: 'status',
       value: newStatus
-    })
-    
-    revalidatePath('/crm')
-    return { success: true }
+    });
+    revalidatePath('/crm');
+    return { success: true };
   } catch (error: any) {
-    console.error("Status update error:", error)
-    return { error: error.message || 'Failed to update status' }
+    console.error("Status update error:", error);
+    return { error: error.message || 'Failed to update status' };
   }
 }
 
