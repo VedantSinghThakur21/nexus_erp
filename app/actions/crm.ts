@@ -1181,17 +1181,17 @@ export async function createOrderFromQuotation(quotationId: string) {
     const orderId = savedOrder.name
     console.log('[createOrderFromQuotation] Sales order created successfully:', orderId)
 
-    // 6. Update Quotation status to "Ordered" and check for errors
-    const statusUpdate = await frappeRequest('frappe.client.set_value', 'POST', {
-      doctype: 'Quotation',
-      name: quotationId,
-      fieldname: 'status',
-      value: 'Ordered'
-    });
+    // 6. Update Quotation status to "Ordered" using REST API and log response
+    const statusUpdate = await frappeRequest(
+      `resource/Quotation/${quotationId}`,
+      'PUT',
+      { status: 'Ordered' }
+    );
+    console.log('[createOrderFromQuotation] Quotation status update response:', statusUpdate);
     if (!statusUpdate || (typeof statusUpdate === 'object' && 'error' in statusUpdate)) {
       throw new Error("Failed to update Quotation status to 'Ordered'");
     }
-    console.log('[createOrderFromQuotation] Quotation status updated to "Ordered"')
+    console.log('[createOrderFromQuotation] Quotation status updated to "Ordered"');
 
     // 7. Revalidate paths
     revalidatePath('/crm')
