@@ -84,7 +84,30 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         </div>
         <div className="flex gap-2 items-center">
           <EditOpportunityDialog opportunity={opportunity} />
-          
+          {/* Delete Button: Only show if Open */}
+          {opportunity.status === 'Open' && (
+            <form
+              action={async () => {
+                'use server'
+                const { deleteOpportunity } = await import('@/app/actions/crm')
+                const result = await deleteOpportunity(opportunity.name)
+                if (result?.error) {
+                  alert('Failed to delete opportunity: ' + result.error)
+                } else {
+                  window.location.href = '/crm/opportunities'
+                }
+              }}
+              onSubmit={e => {
+                if (!confirm('Are you sure you want to delete this opportunity? This action cannot be undone.')) {
+                  e.preventDefault()
+                }
+              }}
+            >
+              <Button type="submit" variant="destructive" className="ml-2">
+                Delete
+              </Button>
+            </form>
+          )}
           {/* Show status badge for closed opportunities */}
           {isClosed ? (
             <Badge className={statusColors[opportunity.status] || 'bg-slate-100 text-slate-800'}>

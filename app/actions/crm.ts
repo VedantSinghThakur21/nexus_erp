@@ -1,3 +1,56 @@
+// 7. DELETE: Delete Lead (only if not Converted)
+export async function deleteLead(leadId: string) {
+  try {
+    // Only allow delete if not Converted
+    const lead = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Lead',
+      name: leadId
+    }) as { status: string }
+
+    if (lead.status === 'Converted') {
+      throw new Error('Converted leads cannot be deleted')
+    }
+
+    await frappeRequest('frappe.client.delete', 'POST', {
+      doctype: 'Lead',
+      name: leadId
+    })
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/leads')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Delete lead error:', error)
+    return { error: error.message || 'Failed to delete lead' }
+  }
+}
+
+// 8. DELETE: Delete Opportunity (only if Open)
+export async function deleteOpportunity(opportunityId: string) {
+  try {
+    // Only allow delete if status is Open
+    const opp = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Opportunity',
+      name: opportunityId
+    }) as { status: string }
+
+    if (opp.status !== 'Open') {
+      throw new Error('Only Open opportunities can be deleted')
+    }
+
+    await frappeRequest('frappe.client.delete', 'POST', {
+      doctype: 'Opportunity',
+      name: opportunityId
+    })
+
+    revalidatePath('/crm')
+    revalidatePath('/crm/opportunities')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Delete opportunity error:', error)
+    return { error: error.message || 'Failed to delete opportunity' }
+  }
+}
 'use server'
 
 import { frappeRequest } from "@/app/lib/api"
