@@ -1188,7 +1188,7 @@ export async function createOrderFromQuotation(quotationId: string) {
       fieldname: 'status',
       value: 'Ordered'
     });
-    if (!statusUpdate || statusUpdate.exc) {
+    if (!statusUpdate || (typeof statusUpdate === 'object' && 'error' in statusUpdate)) {
       throw new Error("Failed to update Quotation status to 'Ordered'");
     }
     console.log('[createOrderFromQuotation] Quotation status updated to "Ordered"')
