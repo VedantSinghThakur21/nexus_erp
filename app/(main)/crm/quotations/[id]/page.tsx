@@ -6,7 +6,7 @@ import { ArrowLeft, Calendar, FileText, Building2, Pencil, Printer, Clock, User 
 import Link from "next/link"
 import { DeleteQuotationButton } from "@/components/crm/delete-quotation-button"
 import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
-import { QuotationStatusDropdown } from "@/components/crm/quotation-status-dropdown"
+import { QuotationActions } from "@/components/crm/quotation-actions"
 
 export default async function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -79,28 +79,10 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
           </p>
         </div>
         <div suppressHydrationWarning className="flex gap-2 items-center">
-          <Link href={`/print/quotation/${encodeURIComponent(quotation.name)}`} target="_blank">
-            <Button variant="outline" className="gap-2">
-              <Printer className="h-4 w-4" />
-              Print
-            </Button>
-          </Link>
-          {(quotation.status === 'Draft' || quotation.status === 'Open') && (
-            <Link href={`/crm/quotations/${encodeURIComponent(quotation.name)}/edit`}>
-              <Button className="gap-2">
-                <FileText className="h-4 w-4" />
-                Edit Quotation
-              </Button>
-            </Link>
-          )}
-          <DeleteQuotationButton 
-            quotationId={quotation.name} 
-            quotationStatus={quotation.status} 
-          />
-          <QuotationStatusDropdown 
-            quotationId={quotation.name}
-            currentStatus={quotation.status}
-          />
+          <QuotationActions quotation={quotation} />
+          <Badge className={statusColors[quotation.status] || 'bg-slate-100 text-slate-800'}>
+            {quotation.status}
+          </Badge>
           {isExpired && quotation.status === 'Open' && (
             <Badge className="bg-orange-100 text-orange-800">Expired</Badge>
           )}

@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AnimatedCard } from "@/components/ui/animated"
-import { FileText, Calendar, IndianRupee, TrendingUp, Search, SlidersHorizontal, Plus, Package, CheckCircle, Clock, Send } from "lucide-react"
+import { FileText, Calendar, IndianRupee, TrendingUp, Search, SlidersHorizontal, Plus, Package, CheckCircle, Clock } from "lucide-react"
 import Link from "next/link"
-import { submitQuotation } from "@/app/actions/crm"
 
 interface Quotation {
   name: string
@@ -46,32 +45,10 @@ export function QuotationsView({ quotations, proposalOpportunities }: Quotations
   const [sortBy, setSortBy] = useState<"date" | "value">("date")
   const [dateFilter, setDateFilter] = useState<string>("all")
   const [creatingQuotation, setCreatingQuotation] = useState<string | null>(null)
-  const [submittingQuotation, setSubmittingQuotation] = useState<string | null>(null)
 
   const handleCreateQuotation = (opportunityName: string) => {
     // Redirect to new quotation page with opportunity ID
     window.location.href = `/crm/quotations/new?opportunity=${encodeURIComponent(opportunityName)}`
-  }
-
-  const handleSubmitQuotation = async (quotationName: string) => {
-    if (!confirm('Submit this quotation? It will be ready for Sales Order creation.')) {
-      return
-    }
-    
-    setSubmittingQuotation(quotationName)
-    try {
-      const result = await submitQuotation(quotationName)
-      if (result.error) {
-        alert(result.error)
-      } else {
-        window.location.reload()
-      }
-    } catch (error) {
-      console.error('Failed to submit quotation:', error)
-      alert('Failed to submit quotation')
-    } finally {
-      setSubmittingQuotation(null)
-    }
   }
 
   // Status colors

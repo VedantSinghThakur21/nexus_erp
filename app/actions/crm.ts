@@ -804,18 +804,19 @@ export async function updateQuotation(quotationId: string, quotationData: {
 // 4. UPDATE: Submit Quotation (make it official)
 export async function submitQuotation(quotationId: string) {
   try {
-    // Get the current document
+    // Get the current document with all fields
     const doc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
       name: quotationId
     }) as any
 
-    // Submit the quotation by saving with docstatus = 1
-    await frappeRequest('frappe.client.save', 'POST', {
-      doc: {
-        ...doc,
-        docstatus: 1
-      }
+    if (doc.docstatus !== 0) {
+      throw new Error('Only Draft quotations can be submitted')
+    }
+
+    // Use frappe.client.submit to properly submit the document
+    await frappeRequest('frappe.client.submit', 'POST', {
+      doc: doc
     })
 
     revalidatePath('/crm')
@@ -858,27 +859,32 @@ export async function deleteQuotation(quotationId: string) {
   }
 }
 
-export async function updateQuotationStatus(quotationId: string, newStatus: string) {
-  'use server'
-  
+// 6. CANCEL: Cancel Quotation (only if Submitted)
+export async function cancelQuotation(quotationId: string) {
   try {
-    // Update the quotation status in ERPNext
-    const result = await frappeRequest('frappe.client.set_value', 'POST', {
+    // Get the document
+    const doc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
-      name: quotationId,
-      fieldname: 'status',
-      value: newStatus
+      name: quotationId
+    }) as any
+
+    if (doc.docstatus !== 1) {
+      throw new Error('Only Submitted quotations can be cancelled')
+    }
+
+    // Cancel using Frappe's cancel method
+    await frappeRequest('frappe.client.cancel', 'POST', {
+      doctype: 'Quotation',
+      name: quotationId
     })
 
     revalidatePath('/crm')
     revalidatePath('/crm/quotations')
     revalidatePath(`/crm/quotations/${quotationId}`)
-    revalidatePath('/quotations')
-    revalidatePath('/sales-orders')
     return { success: true }
   } catch (error: any) {
-    console.error("Update quotation status error:", error)
-    return { error: error.message || 'Failed to update status' }
+    console.error("Cancel quotation error:", error)
+    return { error: error.message || 'Failed to cancel quotation' }
   }
 }
 
@@ -1141,15 +1147,19 @@ export async function createOrderFromQuotation(quotationId: string) {
       throw new Error("Quotation not found")
     }
 
-    console.log('[createOrderFromQuotation] Quotation fetched - docstatus:', quotation.docstatus)
+    console.log('[createOrderFromQuotation] Quotation fetched - docstatus:', quotation.docstatus, 'status:', quotation.status)
 
-    // 2. (Relaxed) Allow creation from any Quotation, not just submitted
-    // (If you want to restrict to submitted only, uncomment the check below)
-    // if (quotation.docstatus !== 1) {
-    //   throw new Error(`Quotation must be submitted first (current status: ${quotation.docstatus === 0 ? 'Draft' : 'Amended'})`)
-    // }
+    // 2. Require quotation to be submitted (docstatus = 1)
+    if (quotation.docstatus !== 1) {
+      throw new Error('Quotation must be submitted before creating a Sales Order. Please submit the quotation first.')
+    }
 
-    // 3. Use ERPNext's make_sales_order server method
+    // 3. Check if already converted
+    if (quotation.status === 'Ordered') {
+      throw new Error('This quotation has already been converted to a Sales Order')
+    }
+
+    // 4. Use ERPNext's make_sales_order server method
     const draftOrder = await frappeRequest(
       'erpnext.selling.doctype.quotation.quotation.make_sales_order',
       'POST',
@@ -1162,14 +1172,14 @@ export async function createOrderFromQuotation(quotationId: string) {
       throw new Error("Failed to create sales order template from quotation")
     }
 
-    // 4. Extract the sales order document
+    // 5. Extract the sales order document
     const orderDoc = draftOrder.message || draftOrder
     
     if (orderDoc.name === undefined || orderDoc.name === null || orderDoc.name === '') {
       delete orderDoc.name
     }
 
-    // 5. Save the Sales Order
+    // 6. Save the Sales Order
     const savedOrder = await frappeRequest('frappe.client.insert', 'POST', {
       doc: orderDoc
     }) as { name?: string }
@@ -1183,19 +1193,10 @@ export async function createOrderFromQuotation(quotationId: string) {
     const orderId = savedOrder.name
     console.log('[createOrderFromQuotation] Sales order created successfully:', orderId)
 
-    // 6. Update Quotation status to "Ordered" using REST API and log response
-    const statusUpdate = await frappeRequest(
-      `resource/Quotation/${quotationId}`,
-      'PUT',
-      { status: 'Ordered' }
-    );
-    console.log('[createOrderFromQuotation] Quotation status update response:', statusUpdate);
-    if (!statusUpdate || (typeof statusUpdate === 'object' && 'error' in statusUpdate)) {
-      throw new Error("Failed to update Quotation status to 'Ordered'");
-    }
-    console.log('[createOrderFromQuotation] Quotation status updated to "Ordered"');
+    // 7. ERPNext automatically updates the Quotation status to "Ordered" when a Sales Order is created
+    // No need to manually update the status
 
-    // 7. Revalidate paths
+    // 8. Revalidate paths
     revalidatePath('/crm')
     revalidatePath('/crm/quotations')
     revalidatePath(`/crm/quotations/${quotationId}`)
