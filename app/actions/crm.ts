@@ -1141,10 +1141,11 @@ export async function createOrderFromQuotation(quotationId: string) {
 
     console.log('[createOrderFromQuotation] Quotation fetched - docstatus:', quotation.docstatus)
 
-    // 2. Verify quotation is submitted (docstatus = 1)
-    if (quotation.docstatus !== 1) {
-      throw new Error(`Quotation must be submitted first (current status: ${quotation.docstatus === 0 ? 'Draft' : 'Amended'})`)
-    }
+    // 2. (Relaxed) Allow creation from any Quotation, not just submitted
+    // (If you want to restrict to submitted only, uncomment the check below)
+    // if (quotation.docstatus !== 1) {
+    //   throw new Error(`Quotation must be submitted first (current status: ${quotation.docstatus === 0 ? 'Draft' : 'Amended'})`)
+    // }
 
     // 3. Use ERPNext's make_sales_order server method
     const draftOrder = await frappeRequest(
@@ -1180,13 +1181,16 @@ export async function createOrderFromQuotation(quotationId: string) {
     const orderId = savedOrder.name
     console.log('[createOrderFromQuotation] Sales order created successfully:', orderId)
 
-    // 6. Update Quotation status to "Ordered"
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    // 6. Update Quotation status to "Ordered" and check for errors
+    const statusUpdate = await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Quotation',
       name: quotationId,
       fieldname: 'status',
       value: 'Ordered'
-    })
+    });
+    if (!statusUpdate || statusUpdate.exc) {
+      throw new Error("Failed to update Quotation status to 'Ordered'");
+    }
     console.log('[createOrderFromQuotation] Quotation status updated to "Ordered"')
 
     // 7. Revalidate paths
