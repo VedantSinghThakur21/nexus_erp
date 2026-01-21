@@ -24,7 +24,11 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
     // Debug: Log the quotation data to see what we're receiving
     console.log('=== QUOTATION DETAIL PAGE ===')
     console.log('Quotation items:', quotation.items?.length)
-    quotation.items?.forEach((item: any, idx: number) => {
+      // Ensure docstatus is present for Quotation type
+      if (quotation && quotation.docstatus === undefined && (quotation as any).docstatus !== undefined) {
+        quotation.docstatus = (quotation as any).docstatus;
+      }
+      quotation.items?.forEach((item: any, idx: number) => {
       console.log(`\nItem ${idx + 1}:`, item.item_code)
       console.log('  custom_is_rental:', item.custom_is_rental)
       console.log('  custom_rental_type:', item.custom_rental_type)
@@ -79,7 +83,10 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
           </p>
         </div>
         <div suppressHydrationWarning className="flex gap-2 items-center">
-          <QuotationActions quotation={quotation} />
+          <QuotationActions quotation={{
+            ...quotation,
+            docstatus: quotation.docstatus ?? 0
+          }} />
           <Badge className={statusColors[quotation.status] || 'bg-slate-100 text-slate-800'}>
             {quotation.status}
           </Badge>

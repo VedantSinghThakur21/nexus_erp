@@ -48,6 +48,7 @@ export interface Quotation {
   party_name: string
   customer_name?: string
   status: string // Draft | Open | Ordered | Lost
+  docstatus?: number // 0 = Draft, 1 = Submitted, 2 = Cancelled
   valid_till: string
   grand_total: number
   net_total?: number
