@@ -1,3 +1,11 @@
+'use server'
+
+import { frappeRequest } from "@/app/lib/api"
+import { revalidatePath } from "next/cache"
+import { canCreateLead, incrementUsage } from "./usage-limits"
+import { headers } from "next/headers"
+import { cookies } from "next/headers"
+
 // 7. DELETE: Delete Lead (only if not Converted)
 export async function deleteLead(leadId: string) {
   try {
@@ -51,13 +59,6 @@ export async function deleteOpportunity(opportunityId: string) {
     return { error: error.message || 'Failed to delete opportunity' }
   }
 }
-'use server'
-
-import { frappeRequest } from "@/app/lib/api"
-import { revalidatePath } from "next/cache"
-import { canCreateLead, incrementUsage } from "./usage-limits"
-import { headers } from "next/headers"
-import { cookies } from "next/headers"
 
 export interface Lead {
   name: string
