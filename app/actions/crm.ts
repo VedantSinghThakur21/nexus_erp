@@ -424,15 +424,15 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
     const opportunityId = newOpp.name
     console.log('[convertLeadToOpportunity] Opportunity created successfully:', opportunityId)
 
-    // 5. Update Lead status to "Opportunity" using POST method
+    // 5. Update Lead status to "Converted" using POST method
     const updateResponse = await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Lead',
       name: leadId,
       fieldname: 'status',
-      value: 'Opportunity'
+      value: 'Converted'
     })
     console.log('[convertLeadToOpportunity] Lead status update response:', updateResponse)
-    console.log('[convertLeadToOpportunity] Lead status updated to "Opportunity"')
+    console.log('[convertLeadToOpportunity] Lead status updated to "Converted"')
 
     // 6. Revalidate paths to refresh UI
     revalidatePath('/crm')
@@ -494,12 +494,12 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
       throw new Error("Failed to save quotation - no name returned")
     }
 
-    // Update Opportunity status to "Quotation"
-    await frappeRequest('frappe.client.set_value', 'PUT', {
+    // Update Opportunity status to "Converted" (officially won/quoted)
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Opportunity',
       name: opportunityId,
       fieldname: 'status',
-      value: 'Quotation'
+      value: 'Converted'
     })
 
     // The server method automatically:
@@ -1119,5 +1119,417 @@ export async function updateOpportunity(opportunityId: string, data: {
   } catch (error: any) {
     console.error('Update opportunity error:', error)
     return { error: error.message || 'Failed to update opportunity' }
+  }
+}
+
+// ========== SALES ORDERS ==========
+
+// 1. CREATE: Generate Sales Order from Quotation (Quotation -> Sales Order workflow)
+export async function createOrderFromQuotation(quotationId: string) {
+  try {
+    console.log('[createOrderFromQuotation] Starting sales order creation from quotation:', quotationId)
+    
+    // 1. Fetch the Quotation to verify it's submitted
+    const quotation = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Quotation',
+      name: quotationId
+    }) as any
+
+    if (!quotation) {
+      throw new Error("Quotation not found")
+    }
+
+    console.log('[createOrderFromQuotation] Quotation fetched - docstatus:', quotation.docstatus)
+
+    // 2. Verify quotation is submitted (docstatus = 1)
+    if (quotation.docstatus !== 1) {
+      throw new Error(`Quotation must be submitted first (current status: ${quotation.docstatus === 0 ? 'Draft' : 'Amended'})`)
+    }
+
+    // 3. Use ERPNext's make_sales_order server method
+    const draftOrder = await frappeRequest(
+      'erpnext.selling.doctype.quotation.quotation.make_sales_order',
+      'POST',
+      { source_name: quotationId }
+    ) as { message?: any } | any
+
+    console.log('[createOrderFromQuotation] make_sales_order draft response:', JSON.stringify(draftOrder, null, 2))
+
+    if (!draftOrder) {
+      throw new Error("Failed to create sales order template from quotation")
+    }
+
+    // 4. Extract the sales order document
+    const orderDoc = draftOrder.message || draftOrder
+    
+    if (orderDoc.name === undefined || orderDoc.name === null || orderDoc.name === '') {
+      delete orderDoc.name
+    }
+
+    // 5. Save the Sales Order
+    const savedOrder = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: orderDoc
+    }) as { name?: string }
+
+    console.log('[createOrderFromQuotation] Saved order response:', JSON.stringify(savedOrder, null, 2))
+
+    if (!savedOrder || !savedOrder.name) {
+      throw new Error("Failed to save sales order - no name returned")
+    }
+
+    const orderId = savedOrder.name
+    console.log('[createOrderFromQuotation] Sales order created successfully:', orderId)
+
+    // 6. Update Quotation status to "Ordered"
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Quotation',
+      name: quotationId,
+      fieldname: 'status',
+      value: 'Ordered'
+    })
+    console.log('[createOrderFromQuotation] Quotation status updated to "Ordered"')
+
+    // 7. Revalidate paths
+    revalidatePath('/crm')
+    revalidatePath('/crm/quotations')
+    revalidatePath(`/crm/quotations/${quotationId}`)
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${orderId}`)
+
+    console.log('[createOrderFromQuotation] Sales order creation completed successfully')
+    return { success: true, orderId }
+  } catch (error: any) {
+    console.error('[createOrderFromQuotation] Error:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: error
+    })
+    return { error: error.message || 'Failed to create sales order' }
+  }
+}
+
+// 2. READ: Get All Sales Orders
+export async function getSalesOrders() {
+  try {
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Sales Order',
+        fields: '["name", "customer", "customer_name", "status", "docstatus", "transaction_date", "delivery_date", "grand_total", "currency", "quotation_no"]',
+        order_by: 'creation desc',
+        limit_page_length: 50
+      }
+    )
+    return response as any[]
+  } catch (error) {
+    console.error("Failed to fetch sales orders:", error)
+    return []
+  }
+}
+
+// 3. READ: Get Single Sales Order
+export async function getSalesOrder(id: string): Promise<any | null> {
+  try {
+    const order = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: decodeURIComponent(id)
+    })
+    return order
+  } catch (error) {
+    console.error("Failed to fetch sales order:", error)
+    return null
+  }
+}
+
+// ========== SALES INVOICES ==========
+
+// 1. CREATE: Generate Sales Invoice from Sales Order (Sales Order -> Sales Invoice workflow)
+export async function createInvoiceFromOrder(orderId: string) {
+  try {
+    console.log('[createInvoiceFromOrder] Starting invoice creation from sales order:', orderId)
+    
+    // 1. Fetch the Sales Order to verify it exists and is submitted
+    const order = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: orderId
+    }) as any
+
+    if (!order) {
+      throw new Error("Sales Order not found")
+    }
+
+    console.log('[createInvoiceFromOrder] Sales order fetched - docstatus:', order.docstatus)
+
+    // 2. Use ERPNext's make_sales_invoice server method
+    const draftInvoice = await frappeRequest(
+      'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
+      'POST',
+      { source_name: orderId }
+    ) as { message?: any } | any
+
+    console.log('[createInvoiceFromOrder] make_sales_invoice draft response:', JSON.stringify(draftInvoice, null, 2))
+
+    if (!draftInvoice) {
+      throw new Error("Failed to create sales invoice template from sales order")
+    }
+
+    // 3. Extract the sales invoice document
+    const invoiceDoc = draftInvoice.message || draftInvoice
+    
+    if (invoiceDoc.name === undefined || invoiceDoc.name === null || invoiceDoc.name === '') {
+      delete invoiceDoc.name
+    }
+
+    // 4. Save the Sales Invoice
+    const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: invoiceDoc
+    }) as { name?: string }
+
+    console.log('[createInvoiceFromOrder] Saved invoice response:', JSON.stringify(savedInvoice, null, 2))
+
+    if (!savedInvoice || !savedInvoice.name) {
+      throw new Error("Failed to save sales invoice - no name returned")
+    }
+
+    const invoiceId = savedInvoice.name
+    console.log('[createInvoiceFromOrder] Sales invoice created successfully:', invoiceId)
+
+    // 5. Revalidate paths
+    revalidatePath('/crm')
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${orderId}`)
+    revalidatePath('/invoices')
+    revalidatePath(`/invoices/${invoiceId}`)
+
+    console.log('[createInvoiceFromOrder] Sales invoice creation completed successfully')
+    return { success: true, invoiceId }
+  } catch (error: any) {
+    console.error('[createInvoiceFromOrder] Error:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: error
+    })
+    return { error: error.message || 'Failed to create sales invoice' }
+  }
+}
+
+// 2. READ: Get All Sales Invoices
+export async function getSalesInvoices() {
+  try {
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Sales Invoice',
+        fields: '["name", "customer", "customer_name", "status", "docstatus", "posting_date", "due_date", "grand_total", "currency", "sales_order"]',
+        order_by: 'creation desc',
+        limit_page_length: 50
+      }
+    )
+    return response as any[]
+  } catch (error) {
+    console.error("Failed to fetch sales invoices:", error)
+    return []
+  }
+}
+
+// 3. READ: Get Single Sales Invoice
+export async function getSalesInvoice(id: string): Promise<any | null> {
+  try {
+    const invoice = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Invoice',
+      name: decodeURIComponent(id)
+    })
+    return invoice
+  } catch (error) {
+    console.error("Failed to fetch sales invoice:", error)
+    return null
+  }
+}
+
+// ========== FLEET & RENTAL OPERATIONS ==========
+
+// 1. MOBILIZE: Create Delivery Note from Sales Order and link Serial Number
+export async function mobilizeAsset(orderId: string, serialNo: string) {
+  try {
+    console.log('[mobilizeAsset] Starting asset mobilization - Order:', orderId, 'Serial:', serialNo)
+    
+    // 1. Fetch the Sales Order
+    const order = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: orderId
+    }) as any
+
+    if (!order) {
+      throw new Error("Sales Order not found")
+    }
+
+    console.log('[mobilizeAsset] Sales order fetched')
+
+    // 2. Use ERPNext's make_delivery_note server method
+    const draftDeliveryNote = await frappeRequest(
+      'erpnext.selling.doctype.sales_order.sales_order.make_delivery_note',
+      'POST',
+      { source_name: orderId }
+    ) as { message?: any } | any
+
+    console.log('[mobilizeAsset] make_delivery_note draft response:', JSON.stringify(draftDeliveryNote, null, 2))
+
+    if (!draftDeliveryNote) {
+      throw new Error("Failed to create delivery note template from sales order")
+    }
+
+    // 3. Extract the delivery note document
+    const deliveryNoteDoc = draftDeliveryNote.message || draftDeliveryNote
+    
+    if (deliveryNoteDoc.name === undefined || deliveryNoteDoc.name === null || deliveryNoteDoc.name === '') {
+      delete deliveryNoteDoc.name
+    }
+
+    // 4. Link the specific serial number to the delivery note items
+    if (deliveryNoteDoc.items && deliveryNoteDoc.items.length > 0) {
+      // For the first item, add the serial number
+      deliveryNoteDoc.items[0].serial_no = serialNo
+      console.log('[mobilizeAsset] Serial number linked to delivery note item:', serialNo)
+    }
+
+    // 5. Save the Delivery Note
+    const savedDeliveryNote = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: deliveryNoteDoc
+    }) as { name?: string }
+
+    console.log('[mobilizeAsset] Saved delivery note response:', JSON.stringify(savedDeliveryNote, null, 2))
+
+    if (!savedDeliveryNote || !savedDeliveryNote.name) {
+      throw new Error("Failed to save delivery note - no name returned")
+    }
+
+    const deliveryNoteId = savedDeliveryNote.name
+    console.log('[mobilizeAsset] Delivery note created successfully:', deliveryNoteId)
+
+    // 6. Update Serial Number (Asset) status to "Issued"
+    try {
+      const serialNoDoc = await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Serial No',
+        name: serialNo
+      }) as any
+
+      if (serialNoDoc) {
+        await frappeRequest('frappe.client.set_value', 'POST', {
+          doctype: 'Serial No',
+          name: serialNo,
+          fieldname: 'status',
+          value: 'Issued'
+        })
+        console.log('[mobilizeAsset] Serial number status updated to "Issued":', serialNo)
+      }
+    } catch (serialError) {
+      console.warn('[mobilizeAsset] Could not update serial number status:', serialError)
+      // Don't fail the entire operation if serial number update fails
+    }
+
+    // 7. Revalidate paths
+    revalidatePath('/crm')
+    revalidatePath('/fleet')
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${orderId}`)
+
+    console.log('[mobilizeAsset] Asset mobilization completed successfully')
+    return { success: true, deliveryNoteId }
+  } catch (error: any) {
+    console.error('[mobilizeAsset] Error:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: error
+    })
+    return { error: error.message || 'Failed to mobilize asset' }
+  }
+}
+
+// 2. RETURN: Create Stock Entry (Material Receipt) to return asset and update Serial Number status
+export async function returnAsset(serialNo: string, orderId?: string) {
+  try {
+    console.log('[returnAsset] Starting asset return - Serial:', serialNo, 'Order:', orderId)
+    
+    // 1. Fetch the Serial Number (Asset) details
+    const asset = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Serial No',
+      name: serialNo
+    }) as any
+
+    if (!asset) {
+      throw new Error("Serial Number (Asset) not found")
+    }
+
+    console.log('[returnAsset] Serial number fetched:', asset.name, 'Item:', asset.item_code)
+
+    // 2. Create Stock Entry (Material Receipt type) to bring machine back
+    const stockEntryDoc = {
+      doctype: 'Stock Entry',
+      purpose: 'Material Receipt', // For receiving goods back into inventory
+      stock_entry_type: 'Material Receipt',
+      from_warehouse: null, // Receiving warehouse
+      to_warehouse: asset.warehouse || 'Stores',
+      items: [
+        {
+          doctype: 'Stock Entry Detail',
+          item_code: asset.item_code,
+          item_name: asset.item_name || asset.item_code,
+          serial_no: serialNo,
+          qty: 1,
+          uom: 'Nos',
+          basic_rate: 0,
+          basic_amount: 0
+        }
+      ],
+      from_bom: 0,
+      inspection_required: 0
+    }
+
+    console.log('[returnAsset] Creating stock entry:', JSON.stringify(stockEntryDoc, null, 2))
+
+    // 3. Save the Stock Entry
+    const savedStockEntry = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: stockEntryDoc
+    }) as { name?: string }
+
+    console.log('[returnAsset] Saved stock entry response:', JSON.stringify(savedStockEntry, null, 2))
+
+    if (!savedStockEntry || !savedStockEntry.name) {
+      throw new Error("Failed to save stock entry - no name returned")
+    }
+
+    const stockEntryId = savedStockEntry.name
+    console.log('[returnAsset] Stock entry created successfully:', stockEntryId)
+
+    // 4. Update Serial Number (Asset) status back to "Active"
+    try {
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Serial No',
+        name: serialNo,
+        fieldname: 'status',
+        value: 'Active'
+      })
+      console.log('[returnAsset] Serial number status updated to "Active":', serialNo)
+    } catch (serialError) {
+      console.warn('[returnAsset] Could not update serial number status:', serialError)
+      // Don't fail the entire operation if serial number update fails
+    }
+
+    // 5. Revalidate paths
+    revalidatePath('/crm')
+    revalidatePath('/fleet')
+    revalidatePath('/sales-orders')
+
+    console.log('[returnAsset] Asset return completed successfully')
+    return { success: true, stockEntryId }
+  } catch (error: any) {
+    console.error('[returnAsset] Error:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: error
+    })
+    return { error: error.message || 'Failed to return asset' }
   }
 }
