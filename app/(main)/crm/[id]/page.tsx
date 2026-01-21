@@ -6,6 +6,8 @@ import Link from "next/link"
 import { EditLeadSheet } from "@/components/crm/edit-lead-sheet"
 import { ConvertLeadDialog } from "@/components/crm/convert-lead-dialog"
 import { CustomerPricingAnalytics } from "@/components/crm/customer-pricing-analytics"
+import { DeleteLeadForm } from "@/components/crm/delete-lead-form"
+import { DeleteLeadForm } from "@/components/crm/delete-lead-form"
 
 interface Lead {
   name: string
@@ -100,28 +102,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <EditLeadSheet lead={lead} />
             {/* Delete Button: Only show if not Converted */}
             {lead.status !== 'Converted' && (
-              <form
-                action={async () => {
-                  'use server'
-                  const { deleteLead } = await import('@/app/actions/crm')
-                  const result = await deleteLead(lead.name)
-                  if (result?.error) {
-                    // Ideally show toast, fallback to alert
-                    alert('Failed to delete lead: ' + result.error)
-                  } else {
-                    window.location.href = '/crm'
-                  }
-                }}
-                onSubmit={e => {
-                  if (!confirm('Are you sure you want to delete this lead? This action cannot be undone.')) {
-                    e.preventDefault()
-                  }
-                }}
-              >
-                <Button type="submit" variant="destructive" className="ml-2">
-                  Delete
-                </Button>
-              </form>
+              <DeleteLeadForm leadId={lead.name} />
             )}
         </div>
       </div>

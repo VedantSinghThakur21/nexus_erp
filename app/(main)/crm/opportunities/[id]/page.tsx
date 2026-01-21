@@ -7,6 +7,7 @@ import Link from "next/link"
 import { getOpportunity } from "@/app/actions/crm"
 import { OpportunityActions } from "@/components/crm/opportunity-actions"
 import { EditOpportunityDialog } from "@/components/crm/edit-opportunity-dialog"
+import { DeleteOpportunityForm } from "@/components/crm/delete-opportunity-form"
 
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -86,27 +87,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           <EditOpportunityDialog opportunity={opportunity} />
           {/* Delete Button: Only show if Open */}
           {opportunity.status === 'Open' && (
-            <form
-              action={async () => {
-                'use server'
-                const { deleteOpportunity } = await import('@/app/actions/crm')
-                const result = await deleteOpportunity(opportunity.name)
-                if (result?.error) {
-                  alert('Failed to delete opportunity: ' + result.error)
-                } else {
-                  window.location.href = '/crm/opportunities'
-                }
-              }}
-              onSubmit={e => {
-                if (!confirm('Are you sure you want to delete this opportunity? This action cannot be undone.')) {
-                  e.preventDefault()
-                }
-              }}
-            >
-              <Button type="submit" variant="destructive" className="ml-2">
-                Delete
-              </Button>
-            </form>
+            <DeleteOpportunityForm opportunityId={opportunity.name} />
           )}
           {/* Show status badge for closed opportunities */}
           {isClosed ? (
