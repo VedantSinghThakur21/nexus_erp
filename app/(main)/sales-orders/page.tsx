@@ -18,8 +18,8 @@ export default async function SalesOrdersPage() {
     getQuotations()
   ])
   
-  // Filter quotations ready for sales order (docstatus=1 means submitted)
-  const orderedQuotations = quotations.filter(q => q.docstatus === 1)
+  // Filter quotations ready for sales order: submitted but not yet ordered
+  const readyQuotations = quotations.filter(q => q.docstatus === 1 && q.status !== 'Ordered')
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
@@ -87,7 +87,7 @@ export default async function SalesOrdersPage() {
             All Sales Orders ({orders.length})
           </TabsTrigger>
           <TabsTrigger value="ready">
-            Ready for Sales Order ({orderedQuotations.length})
+            Ready for Sales Order ({readyQuotations.length})
           </TabsTrigger>
         </TabsList>
 
@@ -176,15 +176,15 @@ export default async function SalesOrdersPage() {
             <CardHeader>
               <CardTitle>Quotations Ready for Sales Order</CardTitle>
               <CardDescription>
-                These quotations have been marked as "Ordered". Create sales orders from them.
+                These quotations have been submitted and are ready for sales order creation.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {orderedQuotations.length === 0 ? (
+              {readyQuotations.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                   <Package className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                  <p className="font-medium text-lg mb-2">No ordered quotations</p>
-                  <p className="text-sm mt-2 mb-4">Mark quotations as "Ordered" to create sales orders from them</p>
+                  <p className="font-medium text-lg mb-2">No quotations ready</p>
+                  <p className="text-sm mt-2 mb-4">Submit a quotation to see it here</p>
                   <Link href="/quotations">
                     <Button className="gap-2">
                       <FileText className="h-4 w-4" />
@@ -194,7 +194,7 @@ export default async function SalesOrdersPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {orderedQuotations.map((quotation) => (
+                  {readyQuotations.map((quotation) => (
                     <div 
                       key={quotation.name}
                       className="border rounded-lg p-4 hover:shadow-md transition-all bg-green-50/50 dark:bg-green-950/20"
@@ -206,7 +206,7 @@ export default async function SalesOrdersPage() {
                               {quotation.name}
                             </h3>
                             <Badge className="bg-green-100 text-green-800">
-                              Ordered
+                              Ready
                             </Badge>
                           </div>
                           
