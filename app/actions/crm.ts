@@ -392,14 +392,10 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       probability: 20,
       currency: 'INR',
       opportunity_amount: opportunityAmount || 0,
-      // Use company_name if available, otherwise lead_name
       title: lead.company_name || lead.lead_name,
       customer_name: lead.lead_name,
-      // Preserve important lead fields
       territory: lead.territory || 'All Territories',
       source: lead.source,
-      // company: lead.company, // Removed: Lead type does not have company field
-      // Contact information
       contact_person: lead.lead_name,
       contact_email: lead.email_id,
       contact_mobile: lead.mobile_no
@@ -407,27 +403,35 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 
     console.log('[convertLeadToOpportunity] Creating opportunity with data:', JSON.stringify(opportunityDoc, null, 2))
 
-    // 4. Insert the opportunity document
-    const savedOpportunity = await frappeRequest('frappe.client.insert', 'POST', {
+    // 4. Insert the opportunity document with robust response parsing
+    const response = await frappeRequest('frappe.client.insert', 'POST', {
       doc: opportunityDoc
-    }) as { name?: string }
+    })
 
-    console.log('[convertLeadToOpportunity] Opportunity creation response:', JSON.stringify(savedOpportunity, null, 2))
+    console.log('[convertLeadToOpportunity] Raw ERPNext response:', JSON.stringify(response, null, 2))
 
-    if (!savedOpportunity || !savedOpportunity.name) {
-      throw new Error("Failed to create opportunity - no name returned from ERPNext")
+    // Parse nested message object if present (ERPNext often wraps responses)
+    const newOpp = (response as any)?.message || response
+    
+    if (!newOpp || !newOpp.name) {
+      console.error('[convertLeadToOpportunity] ERPNext Response structure:', response)
+      console.error('[convertLeadToOpportunity] Parsed opportunity object:', newOpp)
+      throw new Error(
+        `Failed to create opportunity - no name returned from ERPNext. Response: ${JSON.stringify(response)}`
+      )
     }
 
-    const opportunityId = savedOpportunity.name
+    const opportunityId = newOpp.name
     console.log('[convertLeadToOpportunity] Opportunity created successfully:', opportunityId)
 
-    // 5. Update Lead status to "Opportunity"
-    await frappeRequest('frappe.client.set_value', 'PUT', {
+    // 5. Update Lead status to "Opportunity" using POST method
+    const updateResponse = await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Lead',
       name: leadId,
       fieldname: 'status',
       value: 'Opportunity'
     })
+    console.log('[convertLeadToOpportunity] Lead status update response:', updateResponse)
     console.log('[convertLeadToOpportunity] Lead status updated to "Opportunity"')
 
     // 6. Revalidate paths to refresh UI
@@ -441,10 +445,13 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
     return { success: true, opportunityId }
 
   } catch (error: any) {
-    console.error('[convertLeadToOpportunity] Error during conversion:', error)
+    console.error('[convertLeadToOpportunity] Error during conversion:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: error
+    })
     return { 
-      error: error.message || 'Failed to convert lead to opportunity',
-      details: error
+      error: error.message || 'Failed to convert lead to opportunity'
     }
   }
 }
