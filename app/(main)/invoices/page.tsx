@@ -1,12 +1,13 @@
 import { getInvoices } from "@/app/actions/invoices"
 import { getSalesOrdersReadyForInvoice } from "@/app/actions/sales-orders"
 import { AnimatedButton } from "@/components/ui/animated"
-import { Plus, FileText, Calendar, DollarSign } from "lucide-react"
+import { Plus, FileText, Calendar, DollarSign, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { InvoicesList } from "@/components/invoices/invoices-list"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DeliveryStatusBadge } from "@/components/sales-orders/delivery-status-badge"
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +42,7 @@ export default async function InvoicesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
+              <CheckCircle className="w-5 h-5 text-green-600" />
               Ready for Invoice
               <Badge variant="secondary">{readyForInvoice.length} Sales Orders</Badge>
             </CardTitle>
@@ -51,7 +52,7 @@ export default async function InvoicesPage() {
               {readyForInvoice.map((order: any) => (
                 <div
                   key={order.name}
-                  className="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="flex items-center justify-between p-4 rounded-lg border border-green-200 dark:border-green-900/30 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-950/40 transition-colors"
                   suppressHydrationWarning
                 >
                   <div className="flex-1">
@@ -60,6 +61,7 @@ export default async function InvoicesPage() {
                       <Badge variant="outline" className="text-xs">
                         {order.status}
                       </Badge>
+                      <DeliveryStatusBadge status={order.delivery_status} />
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
                       {order.customer_name || order.customer}

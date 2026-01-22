@@ -7,6 +7,7 @@ import { Plus, Package, Clock, CheckCircle, XCircle, Search, Filter, IndianRupee
 import Link from "next/link"
 import { getSalesOrders, getSalesOrderStats } from "@/app/actions/sales-orders"
 import { getQuotations } from "@/app/actions/quotations"
+import { DeliveryStatusBadge } from "@/components/sales-orders/delivery-status-badge"
 
 export const dynamic = 'force-dynamic'
 
@@ -112,20 +113,21 @@ export default async function SalesOrdersPage() {
             <CardContent className="p-6">
               <div className="space-y-3">
                 {/* Table Header */}
-                <div className="grid grid-cols-7 gap-4 pb-3 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <div className="grid grid-cols-8 gap-4 pb-3 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
                   <div>ORDER ID</div>
                   <div>CUSTOMER</div>
                   <div>ORDER DATE</div>
                   <div>DELIVERY DATE</div>
                   <div>ITEMS</div>
                   <div>AMOUNT</div>
+                  <div>DELIVERY</div>
                   <div>STATUS</div>
                 </div>
 
                 {/* Table Rows */}
                 {orders.map((order) => (
                   <Link key={order.name} href={`/sales-orders/${order.name}`}>
-                    <div className="grid grid-cols-7 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer">
+                    <div className="grid grid-cols-8 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer">
                       <div className="font-medium text-blue-600 dark:text-blue-400">{order.name}</div>
                       <div className="text-slate-900 dark:text-white">{order.customer_name || order.customer}</div>
                       <div className="text-slate-600 dark:text-slate-400">
@@ -147,6 +149,9 @@ export default async function SalesOrdersPage() {
                         {order.currency} {order.grand_total.toLocaleString()}
                       </div>
                       <div>
+                        <DeliveryStatusBadge status={order.delivery_status} />
+                      </div>
+                      <div>
                         <Badge
                           variant="outline"
                           className={
@@ -165,10 +170,6 @@ export default async function SalesOrdersPage() {
                     </div>
                   </Link>
                 ))}
-              </div>
-            </CardContent>
-          </AnimatedCard>
-        </TabsContent>
 
         {/* Ready for Sales Order Tab */}
         <TabsContent value="ready" className="space-y-4 mt-6">

@@ -8,6 +8,7 @@ export interface SalesOrder {
   customer: string
   customer_name?: string
   status: string // Draft | To Deliver and Bill | To Bill | To Deliver | Completed | Cancelled | On Hold
+  delivery_status?: string // Not Delivered | Partly Delivered | Fully Delivered | Closed | Not Applicable
   transaction_date: string
   delivery_date?: string
   grand_total: number
@@ -50,7 +51,7 @@ export async function getSalesOrders() {
       'GET',
       {
         doctype: 'Sales Order',
-        fields: '["name", "customer", "customer_name", "status", "transaction_date", "delivery_date", "grand_total", "currency", "total_qty", "per_delivered", "per_billed"]',
+        fields: '["name", "customer", "customer_name", "status", "delivery_status", "transaction_date", "delivery_date", "grand_total", "currency", "total_qty", "per_delivered", "per_billed"]',
         order_by: 'creation desc',
         limit_page_length: 100
       }
@@ -359,7 +360,9 @@ export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
     const orders = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: JSON.stringify([
-        ['status', 'in', ['To Bill', 'To Deliver and Bill']]
+        ['delivery_status', '=', 'Fully Delivered'],
+        ['status', 'in', ['To Bill', 'To Deliver and Bill', 'Completed']],
+        ['docstatus', '=', '1']
       ]),
       fields: JSON.stringify([
         'name',
@@ -369,6 +372,7 @@ export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
         'delivery_date',
         'grand_total',
         'status',
+        'delivery_status',
         'per_billed',
         'currency'
       ]),
