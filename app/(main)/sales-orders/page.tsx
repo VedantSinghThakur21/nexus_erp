@@ -255,5 +255,5 @@ export default async function SalesOrdersPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { DeliveryStatus, DELIVERY_STATUS_COLORS, DELIVERY_STATUS_DESCRIPTION } from '@/lib/delivery-status'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip } from '@/components/ui/tooltip'
 
 interface DeliveryStatusBadgeProps {
   status?: DeliveryStatus | string
@@ -28,15 +28,8 @@ export function DeliveryStatusBadge({ status, showTooltip = true }: DeliveryStat
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {badge}
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{description}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip content={description}>
+      {badge}
+    </Tooltip>
   )
 }

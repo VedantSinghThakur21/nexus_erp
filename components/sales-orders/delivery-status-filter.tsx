@@ -2,14 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu'
 import { Filter, Check } from 'lucide-react'
 import { DeliveryStatus, DELIVERY_STATUS_COLORS } from '@/lib/delivery-status'
 
@@ -45,8 +38,8 @@ export function DeliveryStatusFilter({ selectedStatuses = [], onStatusesChange }
   const activeCount = selected.length
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <DropdownMenu
+      trigger={
         <Button variant="outline" className="gap-2">
           <Filter className="h-4 w-4" />
           Delivery Status
@@ -56,8 +49,9 @@ export function DeliveryStatusFilter({ selectedStatuses = [], onStatusesChange }
             </span>
           )}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      }
+    >
+      <div className="w-56">
         {DELIVERY_STATUSES.map((status) => (
           <DropdownMenuCheckboxItem
             key={status}
@@ -78,7 +72,7 @@ export function DeliveryStatusFilter({ selectedStatuses = [], onStatusesChange }
             </DropdownMenuItem>
           </>
         )}
-      </DropdownMenuContent>
+      </div>
     </DropdownMenu>
   )
 }
