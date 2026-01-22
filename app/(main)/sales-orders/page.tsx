@@ -173,7 +173,8 @@ export default async function SalesOrdersPage() {
                 </div>
               </CardContent>
             </AnimatedCard>
-        
+          </TabsContent>
+
         {/* Ready for Sales Order Tab */}
         <TabsContent value="ready" className="space-y-4 mt-6">
           <Card>
