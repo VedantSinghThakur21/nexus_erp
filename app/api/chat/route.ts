@@ -31,8 +31,7 @@ export async function POST(req: Request) {
       3. **Confirmation:** Before performing destructive actions (like creating records), briefly confirm the details you are about to submit.
       4. **Formatting:** Format lists (like leads or machines) in clean Markdown tables or bullet points.
     `,
-    tools: allTools, // <--- Injecting the registry we just built
-    maxSteps: 5,     // <--- Enables Agentic Loop (Tool -> Result -> Tool -> Result)
+    tools: allTools // <--- Injecting the registry we just built
   });
 
   // `StreamTextResult` exposes `toTextStreamResponse()` in this SDK.
