@@ -94,10 +94,6 @@ export const financeTools = {
 
 // Export a combined registry for the Chat Route
 export const allTools = { ...crmTools, ...fleetTools, ...financeTools };
-      )
-    };
-
-    // --- FLEET (OPERATIONS) AGENT TOOLS ---
     export const fleetTools = {
       search_fleet: tool(
         'search_fleet',
