@@ -94,20 +94,6 @@ export const financeTools = {
 
 // Export a combined registry for the Chat Route
 export const allTools = { ...crmTools, ...fleetTools, ...financeTools };
-      update_lead_status: tool(
-        'update_lead_status',
-        z.object({
-          lead_id: z.string().describe('The ID of the lead (e.g. LEAD-2024-001)'),
-          status: z.string().describe('New Status')
-        }),
-        z.object({ message: z.string() }).or(z.object({ error: z.string() })),
-        'Update the status of a specific lead (e.g. mark as Interested or Converted).'
-      ),
-      get_opportunities: tool(
-        'get_opportunities',
-        z.object({}),
-        z.array(z.any()),
-        'List current sales opportunities and their stages.'
       )
     };
 
