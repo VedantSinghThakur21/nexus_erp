@@ -439,25 +439,25 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       console.log('[convertLeadToOpportunity] Customer created:', customerResult.customerId)
     }
 
-    // 3. Use ERPNext's native make_opportunity server method
-    // This method handles all field mappings and relationships automatically
-    const draftOpportunity = await frappeRequest(
-      'erpnext.selling.doctype.lead.lead.make_opportunity',
-      'POST',
-      { 
-        source_name: leadId,
-        opportunity_amount: opportunityAmount || 0
-      }
-    ) as { message?: any } | any
-
-    console.log('[convertLeadToOpportunity] make_opportunity draft response:', JSON.stringify(draftOpportunity, null, 2))
-
-    if (!draftOpportunity) {
-      throw new Error("Failed to create opportunity template from lead")
-    }
-
-    // 4. Extract the opportunity document
-    const opportunityDoc = draftOpportunity.message || draftOpportunity
+    // 3. Always construct Opportunity doc from Lead data (no make_opportunity call)
+    let opportunityDoc: any = {
+      doctype: 'Opportunity',
+      opportunity_from: createCustomer ? 'Customer' : 'Lead',
+      party_name: createCustomer && lead.company_name ? lead.company_name : leadId,
+      title: lead.company_name || lead.lead_name || `Opportunity from ${leadId}`,
+      customer_name: lead.company_name || undefined,
+      contact_person: lead.lead_name || undefined,
+      contact_email: lead.email_id || undefined,
+      territory: lead.territory || undefined,
+      source: lead.source || undefined,
+      opportunity_amount: opportunityAmount || 0,
+      with_items: 0,
+      status: 'Open',
+      sales_stage: 'Qualification',
+      probability: 10,
+      expected_closing: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      notes: ''
+    };
     
     // Remove the name field if it exists (it might be empty)
     if (opportunityDoc.name === undefined || opportunityDoc.name === null || opportunityDoc.name === '') {

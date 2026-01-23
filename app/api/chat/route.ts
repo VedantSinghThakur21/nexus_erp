@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { streamText } from 'ai';
+import { streamText, type LanguageModel } from 'ai';
 import { allTools } from '@/app/lib/ai/tools';
 
 export const maxDuration = 60; // Allow up to 60 seconds for multi-step actions
@@ -8,7 +8,8 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: google('gemini-1.5-flash'), // Fast, cheap, and good at tool calling
+    // Cast the google model to `LanguageModel` to satisfy TypeScript
+    model: google('gemini-1.5-flash') as unknown as LanguageModel, // Fast, cheap, and good at tool calling
     messages,
     system: `
       You are Nexus, an advanced ERP AI Agent.
@@ -34,5 +35,6 @@ export async function POST(req: Request) {
     maxSteps: 5,     // <--- Enables Agentic Loop (Tool -> Result -> Tool -> Result)
   });
 
-  return result.toDataStreamResponse();
+  // `StreamTextResult` exposes `toTextStreamResponse()` in this SDK.
+  return result.toTextStreamResponse();
 }
