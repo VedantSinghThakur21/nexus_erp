@@ -1293,8 +1293,12 @@ export async function createOrderFromQuotation(quotationId: string) {
     const orderId = savedOrder.name
     console.log('[createOrderFromQuotation] Sales order created successfully:', orderId)
 
-    // 8. ERPNext automatically updates the Quotation status to "Ordered" when a Sales Order is created
-    // No need to manually update the status
+    // 8. Submit the Sales Order (docstatus=1) so it can be invoiced
+    const submittedOrder = await frappeRequest('frappe.client.submit', 'POST', {
+      doctype: 'Sales Order',
+      name: orderId
+    })
+    console.log('[createOrderFromQuotation] Sales order submitted:', JSON.stringify(submittedOrder, null, 2))
 
     // 9. Revalidate paths
     revalidatePath('/crm')
@@ -1303,7 +1307,7 @@ export async function createOrderFromQuotation(quotationId: string) {
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${orderId}`)
 
-    console.log('[createOrderFromQuotation] Sales order creation completed successfully')
+    console.log('[createOrderFromQuotation] Sales order creation and submission completed successfully')
     return { success: true, orderId }
   } catch (error: any) {
     console.error('[createOrderFromQuotation] Error:', {
@@ -1366,7 +1370,15 @@ export async function createInvoiceFromOrder(orderId: string) {
       throw new Error("Sales Order not found")
     }
 
-    console.log('[createInvoiceFromOrder] Sales order fetched - docstatus:', order.docstatus, 'organization_slug:', order.organization_slug)
+    console.log('[createInvoiceFromOrder] Sales order fetched - docstatus:', order.docstatus, 'status:', order.status, 'organization_slug:', order.organization_slug)
+
+    // Only allow invoicing if SO is submitted and status is correct
+    if (order.docstatus !== 1) {
+      throw new Error('Sales Order must be submitted before creating a Sales Invoice. Please submit the Sales Order first.')
+    }
+    if (order.status !== 'To Bill' && order.status !== 'To Deliver and Bill' && order.status !== 'To Deliver') {
+      throw new Error(`Sales Order status must be 'To Bill', 'To Deliver and Bill', or 'To Deliver' to create an invoice. Current status: ${order.status}`)
+    }
 
     // 2. Use ERPNext's make_sales_invoice server method
     const draftInvoice = await frappeRequest(

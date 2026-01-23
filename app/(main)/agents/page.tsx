@@ -1,121 +1,119 @@
 'use client'
 
+// @ts-ignore
 import { useChat } from 'ai/react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Bot, Send, User, Sparkles, Loader2 } from "lucide-react"
-import { useEffect, useRef } from 'react'
+import { Card } from "@/components/ui/card"
+import { useEffect, useRef } from "react"
+// @ts-ignore
+import ReactMarkdown from 'react-markdown'
 
 export default function AgentsPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat()
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    api: '/api/chat',
+    initialMessages: [
+      {
+        id: '1',
+        role: 'assistant',
+        content: "Hello! I am Nexus. I can help you manage Leads, Fleet, and Invoices. Try asking: **'Find available 50T Cranes'** or **'Create a lead for John Doe'**."
+      }
+    ]
+  })
+  
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
   return (
-    <div className="flex h-[calc(100vh-60px)] flex-col bg-slate-50 dark:bg-slate-950">
-      
-      {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center space-y-8 text-center opacity-80">
-            <div className="rounded-full bg-blue-100 p-6 dark:bg-blue-900/30">
-              <Bot className="h-12 w-12 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="max-w-md space-y-2">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Nexus Agent</h2>
-              <p className="text-slate-500">
-                I am connected to your live ERP database. Ask me about your business.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
-                {["What is our total revenue?", "Find leads named 'Vedant'", "Create a task to 'Email Client'", "Show me pending tasks"].map((q) => (
-                    <button 
-                        key={q}
-                        onClick={() => {
-                            const event = { target: { value: q } } as any;
-                            handleInputChange(event);
-                        }}
-                        className="p-4 text-sm text-left rounded-xl border bg-white hover:bg-slate-50 hover:border-blue-300 transition-all dark:bg-slate-900 dark:border-slate-800"
-                    >
-                        <Sparkles className="h-4 w-4 inline mr-2 text-blue-500" />
-                        {q}
-                    </button>
-                ))}
-            </div>
-          </div>
-        ) : (
-          <div className="mx-auto max-w-3xl space-y-6">
-            {messages.map((m) => (
-              <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {m.role !== 'user' && (
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                        <Bot className="h-5 w-5 text-blue-600" />
-                    </div>
-                )}
-                
-                <div className={`rounded-2xl px-5 py-3 max-w-[80%] shadow-sm ${
-                    m.role === 'user' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-200 border'
-                }`}>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.content}</p>
-                  {m.toolInvocations?.map((toolCall) => (
-                    <div key={toolCall.toolCallId} className="mt-2 text-xs bg-black/5 dark:bg-white/10 p-2 rounded flex items-center gap-2">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Using tool: <span className="font-mono font-semibold">{toolCall.toolName}</span>
-                    </div>
-                  ))}
-                </div>
+    <div className="flex flex-col h-[calc(100vh-60px)] max-w-4xl mx-auto w-full p-4">
+      {/* Header */}
+      <div className="flex items-center gap-3 pb-6 border-b border-slate-100 dark:border-slate-800 mb-4">
+        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+            <Bot className="h-6 w-6" />
+        </div>
+        <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Nexus AI Agent</h1>
+            <p className="text-sm text-slate-500">Your autonomous ERP assistant</p>
+        </div>
+      </div>
 
-                {m.role === 'user' && (
-                    <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
-                        <User className="h-5 w-5 text-slate-600" />
-                    </div>
-                )}
+      {/* Chat Area */}
+      <div className="flex-1 overflow-y-auto space-y-6 pr-4 pb-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+        {messages.map((m: any) => (
+          <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            {/* Avatar */}
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+              m.role === 'user' ? 'bg-slate-900 text-white' : 'bg-indigo-600 text-white'
+            }`}>
+              {m.role === 'user' ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+            </div>
+
+            {/* Message Bubble */}
+            <Card className={`p-4 max-w-[85%] ${
+              m.role === 'user' 
+                ? 'bg-slate-900 text-white border-slate-900' 
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+            }`}>
+              {/* Using ReactMarkdown to render tables/lists nicely */}
+              <div className={`prose prose-sm ${m.role === 'user' ? 'prose-invert' : 'dark:prose-invert'} max-w-none`}>
+                <ReactMarkdown>{m.content}</ReactMarkdown>
               </div>
-            ))}
-            {isLoading && (
-                <div className="flex gap-4 max-w-3xl mx-auto">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                        <Bot className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div className="flex items-center gap-1 bg-white px-4 py-3 rounded-2xl border">
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-                    </div>
-                </div>
-            )}
-            <div ref={messagesEndRef} />
+              
+              {/* Tool Invocation Indicator (Optional Polish) */}
+                {m.toolInvocations?.map((toolInvocation: any) => (
+                  <div key={toolInvocation.toolCallId} className="mt-3 pt-3 border-t border-dashed border-slate-200/20 text-xs opacity-70">
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" /> 
+                      Running tool: <span className="font-mono bg-black/10 px-1 rounded">{toolInvocation.toolName}</span>
+                    </span>
+                  </div>
+                ))}
+            </Card>
           </div>
+        ))}
+        {isLoading && (
+            <div className="flex gap-4">
+                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                    <Sparkles className="h-4 w-4" />
+                </div>
+                <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Thinking...
+                    </div>
+                </Card>
+            </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-white dark:bg-slate-900 border-t">
-        <form onSubmit={handleSubmit} className="mx-auto max-w-3xl relative flex items-center">
-          <Input 
-            className="pr-12 py-6 rounded-full border-slate-300 dark:border-slate-800 focus-visible:ring-blue-500 shadow-sm"
+      <div className="pt-4">
+        <form onSubmit={handleSubmit} className="flex gap-2 relative">
+          <Input
             value={input}
             onChange={handleInputChange}
-            placeholder="Ask anything..."
+            placeholder="Ask Nexus to do something..."
+            className="pr-12 h-12 text-base shadow-sm"
             disabled={isLoading}
           />
           <Button 
             type="submit" 
             size="icon" 
-            disabled={isLoading || !input}
-            className="absolute right-2 rounded-full h-10 w-10 bg-blue-600 hover:bg-blue-700"
+            disabled={isLoading || !input.trim()} 
+            className="absolute right-1 top-1 h-10 w-10 bg-indigo-600 hover:bg-indigo-700 text-white"
           >
-            <Send className="h-4 w-4 text-white" />
+            <Send className="h-4 w-4" />
           </Button>
         </form>
+        <p className="text-xs text-center text-slate-400 mt-2">
+            Nexus can execute real actions. Always review created records.
+        </p>
       </div>
     </div>
   )
 }
-
-

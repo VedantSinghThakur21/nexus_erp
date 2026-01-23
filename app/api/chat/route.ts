@@ -1,32 +1,38 @@
-import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
-import { frappeRequest } from '@/app/lib/api';
+import { google } from '@ai-sdk/google';
+import { streamText } from 'ai';
+import { allTools } from '@/app/lib/ai/tools';
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+export const maxDuration = 60; // Allow up to 60 seconds for multi-step actions
 
 export async function POST(req: Request) {
-  try {
-    // 1. Check Payload
-    const { messages } = await req.json();
+  const { messages } = await req.json();
 
-    // 2. Check API Key
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-        console.error("❌ MISSING API KEY: GOOGLE_GENERATIVE_AI_API_KEY");
-        return new Response("Missing API Key. Check server logs.", { status: 500 });
-    }
+  const result = streamText({
+    model: google('gemini-1.5-flash'), // Fast, cheap, and good at tool calling
+    messages,
+    system: `
+      You are Nexus, an advanced ERP AI Agent.
+      
+      **Your Goal:** Help the user manage their business by executing actions in the ERP system.
+      
+      **Context:**
+      - Today's Date: ${new Date().toLocaleDateString()}
+      - User Role: Administrator
+      
+      **Capabilities:**
+      - **CRM:** Manage leads, check opportunities.
+      - **Fleet:** Search for machines, check availability, get asset details.
+      - **Finance:** Search invoices, create draft invoices.
+      
+      **Rules:**
+      1. **Be Proactive:** If a user asks "Rent a crane", don't just say okay. Ask "Which customer?" or "For what dates?" then use the tools.
+      2. **Chain Actions:** You can call multiple tools. For example, if asked to "Bill Acme for the crane", you should first 'search_invoices' to see if one exists, or 'create_draft_invoice' if not.
+      3. **Confirmation:** Before performing destructive actions (like creating records), briefly confirm the details you are about to submit.
+      4. **Formatting:** Format lists (like leads or machines) in clean Markdown tables or bullet points.
+    `,
+    tools: allTools, // <--- Injecting the registry we just built
+    maxSteps: 5,     // <--- Enables Agentic Loop (Tool -> Result -> Tool -> Result)
+  });
 
-    // 3. Start Streaming - Temporarily disabled due to AI SDK compatibility issues
-    return new Response(JSON.stringify({ 
-        message: "AI chat functionality is temporarily disabled due to SDK compatibility issues. Please check back later." 
-    }), { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-    });
-
-  } catch (error: any) {
-    console.error("Route Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-  }
+  return result.toDataStreamResponse();
 }
