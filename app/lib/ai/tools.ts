@@ -16,7 +16,7 @@ export const crmTools = {
       mobile_no: z.string().optional().describe('Phone Number'),
       status: z.enum(['Lead', 'Open', 'Replied', 'Opportunity', 'Interested']).optional().describe('Initial Status')
     }),
-    async execute(args) {
+    async execute(args, options) {
       // Implement your createLead logic here
       return { message: 'Lead created (mock)' };
     }
@@ -27,7 +27,7 @@ export const crmTools = {
       query: z.string().optional().describe('Search term (name or company)'),
       limit: z.number().optional().default(5).describe('Number of results to return')
     }),
-    async execute(args) {
+    async execute(args, options) {
       // Implement your searchLeads logic here
       return [];
     }
@@ -38,7 +38,7 @@ export const crmTools = {
       lead_id: z.string().describe('The ID of the lead (e.g. LEAD-2024-001)'),
       status: z.string().describe('New Status')
     }),
-    async execute(args) {
+    async execute(args, options) {
       // Implement your updateLeadStatus logic here
       return { message: 'Lead status updated (mock)' };
     }
@@ -46,7 +46,7 @@ export const crmTools = {
   get_opportunities: tool({
     description: 'List current sales opportunities and their stages.',
     inputSchema: z.object({}),
-    async execute() {
+    async execute(args, options) {
       // Implement your getOpportunities logic here
       return [];
     }
@@ -61,7 +61,7 @@ export const fleetTools = {
       query: z.string().optional().describe('Search term (e.g., "Crane", "Excavator", or Serial No)'),
       status: z.enum(['Active', 'Maintenance', 'Issued', 'Scrapped']).optional().describe('Filter by status')
     }),
-    async execute(args) {
+    async execute(args, options) {
       // Implement your searchFleet logic here
       return [];
     }
@@ -71,7 +71,7 @@ export const fleetTools = {
     inputSchema: z.object({
       asset_id: z.string().describe('The Serial Number of the asset (e.g. CRANE-001)')
     }),
-    async execute(args) {
+    async execute(args, options) {
       // Implement your getAssetDetails logic here
       return {};
     }
@@ -86,7 +86,7 @@ export const financeTools = {
       customer: z.string().optional().describe('Filter by Customer Name'),
       status: z.enum(['Paid', 'Unpaid', 'Overdue', 'Draft']).optional().describe('Filter by Payment Status')
     }),
-    async execute(args) {
+    async execute(args, options) {
       // Implement your searchInvoices logic here
       return [];
     }
@@ -101,7 +101,7 @@ export const financeTools = {
         rate: z.number()
       })).describe('List of items to bill')
     }),
-    async execute(args) {
+    async execute(args, options) {
       // Implement your createDraftInvoice logic here
       return { message: 'Draft invoice created (mock)' };
     }
