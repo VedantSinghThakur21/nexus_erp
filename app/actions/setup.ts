@@ -237,7 +237,7 @@ export async function setupERPNextDoctypes() {
 
 // Add organization context to existing doctypes
 export async function linkOrganizationToExistingDocs() {
-  const doctypes = ['Lead', 'Quotation', 'Sales Order', 'Sales Invoice', 'Project']
+  const doctypes = ['Lead', 'Opportunity', 'Quotation', 'Sales Order', 'Sales Invoice', 'Project']
   const results: Record<string, any> = {}
 
   try {

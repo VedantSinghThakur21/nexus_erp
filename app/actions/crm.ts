@@ -246,7 +246,7 @@ export async function createLead(data: any) {
     }
   }
   
-  // We switched to a JSON object 'data' to handle the larger form structure easily
+  // Build the lead document with required fields
   const leadData: any = {
     doctype: 'Lead',
     // Details
@@ -274,6 +274,11 @@ export async function createLead(data: any) {
   if (data.market_segment) leadData.market_segment = data.market_segment
   if (data.territory) leadData.territory = data.territory
   if (data.fax) leadData.fax = data.fax
+
+  // Add organization_slug if provided (for multi-tenancy)
+  if (data.organization_slug) {
+    leadData.organization_slug = data.organization_slug
+  }
 
   try {
     await frappeRequest('frappe.client.insert', 'POST', {
@@ -371,12 +376,12 @@ export async function convertLeadToCustomer(leadId: string) {
     const lead = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Lead', 
         name: leadId 
-    }) as Lead
+    }) as Lead & { organization_slug?: string }
 
     if (!lead) throw new Error("Lead not found")
 
     // 2. Create Customer Object
-    const customerData = {
+    const customerData: any = {
         doctype: 'Customer',
         customer_name: lead.company_name || lead.lead_name, // Prefer Company Name
         customer_type: lead.company_name ? 'Company' : 'Individual',
@@ -385,10 +390,15 @@ export async function convertLeadToCustomer(leadId: string) {
         mobile_no: lead.mobile_no
     }
 
-    // 3. Save to ERPNext
+    // 3. Add organization_slug from the source lead for multi-tenancy
+    if (lead.organization_slug) {
+      customerData.organization_slug = lead.organization_slug
+    }
+
+    // 4. Save to ERPNext
     const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData }) as { name: string }
     
-    // 4. Update Lead Status to 'Converted'
+    // 5. Update Lead Status to 'Converted'
     await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'Lead',
         name: leadId,
@@ -403,93 +413,94 @@ export async function convertLeadToCustomer(leadId: string) {
   }
 }
 
-// 3. CONVERT: Create Opportunity from Lead (Interested or Replied status)
+// 3. CONVERT: Create Opportunity from Lead using native ERPNext method
 export async function convertLeadToOpportunity(leadId: string, createCustomer: boolean = false, opportunityAmount: number = 0) {
   try {
     console.log('[convertLeadToOpportunity] Starting conversion for lead:', leadId)
     
-    // 1. Fetch Lead details
+    // 1. Fetch Lead details (needed for organization_slug)
     const lead = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Lead',
       name: leadId
-    }) as Lead
+    }) as Lead & { organization_slug?: string }
 
     if (!lead) {
       throw new Error("Lead not found")
     }
     console.log('[convertLeadToOpportunity] Lead fetched:', lead.name, lead.lead_name)
 
-    let customerId = null
-    let opportunityFrom = 'Lead'
-    let partyName = leadId
-
-    // 2. Optionally create customer first
+    // 2. Optionally create customer first if conversion source should be Customer
     if (createCustomer) {
       console.log('[convertLeadToOpportunity] Creating customer from lead...')
       const customerResult = await convertLeadToCustomer(leadId)
       if (customerResult.error) {
         throw new Error(`Customer creation failed: ${customerResult.error}`)
       }
-      customerId = customerResult.customerId
-      opportunityFrom = 'Customer'
-      partyName = customerId!
-      console.log('[convertLeadToOpportunity] Customer created:', customerId)
+      console.log('[convertLeadToOpportunity] Customer created:', customerResult.customerId)
     }
 
-    // 3. Prepare Opportunity document following ERPNext standards
-    const opportunityDoc = {
-      doctype: 'Opportunity',
-      opportunity_from: opportunityFrom,
-      party_name: partyName,
-      opportunity_type: 'Sales',
-      status: 'Open',
-      sales_stage: 'Qualification',
-      probability: 20,
-      currency: 'INR',
-      opportunity_amount: opportunityAmount || 0,
-      title: lead.company_name || lead.lead_name,
-      customer_name: lead.lead_name,
-      territory: lead.territory || 'All Territories',
-      source: lead.source
-      // Do NOT set contact_person, contact_email, contact_mobile
-      // These are Link fields that require Contact documents to exist
-      // Contact documents should be created separately if needed
+    // 3. Use ERPNext's native make_opportunity server method
+    // This method handles all field mappings and relationships automatically
+    const draftOpportunity = await frappeRequest(
+      'erpnext.selling.doctype.lead.lead.make_opportunity',
+      'POST',
+      { 
+        source_name: leadId,
+        opportunity_amount: opportunityAmount || 0
+      }
+    ) as { message?: any } | any
+
+    console.log('[convertLeadToOpportunity] make_opportunity draft response:', JSON.stringify(draftOpportunity, null, 2))
+
+    if (!draftOpportunity) {
+      throw new Error("Failed to create opportunity template from lead")
     }
 
-    console.log('[convertLeadToOpportunity] Creating opportunity with data:', JSON.stringify(opportunityDoc, null, 2))
-
-    // 4. Insert the opportunity document with robust response parsing
-    const response = await frappeRequest('frappe.client.insert', 'POST', {
-      doc: opportunityDoc
-    })
-
-    console.log('[convertLeadToOpportunity] Raw ERPNext response:', JSON.stringify(response, null, 2))
-
-    // Parse nested message object if present (ERPNext often wraps responses)
-    const newOpp = (response as any)?.message || response
+    // 4. Extract the opportunity document
+    const opportunityDoc = draftOpportunity.message || draftOpportunity
     
-    if (!newOpp || !newOpp.name) {
-      console.error('[convertLeadToOpportunity] ERPNext Response structure:', response)
-      console.error('[convertLeadToOpportunity] Parsed opportunity object:', newOpp)
-      throw new Error(
-        `Failed to create opportunity - no name returned from ERPNext. Response: ${JSON.stringify(response)}`
-      )
+    // Remove the name field if it exists (it might be empty)
+    if (opportunityDoc.name === undefined || opportunityDoc.name === null || opportunityDoc.name === '') {
+      delete opportunityDoc.name
     }
 
-    const opportunityId = newOpp.name
+    // 5. Add organization_slug from the source lead for multi-tenancy
+    if (lead.organization_slug) {
+      opportunityDoc.organization_slug = lead.organization_slug
+      console.log('[convertLeadToOpportunity] Set organization_slug:', lead.organization_slug)
+    }
+
+    // 6. If customer was created, update the opportunity_from to Customer
+    if (createCustomer) {
+      opportunityDoc.opportunity_from = 'Customer'
+      // party_name should already be set to customer by make_opportunity if customer exists
+      console.log('[convertLeadToOpportunity] Updated to Customer source opportunity')
+    }
+
+    // 7. Save the Opportunity
+    const savedOpportunity = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: opportunityDoc
+    }) as { name?: string }
+
+    console.log('[convertLeadToOpportunity] Saved opportunity response:', JSON.stringify(savedOpportunity, null, 2))
+
+    if (!savedOpportunity || !savedOpportunity.name) {
+      throw new Error("Failed to save opportunity - no name returned")
+    }
+
+    const opportunityId = savedOpportunity.name
     console.log('[convertLeadToOpportunity] Opportunity created successfully:', opportunityId)
 
-    // 5. Update Lead status to "Converted" using POST method
-    const updateResponse = await frappeRequest('frappe.client.set_value', 'POST', {
+    // 8. Update Lead status to "Converted"
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Lead',
       name: leadId,
       fieldname: 'status',
       value: 'Converted'
     })
-    console.log('[convertLeadToOpportunity] Lead status update response:', updateResponse)
     console.log('[convertLeadToOpportunity] Lead status updated to "Converted"')
 
-    // 6. Revalidate paths to refresh UI
+    // 9. Revalidate paths to refresh UI
     revalidatePath('/crm')
     revalidatePath('/crm/leads')
     revalidatePath(`/crm/leads/${leadId}`)
@@ -516,21 +527,33 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 // 1. CREATE: Generate Quotation from Opportunity
 export async function createQuotationFromOpportunity(opportunityId: string) {
   try {
-    // Use ERPNext's built-in server method to get quotation template from opportunity
+    console.log('[createQuotationFromOpportunity] Starting quotation creation from opportunity:', opportunityId)
+    
+    // 1. Fetch Opportunity to get organization_slug for multi-tenancy
+    const opportunity = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Opportunity',
+      name: opportunityId
+    }) as any
+
+    if (!opportunity) {
+      throw new Error("Opportunity not found")
+    }
+    console.log('[createQuotationFromOpportunity] Opportunity fetched, organization_slug:', opportunity.organization_slug)
+
+    // 2. Use ERPNext's built-in server method to get quotation template from opportunity
     const draftQuotation = await frappeRequest(
       'erpnext.crm.doctype.opportunity.opportunity.make_quotation',
       'POST',
       { source_name: opportunityId }
     ) as { message?: any } | any
 
-    console.log('ERPNext make_quotation draft response:', JSON.stringify(draftQuotation, null, 2))
+    console.log('[createQuotationFromOpportunity] make_quotation draft response:', JSON.stringify(draftQuotation, null, 2))
 
     if (!draftQuotation) {
       throw new Error("Failed to create quotation template from opportunity")
     }
 
-    // The make_quotation method returns a draft document without a name
-    // We need to insert it to get the actual quotation name
+    // 3. Extract the quotation document
     const quotationDoc = draftQuotation.message || draftQuotation
     
     // Remove the name field if it exists (it might be empty)
@@ -538,39 +561,50 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
       delete quotationDoc.name
     }
 
-    // Insert the document to create the actual quotation
+    // 4. Add organization_slug from the source opportunity for multi-tenancy
+    if (opportunity.organization_slug) {
+      quotationDoc.organization_slug = opportunity.organization_slug
+      console.log('[createQuotationFromOpportunity] Set organization_slug:', opportunity.organization_slug)
+    }
+
+    // 5. Insert the document to create the actual quotation
     const savedQuotation = await frappeRequest('frappe.client.insert', 'POST', {
       doc: quotationDoc
     }) as { name?: string }
 
-    console.log('Saved quotation response:', JSON.stringify(savedQuotation, null, 2))
+    console.log('[createQuotationFromOpportunity] Saved quotation response:', JSON.stringify(savedQuotation, null, 2))
 
     if (!savedQuotation || !savedQuotation.name) {
       throw new Error("Failed to save quotation - no name returned")
     }
 
-    // Update Opportunity status to "Converted" (officially won/quoted)
+    const quotationId = savedQuotation.name
+    console.log('[createQuotationFromOpportunity] Quotation created successfully:', quotationId)
+
+    // 6. Update Opportunity status to "Converted" (officially won/quoted)
     await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Opportunity',
       name: opportunityId,
       fieldname: 'status',
       value: 'Converted'
     })
+    console.log('[createQuotationFromOpportunity] Opportunity status updated to "Converted"')
 
-    // The server method automatically:
-    // - Creates the quotation with all opportunity items
-    // - Links it back to the opportunity
-    // - Copies customer/lead info
-    // - Sets proper currency and pricing
-
+    // 7. Revalidate paths to refresh UI
     revalidatePath('/crm')
     revalidatePath('/crm/opportunities')
     revalidatePath(`/crm/opportunities/${opportunityId}`)
     revalidatePath('/crm/quotations')
-    
+    revalidatePath(`/crm/quotations/${quotationId}`)
+
+    console.log('[createQuotationFromOpportunity] Quotation creation completed successfully')
     return savedQuotation
   } catch (error: any) {
-    console.error("Create quotation error:", error)
+    console.error('[createQuotationFromOpportunity] Error:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: error
+    })
     throw new Error(error.message || 'Failed to create quotation from opportunity')
   }
 }
@@ -1035,7 +1069,7 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
     const opportunity = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Opportunity',
       name: opportunityId
-    }) as Opportunity
+    }) as Opportunity & { organization_slug?: string }
 
     if (!opportunity) throw new Error("Opportunity not found")
 
@@ -1066,13 +1100,18 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
     }
 
     // 4. Create Customer
-    const customerData = {
+    const customerData: any = {
       doctype: 'Customer',
       customer_name: customerName,
       customer_type: 'Company',
       territory: territory,
       email_id: email,
       mobile_no: mobile
+    }
+
+    // Add organization_slug from the source opportunity for multi-tenancy
+    if (opportunity.organization_slug) {
+      customerData.organization_slug = opportunity.organization_slug
     }
 
     const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData }) as { name: string }
@@ -1192,7 +1231,7 @@ export async function createOrderFromQuotation(quotationId: string) {
   try {
     console.log('[createOrderFromQuotation] Starting sales order creation from quotation:', quotationId)
     
-    // 1. Fetch the Quotation to verify it's submitted
+    // 1. Fetch the Quotation to verify it's submitted and get organization_slug
     const quotation = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
       name: quotationId
@@ -1202,7 +1241,7 @@ export async function createOrderFromQuotation(quotationId: string) {
       throw new Error("Quotation not found")
     }
 
-    console.log('[createOrderFromQuotation] Quotation fetched - docstatus:', quotation.docstatus, 'status:', quotation.status)
+    console.log('[createOrderFromQuotation] Quotation fetched - docstatus:', quotation.docstatus, 'status:', quotation.status, 'organization_slug:', quotation.organization_slug)
 
     // 2. Require quotation to be submitted (docstatus = 1)
     if (quotation.docstatus !== 1) {
@@ -1234,7 +1273,13 @@ export async function createOrderFromQuotation(quotationId: string) {
       delete orderDoc.name
     }
 
-    // 6. Save the Sales Order
+    // 6. Add organization_slug from the source quotation for multi-tenancy
+    if (quotation.organization_slug) {
+      orderDoc.organization_slug = quotation.organization_slug
+      console.log('[createOrderFromQuotation] Set organization_slug:', quotation.organization_slug)
+    }
+
+    // 7. Save the Sales Order
     const savedOrder = await frappeRequest('frappe.client.insert', 'POST', {
       doc: orderDoc
     }) as { name?: string }
@@ -1248,10 +1293,10 @@ export async function createOrderFromQuotation(quotationId: string) {
     const orderId = savedOrder.name
     console.log('[createOrderFromQuotation] Sales order created successfully:', orderId)
 
-    // 7. ERPNext automatically updates the Quotation status to "Ordered" when a Sales Order is created
+    // 8. ERPNext automatically updates the Quotation status to "Ordered" when a Sales Order is created
     // No need to manually update the status
 
-    // 8. Revalidate paths
+    // 9. Revalidate paths
     revalidatePath('/crm')
     revalidatePath('/crm/quotations')
     revalidatePath(`/crm/quotations/${quotationId}`)
@@ -1311,7 +1356,7 @@ export async function createInvoiceFromOrder(orderId: string) {
   try {
     console.log('[createInvoiceFromOrder] Starting invoice creation from sales order:', orderId)
     
-    // 1. Fetch the Sales Order to verify it exists and is submitted
+    // 1. Fetch the Sales Order to verify it exists and get organization_slug
     const order = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: orderId
@@ -1321,7 +1366,7 @@ export async function createInvoiceFromOrder(orderId: string) {
       throw new Error("Sales Order not found")
     }
 
-    console.log('[createInvoiceFromOrder] Sales order fetched - docstatus:', order.docstatus)
+    console.log('[createInvoiceFromOrder] Sales order fetched - docstatus:', order.docstatus, 'organization_slug:', order.organization_slug)
 
     // 2. Use ERPNext's make_sales_invoice server method
     const draftInvoice = await frappeRequest(
@@ -1343,7 +1388,13 @@ export async function createInvoiceFromOrder(orderId: string) {
       delete invoiceDoc.name
     }
 
-    // 4. Save the Sales Invoice
+    // 4. Add organization_slug from the source sales order for multi-tenancy
+    if (order.organization_slug) {
+      invoiceDoc.organization_slug = order.organization_slug
+      console.log('[createInvoiceFromOrder] Set organization_slug:', order.organization_slug)
+    }
+
+    // 5. Save the Sales Invoice
     const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
       doc: invoiceDoc
     }) as { name?: string }
@@ -1357,7 +1408,7 @@ export async function createInvoiceFromOrder(orderId: string) {
     const invoiceId = savedInvoice.name
     console.log('[createInvoiceFromOrder] Sales invoice created successfully:', invoiceId)
 
-    // 5. Revalidate paths
+    // 6. Revalidate paths
     revalidatePath('/crm')
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${orderId}`)
