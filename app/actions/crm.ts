@@ -446,7 +446,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       party_name: createCustomer && lead.company_name ? lead.company_name : leadId,
       title: lead.company_name || lead.lead_name || `Opportunity from ${leadId}`,
       customer_name: lead.company_name || undefined,
-      contact_person: lead.lead_name || undefined,
+      // contact_person: lead.lead_name || undefined, // Removed - causes LinkValidationError if contact doesn't exist
       contact_email: lead.email_id || undefined,
       territory: lead.territory || undefined,
       source: lead.source || undefined,
