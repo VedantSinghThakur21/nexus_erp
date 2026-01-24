@@ -135,60 +135,46 @@ export default async function SalesOrdersPage() {
                 {/* Table Rows */}
                 {orders.map((order) => (
                   <div key={order.name} className="grid grid-cols-8 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors">
-                    <Link href={`/sales-orders/${order.name}`} className="cursor-pointer">
-                      <div className="font-medium text-blue-600 dark:text-blue-400">{order.name}</div>
-                    </Link>
-                      <div className="font-medium text-blue-600 dark:text-blue-400">{order.name}</div>
-                      <div className="text-slate-900 dark:text-white">{order.customer_name || order.customer}</div>
-                      <div className="text-slate-600 dark:text-slate-400">
-                        {new Date(order.transaction_date).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        })}
-                      </div>
-                      <div className="text-slate-600 dark:text-slate-400">
-                        {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        }) : '-'}
-                      </div>
-                      <div className="text-slate-600 dark:text-slate-400">{order.total_qty || 0} items</div>
-                      <div className="font-semibold text-slate-900 dark:text-white">
-                        {order.currency} {order.grand_total.toLocaleString()}
-                      </div>
-                      <div>
-                        <DeliveryStatusBadge status={order.delivery_status} />
-                      </div>
-                      <div>
-                        <Badge
-                          variant="outline"
-                          className={
-                            order.status === "Draft"
-                              ? "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                              : ["To Deliver and Bill", "To Bill", "To Deliver"].includes(order.status)
-                              ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300"
-                              : order.status === "Completed"
-                              ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300"
-                              : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                          }
-                        >
-                          {order.status}
-                        </Badge>
-                        {order.docstatus !== 1 && (
-                          <form action={submitSOAction} className="inline-block ml-2">
-                            <input type="hidden" name="id" value={order.name} />
-                            <button type="submit" className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">Submit</button>
-                          </form>
-                        )}
-                      </div>
+                    <div className="font-medium text-blue-600 dark:text-blue-400">
+                      <Link href={`/sales-orders/${order.name}`}>{order.name}</Link>
+                    </div>
+                    <div className="text-slate-900 dark:text-white">{order.customer_name || order.customer}</div>
+                    <div className="text-slate-600 dark:text-slate-400">
+                      {new Date(order.transaction_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                    <div className="text-slate-600 dark:text-slate-400">
+                      {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
+                    </div>
+                    <div className="text-slate-600 dark:text-slate-400">{order.total_qty || 0} items</div>
+                    <div className="font-semibold text-slate-900 dark:text-white">{order.currency} {order.grand_total.toLocaleString()}</div>
+                    <div><DeliveryStatusBadge status={order.delivery_status} /></div>
+                    <div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          order.status === "Draft"
+                            ? "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                            : ["To Deliver and Bill", "To Bill", "To Deliver"].includes(order.status)
+                            ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300"
+                            : order.status === "Completed"
+                            ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300"
+                            : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                        }
+                      >
+                        {order.status}
+                      </Badge>
+                      {(order as any).docstatus !== 1 && (
+                        <form action={submitSOAction} className="inline-block ml-2">
+                          <input type="hidden" name="id" value={order.name} />
+                          <button type="submit" className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">Submit</button>
+                        </form>
+                      )}
                     </div>
                   </div>
                 ))}
-                </div>
-              </CardContent>
-            </AnimatedCard>
+              </div>
+            </CardContent>
+          </AnimatedCard>
           </TabsContent>
 
         {/* Ready for Sales Order Tab */}
