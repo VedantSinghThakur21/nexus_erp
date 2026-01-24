@@ -912,3 +912,33 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
     }
   }
 }
+
+// Delete Sales Order (only if Draft)
+export async function deleteSalesOrder(orderId: string) {
+  try {
+    // Only allow delete if status is Draft
+    const order = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: orderId
+    }) as { status: string, docstatus: number }
+
+    if (order.docstatus === 1) {
+      throw new Error('Submitted sales orders cannot be deleted')
+    }
+
+    if (order.status !== 'Draft') {
+      throw new Error('Only Draft sales orders can be deleted')
+    }
+
+    await frappeRequest('frappe.client.delete', 'POST', {
+      doctype: 'Sales Order',
+      name: orderId
+    })
+
+    revalidatePath('/sales-orders')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Delete sales order error:', error)
+    return { error: error.message || 'Failed to delete sales order' }
+  }
+}

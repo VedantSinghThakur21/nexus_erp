@@ -7,14 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { FileText } from "lucide-react"
 import { updateSalesOrderStatus } from "@/app/actions/sales-orders"
+import { DeleteSalesOrderButton } from "./delete-sales-order-button"
 
 interface SalesOrderActionsProps {
   orderId: string
   currentStatus: string
+  docStatus: number
   canCreateInvoice?: boolean
 }
 
-export function SalesOrderActions({ orderId, currentStatus, canCreateInvoice = true }: SalesOrderActionsProps) {
+export function SalesOrderActions({ orderId, currentStatus, docStatus, canCreateInvoice = true }: SalesOrderActionsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState(currentStatus)
@@ -79,6 +81,9 @@ export function SalesOrderActions({ orderId, currentStatus, canCreateInvoice = t
           </SelectContent>
         </Select>
       </div>
+
+      {/* Delete Button */}
+      <DeleteSalesOrderButton orderId={orderId} orderStatus={currentStatus} docStatus={docStatus} />
 
       {/* Create Invoice */}
       {isReadyForInvoice && (

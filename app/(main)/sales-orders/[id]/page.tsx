@@ -93,6 +93,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
           <SalesOrderActions 
             orderId={order.name} 
             currentStatus={order.status}
+            docStatus={(order as any).docstatus || 0}
             canCreateInvoice={order.status === 'To Bill' || order.status === 'To Deliver and Bill'}
           />
           {(order as any).docstatus !== 1 && (
