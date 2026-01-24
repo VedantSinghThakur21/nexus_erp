@@ -3,7 +3,7 @@ import { getSalesOrdersEligibleForInvoice, getSalesOrders } from "@/app/actions/
 import { AnimatedButton } from "@/components/ui/animated"
 import { Plus, FileText, Calendar, DollarSign, CheckCircle } from "lucide-react"
 import Link from "next/link"
-import { InvoicesList } from "@/components/invoices/invoices-list"
+import { InvoicesGrid } from "@/components/invoices/invoices-grid"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,15 +11,18 @@ import { DeliveryStatusBadge } from "@/components/sales-orders/delivery-status-b
 
 export const dynamic = 'force-dynamic'
 
-export default async function InvoicesPage() {
+  // Pagination state (SSR fallback: page 1, 12 per page)
+  const pageSize = 12;
+  const page = 1;
+  // TODO: Accept page param from searchParams for real navigation
   const [invoices, readyForInvoice, eligibleForInvoice, allSalesOrders] = await Promise.all([
-    getInvoices(),
+    getInvoices({ limit: pageSize, offset: (page - 1) * pageSize }),
     getSalesOrdersReadyForInvoicePane(),
     getSalesOrdersEligibleForInvoice(),
     getSalesOrders()
   ])
-
-  // Calculate total revenue from the fetched list
+  // For demo, assume total count is 200 (replace with real count from backend)
+  const totalInvoices = 200;
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.grand_total, 0)
 
   return (
@@ -127,7 +130,16 @@ export default async function InvoicesPage() {
         </Card>
       )}
 
-      <InvoicesList invoices={invoices} totalRevenue={totalRevenue} />
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-4">All Invoices</h2>
+        <InvoicesGrid
+          invoices={invoices}
+          page={page}
+          pageSize={pageSize}
+          total={totalInvoices}
+          onPageChange={() => {}}
+        />
+      </div>
     </div>
   )
 }
