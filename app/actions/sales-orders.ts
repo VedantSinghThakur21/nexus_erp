@@ -93,7 +93,7 @@ export async function getSalesOrders() {
       'GET',
       {
         doctype: 'Sales Order',
-        fields: '["name", "customer", "customer_name", "status", "delivery_status", "transaction_date", "delivery_date", "grand_total", "currency", "total_qty", "per_delivered", "per_billed"]',
+        fields: '["name", "customer", "customer_name", "status", "delivery_status", "billing_status", "docstatus", "transaction_date", "delivery_date", "grand_total", "currency", "total_qty", "per_delivered", "per_billed"]',
         order_by: 'creation desc',
         limit_page_length: 100
       }
@@ -499,22 +499,19 @@ export async function markSalesOrderReadyForInvoice(orderId: string) {
       newStatus = 'To Bill' // Default for other cases
     }
 
-    // Update the status
-    await frappeRequest('frappe.client.set_value', 'POST', {
-      doctype: 'Sales Order',
-      name: orderId,
-      fieldname: 'status',
-      value: newStatus
-    })
-
-    console.log('[markSalesOrderReadyForInvoice] Sales order marked as ready for invoice with status:', newStatus)
-
-    revalidatePath('/sales-orders')
-    revalidatePath(`/sales-orders/${orderId}`)
+    // ERPNext calculates `status` automatically from per_billed/per_delivered.
+    // Instead of setting `status` manually, ensure the latest values are refreshed.
+    try {
+      await refreshSalesOrderStatus(orderId)
+      revalidatePath('/sales-orders')
+      revalidatePath(`/sales-orders/${orderId}`)
+    } catch (e) {
+      console.error('[markSalesOrderReadyForInvoice] Warning - refresh failed:', e)
+    }
 
     return {
       success: true,
-      newStatus,
+      message: 'Sales Order validated for invoicing. ERPNext will calculate status based on delivery/billing percentages.',
       deliveryStatus: salesOrder.delivery_status,
       perBilled: salesOrder.per_billed
     }

@@ -484,39 +484,14 @@ export async function createInvoice(data: any) {
       await incrementUsage(subdomain, 'usage_invoices')
     }
     
-    // Update Sales Order status if linked
+    // Refresh the linked Sales Order status from ERPNext (do not set status manually)
     if (data.sales_order) {
       try {
-        // Fetch the Sales Order to check billing status
-        const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
-          doctype: 'Sales Order',
-          name: data.sales_order
-        }) as any
-
-        // Update status based on billing percentage
-        // If per_billed >= 100, status should be "Completed", otherwise "To Bill and Deliver" or "To Bill"
-        if (salesOrder.per_billed >= 100) {
-          await frappeRequest('frappe.client.set_value', 'PUT', {
-            doctype: 'Sales Order',
-            name: data.sales_order,
-            fieldname: 'status',
-            value: 'Completed'
-          })
-        } else {
-          // Status will automatically be calculated by ERPNext based on per_billed
-          // But we can explicitly set it to "To Bill and Deliver" if needed
-          await frappeRequest('frappe.client.set_value', 'PUT', {
-            doctype: 'Sales Order',
-            name: data.sales_order,
-            fieldname: 'status',
-            value: 'To Bill and Deliver'
-          })
-        }
-        
+        await refreshSalesOrderStatus(data.sales_order)
         revalidatePath('/sales-orders')
+        revalidatePath(`/sales-orders/${data.sales_order}`)
       } catch (statusError) {
-        console.error("Error updating Sales Order status:", statusError)
-        // Don't fail the invoice creation if status update fails
+        console.error("Error refreshing Sales Order status:", statusError)
       }
     }
     

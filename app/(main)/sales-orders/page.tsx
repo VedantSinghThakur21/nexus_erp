@@ -5,11 +5,19 @@ import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Package, Clock, CheckCircle, XCircle, Search, Filter, IndianRupee, Calendar, FileText } from "lucide-react"
 import Link from "next/link"
-import { getSalesOrders, getSalesOrderStats } from "@/app/actions/sales-orders"
+import { getSalesOrders, getSalesOrderStats, submitSalesOrder } from "@/app/actions/sales-orders"
 import { getQuotations } from "@/app/actions/quotations"
 import { DeliveryStatusBadge } from "@/components/sales-orders/delivery-status-badge"
 
 export const dynamic = 'force-dynamic'
+
+// Server action wrapper to submit a Sales Order from the list
+async function submitSOAction(formData: FormData) {
+  'use server'
+  const id = formData.get('id') as string
+  if (!id) return
+  await submitSalesOrder(id)
+}
 
 export default async function SalesOrdersPage() {
   // Fetch real data from ERPNext
@@ -126,8 +134,10 @@ export default async function SalesOrdersPage() {
 
                 {/* Table Rows */}
                 {orders.map((order) => (
-                  <Link key={order.name} href={`/sales-orders/${order.name}`}>
-                    <div className="grid grid-cols-8 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors cursor-pointer">
+                  <div key={order.name} className="grid grid-cols-8 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors">
+                    <Link href={`/sales-orders/${order.name}`} className="cursor-pointer">
+                      <div className="font-medium text-blue-600 dark:text-blue-400">{order.name}</div>
+                    </Link>
                       <div className="font-medium text-blue-600 dark:text-blue-400">{order.name}</div>
                       <div className="text-slate-900 dark:text-white">{order.customer_name || order.customer}</div>
                       <div className="text-slate-600 dark:text-slate-400">
@@ -166,9 +176,15 @@ export default async function SalesOrdersPage() {
                         >
                           {order.status}
                         </Badge>
+                        {order.docstatus !== 1 && (
+                          <form action={submitSOAction} className="inline-block ml-2">
+                            <input type="hidden" name="id" value={order.name} />
+                            <button type="submit" className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">Submit</button>
+                          </form>
+                        )}
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
                 </div>
               </CardContent>
