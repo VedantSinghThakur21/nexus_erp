@@ -1,4 +1,5 @@
 import { getInvoices, getSalesOrdersReadyForInvoicePane } from "@/app/actions/invoices"
+import { getSalesOrdersEligibleForInvoice } from "@/app/actions/sales-orders"
 import { AnimatedButton } from "@/components/ui/animated"
 import { Plus, FileText, Calendar, DollarSign, CheckCircle } from "lucide-react"
 import Link from "next/link"
@@ -11,9 +12,10 @@ import { DeliveryStatusBadge } from "@/components/sales-orders/delivery-status-b
 export const dynamic = 'force-dynamic'
 
 export default async function InvoicesPage() {
-  const [invoices, readyForInvoice] = await Promise.all([
+  const [invoices, readyForInvoice, eligibleForInvoice] = await Promise.all([
     getInvoices(),
-    getSalesOrdersReadyForInvoicePane()
+    getSalesOrdersReadyForInvoicePane(),
+    getSalesOrdersEligibleForInvoice()
   ])
 
   // Calculate total revenue from the fetched list
@@ -37,7 +39,7 @@ export default async function InvoicesPage() {
       </div>
 
       {/* Ready for Invoice Section */}
-      {readyForInvoice.length > 0 && (
+      {readyForInvoice.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -89,6 +91,22 @@ export default async function InvoicesPage() {
                   </Link>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ready for Invoice (Debug)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-slate-500">
+              <p>No sales orders passed the pane filter.</p>
+              <p>Found {eligibleForInvoice.length} potentially eligible Sales Orders (broader filter).</p>
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer">Show sample eligible orders</summary>
+                <pre className="whitespace-pre-wrap mt-2 max-h-48 overflow-auto">{JSON.stringify(eligibleForInvoice.slice(0,5), null, 2)}</pre>
+              </details>
             </div>
           </CardContent>
         </Card>
