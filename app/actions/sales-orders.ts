@@ -6,20 +6,25 @@
  * ERPNext Integration for Nexus ERP SaaS
  * ============================================================================
  *
- * STATUS MAPPING (Calculated by ERPNext based on per_billed + per_delivered):
- * 
- * per_billed = 0, per_delivered = 0 → "To Deliver and Bill"
- * per_billed = 0, per_delivered > 0  → "To Deliver and Bill" 
- * per_billed > 0, per_delivered = 0  → "To Bill" (partial delivery)
- * per_billed = 100, per_delivered < 100 → "To Deliver" (fully billed, pending delivery)
- * per_billed = 100, per_delivered = 100 → "Completed"
- * per_billed = 0, per_delivered = 0 → "Draft" (not submitted)
+ * STATUS MAPPING (ERPNext fields)
+ *
+ * ERPNext exposes two related, user-facing fields on Sales Order:
+ * - `delivery_status`: Not Delivered | Partly Delivered | Fully Delivered | Closed | Not Applicable
+ * - `billing_status`: Not Billed | Partly Billed | Fully Billed | Closed
+ *
+ * Internally ERPNext also calculates `per_delivered` and `per_billed` (0-100%). The combined
+ * values determine `status` (eg. "To Deliver and Bill", "To Bill", "To Deliver", "Completed").
+ *
+ * Key mappings we use for eligibility:
+ * - Fully billed: `billing_status === 'Fully Billed'` OR `per_billed >= 100`
+ * - No delivery required (services): `delivery_status === 'Not Applicable'` → can invoice based on billing
+ * - Deliveries present: require `per_delivered > 0` (or `delivery_status` != 'Not Delivered') to create invoice
+ * - Terminal states: `Cancelled`, `On Hold`, `Closed` → never eligible
  *
  * INVOICE ELIGIBILITY RULES:
- * ✓ Can invoice: status = "To Bill" or "To Deliver and Bill" (if items delivered)
- * ✗ Cannot invoice: status = "Draft", "Cancelled", "On Hold", "To Deliver" (fully billed)
- * ✗ Cannot invoice: per_billed >= 100 (already fully billed)
- * ✗ Cannot invoice: docstatus != 1 (must be submitted)
+ * ✓ Can invoice: billing_status != 'Fully Billed' AND (delivery_status !== 'Not Delivered' OR delivery_status === 'Not Applicable')
+ * ✗ Cannot invoice: billing_status = 'Fully Billed' OR per_billed >= 100
+ * ✗ Cannot invoice: status in ['Draft', 'Cancelled', 'On Hold', 'Closed'] or docstatus != 1
  *
  * WORKFLOW PROGRESSION:
  * 1. Create SO (Draft, docstatus=0)
@@ -394,12 +399,14 @@ export async function updateSalesOrderStatus(orderId: string, status: string) {
 // 10. READ: Get Sales Orders Ready for Invoice
 export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
   try {
-    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
+    // ERPNext field availability varies across sites. Fetch a conservative list
+    // (submitted, not fully billed) then filter client-side using delivery/billing fields.
+    const raw = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: JSON.stringify([
-        ['delivery_status', '=', 'Fully Delivered'],
-        ['status', 'in', ['To Bill', 'To Deliver and Bill', 'Completed']],
-        ['docstatus', '=', '1']
+        ['docstatus', '=', '1'],
+        ['per_billed', '<', '100'],
+        ['status', 'not in', ['Draft', 'Cancelled', 'On Hold', 'Closed']]
       ]),
       fields: JSON.stringify([
         'name',
@@ -410,13 +417,40 @@ export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
         'grand_total',
         'status',
         'delivery_status',
+        'billing_status',
         'per_billed',
+        'per_delivered',
         'currency'
       ]),
-      limit_page_length: 50,
+      limit_page_length: 200,
       order_by: 'transaction_date desc'
     }) as SalesOrder[]
-    
+
+    if (!raw || raw.length === 0) return []
+
+    // Filter in JS to support combinations not expressible in REST filters across ERPNext versions
+    const orders = raw.filter((so: any) => {
+      const perDelivered = so.per_delivered || 0
+      const perBilled = so.per_billed || 0
+      const deliveryStatus = so.delivery_status || 'Not Delivered'
+      const billingStatus = so.billing_status || 'Not Billed'
+
+      // Already fully billed -> exclude
+      if (billingStatus === 'Fully Billed' || perBilled >= 100) return false
+
+      // Terminal status -> exclude
+      if (['Cancelled', 'On Hold', 'Closed', 'Draft'].includes(so.status)) return false
+
+      // If delivery not applicable (services), it's ready based on billing
+      if (deliveryStatus === 'Not Applicable') return true
+
+      // If some items delivered (partly or fully) and not fully billed, include
+      if (perDelivered > 0) return true
+
+      // Otherwise not ready
+      return false
+    })
+
     return orders || []
   } catch (error: any) {
     console.error("Failed to fetch sales orders ready for invoice:", error)
@@ -494,12 +528,12 @@ export async function markSalesOrderReadyForInvoice(orderId: string) {
 // 12. READ: Get Sales Orders Eligible for Invoice Preparation
 export async function getSalesOrdersEligibleForInvoice(): Promise<SalesOrder[]> {
   try {
-    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
+    const raw = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: JSON.stringify([
         ['docstatus', '=', '1'], // Must be submitted
         ['per_billed', '<', '100'], // Not fully billed
-        ['status', 'not in', ['Cancelled', 'Completed']] // Not cancelled or completed
+        ['status', 'not in', ['Draft', 'Cancelled', 'On Hold', 'Closed']]
       ]),
       fields: JSON.stringify([
         'name',
@@ -510,13 +544,28 @@ export async function getSalesOrdersEligibleForInvoice(): Promise<SalesOrder[]> 
         'grand_total',
         'status',
         'delivery_status',
+        'billing_status',
         'per_billed',
         'per_delivered',
         'currency'
       ]),
-      limit_page_length: 50,
+      limit_page_length: 200,
       order_by: 'transaction_date desc'
     }) as SalesOrder[]
+
+    if (!raw || raw.length === 0) return []
+
+    // Keep those that are potentially invoiceable (delivery not required or some delivery done)
+    const orders = raw.filter((so: any) => {
+      const deliveryStatus = so.delivery_status || 'Not Delivered'
+      const perDelivered = so.per_delivered || 0
+      const billingStatus = so.billing_status || 'Not Billed'
+
+      if (billingStatus === 'Fully Billed' || (so.per_billed || 0) >= 100) return false
+      if (deliveryStatus === 'Not Applicable') return true
+      if (perDelivered > 0) return true
+      return false
+    })
 
     return orders || []
   } catch (error: any) {
@@ -572,6 +621,7 @@ export async function checkSalesOrderInvoiceEligibility(orderId: string): Promis
     const result = {
       status: so.status,
       delivery_status: so.delivery_status,
+      billing_status: so.billing_status || 'Not Billed',
       per_billed: so.per_billed || 0,
       per_delivered: so.per_delivered || 0,
       total_items: so.items?.length || 0,
@@ -589,7 +639,7 @@ export async function checkSalesOrderInvoiceEligibility(orderId: string): Promis
     }
 
     // 2. Cannot be in terminal states
-    if (['Cancelled', 'On Hold'].includes(so.status)) {
+    if (['Cancelled', 'On Hold', 'Closed'].includes(so.status)) {
       return {
         eligible: false,
         reason: `Cannot invoice Sales Order with status "${so.status}"`,
@@ -598,7 +648,7 @@ export async function checkSalesOrderInvoiceEligibility(orderId: string): Promis
     }
 
     // 3. Cannot be fully billed already
-    if (so.per_billed >= 100) {
+    if ((so.billing_status && so.billing_status === 'Fully Billed') || (so.per_billed >= 100)) {
       return {
         eligible: false,
         reason: 'This Sales Order is already fully billed (100%)',
@@ -607,58 +657,50 @@ export async function checkSalesOrderInvoiceEligibility(orderId: string): Promis
     }
 
     // 4. Status-specific eligibility checks
-    if (so.status === 'To Deliver and Bill') {
-      // Can create partial invoice if delivery notes exist
-      if (so.per_delivered === 0) {
-        return {
-          eligible: false,
-          reason: 'No items have been delivered yet. Create a Delivery Note first.',
-          canPartiallyBill: false,
-          data: result,
-          recommendations: [
-            'Create a Delivery Note for at least some items',
-            'Then create a partial invoice for delivered items'
-          ]
-        }
-      }
-
-      // Can partially invoice
+    // 4. Delivery/billing combined logic
+    // If delivery is "Not Applicable" (services) we allow invoicing based on billing
+    if (so.delivery_status === 'Not Applicable') {
       return {
         eligible: true,
-        canPartiallyBill: true,
+        canPartiallyBill: result.per_billed > 0 && result.per_billed < 100,
         data: result,
         recommendations: [
-          `${result.per_delivered}% items delivered - ready for partial invoice`,
-          'You can invoice only the delivered items'
+          'Delivery not applicable - you may create invoices as needed',
+          `${result.per_billed}% currently billed`
         ]
       }
     }
 
-    if (so.status === 'To Bill' || so.status === 'Completed') {
-      // Ready to bill (fully delivered)
+    // If nothing has been delivered yet, cannot invoice (unless delivery not required)
+    if (result.per_delivered === 0 || so.delivery_status === 'Not Delivered') {
       return {
-        eligible: true,
+        eligible: false,
+        reason: 'No items have been delivered yet. Create a Delivery Note first.',
         canPartiallyBill: false,
         data: result,
         recommendations: [
-          '✓ All items delivered - ready to create final invoice',
-          `${so.per_billed}% currently billed`
+          'Create a Delivery Note for at least some items',
+          'Then create a partial invoice for delivered items'
         ]
       }
     }
 
-    if (so.status === 'To Deliver') {
+    // If items have been delivered (partly or fully) and not fully billed, allow invoicing
+    if (result.per_delivered > 0 && result.per_billed < 100) {
       return {
-        eligible: false,
-        reason: 'Sales Order is fully billed but items are still pending delivery',
+        eligible: true,
+        canPartiallyBill: result.per_delivered < 100,
         data: result,
-        recommendations: ['Complete delivery of items before any further billing']
+        recommendations: [
+          `${result.per_delivered}% items delivered - ready for invoice`,
+          `${result.per_billed}% currently billed`
+        ]
       }
     }
 
     return {
       eligible: false,
-      reason: `Unknown status: ${so.status}`,
+      reason: `Unknown or unsupported combination: status=${so.status}, delivery_status=${so.delivery_status}, billing_status=${so.billing_status}`,
       data: result
     }
 
