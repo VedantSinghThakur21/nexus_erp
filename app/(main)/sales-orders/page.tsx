@@ -163,12 +163,6 @@ export default async function SalesOrdersPage() {
                       >
                         {order.status}
                       </Badge>
-                      {(order as any).docstatus !== 1 && (
-                        <form action={submitSOAction} className="inline-block ml-2">
-                          <input type="hidden" name="id" value={order.name} />
-                          <button type="submit" className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">Submit</button>
-                        </form>
-                      )}
                     </div>
                   </div>
                 ))}

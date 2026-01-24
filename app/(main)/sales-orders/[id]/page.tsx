@@ -1,4 +1,21 @@
 import { getSalesOrder, submitSalesOrder, updateSalesOrderDeliveryStatus } from "@/app/actions/sales-orders"
+
+// Server action to submit this Sales Order from the detail page
+export async function submitSOAction(formData: FormData) {
+  'use server'
+  const id = formData.get('id') as string
+  if (!id) return
+  await submitSalesOrder(id)
+}
+
+// Server action to update delivery status
+export async function updateDeliveryAction(formData: FormData) {
+  'use server'
+  const id = formData.get('id') as string
+  const newStatus = formData.get('delivery_status') as string
+  if (!id || !newStatus) return
+  await updateSalesOrderDeliveryStatus(id, newStatus)
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,31 +28,12 @@ import { SalesOrderActions } from "@/components/sales-orders/sales-order-actions
 export default async function SalesOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const orderName = decodeURIComponent(id)
-  // Server action to submit this Sales Order from the detail page
-  async function submitSOAction(formData: FormData) {
-    'use server'
-    const id = formData.get('id') as string
-    if (!id) return
-    await submitSalesOrder(id)
-  }
-
-  // Server action to update delivery status
-  async function updateDeliveryAction(formData: FormData) {
-    'use server'
-    const id = formData.get('id') as string
-    const newStatus = formData.get('delivery_status') as string
-    if (!id || !newStatus) return
-    await updateSalesOrderDeliveryStatus(id, newStatus)
-  }
-  
   let order
   try {
     order = await getSalesOrder(orderName)
-    
     if (!order) {
       throw new Error("Sales Order not found")
     }
-    
     // Debug: Log sales order data
     console.log('=== SALES ORDER DETAIL PAGE ===')
     console.log('Sales Order items:', order.items?.length)
