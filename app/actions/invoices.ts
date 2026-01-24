@@ -121,7 +121,7 @@ export async function getInvoices() {
       'GET', 
       {
         doctype: 'Sales Invoice',
-        fields: '["name", "customer_name", "grand_total", "status", "due_date", "currency", "docstatus", "sales_order"]',
+        fields: '["name", "customer_name", "grand_total", "status", "due_date", "currency", "docstatus"]',
         order_by: 'creation desc',
         limit_page_length: 50
       }
