@@ -1,4 +1,4 @@
-import { getSalesOrder } from "@/app/actions/sales-orders"
+import { getSalesOrder, submitSalesOrder, updateSalesOrderDeliveryStatus } from "@/app/actions/sales-orders"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,22 @@ import { SalesOrderActions } from "@/components/sales-orders/sales-order-actions
 export default async function SalesOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const orderName = decodeURIComponent(id)
+  // Server action to submit this Sales Order from the detail page
+  async function submitSOAction(formData: FormData) {
+    'use server'
+    const id = formData.get('id') as string
+    if (!id) return
+    await submitSalesOrder(id)
+  }
+
+  // Server action to update delivery status
+  async function updateDeliveryAction(formData: FormData) {
+    'use server'
+    const id = formData.get('id') as string
+    const newStatus = formData.get('delivery_status') as string
+    if (!id || !newStatus) return
+    await updateSalesOrderDeliveryStatus(id, newStatus)
+  }
   
   let order
   try {
@@ -81,6 +97,12 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             currentStatus={order.status}
             canCreateInvoice={order.status === 'To Bill' || order.status === 'To Deliver and Bill'}
           />
+          {(order as any).docstatus !== 1 && (
+            <form action={submitSOAction} className="inline-block">
+              <input type="hidden" name="id" value={order.name} />
+              <Button size="sm" className="ml-2" type="submit">Submit</Button>
+            </form>
+          )}
           <PrintButton orderId={order.name} />
           <Badge className={statusColors[order.status] || 'bg-slate-100 text-slate-800'}>
             {order.status}
@@ -113,6 +135,20 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             <div className="text-lg font-semibold">
               {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
             </div>
+              {/* Delivery status update form */}
+              <div className="mt-3">
+                <form action={updateDeliveryAction} className="flex items-center gap-2">
+                  <input type="hidden" name="id" value={order.name} />
+                  <select name="delivery_status" defaultValue={order.delivery_status || 'Not Delivered'} className="px-2 py-1 border rounded bg-white dark:bg-slate-900 text-sm">
+                    <option>Not Delivered</option>
+                    <option>Fully Delivered</option>
+                    <option>Partly Delivered</option>
+                    <option>Closed</option>
+                    <option>Not Applicable</option>
+                  </select>
+                  <Button size="sm" type="submit">Update</Button>
+                </form>
+              </div>
           </CardContent>
         </Card>
 

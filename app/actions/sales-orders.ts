@@ -396,6 +396,25 @@ export async function updateSalesOrderStatus(orderId: string, status: string) {
   }
 }
 
+// 11. UPDATE: Update Sales Order Delivery Status
+export async function updateSalesOrderDeliveryStatus(orderId: string, deliveryStatus: string) {
+  try {
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Sales Order',
+      name: orderId,
+      fieldname: 'delivery_status',
+      value: deliveryStatus
+    })
+
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${orderId}`)
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to update sales order delivery status:", error)
+    return { error: error.message || 'Failed to update sales order delivery status' }
+  }
+}
+
 // 10. READ: Get Sales Orders Ready for Invoice
 export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
   try {
