@@ -1,144 +1,89 @@
 import { getInvoices, getSalesOrdersReadyForInvoicePane } from "@/app/actions/invoices"
 import { getSalesOrdersEligibleForInvoice, getSalesOrders } from "@/app/actions/sales-orders"
 import { AnimatedButton } from "@/components/ui/animated"
-import { Plus, FileText, Calendar, DollarSign, CheckCircle } from "lucide-react"
+import { Plus, Calendar, DollarSign, CheckCircle } from "lucide-react"
 import Link from "next/link"
-import { InvoicesGrid } from "@/components/invoices/invoices-grid"
+import { InvoicesClientView } from "@/components/invoices/invoices-client-view"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DeliveryStatusBadge } from "@/components/sales-orders/delivery-status-badge"
 
-export const dynamic = 'force-dynamic'
-
-  // Pagination state (SSR fallback: page 1, 12 per page)
-  const pageSize = 12;
-  const page = 1;
-  // TODO: Accept page param from searchParams for real navigation
+export default async function InvoicesPage() {
   const [invoices, readyForInvoice, eligibleForInvoice, allSalesOrders] = await Promise.all([
-    getInvoices({ limit: pageSize, offset: (page - 1) * pageSize }),
+    getInvoices(),
     getSalesOrdersReadyForInvoicePane(),
     getSalesOrdersEligibleForInvoice(),
     getSalesOrders()
   ])
-  // For demo, assume total count is 200 (replace with real count from backend)
-  const totalInvoices = 200;
-  const totalRevenue = invoices.reduce((sum, inv) => sum + inv.grand_total, 0)
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto" suppressHydrationWarning>
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent">
-            Invoices
-          </h1>
+          <h1 className="text-2xl lg:text-4xl font-bold">Invoices</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2">Manage billing and collections</p>
         </div>
-        
+
         <Link href="/invoices/new">
-            <AnimatedButton variant="neon" className="gap-2">
-                <Plus className="h-4 w-4" /> New Invoice
-            </AnimatedButton>
+          <AnimatedButton variant="neon" className="gap-2">
+            <Plus className="h-4 w-4" /> New Invoice
+          </AnimatedButton>
         </Link>
       </div>
 
-      {/* Ready for Invoice Section */}
-      {readyForInvoice.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              Ready for Invoice
-              <Badge variant="secondary">{readyForInvoice.length} Sales Orders</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3" suppressHydrationWarning>
-              {readyForInvoice.map((order: any) => (
-                <div
-                  key={order.name}
-                  className="flex items-center justify-between p-4 rounded-lg border border-green-200 dark:border-green-900/30 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-950/40 transition-colors"
-                  suppressHydrationWarning
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h4 className="font-semibold text-slate-900 dark:text-white">{order.name}</h4>
-                      <Badge variant="outline" className="text-xs">
-                        {order.status}
-                      </Badge>
-                      <DeliveryStatusBadge status={order.delivery_status} />
+      {/* Ready for Invoice */}
+      <div>
+        {readyForInvoice && readyForInvoice.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                Ready for Invoice
+                <Badge variant="secondary">{readyForInvoice.length} Sales Orders</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {readyForInvoice.map((order: any) => (
+                  <div key={order.name} className="flex items-center justify-between p-4 rounded-lg border">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <h4 className="font-semibold">{order.name}</h4>
+                        <Badge variant="outline" className="text-xs">{order.status}</Badge>
+                        <DeliveryStatusBadge status={order.delivery_status} />
+                      </div>
+                      <p className="text-sm text-slate-600">{order.customer_name || order.customer}</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(order.transaction_date).toLocaleDateString('en-IN')}</span>
+                        <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" />{order.currency} {order.grand_total?.toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {order.customer_name || order.customer}
-                    </p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(order.transaction_date).toLocaleDateString('en-IN')}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="w-3 h-3" />
-                        {order.currency} {order.grand_total.toLocaleString('en-IN')}
-                      </span>
-                      {order.per_billed > 0 && (
-                        <span className="text-blue-600">
-                          {order.per_billed}% Billed
-                        </span>
-                      )}
-                    </div>
+                    <Link href={`/invoices/new?sales_order=${encodeURIComponent(order.name)}`}>
+                      <Button size="sm">Create Invoice</Button>
+                    </Link>
                   </div>
-                  <Link href={`/invoices/new?sales_order=${encodeURIComponent(order.name)}`}>
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Invoice
-                    </Button>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Ready for Invoice (Debug)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-slate-500">
-              <p>No sales orders passed the pane filter.</p>
-              <p>Found {eligibleForInvoice.length} potentially eligible Sales Orders (broader filter).</p>
-              <details className="mt-2 text-xs">
-                <summary className="cursor-pointer">Show sample eligible orders</summary>
-                <pre className="whitespace-pre-wrap mt-2 max-h-48 overflow-auto">{JSON.stringify(eligibleForInvoice.slice(0,5), null, 2)}</pre>
-              </details>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Ready for Invoice (Debug)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-500">No sales orders passed the pane filter.</p>
+              <p className="text-sm text-slate-500 mt-2">Found {eligibleForInvoice?.length ?? 0} potentially eligible Sales Orders.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
-              {allSalesOrders && allSalesOrders.length > 0 && (
-                <div className="mt-4">
-                  <p className="font-medium">Draft Sales Orders ({allSalesOrders.filter((s: any) => s.status === 'Draft').length})</p>
-                  <div className="flex gap-2 mt-2">
-                    {allSalesOrders.filter((s: any) => s.status === 'Draft').slice(0,3).map((s: any) => (
-                      <Link key={s.name} href={`/sales-orders/${encodeURIComponent(s.name)}`}>
-                        <Button size="sm" variant="outline">Open {s.name}</Button>
-                      </Link>
-                    ))}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-2">Submit a Sales Order to make it appear in the Ready for Invoice pane.</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
+      {/* All Invoices (grid) */}
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">All Invoices</h2>
-        <InvoicesGrid
-          invoices={invoices}
-          page={page}
-          pageSize={pageSize}
-          total={totalInvoices}
-          onPageChange={() => {}}
-        />
+        <InvoicesClientView invoices={invoices} />
       </div>
     </div>
   )
