@@ -1,5 +1,5 @@
 import { getInvoices, getSalesOrdersReadyForInvoicePane } from "@/app/actions/invoices"
-import { getSalesOrdersEligibleForInvoice } from "@/app/actions/sales-orders"
+import { getSalesOrdersEligibleForInvoice, getSalesOrders } from "@/app/actions/sales-orders"
 import { AnimatedButton } from "@/components/ui/animated"
 import { Plus, FileText, Calendar, DollarSign, CheckCircle } from "lucide-react"
 import Link from "next/link"
@@ -12,10 +12,11 @@ import { DeliveryStatusBadge } from "@/components/sales-orders/delivery-status-b
 export const dynamic = 'force-dynamic'
 
 export default async function InvoicesPage() {
-  const [invoices, readyForInvoice, eligibleForInvoice] = await Promise.all([
+  const [invoices, readyForInvoice, eligibleForInvoice, allSalesOrders] = await Promise.all([
     getInvoices(),
     getSalesOrdersReadyForInvoicePane(),
-    getSalesOrdersEligibleForInvoice()
+    getSalesOrdersEligibleForInvoice(),
+    getSalesOrders()
   ])
 
   // Calculate total revenue from the fetched list
@@ -107,6 +108,20 @@ export default async function InvoicesPage() {
                 <summary className="cursor-pointer">Show sample eligible orders</summary>
                 <pre className="whitespace-pre-wrap mt-2 max-h-48 overflow-auto">{JSON.stringify(eligibleForInvoice.slice(0,5), null, 2)}</pre>
               </details>
+
+              {allSalesOrders && allSalesOrders.length > 0 && (
+                <div className="mt-4">
+                  <p className="font-medium">Draft Sales Orders ({allSalesOrders.filter((s: any) => s.status === 'Draft').length})</p>
+                  <div className="flex gap-2 mt-2">
+                    {allSalesOrders.filter((s: any) => s.status === 'Draft').slice(0,3).map((s: any) => (
+                      <Link key={s.name} href={`/sales-orders/${encodeURIComponent(s.name)}`}>
+                        <Button size="sm" variant="outline">Open {s.name}</Button>
+                      </Link>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">Submit a Sales Order to make it appear in the Ready for Invoice pane.</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
