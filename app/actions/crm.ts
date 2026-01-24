@@ -301,11 +301,23 @@ export async function createLead(data: any) {
 // 3. UPDATE: Save detailed info (Used by the Edit Sheet)
 export async function updateLead(leadId: string, formData: FormData) {
   const values: Record<string, any> = {}
-  
-  if (formData.has('source')) values.source = formData.get('source')?.toString() || ""
-  if (formData.has('territory')) values.territory = formData.get('territory')?.toString() || ""
-  if (formData.has('notes')) values.notes = formData.get('notes')?.toString() || ""
+  // Basic Info
+  if (formData.has('lead_name')) values.lead_name = formData.get('lead_name')?.toString() || ""
+  if (formData.has('company_name')) values.company_name = formData.get('company_name')?.toString() || ""
+  if (formData.has('job_title')) values.job_title = formData.get('job_title')?.toString() || ""
+  if (formData.has('industry')) values.industry = formData.get('industry')?.toString() || ""
+  // Contact Info
+  if (formData.has('email_id')) values.email_id = formData.get('email_id')?.toString() || ""
+  if (formData.has('mobile_no')) values.mobile_no = formData.get('mobile_no')?.toString() || ""
+  // Status & Source
   if (formData.has('status')) values.status = formData.get('status')?.toString() || "Open"
+  if (formData.has('source')) values.source = formData.get('source')?.toString() || ""
+  // Territory & Location
+  if (formData.has('territory')) values.territory = formData.get('territory')?.toString() || ""
+  if (formData.has('city')) values.city = formData.get('city')?.toString() || ""
+  if (formData.has('country')) values.country = formData.get('country')?.toString() || ""
+  // Notes
+  if (formData.has('notes')) values.notes = formData.get('notes')?.toString() || ""
 
   try {
     await frappeRequest('frappe.client.set_value', 'POST', {
@@ -446,7 +458,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       party_name: createCustomer && lead.company_name ? lead.company_name : leadId,
       title: lead.company_name || lead.lead_name || `Opportunity from ${leadId}`,
       customer_name: lead.company_name || undefined,
-      // contact_person: lead.lead_name || undefined, // Removed - causes LinkValidationError if contact doesn't exist
+      contact_person: lead.lead_name || undefined,
       contact_email: lead.email_id || undefined,
       territory: lead.territory || undefined,
       source: lead.source || undefined,
