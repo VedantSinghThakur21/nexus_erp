@@ -5,9 +5,10 @@ import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Package, Clock, CheckCircle, XCircle, Search, Filter, IndianRupee, Calendar, FileText } from "lucide-react"
 import Link from "next/link"
-import { getSalesOrders, getSalesOrderStats, submitSalesOrder } from "@/app/actions/sales-orders"
+import { getSalesOrders, getSalesOrderStats, submitSalesOrder, updateSalesOrder } from "@/app/actions/sales-orders"
 import { getQuotations } from "@/app/actions/quotations"
 import { DeliveryStatusBadge } from "@/components/sales-orders/delivery-status-badge"
+import { DeliveryUpdateCard } from "@/components/sales-orders/delivery-update-card"
 
 export const dynamic = 'force-dynamic'
 
@@ -163,6 +164,21 @@ export default async function SalesOrdersPage() {
                       >
                         {order.status}
                       </Badge>
+                      {/* Delivery Update Card (inline for demo, ideally modal or details view) */}
+                      <div className="mt-2">
+                        <DeliveryUpdateCard
+                          deliveryDate={order.delivery_date || ''}
+                          deliveryStatus={order.delivery_status || 'Not Delivered'}
+                          onUpdate={async (date, status) => {
+                            // Only update if changed
+                            const data: any = {};
+                            if (date !== order.delivery_date) data.delivery_date = date;
+                            if (status !== order.delivery_status) data.delivery_status = status;
+                            if (Object.keys(data).length === 0) return { success: true };
+                            return await updateSalesOrder(order.name, data);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

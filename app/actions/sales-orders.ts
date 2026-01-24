@@ -249,17 +249,31 @@ export async function updateSalesOrder(id: string, data: any) {
 // 5. SUBMIT: Submit Sales Order
 export async function submitSalesOrder(id: string) {
   try {
-    await frappeRequest('frappe.client.submit', 'POST', {
+    // Fetch the full Sales Order document first
+    const getResult = await frappeRequest('frappe.client.get', 'POST', {
       doctype: 'Sales Order',
       name: id
-    })
-    
-    revalidatePath('/sales-orders')
-    revalidatePath(`/sales-orders/${id}`)
-    return { success: true }
+    });
+    // Type guard for possible response shapes
+    let doc: any = undefined;
+    if (getResult && typeof getResult === 'object') {
+      if ('doc' in getResult) doc = (getResult as any).doc;
+      else if ('data' in getResult) doc = (getResult as any).data;
+      else doc = getResult;
+    }
+    if (!doc) throw new Error('Could not fetch Sales Order document');
+
+    // Submit the Sales Order using the full doc
+    await frappeRequest('frappe.client.submit', 'POST', {
+      doc
+    });
+
+    revalidatePath('/sales-orders');
+    revalidatePath(`/sales-orders/${id}`);
+    return { success: true };
   } catch (error: any) {
-    console.error("Failed to submit sales order:", error)
-    return { error: error.message || 'Failed to submit sales order' }
+    console.error("Failed to submit sales order:", error);
+    return { error: error.message || 'Failed to submit sales order' };
   }
 }
 
