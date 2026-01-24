@@ -1,5 +1,41 @@
 'use server'
 
+/**
+ * ============================================================================
+ * PRODUCTION-GRADE SALES ORDER TO INVOICE WORKFLOW
+ * ERPNext Integration for Nexus ERP SaaS
+ * ============================================================================
+ *
+ * STATUS MAPPING (Calculated by ERPNext based on per_billed + per_delivered):
+ * 
+ * per_billed = 0, per_delivered = 0 → "To Deliver and Bill"
+ * per_billed = 0, per_delivered > 0  → "To Deliver and Bill" 
+ * per_billed > 0, per_delivered = 0  → "To Bill" (partial delivery)
+ * per_billed = 100, per_delivered < 100 → "To Deliver" (fully billed, pending delivery)
+ * per_billed = 100, per_delivered = 100 → "Completed"
+ * per_billed = 0, per_delivered = 0 → "Draft" (not submitted)
+ *
+ * INVOICE ELIGIBILITY RULES:
+ * ✓ Can invoice: status = "To Bill" or "To Deliver and Bill" (if items delivered)
+ * ✗ Cannot invoice: status = "Draft", "Cancelled", "On Hold", "To Deliver" (fully billed)
+ * ✗ Cannot invoice: per_billed >= 100 (already fully billed)
+ * ✗ Cannot invoice: docstatus != 1 (must be submitted)
+ *
+ * WORKFLOW PROGRESSION:
+ * 1. Create SO (Draft, docstatus=0)
+ * 2. Submit SO (docstatus=1, status="To Deliver and Bill")
+ * 3. (Optional) Create Delivery Note for items
+ * 4. Mark "Ready for Invoice" (keep status, enable invoice creation)
+ * 5. Create Invoice from SO
+ * 6. ERPNext updates per_billed, status recalculates
+ * 7. If per_billed=100: status→"To Deliver" or "Completed"
+ * 8. Submit Invoice → Payment collection
+ *
+ * KEY: Status is NOT manually updated - it's CALCULATED by ERPNext
+ * We only READ the status, never SET it except for explicit transitions
+ * ============================================================================
+ */
+
 import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 
@@ -486,5 +522,321 @@ export async function getSalesOrdersEligibleForInvoice(): Promise<SalesOrder[]> 
   } catch (error: any) {
     console.error("Failed to fetch sales orders eligible for invoice:", error)
     return []
+  }
+}
+/**
+ * PRODUCTION-GRADE SALES ORDER TO INVOICE WORKFLOW
+ * 
+ * ERPNext Sales Order Status Logic:
+ * - Calculated field based on: per_delivered, per_billed, delivery_status
+ * - "To Deliver and Bill": pending delivery AND pending billing
+ * - "To Bill": pending billing only (fully delivered)
+ * - "To Deliver": pending delivery only (fully billed)
+ * - "Completed": fully billed AND fully delivered
+ * 
+ * Invoice Eligibility Criteria:
+ * - docstatus = 1 (Submitted)
+ * - per_billed < 100 (Not fully billed)
+ * - Status NOT in [Draft, Cancelled, On Hold]
+ * - If "To Deliver and Bill": Can partially bill, must have delivery notes
+ * - If "To Bill": Ready to bill (already delivered)
+ */
+
+// 13. COMPREHENSIVE: Check Sales Order Invoice Eligibility
+export async function checkSalesOrderInvoiceEligibility(orderId: string): Promise<{
+  eligible: boolean
+  reason?: string
+  canPartiallyBill?: boolean
+  recommendations?: string[]
+  data?: {
+    status: string
+    delivery_status: string
+    per_billed: number
+    per_delivered: number
+    total_items: number
+    delivered_items: number
+  }
+}> {
+  try {
+    console.log('[checkSalesOrderInvoiceEligibility] Checking SO:', orderId)
+
+    const so = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: orderId
+    }) as any
+
+    if (!so) {
+      return { eligible: false, reason: 'Sales Order not found' }
+    }
+
+    const result = {
+      status: so.status,
+      delivery_status: so.delivery_status,
+      per_billed: so.per_billed || 0,
+      per_delivered: so.per_delivered || 0,
+      total_items: so.items?.length || 0,
+      delivered_items: so.items?.filter((item: any) => item.delivered_qty && item.delivered_qty > 0).length || 0
+    }
+
+    // 1. Must be submitted
+    if (so.docstatus !== 1) {
+      return {
+        eligible: false,
+        reason: 'Sales Order must be submitted first',
+        data: result,
+        recommendations: ['Click "Save" then "Submit" to submit this Sales Order']
+      }
+    }
+
+    // 2. Cannot be in terminal states
+    if (['Cancelled', 'On Hold'].includes(so.status)) {
+      return {
+        eligible: false,
+        reason: `Cannot invoice Sales Order with status "${so.status}"`,
+        data: result
+      }
+    }
+
+    // 3. Cannot be fully billed already
+    if (so.per_billed >= 100) {
+      return {
+        eligible: false,
+        reason: 'This Sales Order is already fully billed (100%)',
+        data: result
+      }
+    }
+
+    // 4. Status-specific eligibility checks
+    if (so.status === 'To Deliver and Bill') {
+      // Can create partial invoice if delivery notes exist
+      if (so.per_delivered === 0) {
+        return {
+          eligible: false,
+          reason: 'No items have been delivered yet. Create a Delivery Note first.',
+          canPartiallyBill: false,
+          data: result,
+          recommendations: [
+            'Create a Delivery Note for at least some items',
+            'Then create a partial invoice for delivered items'
+          ]
+        }
+      }
+
+      // Can partially invoice
+      return {
+        eligible: true,
+        canPartiallyBill: true,
+        data: result,
+        recommendations: [
+          `${result.per_delivered}% items delivered - ready for partial invoice`,
+          'You can invoice only the delivered items'
+        ]
+      }
+    }
+
+    if (so.status === 'To Bill' || so.status === 'Completed') {
+      // Ready to bill (fully delivered)
+      return {
+        eligible: true,
+        canPartiallyBill: false,
+        data: result,
+        recommendations: [
+          '✓ All items delivered - ready to create final invoice',
+          `${so.per_billed}% currently billed`
+        ]
+      }
+    }
+
+    if (so.status === 'To Deliver') {
+      return {
+        eligible: false,
+        reason: 'Sales Order is fully billed but items are still pending delivery',
+        data: result,
+        recommendations: ['Complete delivery of items before any further billing']
+      }
+    }
+
+    return {
+      eligible: false,
+      reason: `Unknown status: ${so.status}`,
+      data: result
+    }
+
+  } catch (error: any) {
+    console.error('[checkSalesOrderInvoiceEligibility] Error:', error)
+    return {
+      eligible: false,
+      reason: error.message || 'Failed to check eligibility'
+    }
+  }
+}
+
+// 14. UPDATE: Recalculate and sync Sales Order status from ERPNext
+export async function refreshSalesOrderStatus(orderId: string): Promise<{
+  success: boolean
+  newStatus?: string
+  per_billed?: number
+  per_delivered?: number
+  error?: string
+}> {
+  try {
+    console.log('[refreshSalesOrderStatus] Refreshing SO status:', orderId)
+
+    // Fetch latest SO to get current per_billed and per_delivered
+    const so = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: orderId
+    }) as any
+
+    if (!so) {
+      return { success: false, error: 'Sales Order not found' }
+    }
+
+    const perBilled = so.per_billed || 0
+    const perDelivered = so.per_delivered || 0
+    const deliveryStatus = so.delivery_status || 'Not Delivered'
+
+    // ERPNext automatically calculates status, but we can log it for debugging
+    console.log(`[refreshSalesOrderStatus] SO: ${orderId}`, {
+      status: so.status,
+      per_billed: perBilled,
+      per_delivered: perDelivered,
+      delivery_status: deliveryStatus
+    })
+
+    // Determine expected status based on ERPNext logic
+    let expectedStatus = 'To Deliver and Bill' // Default
+
+    if (perBilled >= 100 && perDelivered >= 100) {
+      expectedStatus = 'Completed'
+    } else if (perBilled >= 100) {
+      expectedStatus = 'To Deliver'
+    } else if (perDelivered >= 100) {
+      expectedStatus = 'To Bill'
+    }
+
+    return {
+      success: true,
+      newStatus: so.status,
+      per_billed: perBilled,
+      per_delivered: perDelivered
+    }
+
+  } catch (error: any) {
+    console.error('[refreshSalesOrderStatus] Error:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// 15. CREATE: Production-grade "Create Invoice from Sales Order"
+export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceData?: {
+  postingDate?: string
+  dueDate?: string
+  description?: string
+}): Promise<{
+  success?: boolean
+  invoiceName?: string
+  message?: string
+  error?: string
+  validation?: {
+    passed: boolean
+    issues: string[]
+  }
+}> {
+  try {
+    console.log('[createInvoiceFromReadySalesOrder] Creating invoice from SO:', orderId)
+
+    // 1. Check eligibility first
+    const eligibility = await checkSalesOrderInvoiceEligibility(orderId)
+
+    if (!eligibility.eligible) {
+      return {
+        error: eligibility.reason,
+        validation: {
+          passed: false,
+          issues: eligibility.recommendations || []
+        }
+      }
+    }
+
+    // 2. Fetch Sales Order
+    const so = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: orderId
+    }) as any
+
+    console.log('[createInvoiceFromReadySalesOrder] SO fetched:', {
+      name: so.name,
+      status: so.status,
+      per_billed: so.per_billed,
+      per_delivered: so.per_delivered
+    })
+
+    // 3. Use ERPNext's built-in method to generate invoice
+    const invoiceDraft = await frappeRequest(
+      'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
+      'POST',
+      { source_name: orderId }
+    ) as any
+
+    if (!invoiceDraft?.message) {
+      throw new Error('Failed to generate invoice from Sales Order template')
+    }
+
+    let invoiceDoc = invoiceDraft.message
+
+    // 4. Apply custom dates if provided
+    if (invoiceData?.postingDate) {
+      invoiceDoc.posting_date = invoiceData.postingDate
+    }
+    if (invoiceData?.dueDate) {
+      invoiceDoc.due_date = invoiceData.dueDate
+    }
+    if (invoiceData?.description) {
+      invoiceDoc.remarks = invoiceData.description
+    }
+
+    // Ensure draft status
+    invoiceDoc.docstatus = 0
+
+    console.log('[createInvoiceFromReadySalesOrder] Invoice doc prepared, items:', invoiceDoc.items?.length)
+
+    // 5. Save invoice
+    const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: invoiceDoc
+    }) as any
+
+    if (!savedInvoice?.name) {
+      throw new Error('Failed to save invoice')
+    }
+
+    const invoiceName = savedInvoice.name
+    console.log('[createInvoiceFromReadySalesOrder] Invoice created:', invoiceName)
+
+    // 6. Refresh SO status (ERPNext updates per_billed automatically)
+    try {
+      const statusRefresh = await refreshSalesOrderStatus(orderId)
+      console.log('[createInvoiceFromReadySalesOrder] SO status refreshed:', statusRefresh.newStatus)
+    } catch (statusError) {
+      console.error('[createInvoiceFromReadySalesOrder] Warning - could not refresh status:', statusError)
+      // Don't fail the whole operation
+    }
+
+    // 7. Revalidate cache
+    revalidatePath('/invoices')
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${orderId}`)
+
+    return {
+      success: true,
+      invoiceName,
+      message: `Invoice ${invoiceName} created successfully from Sales Order ${orderId}`
+    }
+
+  } catch (error: any) {
+    console.error('[createInvoiceFromReadySalesOrder] Error:', error)
+    return {
+      error: error.message || 'Failed to create invoice from sales order'
+    }
   }
 }

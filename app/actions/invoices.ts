@@ -4,6 +4,7 @@ import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 import { canCreateInvoice, incrementUsage } from "./usage-limits"
 import { headers } from "next/headers"
+import { checkSalesOrderInvoiceEligibility, refreshSalesOrderStatus } from "./sales-orders"
 
 export interface Invoice {
   name: string
@@ -20,6 +21,7 @@ export interface Invoice {
   place_of_supply?: string
   items?: any[]
   taxes?: any[]
+  sales_order?: string // Link to source SO
 }
 
 export interface PaymentEntry {
@@ -119,7 +121,7 @@ export async function getInvoices() {
       'GET', 
       {
         doctype: 'Sales Invoice',
-        fields: '["name", "customer_name", "grand_total", "status", "due_date", "currency", "docstatus"]',
+        fields: '["name", "customer_name", "grand_total", "status", "due_date", "currency", "docstatus", "sales_order"]',
         order_by: 'creation desc',
         limit_page_length: 50
       }
@@ -127,6 +129,57 @@ export async function getInvoices() {
     return response as Invoice[]
   } catch (error) {
     console.error("Failed to fetch invoices:", error)
+    return []
+  }
+}
+
+// 1.5 READ: Get Sales Orders Ready for Invoice (for pane display)
+export async function getSalesOrdersReadyForInvoicePane() {
+  try {
+    console.log('[getSalesOrdersReadyForInvoicePane] Fetching eligible sales orders')
+
+    const soList = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      filters: JSON.stringify([
+        ['docstatus', '=', '1'], // Submitted only
+        ['per_billed', '<', '100'], // Not fully billed
+        ['status', 'not in', ['Draft', 'Cancelled']]
+      ]),
+      fields: JSON.stringify([
+        'name',
+        'customer',
+        'customer_name',
+        'status',
+        'delivery_status',
+        'per_billed',
+        'per_delivered',
+        'grand_total',
+        'currency',
+        'transaction_date'
+      ]),
+      limit_page_length: 100,
+      order_by: 'transaction_date desc'
+    }) as any[]
+
+    // Enrich with eligibility data
+    const enrichedList = await Promise.all(
+      soList.map(async (so: any) => {
+        const eligibility = await checkSalesOrderInvoiceEligibility(so.name)
+        return {
+          ...so,
+          eligible: eligibility.eligible,
+          canPartiallyBill: eligibility.canPartiallyBill,
+          reason: eligibility.reason,
+          recommendations: eligibility.recommendations
+        }
+      })
+    )
+
+    console.log('[getSalesOrdersReadyForInvoicePane] Found', enrichedList.length, 'orders')
+    return enrichedList
+
+  } catch (error: any) {
+    console.error('[getSalesOrdersReadyForInvoicePane] Error:', error)
     return []
   }
 }
@@ -315,8 +368,7 @@ export async function createInvoice(data: any) {
           currentStatus: salesOrder.status
         }
       }
-
-      // Check if already fully billed
+      
       if (salesOrder.per_billed >= 100) {
         return {
           error: 'This Sales Order is already fully billed. Cannot create additional invoices.',
@@ -1088,6 +1140,182 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
     })
     return {
       error: error.message || 'Failed to create invoice from sales order'
+    }
+  }
+}
+/**
+ * PRODUCTION-GRADE: Create Invoice from Sales Order with Full Workflow
+ * This replaces the manual "New Invoice" button for SO-linked invoices
+ * Uses the "Ready for Invoice" pane pattern
+ */
+export async function createInvoiceFromSalesOrderProdReady(
+  salesOrderId: string,
+  options?: {
+    postingDate?: string
+    dueDate?: string
+    description?: string
+  }
+): Promise<{
+  success?: boolean
+  invoiceName?: string
+  message?: string
+  error?: string
+  validation?: {
+    passed: boolean
+    issues: string[]
+    recommendations?: string[]
+  }
+  invoiceEligibility?: {
+    status: string
+    delivery_status: string
+    per_billed: number
+    per_delivered: number
+  }
+}> {
+  try {
+    const headersList = await headers()
+    const subdomain = headersList.get('X-Subdomain')
+
+    console.log('[createInvoiceFromSalesOrderProdReady] Starting invoice creation from SO:', salesOrderId)
+
+    // 1. Check usage limits
+    if (subdomain) {
+      const usageCheck = await canCreateInvoice(subdomain)
+      if (!usageCheck.allowed) {
+        return {
+          error: usageCheck.message || 'Invoice limit reached',
+          validation: {
+            passed: false,
+            issues: ['Invoice creation limit reached for this workspace']
+          }
+        }
+      }
+    }
+
+    // 2. Check eligibility with detailed validation
+    const eligibility = await checkSalesOrderInvoiceEligibility(salesOrderId)
+
+    if (!eligibility.eligible) {
+      return {
+        error: eligibility.reason,
+        validation: {
+          passed: false,
+          issues: eligibility.recommendations || [],
+          recommendations: eligibility.recommendations
+        },
+        invoiceEligibility: eligibility.data
+      }
+    }
+
+    // 3. Fetch Sales Order data
+    const so = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: salesOrderId
+    }) as any
+
+    if (!so) {
+      return {
+        error: 'Sales Order not found',
+        validation: { passed: false, issues: ['Sales Order was deleted'] }
+      }
+    }
+
+    console.log('[createInvoiceFromSalesOrderProdReady] SO validation passed:', {
+      status: so.status,
+      per_billed: so.per_billed,
+      per_delivered: so.per_delivered
+    })
+
+    // 4. Generate invoice from SO using ERPNext method
+    const invoiceDraft = await frappeRequest(
+      'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
+      'POST',
+      { source_name: salesOrderId }
+    ) as any
+
+    if (!invoiceDraft?.message) {
+      return {
+        error: 'Failed to generate invoice template from Sales Order',
+        validation: {
+          passed: false,
+          issues: ['ERPNext template generation failed']
+        }
+      }
+    }
+
+    let invoiceDoc = invoiceDraft.message
+
+    // 5. Apply custom data
+    if (options?.postingDate) {
+      invoiceDoc.posting_date = options.postingDate
+    }
+    if (options?.dueDate) {
+      invoiceDoc.due_date = options.dueDate
+    }
+    if (options?.description) {
+      invoiceDoc.remarks = options.description
+    }
+
+    invoiceDoc.docstatus = 0 // Draft
+
+    console.log('[createInvoiceFromSalesOrderProdReady] Invoice doc prepared, items:', invoiceDoc.items?.length)
+
+    // 6. Save invoice
+    const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: invoiceDoc
+    }) as any
+
+    if (!savedInvoice?.name) {
+      return {
+        error: 'Failed to save invoice to database',
+        validation: {
+          passed: false,
+          issues: ['Database insertion failed']
+        }
+      }
+    }
+
+    const invoiceName = savedInvoice.name
+
+    // 7. Increment usage
+    if (subdomain) {
+      try {
+        await incrementUsage(subdomain, 'usage_invoices')
+      } catch (usageError) {
+        console.error('[createInvoiceFromSalesOrderProdReady] Warning - could not increment usage:', usageError)
+      }
+    }
+
+    // 8. Refresh SO status (ERPNext updates per_billed automatically)
+    try {
+      await refreshSalesOrderStatus(salesOrderId)
+    } catch (statusError) {
+      console.error('[createInvoiceFromSalesOrderProdReady] Warning - status refresh failed:', statusError)
+    }
+
+    // 9. Invalidate caches
+    revalidatePath('/invoices')
+    revalidatePath(`/invoices/${invoiceName}`)
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${salesOrderId}`)
+
+    console.log('[createInvoiceFromSalesOrderProdReady] Invoice created successfully:', invoiceName)
+
+    return {
+      success: true,
+      invoiceName,
+      message: `Invoice ${invoiceName} created successfully from Sales Order ${salesOrderId}. You can now review and submit it.`,
+      validation: { passed: true, issues: [] }
+    }
+
+  } catch (error: any) {
+    console.error('[createInvoiceFromSalesOrderProdReady] Fatal error:', error)
+    return {
+      error: error.message || 'Unexpected error during invoice creation',
+      validation: {
+        passed: false,
+        issues: [error.message || 'Unknown error occurred']
+      }
     }
   }
 }
