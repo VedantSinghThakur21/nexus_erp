@@ -283,6 +283,54 @@ export async function createInvoice(data: any) {
       }
     }
   }
+
+  // Validate Sales Order if provided (implementing "ready for quotation" workflow for invoices)
+  if (data.sales_order) {
+    try {
+      console.log('[createInvoice] Validating sales order:', data.sales_order)
+      
+      const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Sales Order',
+        name: data.sales_order
+      }) as any
+
+      if (!salesOrder) {
+        return { error: 'Linked Sales Order not found' }
+      }
+
+      // Validate Sales Order is submitted
+      if (salesOrder.docstatus !== 1) {
+        return {
+          error: 'Cannot create invoice from draft Sales Order. Please submit the sales order first.',
+          needsSubmission: true
+        }
+      }
+
+      // Validate Sales Order status
+      const invalidStatuses = ['Draft', 'Cancelled', 'On Hold']
+      if (invalidStatuses.includes(salesOrder.status)) {
+        return {
+          error: `Cannot create invoice from Sales Order with status "${salesOrder.status}". Sales Order must be ready for invoicing.`,
+          invalidStatus: true,
+          currentStatus: salesOrder.status
+        }
+      }
+
+      // Check if already fully billed
+      if (salesOrder.per_billed >= 100) {
+        return {
+          error: 'This Sales Order is already fully billed. Cannot create additional invoices.',
+          alreadyFullyBilled: true,
+          perBilled: salesOrder.per_billed
+        }
+      }
+
+      console.log('[createInvoice] Sales order validation passed')
+    } catch (validationError: any) {
+      console.error('[createInvoice] Sales order validation error:', validationError)
+      return { error: `Sales Order validation failed: ${validationError.message}` }
+    }
+  }
   
   // Process items to preserve rental data if coming from Sales Order
   const processedItems = (data.items || []).map((item: any) => {
@@ -890,5 +938,156 @@ export async function getPaymentEntry(id: string): Promise<PaymentEntry | null> 
   } catch (error) {
     console.error('Failed to fetch payment entry:', error)
     return null
+  }
+}
+
+// 15. CREATE INVOICE FROM SALES ORDER (Ready for Quotation workflow)
+export async function createInvoiceFromOrder(salesOrderId: string, postingDate?: string, dueDate?: string) {
+  try {
+    console.log('[createInvoiceFromOrder] Starting invoice creation from sales order:', salesOrderId)
+
+    // 1. Fetch and validate Sales Order
+    const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: salesOrderId
+    }) as any
+
+    if (!salesOrder) {
+      return { error: 'Sales Order not found' }
+    }
+
+    console.log('[createInvoiceFromOrder] Sales Order fetched:', salesOrder.name, 'Status:', salesOrder.status, 'DocStatus:', salesOrder.docstatus)
+
+    // 2. Validate Sales Order is submitted (not draft)
+    if (salesOrder.docstatus !== 1) {
+      return {
+        error: 'Sales Order must be submitted before creating an invoice. Please submit the sales order first.',
+        needsSubmission: true
+      }
+    }
+
+    // 3. Validate Sales Order status is appropriate for invoicing
+    const invalidStatuses = ['Draft', 'Cancelled', 'On Hold']
+    if (invalidStatuses.includes(salesOrder.status)) {
+      return {
+        error: `Cannot create invoice from Sales Order with status "${salesOrder.status}". Sales Order must be in "To Deliver and Bill", "To Bill", or "Completed" status.`,
+        invalidStatus: true,
+        currentStatus: salesOrder.status
+      }
+    }
+
+    // 4. Check if already fully billed
+    if (salesOrder.per_billed >= 100) {
+      return {
+        error: 'This Sales Order is already fully billed (100% billed). Cannot create additional invoices.',
+        alreadyFullyBilled: true,
+        perBilled: salesOrder.per_billed
+      }
+    }
+
+    // 5. Check delivery status for orders that need delivery
+    if (salesOrder.delivery_status === 'Not Delivered' && salesOrder.status === 'To Deliver and Bill') {
+      return {
+        error: 'Sales Order items must be delivered before invoicing. Please create a Delivery Note first.',
+        needsDelivery: true,
+        deliveryStatus: salesOrder.delivery_status
+      }
+    }
+
+    console.log('[createInvoiceFromOrder] Validation passed, creating invoice...')
+
+    // 6. Use ERPNext's built-in method to create sales invoice from sales order
+    const invoiceDraft = await frappeRequest(
+      'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
+      'POST',
+      { source_name: salesOrderId }
+    ) as any
+
+    if (!invoiceDraft || !invoiceDraft.message) {
+      return { error: 'Failed to generate invoice draft from Sales Order' }
+    }
+
+    const invoiceDoc = invoiceDraft.message
+
+    // 7. Override dates if provided
+    if (postingDate) {
+      invoiceDoc.posting_date = postingDate
+    }
+    if (dueDate) {
+      invoiceDoc.due_date = dueDate
+    }
+
+    // 8. Ensure invoice is created as draft (docstatus = 0)
+    invoiceDoc.docstatus = 0
+
+    console.log('[createInvoiceFromOrder] Invoice draft created, saving...')
+
+    // 9. Save the invoice
+    const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: invoiceDoc
+    }) as { name?: string }
+
+    if (!savedInvoice || !savedInvoice.name) {
+      return { error: 'Failed to save invoice' }
+    }
+
+    const invoiceId = savedInvoice.name
+    console.log('[createInvoiceFromOrder] Invoice created successfully:', invoiceId)
+
+    // 10. Update Sales Order status based on billing progress
+    try {
+      const updatedSalesOrder = await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Sales Order',
+        name: salesOrderId
+      }) as any
+
+      // ERPNext automatically updates per_billed, but we can ensure status is correct
+      if (updatedSalesOrder.per_billed >= 100) {
+        await frappeRequest('frappe.client.set_value', 'POST', {
+          doctype: 'Sales Order',
+          name: salesOrderId,
+          fieldname: 'status',
+          value: 'Completed'
+        })
+      } else {
+        // Keep as "To Bill and Deliver" or "To Bill" based on delivery status
+        const newStatus = updatedSalesOrder.delivery_status === 'Fully Delivered' ? 'To Bill' : 'To Deliver and Bill'
+        await frappeRequest('frappe.client.set_value', 'POST', {
+          doctype: 'Sales Order',
+          name: salesOrderId,
+          fieldname: 'status',
+          value: newStatus
+        })
+      }
+
+      console.log('[createInvoiceFromOrder] Sales Order status updated')
+    } catch (statusError) {
+      console.error('[createInvoiceFromOrder] Error updating Sales Order status:', statusError)
+      // Don't fail the invoice creation if status update fails
+    }
+
+    // 11. Revalidate paths
+    revalidatePath('/invoices')
+    revalidatePath(`/invoices/${invoiceId}`)
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${salesOrderId}`)
+
+    console.log('[createInvoiceFromOrder] Invoice creation completed successfully')
+    return {
+      success: true,
+      invoiceId,
+      invoice: savedInvoice,
+      salesOrderUpdated: true
+    }
+
+  } catch (error: any) {
+    console.error('[createInvoiceFromOrder] Error during invoice creation:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: error
+    })
+    return {
+      error: error.message || 'Failed to create invoice from sales order'
+    }
   }
 }

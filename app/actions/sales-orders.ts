@@ -8,6 +8,7 @@ export interface SalesOrder {
   customer: string
   customer_name?: string
   status: string // Draft | To Deliver and Bill | To Bill | To Deliver | Completed | Cancelled | On Hold
+                // "To Bill" and "To Deliver and Bill" indicate "Ready for Invoice"
   delivery_status?: string // Not Delivered | Partly Delivered | Fully Delivered | Closed | Not Applicable
   transaction_date: string
   delivery_date?: string
@@ -383,6 +384,107 @@ export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
     return orders || []
   } catch (error: any) {
     console.error("Failed to fetch sales orders ready for invoice:", error)
+    return []
+  }
+}
+
+// 11. UPDATE: Mark Sales Order as Ready for Invoice
+export async function markSalesOrderReadyForInvoice(orderId: string) {
+  try {
+    console.log('[markSalesOrderReadyForInvoice] Marking sales order as ready for invoice:', orderId)
+
+    // Fetch current sales order to validate
+    const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'Sales Order',
+      name: orderId
+    }) as any
+
+    if (!salesOrder) {
+      return { error: 'Sales Order not found' }
+    }
+
+    // Validate that the order is submitted
+    if (salesOrder.docstatus !== 1) {
+      return {
+        error: 'Sales Order must be submitted before marking as ready for invoice',
+        needsSubmission: true
+      }
+    }
+
+    // Validate that it's not already fully billed
+    if (salesOrder.per_billed >= 100) {
+      return {
+        error: 'Sales Order is already fully billed',
+        alreadyFullyBilled: true
+      }
+    }
+
+    // Determine appropriate status based on delivery status
+    let newStatus: string
+    if (salesOrder.delivery_status === 'Fully Delivered') {
+      newStatus = 'To Bill'
+    } else if (salesOrder.delivery_status === 'Partly Delivered' || salesOrder.delivery_status === 'Not Delivered') {
+      newStatus = 'To Deliver and Bill'
+    } else {
+      newStatus = 'To Bill' // Default for other cases
+    }
+
+    // Update the status
+    await frappeRequest('frappe.client.set_value', 'POST', {
+      doctype: 'Sales Order',
+      name: orderId,
+      fieldname: 'status',
+      value: newStatus
+    })
+
+    console.log('[markSalesOrderReadyForInvoice] Sales order marked as ready for invoice with status:', newStatus)
+
+    revalidatePath('/sales-orders')
+    revalidatePath(`/sales-orders/${orderId}`)
+
+    return {
+      success: true,
+      newStatus,
+      deliveryStatus: salesOrder.delivery_status,
+      perBilled: salesOrder.per_billed
+    }
+
+  } catch (error: any) {
+    console.error('[markSalesOrderReadyForInvoice] Error:', error)
+    return { error: error.message || 'Failed to mark sales order as ready for invoice' }
+  }
+}
+
+// 12. READ: Get Sales Orders Eligible for Invoice Preparation
+export async function getSalesOrdersEligibleForInvoice(): Promise<SalesOrder[]> {
+  try {
+    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      filters: JSON.stringify([
+        ['docstatus', '=', '1'], // Must be submitted
+        ['per_billed', '<', '100'], // Not fully billed
+        ['status', 'not in', ['Cancelled', 'Completed']] // Not cancelled or completed
+      ]),
+      fields: JSON.stringify([
+        'name',
+        'customer',
+        'customer_name',
+        'transaction_date',
+        'delivery_date',
+        'grand_total',
+        'status',
+        'delivery_status',
+        'per_billed',
+        'per_delivered',
+        'currency'
+      ]),
+      limit_page_length: 50,
+      order_by: 'transaction_date desc'
+    }) as SalesOrder[]
+
+    return orders || []
+  } catch (error: any) {
+    console.error("Failed to fetch sales orders eligible for invoice:", error)
     return []
   }
 }
