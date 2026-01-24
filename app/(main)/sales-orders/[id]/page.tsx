@@ -362,50 +362,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                             }}
                           />
                         </div>                        
-                        {/* Rental Pricing Breakdown */}
-                        {(item.custom_base_rental_cost > 0 || item.custom_accommodation_charges > 0 ||
-                          item.custom_usage_charges > 0 || item.custom_fuel_charges > 0 ||
-                          item.custom_elongation_charges > 0 || item.custom_risk_charges > 0 ||
-                          item.custom_commercial_charges > 0 || item.custom_incidental_charges > 0 ||
-                          item.custom_other_charges > 0) && (
-                          <div className="mt-4">
-                            <h5 className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                              <Package className="w-3.5 h-3.5" />
-                              Rental Pricing Breakdown
-                            </h5>
-                            <RentalPricingBreakdown
-                              item={{
-                                item_code: item.item_code || '',
-                                item_name: item.item_name || '',
-                                description: item.description || '',
-                                qty: item.qty || 1,
-                                rate: item.rate || 0,
-                                amount: item.amount || 0,
-                                rental_type: (item.custom_rental_type || 'days') as 'hours' | 'days' | 'months',
-                                rental_duration: item.custom_rental_duration || 1,
-                                rental_start_date: item.custom_rental_start_date || '',
-                                rental_end_date: item.custom_rental_end_date || '',
-                                rental_start_time: item.custom_rental_start_time || '',
-                                rental_end_time: item.custom_rental_end_time || '',
-                                requires_operator: item.custom_requires_operator || false,
-                                operator_included: item.custom_operator_included || false,
-                                operator_name: item.custom_operator_name || '',
-                                pricing_components: {
-                                  base_cost: item.custom_base_rental_cost || 0,
-                                  accommodation_charges: item.custom_accommodation_charges || 0,
-                                  usage_charges: item.custom_usage_charges || 0,
-                                  fuel_charges: item.custom_fuel_charges || 0,
-                                  elongation_charges: item.custom_elongation_charges || 0,
-                                  risk_charges: item.custom_risk_charges || 0,
-                                  commercial_charges: item.custom_commercial_charges || 0,
-                                  incidental_charges: item.custom_incidental_charges || 0,
-                                  other_charges: item.custom_other_charges || 0
-                                },
-                                total_rental_cost: item.custom_total_rental_cost || 0
-                              }}
-                            />
-                          </div>
-                        )}                      </div>
+                      </div>
                     )}
                   </div>
                 )
