@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 import { getInvoices, getSalesOrdersReadyForInvoicePane } from "@/app/actions/invoices"
 import { getSalesOrdersEligibleForInvoice, getSalesOrders } from "@/app/actions/sales-orders"
 import { AnimatedButton } from "@/components/ui/animated"
