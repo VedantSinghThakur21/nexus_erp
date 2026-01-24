@@ -122,7 +122,7 @@ export default async function SalesOrdersPage() {
             <CardContent className="p-6">
               <div className="space-y-3">
                 {/* Table Header */}
-                <div className="grid grid-cols-8 gap-4 pb-3 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <div className="grid grid-cols-9 gap-4 pb-3 border-b border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400">
                   <div>ORDER ID</div>
                   <div>CUSTOMER</div>
                   <div>ORDER DATE</div>
@@ -131,11 +131,12 @@ export default async function SalesOrdersPage() {
                   <div>AMOUNT</div>
                   <div>DELIVERY</div>
                   <div>STATUS</div>
+                  <div>ACTIONS</div>
                 </div>
 
                 {/* Table Rows */}
                 {orders.map((order) => (
-                  <div key={order.name} className="grid grid-cols-8 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors">
+                  <div key={order.name} className="grid grid-cols-9 gap-4 py-3 text-sm items-center hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors">
                     <div className="font-medium text-blue-600 dark:text-blue-400">
                       <Link href={`/sales-orders/${order.name}`}>{order.name}</Link>
                     </div>
@@ -164,14 +165,18 @@ export default async function SalesOrdersPage() {
                       >
                         {order.status}
                       </Badge>
-                      {/* Delivery Update Card (inline for demo, ideally modal or details view) */}
-                      <div className="mt-2">
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href={`/sales-orders/${order.name}`}>
+                        <Button variant="outline" size="sm">View</Button>
+                      </Link>
+                      {order.status !== "Completed" && order.status !== "Cancelled" && (
                         <DeliveryUpdateCard
                           deliveryDate={order.delivery_date || ''}
                           deliveryStatus={order.delivery_status || 'Not Delivered'}
                           orderId={order.name}
                         />
-                      </div>
+                      )}
                     </div>
                   </div>
                 ))}
