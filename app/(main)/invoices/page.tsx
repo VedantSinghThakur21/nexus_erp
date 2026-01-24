@@ -1,5 +1,4 @@
-import { getInvoices } from "@/app/actions/invoices"
-import { getSalesOrdersReadyForInvoice } from "@/app/actions/sales-orders"
+import { getInvoices, getSalesOrdersReadyForInvoicePane } from "@/app/actions/invoices"
 import { AnimatedButton } from "@/components/ui/animated"
 import { Plus, FileText, Calendar, DollarSign, CheckCircle } from "lucide-react"
 import Link from "next/link"
@@ -14,7 +13,7 @@ export const dynamic = 'force-dynamic'
 export default async function InvoicesPage() {
   const [invoices, readyForInvoice] = await Promise.all([
     getInvoices(),
-    getSalesOrdersReadyForInvoice()
+    getSalesOrdersReadyForInvoicePane()
   ])
 
   // Calculate total revenue from the fetched list
