@@ -6,11 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
+import { updateSalesOrder } from "@/app/actions/sales-orders";
 
 interface DeliveryUpdateCardProps {
   deliveryDate: string;
   deliveryStatus: string;
-  onUpdate: (date: string, status: string) => Promise<{ success?: boolean; error?: string }>;
+  orderId: string;
 }
 
 const DELIVERY_STATUS_OPTIONS = [
@@ -21,7 +22,7 @@ const DELIVERY_STATUS_OPTIONS = [
   "Not Applicable"
 ];
 
-export function DeliveryUpdateCard({ deliveryDate, deliveryStatus, onUpdate }: DeliveryUpdateCardProps) {
+export function DeliveryUpdateCard({ deliveryDate, deliveryStatus, orderId }: DeliveryUpdateCardProps) {
   const [date, setDate] = useState(deliveryDate);
   const [status, setStatus] = useState(deliveryStatus);
   const [loading, setLoading] = useState(false);
@@ -29,7 +30,14 @@ export function DeliveryUpdateCard({ deliveryDate, deliveryStatus, onUpdate }: D
 
   const handleUpdate = async () => {
     setLoading(true);
-    const result = await onUpdate(date, status);
+    const data: any = {};
+    if (date !== deliveryDate) data.delivery_date = date;
+    if (status !== deliveryStatus) data.delivery_status = status;
+    if (Object.keys(data).length === 0) {
+      setLoading(false);
+      return;
+    }
+    const result = await updateSalesOrder(orderId, data);
     setLoading(false);
     if (result.success) {
       addToast({ type: "success", title: "Updated!", message: "Delivery details updated." });

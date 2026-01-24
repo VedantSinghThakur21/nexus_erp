@@ -169,14 +169,7 @@ export default async function SalesOrdersPage() {
                         <DeliveryUpdateCard
                           deliveryDate={order.delivery_date || ''}
                           deliveryStatus={order.delivery_status || 'Not Delivered'}
-                          onUpdate={async (date, status) => {
-                            // Only update if changed
-                            const data: any = {};
-                            if (date !== order.delivery_date) data.delivery_date = date;
-                            if (status !== order.delivery_status) data.delivery_status = status;
-                            if (Object.keys(data).length === 0) return { success: true };
-                            return await updateSalesOrder(order.name, data);
-                          }}
+                          orderId={order.name}
                         />
                       </div>
                     </div>
