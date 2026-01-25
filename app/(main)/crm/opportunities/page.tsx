@@ -50,16 +50,16 @@ export default async function OpportunitiesPage() {
     : 0
 
   return (
-    <div className="p-6 space-y-6 bg-slate-950 min-h-screen">
-      <div className="flex justify-between items-end mb-4">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-3xl font-bold tracking-tight text-white leading-tight mb-1">Sales Pipeline</h1>
-          <p className="text-slate-400 text-base">Track opportunities through the sales process</p>
+    <div className="p-8 space-y-6">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sales Pipeline</h1>
+          <p className="text-slate-500 dark:text-slate-400">Track opportunities through the sales process</p>
         </div>
-        <div className="flex items-end gap-6">
-          <div className="text-right bg-slate-900 rounded-lg px-6 py-3 shadow border border-slate-800">
-            <div className="text-xs text-slate-400">Total Pipeline Value</div>
-            <div className="text-3xl font-bold text-green-400">₹{totalPipelineValue.toLocaleString('en-IN')}</div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-sm text-slate-500">Total Pipeline Value</div>
+            <div className="text-2xl font-bold text-green-600">₹{totalPipelineValue.toLocaleString('en-IN')}</div>
           </div>
           <div className="flex gap-2">
             <Link href="/crm/quotations">
@@ -75,46 +75,44 @@ export default async function OpportunitiesPage() {
       </div>
 
       {/* Pipeline Stats */}
-      <div className="grid gap-6 md:grid-cols-3 mt-2 mb-4">
-        <Card className="py-5 px-6 shadow-md border-0 bg-gradient-to-br from-slate-900 to-slate-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0">
-            <CardTitle className="text-base font-semibold text-white">Open</CardTitle>
-            <TrendingUp className="h-5 w-5 text-blue-400" />
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Open Opportunities</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
-          <CardContent className="px-0 pt-1 pb-0">
-            <div className="text-2xl font-bold text-white">{activeOpportunities.length}</div>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeOpportunities.length}</div>
           </CardContent>
         </Card>
         
-        <Card className="py-5 px-6 shadow-md border-0 bg-gradient-to-br from-slate-900 to-slate-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0">
-            <CardTitle className="text-base font-semibold text-white">Won This Month</CardTitle>
-            <DollarSign className="h-5 w-5 text-green-400" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Won This Month</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
-          <CardContent className="px-0 pt-1 pb-0">
-            <div className="text-2xl font-bold text-white">{wonThisMonth}</div>
+          <CardContent>
+            <div className="text-2xl font-bold">{wonThisMonth}</div>
           </CardContent>
         </Card>
 
-        <Card className="py-5 px-6 shadow-md border-0 bg-gradient-to-br from-slate-900 to-slate-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0">
-            <CardTitle className="text-base font-semibold text-white">Avg. Probability</CardTitle>
-            <Calendar className="h-5 w-5 text-purple-400" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Probability</CardTitle>
+            <Calendar className="h-4 w-4 text-purple-600" />
           </CardHeader>
-          <CardContent className="px-0 pt-1 pb-0">
-            <div className="text-2xl font-bold text-white">{avgProbability}%</div>
+          <CardContent>
+            <div className="text-2xl font-bold">{avgProbability}%</div>
           </CardContent>
         </Card>
       </div>
 
       {/* View Component with Kanban and List */}
-      <div className="mt-6">
-        <OpportunitiesView 
-          opportunities={activeOpportunities} 
-          groupedOpportunities={groupedOpportunities}
-          stages={stages} 
-        />
-      </div>
+      <OpportunitiesView 
+        opportunities={activeOpportunities} 
+        groupedOpportunities={groupedOpportunities}
+        stages={stages} 
+      />
 
       {/* Won Opportunities Section - Summary */}
       {wonOpportunities.length > 0 && (
