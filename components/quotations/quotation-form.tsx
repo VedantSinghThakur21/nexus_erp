@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ItemSearch } from "./item-search"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -364,13 +365,14 @@ export default function QuotationForm() {
               <tbody>
                 {items.map((item, index) => (
                   <tr key={index} className="border-b border-slate-100 dark:border-slate-800">
-                    <td className="py-2 px-2">
-                      <Input
-                        required
-                        placeholder="Item code"
+                    <td className="py-2 px-2 min-w-[220px]">
+                      <ItemSearch
                         value={item.item_code}
-                        onChange={(e) => updateItem(index, 'item_code', e.target.value)}
-                        className="text-sm"
+                        onChange={(item_code, description, item_name) => {
+                          updateItem(index, 'item_code', item_code);
+                          if (item_name) updateItem(index, 'item_name', item_name);
+                          if (description) updateItem(index, 'description', description);
+                        }}
                       />
                     </td>
                     <td className="py-2 px-2">

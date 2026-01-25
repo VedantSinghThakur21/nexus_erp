@@ -502,14 +502,31 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
     const opportunityId = savedOpportunity.name
     console.log('[convertLeadToOpportunity] Opportunity created successfully:', opportunityId)
 
-    // 8. Update Lead status to "Converted"
-    await frappeRequest('frappe.client.set_value', 'POST', {
-      doctype: 'Lead',
-      name: leadId,
-      fieldname: 'status',
-      value: 'Converted'
-    })
-    console.log('[convertLeadToOpportunity] Lead status updated to "Converted"')
+    // 8. Update both statuses atomically to ensure conversion is fully successful
+    try {
+      // Update Opportunity status to "Converted" (since it was created from a lead conversion)
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Opportunity',
+        name: opportunityId,
+        fieldname: 'status',
+        value: 'Converted'
+      })
+      console.log('[convertLeadToOpportunity] Opportunity status updated to "Converted"')
+
+      // Update Lead status to "Converted"
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Lead',
+        name: leadId,
+        fieldname: 'status',
+        value: 'Converted'
+      })
+      console.log('[convertLeadToOpportunity] Lead status updated to "Converted"')
+    } catch (statusUpdateError: any) {
+      console.error('[convertLeadToOpportunity] Failed to update statuses after opportunity creation:', statusUpdateError)
+      // If status updates fail, we should consider the conversion incomplete
+      // The opportunity exists but statuses weren't updated properly
+      throw new Error(`Conversion partially failed: ${statusUpdateError.message}`)
+    }
 
     // 9. Revalidate paths to refresh UI
     revalidatePath('/crm')
