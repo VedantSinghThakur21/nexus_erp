@@ -85,18 +85,26 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
 
   // Filter and sort opportunities for list view
   let filteredOpps = opportunities.filter(opp => {
-    const matchesSearch = searchQuery === "" || 
-      (opp.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-       opp.party_name?.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesStage = !selectedStage || opp.sales_stage === selectedStage
-    return matchesSearch && matchesStage
-  })
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      query === "" ||
+      (opp.customer_name?.toLowerCase().includes(query) ||
+        opp.party_name?.toLowerCase().includes(query) ||
+        opp.opportunity_type?.toLowerCase().includes(query));
+    const matchesStage = !selectedStage || opp.sales_stage === selectedStage;
+    return matchesSearch && matchesStage;
+  });
 
   if (sortBy === 'value') {
-    filteredOpps = [...filteredOpps].sort((a, b) => (b.opportunity_amount || 0) - (a.opportunity_amount || 0))
+    filteredOpps = [...filteredOpps].sort((a, b) => (b.opportunity_amount || 0) - (a.opportunity_amount || 0));
   } else {
-    filteredOpps = [...filteredOpps].sort((a, b) => (b.probability || 0) - (a.probability || 0))
+    filteredOpps = [...filteredOpps].sort((a, b) => (b.probability || 0) - (a.probability || 0));
   }
+
+  // Reset to page 1 when filter/sort/search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStage, sortBy]);
 
   const totalPages = Math.ceil(filteredOpps.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -245,12 +253,19 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
             <Button variant="outline" size="icon">
               <SlidersHorizontal className="h-4 w-4" />
             </Button>
-            <Button 
-              variant={sortBy === 'value' ? 'default' : 'outline'} 
+            <Button
+              variant={sortBy === 'value' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSortBy('value')}
             >
               Sort: Value (High-Low)
+            </Button>
+            <Button
+              variant={sortBy === 'probability' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSortBy('probability')}
+            >
+              Sort: Probability (High-Low)
             </Button>
           </div>
         )}
