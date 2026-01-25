@@ -207,10 +207,10 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* View Toggle Buttons */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
           <Button
             variant={view === 'kanban' ? 'default' : 'ghost'}
             size="sm"
@@ -232,14 +232,14 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
         </div>
 
         {view === 'list' && (
-          <div className="flex items-center gap-4">
-            <div className="relative w-80">
+          <div className="flex items-center gap-2">
+            <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search deals, companies, or tags..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-8 h-8 text-sm"
               />
             </div>
             <Button variant="outline" size="icon">
@@ -258,7 +258,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
 
       {/* Kanban View */}
       {view === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
           {groupedOpportunities.map((stage) => (
             <div 
               key={stage.name} 
@@ -269,25 +269,25 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
               onDrop={(e) => handleDrop(e, stage.name)}
             >
               <Card className={`border-t-4 ${stage.color.split(' ')[2]} h-full flex flex-col transition-all ${
-                dragOverStage === stage.name ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.02]' : ''
+                dragOverStage === stage.name ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.01]' : ''
               }`}>
-                <CardHeader className="pb-3 space-y-2">
-                  <div className="flex justify-between items-start">
+                <CardHeader className="pb-2 space-y-1">
+                  <div className="flex justify-between items-center">
                     <div className="flex-1">
-                      <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      <CardTitle className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                         {stage.name}
                       </CardTitle>
-                      <p className="text-xs text-slate-500 mt-1">Stage {stage.stage}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Stage {stage.stage}</p>
                     </div>
-                    <Badge variant="secondary" className={`${stage.color} text-xs font-semibold`}>
+                    <Badge variant="secondary" className={`${stage.color} text-[11px] font-semibold px-2 py-0.5`}>
                       {stage.opportunities.length}
                     </Badge>
                   </div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">
                     ₹{stage.totalValue.toLocaleString('en-IN')}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3 flex-1 overflow-y-auto max-h-[600px]">
+                <CardContent className="space-y-2 flex-1 overflow-y-auto max-h-[480px]">
                   {stage.opportunities.length === 0 ? (
                     <div className="text-xs text-slate-400 text-center py-8 border-2 border-dashed border-slate-200 rounded-lg">
                       No opportunities
@@ -305,23 +305,23 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                         <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`} onClick={(e) => {
                           if (draggedItem) e.preventDefault()
                         }}>
-                          <Card className="hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer border bg-white dark:bg-slate-900">
-                            <CardContent className="p-4">
-                              <div className="space-y-3">
-                                <div className="font-semibold text-sm text-slate-900 dark:text-white line-clamp-2">
+                          <Card className="hover:shadow-md hover:border-blue-300 transition-all cursor-pointer border bg-white dark:bg-slate-900">
+                            <CardContent className="p-2">
+                              <div className="space-y-1">
+                                <div className="font-semibold text-xs text-slate-900 dark:text-white line-clamp-2">
                                   {opp.customer_name || opp.party_name}
                                 </div>
-                                <div className="flex items-center justify-between text-xs">
+                                <div className="flex items-center justify-between text-[11px]">
                                   <span className="text-slate-500">{opp.opportunity_type}</span>
-                                  <Badge variant="outline" className="text-xs font-semibold">
+                                  <Badge variant="outline" className="text-[11px] font-semibold px-1.5 py-0.5">
                                     {opp.probability}%
                                   </Badge>
                                 </div>
-                                <div className="text-base font-bold text-green-600">
+                                <div className="text-sm font-bold text-green-600">
                                   ₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}
                                 </div>
                                 {opp.expected_closing && (
-                                  <div className="text-xs text-slate-400 flex items-center gap-1">
+                                  <div className="text-[11px] text-slate-400 flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
                                     {new Date(opp.expected_closing).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                                   </div>
@@ -344,7 +344,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
       {view === 'list' && (
         <div className="space-y-4">
           {/* Stage Filter Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2 border-b">
+          <div className="flex gap-1 overflow-x-auto pb-1 border-b">
             <Button
               variant={selectedStage === null ? "default" : "ghost"}
               size="sm"
@@ -370,23 +370,23 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
           </div>
 
           {/* Stage Value Header */}
-          <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
+          <div className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {selectedStage || 'All Stages'}
               </h3>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs text-slate-500">
                 {selectedStage ? `Stage ${stages.find(s => s.name === selectedStage)?.stage}` : 'Complete Pipeline'}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-slate-500">Stage Value</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">₹{totalValue.toLocaleString('en-IN')}</p>
+              <p className="text-xs text-slate-500">Stage Value</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">₹{totalValue.toLocaleString('en-IN')}</p>
             </div>
           </div>
 
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-900 rounded-lg font-semibold text-sm text-slate-600">
+          <div className="grid grid-cols-12 gap-2 px-2 py-2 bg-slate-50 dark:bg-slate-900 rounded-lg font-semibold text-xs text-slate-600">
             <div className="col-span-3">DEAL NAME</div>
             <div className="col-span-2">VALUE</div>
             <div className="col-span-2">OWNER</div>
@@ -395,7 +395,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
           </div>
 
           {/* Table Body */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             {paginatedOpps.length === 0 ? (
               <div className="text-center py-12 text-slate-400">
                 <p>No opportunities found</p>
@@ -409,22 +409,22 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                 return (
                   <div 
                     key={opp.name} 
-                    className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-900 border rounded-lg transition-colors"
+                    className="grid grid-cols-12 gap-2 px-2 py-2 hover:bg-slate-50 dark:hover:bg-slate-900 border rounded-lg transition-colors"
                   >
                     <Link 
                       href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
                       className="col-span-3 cursor-pointer"
                     >
-                      <div className="font-semibold text-slate-900 dark:text-white">
+                      <div className="font-semibold text-xs text-slate-900 dark:text-white">
                         {opp.customer_name || opp.party_name}
                       </div>
-                      <div className="text-xs text-slate-500 mt-1">{opp.opportunity_type}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{opp.opportunity_type}</div>
                     </Link>
                     <Link 
                       href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
                       className="col-span-2 cursor-pointer"
                     >
-                      <div className="font-bold text-slate-900 dark:text-white">
+                      <div className="font-bold text-xs text-slate-900 dark:text-white">
                         ₹{opp.opportunity_amount.toLocaleString('en-IN')}
                       </div>
                     </Link>
@@ -432,12 +432,12 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                       href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
                       className="col-span-2 cursor-pointer"
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                      <div className="flex items-center gap-1">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
                           {opp.contact_by?.substring(0, 2).toUpperCase() || 
                            (opp.customer_name || opp.party_name || 'UN')?.substring(0, 2).toUpperCase()}
                         </div>
-                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                        <span className="text-xs text-slate-700 dark:text-slate-300">
                           {opp.contact_by || 'Unassigned'}
                         </span>
                       </div>
@@ -448,8 +448,8 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                         onValueChange={(value) => handleStageChange(opp.name, value)}
                         disabled={updatingStage === opp.name}
                       >
-                        <SelectTrigger className="h-8 border-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800">
-                          <div className="text-sm font-medium">
+                        <SelectTrigger className="h-7 border-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-xs">
+                          <div className="text-xs font-medium">
                             {updatingStage === opp.name ? 'Updating...' : opp.sales_stage}
                           </div>
                         </SelectTrigger>
@@ -469,10 +469,10 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                       href={`/crm/opportunities/${encodeURIComponent(opp.name)}`}
                       className="col-span-3 flex items-center justify-between cursor-pointer"
                     >
-                      <Badge className={`${statusBadge.color} text-xs font-semibold`}>
+                      <Badge className={`${statusBadge.color} text-[11px] font-semibold px-2 py-0.5`}>
                         {statusBadge.label}
                       </Badge>
-                      <Badge variant="outline" className="text-xs font-semibold">
+                      <Badge variant="outline" className="text-[11px] font-semibold px-1.5 py-0.5">
                         {opp.probability}%
                       </Badge>
                     </Link>
@@ -484,8 +484,8 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t bg-slate-50 dark:bg-slate-900 rounded-lg">
-              <div className="text-sm text-slate-600">
+            <div className="flex items-center justify-between px-2 py-2 border-t bg-slate-50 dark:bg-slate-900 rounded-lg">
+              <div className="text-xs text-slate-600">
                 Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredOpps.length)} of {filteredOpps.length} deals
               </div>
               <div className="flex gap-2">

@@ -50,11 +50,11 @@ export default async function OpportunitiesPage() {
     : 0
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Sales Pipeline</h1>
-          <p className="text-slate-500 dark:text-slate-400">Track opportunities through the sales process</p>
+    <div className="p-4 space-y-4">
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">Sales Pipeline</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Track opportunities through the sales process</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
@@ -75,34 +75,34 @@ export default async function OpportunitiesPage() {
       </div>
 
       {/* Pipeline Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Opportunities</CardTitle>
+      <div className="grid gap-2 md:grid-cols-3">
+        <Card className="py-3 px-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-0">
+            <CardTitle className="text-xs font-medium">Open</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeOpportunities.length}</div>
+          <CardContent className="px-0 pt-1 pb-0">
+            <div className="text-lg font-bold">{activeOpportunities.length}</div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Won This Month</CardTitle>
+        <Card className="py-3 px-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-0">
+            <CardTitle className="text-xs font-medium">Won This Month</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{wonThisMonth}</div>
+          <CardContent className="px-0 pt-1 pb-0">
+            <div className="text-lg font-bold">{wonThisMonth}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Probability</CardTitle>
+        <Card className="py-3 px-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-0">
+            <CardTitle className="text-xs font-medium">Avg. Probability</CardTitle>
             <Calendar className="h-4 w-4 text-purple-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgProbability}%</div>
+          <CardContent className="px-0 pt-1 pb-0">
+            <div className="text-lg font-bold">{avgProbability}%</div>
           </CardContent>
         </Card>
       </div>
