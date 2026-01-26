@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -102,7 +103,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
   }
 
   // Reset to page 1 when filter/sort/search changes
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedStage, sortBy]);
 
@@ -317,7 +318,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                           draggedItem === opp.name ? 'opacity-50' : 'opacity-100'
                         }`}
                       >
-                        <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`} onClick={(e) => {
+                        <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`} onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                           if (draggedItem) e.preventDefault()
                         }}>
                           <Card className="hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer border bg-white dark:bg-slate-900">
@@ -457,7 +458,7 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                         </span>
                       </div>
                     </Link>
-                    <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="col-span-2" onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
                       <Select
                         value={opp.sales_stage}
                         onValueChange={(value) => handleStageChange(opp.name, value)}
