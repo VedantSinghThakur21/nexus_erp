@@ -251,9 +251,6 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" size="icon">
-              <SlidersHorizontal className="h-4 w-4" />
-            </Button>
             <Button
               variant={sortBy === 'value' ? 'default' : 'outline'}
               size="sm"
@@ -274,38 +271,31 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
 
       {/* Kanban View */}
       {view === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
           {groupedOpportunities.map((stage) => (
-            <div 
-              key={stage.name} 
-              className="flex flex-col"
+            <div
+              key={stage.name}
+              className="flex flex-col min-h-0"
               onDragOver={handleDragOver}
               onDragEnter={() => handleDragEnter(stage.name)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, stage.name)}
             >
-              <Card className={`border-t-4 ${stage.color.split(' ')[2]} h-full flex flex-col transition-all ${
-                dragOverStage === stage.name ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.02]' : ''
-              }`}>
-                <CardHeader className="pb-3 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        {stage.name}
-                      </CardTitle>
-                      <p className="text-xs text-slate-500 mt-1">Stage {stage.stage}</p>
-                    </div>
-                    <Badge variant="secondary" className={`${stage.color} text-xs font-semibold`}>
-                      {stage.opportunities.length}
-                    </Badge>
+              <div className={`rounded-xl border border-slate-700/40 bg-slate-900/80 dark:bg-slate-900/80 shadow-none flex flex-col min-h-0 transition-all ${dragOverStage === stage.name ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.01]' : ''}`}
+                style={{ minHeight: 400 }}>
+                <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                  <div>
+                    <div className="text-xs font-bold tracking-wide text-slate-200 mb-0.5">{stage.name}</div>
+                    <div className="text-[10px] text-slate-500">Stage {stage.stage}</div>
                   </div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">
-                    ₹{stage.totalValue.toLocaleString('en-IN')}
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">{stage.opportunities.length}</span>
+                    <span className="text-xs font-bold text-slate-400">₹{stage.totalValue.toLocaleString('en-IN')}</span>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3 flex-1 overflow-y-auto max-h-[600px]">
+                </div>
+                <div className="flex-1 flex flex-col gap-2 px-2 pb-2 overflow-y-auto min-h-0">
                   {stage.opportunities.length === 0 ? (
-                    <div className="text-xs text-slate-400 text-center py-8 border-2 border-dashed border-slate-200 rounded-lg">
+                    <div className="text-xs text-slate-500 text-center py-8 border border-dashed border-slate-700 rounded-lg bg-slate-800/60 mt-2">
                       No opportunities
                     </div>
                   ) : (
@@ -314,43 +304,29 @@ export function OpportunitiesView({ opportunities, groupedOpportunities, stages 
                         key={opp.name}
                         draggable
                         onDragStart={(e) => handleDragStart(e, opp.name)}
-                        className={`cursor-move transition-opacity ${
-                          draggedItem === opp.name ? 'opacity-50' : 'opacity-100'
-                        }`}
+                        className={`cursor-move transition-opacity ${draggedItem === opp.name ? 'opacity-50' : 'opacity-100'}`}
                       >
-                        <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`} onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                          if (draggedItem) e.preventDefault()
-                        }}>
-                          <Card className="hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer border bg-white dark:bg-slate-900">
-                            <CardContent className="p-4">
-                              <div className="space-y-3">
-                                <div className="font-semibold text-sm text-slate-900 dark:text-white line-clamp-2">
-                                  {opp.customer_name || opp.party_name}
-                                </div>
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-slate-500">{opp.opportunity_type}</span>
-                                  <Badge variant="outline" className="text-xs font-semibold">
-                                    {opp.probability}%
-                                  </Badge>
-                                </div>
-                                <div className="text-base font-bold text-green-600">
-                                  ₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}
-                                </div>
-                                {opp.expected_closing && (
-                                  <div className="text-xs text-slate-400 flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {new Date(opp.expected_closing).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                                  </div>
-                                )}
+                        <Link href={`/crm/opportunities/${encodeURIComponent(opp.name)}`} onClick={(e: React.MouseEvent<HTMLAnchorElement>) => { if (draggedItem) e.preventDefault() }}>
+                          <div className="rounded-lg border border-slate-700 bg-slate-800/90 hover:border-blue-400 transition-all cursor-pointer px-3 py-2 flex flex-col gap-1 min-h-[90px]">
+                            <div className="font-semibold text-[13px] text-slate-100 truncate">{opp.customer_name || opp.party_name}</div>
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-slate-400">{opp.opportunity_type}</span>
+                              <span className="rounded px-1 py-0.5 text-[10px] font-bold border border-slate-600 text-slate-300">{opp.probability}%</span>
+                            </div>
+                            <div className="text-[15px] font-bold text-green-400">₹{(opp.opportunity_amount || 0).toLocaleString('en-IN')}</div>
+                            {opp.expected_closing && (
+                              <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(opp.expected_closing).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                               </div>
-                            </CardContent>
-                          </Card>
+                            )}
+                          </div>
                         </Link>
                       </div>
                     ))
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           ))}
         </div>
