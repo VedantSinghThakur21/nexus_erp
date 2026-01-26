@@ -254,7 +254,7 @@ export default function ERPNextLeadForm() {
                   value={formData.mobile_no}
                   onChange={(e) => updateField('mobile_no', e.target.value)}
                   className="mt-1"
-                {/* Email uniqueness note removed */}
+                />
               </div>
               <div>
                 <Label>Office Phone</Label>
