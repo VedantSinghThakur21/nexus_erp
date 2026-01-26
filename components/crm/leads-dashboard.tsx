@@ -276,7 +276,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
       </div>
 
       {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-4">
+      <div className={viewMode === "kanban" ? "w-full" : "grid gap-6 lg:grid-cols-4"}>
         {viewMode === "list" && (
           <div className="space-y-6">
             {/* Filters Sidebar */}
@@ -335,7 +335,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
         )}
 
         {/* Leads Table / Kanban */}
-        <AnimatedCard className="lg:col-span-3" variant="glass" delay={0.6}>
+        <AnimatedCard className={viewMode === "kanban" ? "w-full" : "lg:col-span-3"} variant="glass" delay={0.6}>
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div className="relative flex-1 max-w-md">
