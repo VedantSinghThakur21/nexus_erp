@@ -47,20 +47,11 @@ export default function ERPNextLeadForm() {
     mobile_no: '',
     office_phone: '',
     industry: '',
-    source: '',
-    city: '',
-    state: '',
-    notes: '',
-    assigned_to: '',
-    address_line1: '',
-    address_line2: '',
-    country: '',
-    pincode: '',
-  })
     // Tracking & Assignment
     source: '',
     status: 'Lead',
     lead_owner: '',
+    assigned_to: '',
     // Address Details
     address_line1: '',
     address_line2: '',
@@ -68,6 +59,9 @@ export default function ERPNextLeadForm() {
     state: '',
     country: '',
     pincode: '',
+    // Other fields
+    notes: '',
+  })
     // Notes
     notes: ''
   })
