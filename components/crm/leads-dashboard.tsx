@@ -312,9 +312,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                 <option>John Doe</option>
                 <option>Jane Smith</option>
               </select>
-            </div>
-          </CardContent>
-        </AnimatedCard>
+
 
         {/* Leads Table */}
         <AnimatedCard className="lg:col-span-3" variant="glass" delay={0.6}>
