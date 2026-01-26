@@ -278,44 +278,60 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-4">
         {viewMode === "list" && (
-          <>
-            {/* AI Insight Filter */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
-              <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                AI INSIGHT 
-                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </h4>
-              <div className="space-y-2">
-                {[
-                  "High Priority (>80)",
-                  "Likely to Convert",
-                  "Requires Attention"
-                ].map(insight => (
-                  <label key={insight} className="flex items-center gap-2 cursor-pointer group">
-                    <input 
-                      type="checkbox"
-                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
-                      {insight}
-                    </span>
-                  </label>
-                ))}
+          <div className="space-y-6">
+            {/* Filters Sidebar */}
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm p-4 border border-slate-200 dark:border-slate-700">
+              <div className="mb-4 flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Filters</h4>
+                <button className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline" onClick={() => setSelectedStatus([])}>Reset</button>
+              </div>
+              <div className="mb-4">
+                <div className="text-xs font-medium text-slate-500 mb-2">STATUS</div>
+                <div className="flex flex-col gap-1">
+                  {erpNextStatuses.map(status => (
+                    <label key={status} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedStatus.includes(status)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setSelectedStatus([...selectedStatus, status])
+                          } else {
+                            setSelectedStatus(selectedStatus.filter(s => s !== status))
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{status}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-4">
+                <div className="text-xs font-medium text-slate-500 mb-2">AI INSIGHT</div>
+                <div className="flex flex-col gap-1">
+                  {["High Priority (>80)", "Likely to Convert", "Requires Attention"].map(insight => (
+                    <label key={insight} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                        // TODO: Implement AI insight filter logic
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{insight}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-slate-500 mb-2">LEAD OWNER</div>
+                <select className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                  <option>All Owners</option>
+                  <option>John Doe</option>
+                  <option>Jane Smith</option>
+                </select>
               </div>
             </div>
-
-            {/* Lead Owner Filter */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
-              <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">LEAD OWNER</h4>
-              <select className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
-                <option>All Owners</option>
-                <option>John Doe</option>
-                <option>Jane Smith</option>
-              </select>
-            </div>
-          </>
+          </div>
         )}
 
         {/* Leads Table / Kanban */}
