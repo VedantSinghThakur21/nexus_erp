@@ -124,13 +124,6 @@ export default function ERPNextLeadForm() {
       alert('State/Province is required')
       setActiveSection('address')
       return
-    }
-    
-    if (!formData.country) {
-      alert('Country is required')
-      setActiveSection('address')
-      return
-    }
     
     setLoading(true)
 
@@ -167,6 +160,13 @@ export default function ERPNextLeadForm() {
                 <select
                   className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.salutation}
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email_id)) {
+        alert('Please enter a valid email address')
+        setActiveSection('basic')
+        return
+      }
                   onChange={(e) => updateField('salutation', e.target.value)}
                 >
                   <option value="">Select</option>
