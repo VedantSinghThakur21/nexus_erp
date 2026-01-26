@@ -312,6 +312,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                 <option>John Doe</option>
                 <option>Jane Smith</option>
               </select>
+            </div>
 
 
         {/* Leads Table */}
