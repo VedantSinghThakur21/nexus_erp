@@ -32,6 +32,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
   const [selectedAIInsights, setSelectedAIInsights] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
+  const [sortBy, setSortBy] = useState<string>("last_activity")
   const [draggedLead, setDraggedLead] = useState<any>(null)
   
   // Conversion modal state
