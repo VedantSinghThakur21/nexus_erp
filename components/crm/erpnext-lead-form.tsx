@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { User, Building2, Target, MapPin, FileText, ChevronRight } from "lucide-react"
 import { createLead } from "@/app/actions/crm"
+import { getTeamMembers } from "@/app/actions/team"
 import { useRouter } from 'next/navigation'
 
 const sections = [
@@ -25,6 +26,19 @@ export default function ERPNextLeadForm() {
   const [activeSection, setActiveSection] = useState('basic')
 
   const [formData, setFormData] = useState({
+      const [teamMembers, setTeamMembers] = useState<any[]>([])
+
+      useEffect(() => {
+        async function fetchTeam() {
+          try {
+            const members = await getTeamMembers()
+            setTeamMembers(members)
+          } catch (e) {
+            setTeamMembers([])
+          }
+        }
+        fetchTeam()
+      }, [])
     // Basic Information
     salutation: '',
     first_name: '',
@@ -411,12 +425,18 @@ export default function ERPNextLeadForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Assigned To</Label>
-                <Input
-                  placeholder="Alex Morgan"
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.lead_owner}
                   onChange={(e) => updateField('lead_owner', e.target.value)}
-                  className="mt-1"
-                />
+                >
+                  <option value="">Select team member</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.name} value={member.name}>
+                      {member.first_name || member.name} {member.last_name || ''} ({member.email})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
