@@ -232,12 +232,13 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
             </button>
           </div>
           <Link href="/crm/new">
-            <AnimatedButton 
-              variant="neon" 
-              className="gap-2 px-5 py-2 text-base font-semibold rounded-lg shadow-lg min-w-[160px] h-12"
+            <AnimatedButton
+              variant="neon"
+              className="flex flex-row items-center gap-2 px-6 py-2 text-base font-semibold rounded-lg shadow-lg min-w-[160px] h-12"
               style={{ boxShadow: '0 4px 24px 0 rgba(99,102,241,0.25)' }}
             >
-              <Plus className="h-5 w-5" /> Add New Lead
+              <Plus className="h-5 w-5" />
+              <span className="whitespace-nowrap">Add New Lead</span>
             </AnimatedButton>
           </Link>
         </div>
@@ -331,19 +332,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                   ))}
                 </div>
               </div>
-              <div>
-                <div className="text-xs font-medium text-slate-500 mb-2">LEAD OWNER</div>
-                <select
-                  className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                  value={selectedOwner}
-                  onChange={e => setSelectedOwner(e.target.value)}
-                >
-                  <option>All Owners</option>
-                  {uniqueOwners.map(owner => (
-                    <option key={owner} value={owner}>{owner}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Lead Owner dropdown removed as requested */}
             </div>
           </div>
         )}
