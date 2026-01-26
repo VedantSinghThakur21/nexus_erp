@@ -207,7 +207,7 @@ export default function ERPNextLeadForm() {
                 />
               </div>
               <div>
-                <Label>Email Address * <span className="text-xs text-slate-500">(must be unique)</span></Label>
+                <Label>Email Address *</Label>
                 <Input
                   required
                   type="email"
@@ -216,7 +216,6 @@ export default function ERPNextLeadForm() {
                   onChange={(e) => updateField('email_id', e.target.value)}
                   className="mt-1"
                 />
-                <span className="text-xs text-slate-500">Each lead must have a unique email address</span>
               </div>
               <div>
                 <Label>Mobile Phone *</Label>
