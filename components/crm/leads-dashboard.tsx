@@ -351,17 +351,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                   ⌘K
                 </kbd>
               </div>
-              <div className="flex items-center gap-2">
-                <select
-                  className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                  value={sortBy}
-                  onChange={e => setSortBy(e.target.value)}
-                >
-                  <option value="last_activity">Sort by: Last Activity</option>
-                  <option value="ai_score">Sort by: AI Score</option>
-                  <option value="lead_name">Sort by: Name</option>
-                </select>
-              </div>
+              {/* Sort dropdown removed as requested */}
             </div>
           </CardHeader>
           <CardContent>
