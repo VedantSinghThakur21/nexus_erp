@@ -237,6 +237,15 @@ export default function ERPNextLeadForm() {
                 />
               </div>
             </div>
+            <div className="flex justify-end mt-6">
+              <button
+                type="button"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+                onClick={() => setActiveSection('company')}
+              >
+                Next
+              </button>
+            </div>
           </div>
         )
 
@@ -282,6 +291,15 @@ export default function ERPNextLeadForm() {
                   <option value="1000+">1000+</option>
                 </select>
               </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                type="button"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+                onClick={() => setActiveSection('tracking')}
+              >
+                Next
+              </button>
             </div>
           </div>
         )
@@ -347,6 +365,15 @@ export default function ERPNextLeadForm() {
                   ))}
                 </select>
               </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                type="button"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+                onClick={() => setActiveSection('address')}
+              >
+                Next
+              </button>
             </div>
           </div>
         )
@@ -416,6 +443,15 @@ export default function ERPNextLeadForm() {
                 </select>
               </div>
             </div>
+            <div className="flex justify-end mt-6">
+              <button
+                type="button"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+                onClick={() => setActiveSection('notes')}
+              >
+                Next
+              </button>
+            </div>
           </div>
         )
 
@@ -431,6 +467,14 @@ export default function ERPNextLeadForm() {
                 rows={8}
                 className="mt-1"
               />
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                type="submit"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+              >
+                Save Lead
+              </button>
             </div>
           </div>
         )
