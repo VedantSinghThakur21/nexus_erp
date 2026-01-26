@@ -30,6 +30,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState<string[]>([])
   const [selectedAIInsights, setSelectedAIInsights] = useState<string[]>([])
+  const [selectedOwner, setSelectedOwner] = useState<string>("All Owners")
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
   const [sortBy, setSortBy] = useState<string>("last_activity")
@@ -81,12 +82,15 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
     nextAction: getNextAction(lead.status)
   }))
 
+  // Extract unique owners from leads (fallback to "Unknown Owner" if not present)
+  const uniqueOwners = Array.from(new Set(leads.map(l => l.owner || "Unknown Owner")))
   // Filter leads
   const filteredLeads = leadsWithScores.filter(lead => {
     const matchesSearch = lead.lead_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           lead.company?.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = selectedStatus.length === 0 || selectedStatus.includes(lead.status)
-    return matchesSearch && matchesStatus
+    const matchesOwner = selectedOwner === "All Owners" || (lead.owner || "Unknown Owner") === selectedOwner
+    return matchesSearch && matchesStatus && matchesOwner
   })
 
   // Pagination
@@ -227,8 +231,12 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
             </button>
           </div>
           <Link href="/crm/new">
-            <AnimatedButton variant="neon" className="gap-2">
-              <Plus className="h-4 w-4" /> Add New Lead
+            <AnimatedButton 
+              variant="neon" 
+              className="gap-2 px-5 py-2 text-base font-semibold rounded-lg shadow-lg min-w-[160px] h-12"
+              style={{ boxShadow: '0 4px 24px 0 rgba(99,102,241,0.25)' }}
+            >
+              <Plus className="h-5 w-5" /> Add New Lead
             </AnimatedButton>
           </Link>
         </div>
@@ -324,10 +332,15 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
               </div>
               <div>
                 <div className="text-xs font-medium text-slate-500 mb-2">LEAD OWNER</div>
-                <select className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                <select
+                  className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  value={selectedOwner}
+                  onChange={e => setSelectedOwner(e.target.value)}
+                >
                   <option>All Owners</option>
-                  <option>John Doe</option>
-                  <option>Jane Smith</option>
+                  {uniqueOwners.map(owner => (
+                    <option key={owner} value={owner}>{owner}</option>
+                  ))}
                 </select>
               </div>
             </div>
