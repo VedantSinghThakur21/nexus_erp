@@ -276,25 +276,6 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
 
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-4">
-        {/* Filters Sidebar */}
-        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.5}>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-base font-semibold">Filters</CardTitle>
-            <Button variant="ghost" size="sm" className="text-blue-600 text-xs h-auto p-0">
-              Reset
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Status Filter */}
-            <div>
-              <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">STATUS</h4>
-              <div className="space-y-2">
-                {erpNextStatuses.map(status => {
-                  const count = leadsWithScores.filter(l => l.status === status).length
-                  return (
-                    <label key={status} className="flex items-center gap-2 cursor-pointer group">
-                      <input 
-                        type="checkbox" 
                         checked={selectedStatus.includes(status)}
                         onChange={(e) => {
                           if (e.target.checked) {
@@ -372,14 +353,15 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                 </kbd>
               </div>
               <div className="flex items-center gap-2">
-                <select className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
-                  <option>Sort by: Last Activity</option>
-                  <option>Sort by: AI Score</option>
-                  <option>Sort by: Name</option>
+                <select
+                  className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value)}
+                >
+                  <option value="last_activity">Sort by: Last Activity</option>
+                  <option value="ai_score">Sort by: AI Score</option>
+                  <option value="lead_name">Sort by: Name</option>
                 </select>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </CardHeader>
