@@ -234,10 +234,10 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
           <Link href="/crm/new">
             <AnimatedButton
               variant="neon"
-              className="flex flex-row items-center gap-2 px-6 py-2 text-base font-semibold rounded-lg shadow-lg min-w-[160px] h-12"
+              className="flex flex-row flex-nowrap items-center justify-center gap-2 px-6 py-2 text-base font-semibold rounded-lg shadow-lg min-w-[160px] h-12 whitespace-nowrap"
               style={{ boxShadow: '0 4px 24px 0 rgba(99,102,241,0.25)' }}
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-5 w-5 flex-shrink-0" />
               <span className="whitespace-nowrap">Add New Lead</span>
             </AnimatedButton>
           </Link>
