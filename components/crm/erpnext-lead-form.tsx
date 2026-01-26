@@ -102,13 +102,6 @@ export default function ERPNextLeadForm() {
       setActiveSection('basic')
       return
     }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/ // Email format validation only (no uniqueness check)
-    if (!emailRegex.test(formData.email_id)) {
-      alert('Please enter a valid email address')
-      setActiveSection('basic')
-      return
-    }
     if (!formData.industry) {
       alert('Industry is required')
       setActiveSection('company')
