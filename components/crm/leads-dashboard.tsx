@@ -277,7 +277,8 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
 
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-4">
-
+        {viewMode === "list" && (
+          <>
             {/* AI Insight Filter */}
             <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
               <h4 className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300 flex items-center gap-1">
@@ -314,9 +315,10 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                 <option>Jane Smith</option>
               </select>
             </div>
+          </>
+        )}
 
-
-        {/* Leads Table */}
+        {/* Leads Table / Kanban */}
         <AnimatedCard className="lg:col-span-3" variant="glass" delay={0.6}>
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
