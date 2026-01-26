@@ -124,6 +124,7 @@ export default function ERPNextLeadForm() {
       alert('State/Province is required')
       setActiveSection('address')
       return
+    }
     
     setLoading(true)
 
