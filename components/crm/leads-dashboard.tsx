@@ -560,6 +560,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
           </CardContent>
         </AnimatedCard>
       </div>
+
     </div>
   )
 }
