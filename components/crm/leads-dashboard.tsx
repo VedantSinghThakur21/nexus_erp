@@ -276,25 +276,6 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
 
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-4">
-                        checked={selectedStatus.includes(status)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedStatus([...selectedStatus, status])
-                          } else {
-                            setSelectedStatus(selectedStatus.filter(s => s !== status))
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white flex-1">
-                        {status}
-                      </span>
-                      <span className="text-xs text-slate-500">{count}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
 
             {/* AI Insight Filter */}
             <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
