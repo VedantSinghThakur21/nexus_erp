@@ -24,21 +24,20 @@ export default function ERPNextLeadForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [activeSection, setActiveSection] = useState('basic')
+  const [teamMembers, setTeamMembers] = useState<any[]>([])
+  useEffect(() => {
+    async function fetchTeam() {
+      try {
+        const members = await getTeamMembers()
+        setTeamMembers(members)
+      } catch (e) {
+        setTeamMembers([])
+      }
+    }
+    fetchTeam()
+  }, [])
 
   const [formData, setFormData] = useState({
-      const [teamMembers, setTeamMembers] = useState<any[]>([])
-
-      useEffect(() => {
-        async function fetchTeam() {
-          try {
-            const members = await getTeamMembers()
-            setTeamMembers(members)
-          } catch (e) {
-            setTeamMembers([])
-          }
-        }
-        fetchTeam()
-      }, [])
     // Basic Information
     salutation: '',
     first_name: '',
@@ -49,19 +48,16 @@ export default function ERPNextLeadForm() {
     phone: '',
     job_title: '',
     gender: '',
-    
     // Company Data
     company_name: '',
     website: '',
     industry: '',
     annual_revenue: '',
     no_of_employees: '',
-    
     // Tracking & Assignment
     source: '',
     status: 'Lead',
     lead_owner: '',
-    
     // Address Details
     address_line1: '',
     address_line2: '',
@@ -69,7 +65,6 @@ export default function ERPNextLeadForm() {
     state: '',
     country: '',
     pincode: '',
-    
     // Notes
     notes: ''
   })
