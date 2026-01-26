@@ -308,94 +308,37 @@ export function LeadsView({ leads, groupedLeads, stages }: LeadsViewProps) {
 
       {/* Kanban View */}
       {view === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="relative flex gap-4 p-4 rounded-xl bg-gradient-to-br from-slate-50/80 to-white/60 dark:from-slate-900/80 dark:to-slate-800/60 backdrop-blur-md min-h-[60vh]">
           {groupedLeads.map((stage) => (
-            <div 
-              key={stage.name} 
-              className="flex flex-col"
+            <div
+              key={stage.name}
+              className={`flex-1 flex flex-col min-w-[220px] rounded-2xl px-2 py-2 ${dragOverStage === stage.name ? 'bg-blue-50/60 dark:bg-blue-900/20 shadow-lg' : ''}`}
               onDragOver={handleDragOver}
               onDragEnter={() => handleDragEnter(stage.name)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, stage.name)}
             >
-              <Card className={`border-t-4 ${stage.color.split(' ')[2]} h-full flex flex-col transition-all ${
-                dragOverStage === stage.name ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.02]' : ''
-              }`}>
-                <CardHeader className="pb-3 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        {stage.name}
-                        {stage.name === 'Opportunity' && (
-                          <span className="ml-2 text-xs font-normal text-orange-600">
-                            ⚡ Creates Opportunity
-                          </span>
-                        )}
-                      </CardTitle>
-                      <p className="text-xs text-slate-500 mt-1">Stage {stage.stage}</p>
-                    </div>
-                    <Badge variant="secondary" className={`${stage.color} text-xs font-semibold`}>
-                      {stage.count}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 flex-1 overflow-y-auto max-h-[600px]">
-                  {stage.leads.length === 0 ? (
-                    <div className="text-xs text-slate-400 text-center py-8 border-2 border-dashed border-slate-200 rounded-lg">
-                      No leads
-                    </div>
-                  ) : (
-                    stage.leads.map((lead) => (
-                      <div
-                        key={lead.name}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, lead.name)}
-                        className={`cursor-move transition-opacity ${
-                          draggedItem === lead.name ? 'opacity-50' : 'opacity-100'
-                        }`}
-                      >
-                        <Link href={`/crm/${encodeURIComponent(lead.name)}`} onClick={(e) => {
-                          if (draggedItem) e.preventDefault()
-                        }}>
-                          <Card className="hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer border bg-white dark:bg-slate-900">
-                            <CardContent className="p-4">
-                              <div className="space-y-3">
-                                <div className="font-semibold text-sm text-slate-900 dark:text-white line-clamp-2">
-                                  {lead.lead_name}
-                                </div>
-                                {lead.company_name && (
-                                  <div className="text-xs text-slate-500">
-                                    {lead.company_name}
-                                  </div>
-                                )}
-                                {lead.email_id && (
-                                  <div className="flex items-center gap-1 text-xs text-slate-600">
-                                    <Mail className="h-3 w-3" />
-                                    <span className="truncate">{lead.email_id}</span>
-                                  </div>
-                                )}
-                                {lead.mobile_no && (
-                                  <div className="flex items-center gap-1 text-xs text-slate-600">
-                                    <Phone className="h-3 w-3" />
-                                    <span>{lead.mobile_no}</span>
-                                  </div>
-                                )}
-                                {lead.source && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {lead.source}
-                                  </Badge>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </Link>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold tracking-wide uppercase text-slate-500 dark:text-slate-400">{stage.name}</span>
+                <span className="rounded-full bg-slate-200 dark:bg-slate-700 px-2 py-0.5 text-xs font-bold text-slate-600 dark:text-slate-300">{stage.count}</span>
+                {stage.name === 'Opportunity' && <span className="ml-1 text-xs text-orange-500">⚡</span>}
+              </div>
+              <div className="flex-1 flex flex-col gap-2 pb-8">
+                {stage.leads.map((lead) => (
+                  <Link key={lead.name} href={`/crm/${encodeURIComponent(lead.name)}`} draggable onDragStart={(e) => handleDragStart(e, lead.name)}
+                    className={`group rounded-xl bg-white/80 dark:bg-slate-900/80 px-4 py-3 shadow-none border border-transparent hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col gap-1 ${draggedItem === lead.name ? 'opacity-50' : 'opacity-100'}`}
+                  >
+                    <span className="font-medium text-sm text-slate-900 dark:text-white truncate">{lead.lead_name}</span>
+                    {lead.company_name && <span className="text-xs text-slate-500 truncate">{lead.company_name}</span>}
+                  </Link>
+                ))}
+              </div>
             </div>
           ))}
+          {/* Floating Add Button */}
+          <button className="fixed bottom-8 right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-3xl transition-all" title="Add Lead">
+            +
+          </button>
         </div>
       )}
 
