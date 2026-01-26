@@ -293,44 +293,27 @@ export default function ERPNextLeadForm() {
                     </div>
                   </div>
                 )
-                  <option value="Automobile">Automobile</option>
-                  <option value="Banking">Banking</option>
-                  <option value="Biotechnology">Biotechnology</option>
-                  <option value="Chemicals">Chemicals</option>
-                  <option value="Consulting">Consulting</option>
-                  <option value="Consumer Goods">Consumer Goods</option>
-                  <option value="Education">Education</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Energy">Energy</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="Environmental">Environmental</option>
-                  <option value="Finance">Finance</option>
-                  <option value="Food and Beverage">Food and Beverage</option>
-                  <option value="Government">Government</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Hospitality">Hospitality</option>
-                  <option value="Insurance">Insurance</option>
-                  <option value="Machinery">Machinery</option>
-                  <option value="Manufacturing">Manufacturing</option>
-                  <option value="Media">Media</option>
-                  <option value="Not For Profit">Not For Profit</option>
-                  <option value="Recreation">Recreation</option>
-                  <option value="Retail">Retail</option>
-                  <option value="Shipping">Shipping</option>
-                  <option value="Technology">Technology</option>
-                  <option value="Telecommunications">Telecommunications</option>
-                  <option value="Transportation">Transportation</option>
-                  <option value="Utilities">Utilities</option>
-                </select>
+
+      case 'company':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Company Name *</Label>
+                <Input
+                  required
+                  placeholder="e.g. Acme Corp"
+                  value={formData.company_name}
+                  onChange={(e) => updateField('company_name', e.target.value)}
+                  className="mt-1"
+                />
               </div>
               <div>
-                <Label>Annual Revenue</Label>
+                <Label>Website</Label>
                 <Input
-                  type="number"
-                  placeholder="0.00"
-                  value={formData.annual_revenue}
-                  onChange={(e) => updateField('annual_revenue', e.target.value)}
+                  placeholder="https://example.com"
+                  value={formData.website}
+                  onChange={(e) => updateField('website', e.target.value)}
                   className="mt-1"
                 />
               </div>
