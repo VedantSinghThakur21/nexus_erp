@@ -19,6 +19,7 @@ interface Lead {
   company_name?: string
   territory?: string
   source?: string
+  owner?: string // Added for filtering by owner
 }
 
 interface LeadsDashboardProps {
