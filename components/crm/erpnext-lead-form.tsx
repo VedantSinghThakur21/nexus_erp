@@ -196,110 +196,110 @@ export default function ERPNextLeadForm() {
                   className="mt-1"
                 />
               </div>
-            </div>
+            switch (activeSection) {
+              case 'basic':
+                return (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Salutation</Label>
+                        <select
+                          className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                          value={formData.salutation}
+                          onChange={(e) => updateField('salutation', e.target.value)}
+                        >
+                          <option value="">Select</option>
+                          <option value="Mr">Mr</option>
+                          <option value="Ms">Ms</option>
+                          <option value="Mrs">Mrs</option>
+                          <option value="Dr">Dr</option>
+                          <option value="Prof">Prof</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label>First Name *</Label>
+                        <Input
+                          required
+                          placeholder="e.g. Jane"
+                          value={formData.first_name}
+                          onChange={(e) => updateField('first_name', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Last Name *</Label>
+                        <Input
+                          placeholder="e.g. Doe"
+                          value={formData.last_name}
+                          onChange={(e) => updateField('last_name', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Gender</Label>
-                <select
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
-                  value={formData.gender}
-                  onChange={(e) => updateField('gender', e.target.value)}
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <Label>Job Title</Label>
-                <Input
-                  placeholder="e.g. Purchasing Manager"
-                  value={formData.job_title}
-                  onChange={(e) => updateField('job_title', e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Gender</Label>
+                        <select
+                          className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                          value={formData.gender}
+                          onChange={(e) => updateField('gender', e.target.value)}
+                        >
+                          <option value="">Select Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Job Title</Label>
+                        <Input
+                          placeholder="e.g. Purchasing Manager"
+                          value={formData.job_title}
+                          onChange={(e) => updateField('job_title', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Email Address * <span className="text-xs text-slate-500">(must be unique)</span></Label>
-                <Input
-                  type="email"
-                  required
-                  placeholder="jane@company.com"
-                  value={formData.email_id}
-                  onChange={(e) => updateField('email_id', e.target.value)}
-                  className="mt-1"
-                />
-                <p className="text-xs text-slate-500 mt-1">Each lead must have a unique email address</p>
-              </div>
-            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Email Address * <span className="text-xs text-slate-500">(must be unique)</span></Label>
+                        <Input
+                          type="email"
+                          required
+                          placeholder="jane@company.com"
+                          value={formData.email_id}
+                          onChange={(e) => updateField('email_id', e.target.value)}
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">Each lead must have a unique email address</p>
+                      </div>
+                    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Mobile Phone *</Label>
-                <Input
-                  required
-                  placeholder="+1 585-0100"
-                  value={formData.mobile_no}
-                  onChange={(e) => updateField('mobile_no', e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>Office Phone</Label>
-                <Input
-                  placeholder="+1 585-0101"
-                  value={formData.phone}
-                  onChange={(e) => updateField('phone', e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'company':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Company Name *</Label>
-                <Input
-                  required
-                  placeholder="e.g. Acme Corp"
-                  value={formData.company_name}
-                  onChange={(e) => updateField('company_name', e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>Website</Label>
-                <Input
-                  placeholder="https://example.com"
-                  value={formData.website}
-                  onChange={(e) => updateField('website', e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Industry *</Label>
-                <select
-                  required
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
-                  value={formData.industry}
-                  onChange={(e) => updateField('industry', e.target.value)}
-                >
-                  <option value="">Select Industry</option>
-                  <option value="Aerospace">Aerospace</option>
-                  <option value="Agriculture">Agriculture</option>
-                  <option value="Airline">Airline</option>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Mobile Phone *</Label>
+                        <Input
+                          required
+                          placeholder="+1 585-0100"
+                          value={formData.mobile_no}
+                          onChange={(e) => updateField('mobile_no', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>Office Phone</Label>
+                        <Input
+                          placeholder="+1 585-0101"
+                          value={formData.phone}
+                          onChange={(e) => updateField('phone', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
                   <option value="Automobile">Automobile</option>
                   <option value="Banking">Banking</option>
                   <option value="Biotechnology">Biotechnology</option>
