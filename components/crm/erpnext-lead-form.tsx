@@ -37,23 +37,26 @@ export default function ERPNextLeadForm() {
     fetchTeam()
   }, [])
 
-  const [formData, setFormData] = useState({
-    // Basic Information
+  const [formData, setFormData] = useState<any>({
     salutation: '',
     first_name: '',
-    middle_name: '',
     last_name: '',
+    gender: '',
+    job_title: '',
     email_id: '',
     mobile_no: '',
-    phone: '',
-    job_title: '',
-    gender: '',
-    // Company Data
-    company_name: '',
-    website: '',
+    office_phone: '',
     industry: '',
-    annual_revenue: '',
-    no_of_employees: '',
+    source: '',
+    city: '',
+    state: '',
+    notes: '',
+    assigned_to: '',
+    address_line1: '',
+    address_line2: '',
+    country: '',
+    pincode: '',
+  })
     // Tracking & Assignment
     source: '',
     status: 'Lead',
@@ -187,6 +190,59 @@ export default function ERPNextLeadForm() {
                   placeholder="e.g. Doe"
                   value={formData.last_name}
                   onChange={(e) => updateField('last_name', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Gender</Label>
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.gender || ''}
+                  onChange={(e) => updateField('gender', e.target.value)}
+                >
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <Label>Job Title</Label>
+                <Input
+                  placeholder="e.g. Founder"
+                  value={formData.job_title || ''}
+                  onChange={(e) => updateField('job_title', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Email Address * <span className="text-xs text-slate-500">(must be unique)</span></Label>
+                <Input
+                  required
+                  type="email"
+                  placeholder="e.g. user@email.com"
+                  value={formData.email_id}
+                  onChange={(e) => updateField('email_id', e.target.value)}
+                  className="mt-1"
+                />
+                <span className="text-xs text-slate-500">Each lead must have a unique email address</span>
+              </div>
+              <div>
+                <Label>Mobile Phone *</Label>
+                <Input
+                  required
+                  placeholder="e.g. +919876543210"
+                  value={formData.mobile_no}
+                  onChange={(e) => updateField('mobile_no', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Office Phone</Label>
+                <Input
+                  placeholder="e.g. +1 585-0101"
+                  value={formData.office_phone || ''}
+                  onChange={(e) => updateField('office_phone', e.target.value)}
                   className="mt-1"
                 />
               </div>
