@@ -94,12 +94,12 @@ export default function ERPNextLeadForm() {
       return
     }
     
-    if (!formData.company_name) {
-      alert('Company name is required')
-      setActiveSection('company')
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/ // Email format validation only (no uniqueness check)
+    if (!emailRegex.test(formData.email_id)) {
+      alert('Please enter a valid email address')
+      setActiveSection('basic')
       return
     }
-    
     if (!formData.industry) {
       alert('Industry is required')
       setActiveSection('company')
@@ -153,11 +153,10 @@ export default function ERPNextLeadForm() {
       alert('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const renderSectionContent = () => {
-    switch (activeSection) {
+        // Remove unique email error override for leads
+        if (errorMsg.includes('Could not find Source')) {
+          errorMsg = 'Invalid lead source selected. Please choose a valid source from the dropdown.'
+        }
       case 'basic':
         return (
           <div className="space-y-4">
@@ -247,7 +246,7 @@ export default function ERPNextLeadForm() {
                   value={formData.mobile_no}
                   onChange={(e) => updateField('mobile_no', e.target.value)}
                   className="mt-1"
-                />
+                {/* Email uniqueness note removed */}
               </div>
               <div>
                 <Label>Office Phone</Label>
