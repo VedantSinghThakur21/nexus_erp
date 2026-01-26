@@ -148,13 +148,11 @@ export default function ERPNextLeadForm() {
       } else {
         // Parse error message for better user experience
         let errorMsg = result.error || 'Failed to create lead'
-        
         if (errorMsg.includes('Email Address must be unique')) {
           errorMsg = 'This email address is already registered in the system. Please use a different email or check existing leads.'
         } else if (errorMsg.includes('Could not find Source')) {
           errorMsg = 'Invalid lead source selected. Please choose a valid source from the dropdown.'
         }
-        
         alert(errorMsg)
       }
     } catch (error) {
@@ -162,10 +160,11 @@ export default function ERPNextLeadForm() {
       alert('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
-        // Remove unique email error override for leads
-        if (errorMsg.includes('Could not find Source')) {
-          errorMsg = 'Invalid lead source selected. Please choose a valid source from the dropdown.'
-        }
+    }
+  }
+
+  function renderSectionContent() {
+    switch (activeSection) {
       case 'basic':
         return (
           <div className="space-y-4">
