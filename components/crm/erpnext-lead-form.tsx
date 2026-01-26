@@ -62,9 +62,6 @@ export default function ERPNextLeadForm() {
     // Other fields
     notes: '',
   })
-    // Notes
-    notes: ''
-  })
 
   const updateField = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
