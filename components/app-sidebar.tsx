@@ -10,6 +10,7 @@ import {
   ExternalLink, 
   LogOut, 
   FolderKanban, 
+  Truck, 
   Calendar,
   Settings,
   Menu,
