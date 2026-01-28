@@ -115,6 +115,17 @@ function SidebarContent({ isCollapsed = false, onToggle }: { isCollapsed?: boole
               </Link>
             )
           })}
+          {/* AI Agent Link */}
+          <a
+            href="https://avariq.in/agents"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-slate-800 dark:hover:text-blue-400 ${isCollapsed ? 'justify-center' : ''}`}
+            title={isCollapsed ? 'AI Agent' : ''}
+          >
+            <Bot className="h-4 w-4 shrink-0" />
+            {!isCollapsed && <span>AI Agent</span>}
+          </a>
         </nav>
       </div>
 
