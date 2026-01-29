@@ -12,8 +12,8 @@ import remarkGfm from 'remark-gfm'
 export default function AgentsPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
-    // FIX: Explicitly tell Vercel SDK this is a plain text stream (matches route.ts)
-    streamProtocol: 'text',
+    // FIX: Removed 'streamProtocol: text' to allow default Data Stream Protocol parsing.
+    // This fixes the issue where '0:"..."' protocol characters appear in the UI.
     initialMessages: [
       {
         id: '1',
