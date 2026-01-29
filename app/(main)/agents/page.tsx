@@ -1,18 +1,20 @@
 'use client'
 
-// @ts-ignore
 import { useChat } from 'ai/react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Bot, Send, User, Sparkles, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useEffect, useRef } from "react"
-// @ts-ignore
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export default function AgentsPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
+    // Important: Matches the stream format we implemented in route.ts
+    // 0:"text" -> text-part
+    streamProtocol: 'text', 
     initialMessages: [
       {
         id: '1',
@@ -24,13 +26,13 @@ export default function AgentsPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-60px)] max-w-4xl mx-auto w-full p-4">
+    <div className="flex flex-col h-[calc(100vh-60px)] max-w-4xl mx-auto w-full p-4" suppressHydrationWarning>
       {/* Header */}
       <div className="flex items-center gap-3 pb-6 border-b border-slate-100 dark:border-slate-800 mb-4">
         <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
@@ -44,7 +46,7 @@ export default function AgentsPage() {
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto space-y-6 pr-4 pb-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-        {messages.map((m: any) => (
+        {messages.map(m => (
           <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
             {/* Avatar */}
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
@@ -61,24 +63,19 @@ export default function AgentsPage() {
             }`}>
               {/* Using ReactMarkdown to render tables/lists nicely */}
               <div className={`prose prose-sm ${m.role === 'user' ? 'prose-invert' : 'dark:prose-invert'} max-w-none`}>
-                <ReactMarkdown>{m.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
               </div>
               
-              {/* Tool Invocation Indicator (Optional Polish) */}
-                {m.toolInvocations?.map((toolInvocation: any) => (
-                  <div key={toolInvocation.toolCallId} className="mt-3 pt-3 border-t border-dashed border-slate-200/20 text-xs opacity-70">
-                    <span className="flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" /> 
-                      Running tool: <span className="font-mono bg-black/10 px-1 rounded">{toolInvocation.toolName}</span>
-                    </span>
-                  </div>
-                ))}
+              {/* Optional: Display tool calls if present in message data (advanced usage) */}
+              {/* {m.toolInvocations && (...)} */}
             </Card>
           </div>
         ))}
-        {isLoading && (
-            <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+        
+        {/* Loading Indicator */}
+        {isLoading && messages[messages.length - 1]?.role === 'user' && (
+            <div className="flex gap-4 animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-indigo-600/50 text-white flex items-center justify-center shrink-0">
                     <Sparkles className="h-4 w-4" />
                 </div>
                 <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
@@ -107,7 +104,7 @@ export default function AgentsPage() {
             disabled={isLoading || !input.trim()} 
             className="absolute right-1 top-1 h-10 w-10 bg-indigo-600 hover:bg-indigo-700 text-white"
           >
-            <Send className="h-4 w-4" />
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
         <p className="text-xs text-center text-slate-400 mt-2">
