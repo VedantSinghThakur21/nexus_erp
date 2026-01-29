@@ -12,8 +12,9 @@ import remarkGfm from 'remark-gfm'
 export default function AgentsPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
-    // FIX: Removed 'streamProtocol: text' to allow default Data Stream Protocol parsing.
-    // This fixes the issue where '0:"..."' protocol characters appear in the UI.
+    // FIX: Explicitly set to 'text' because our Python backend sends raw text chunks.
+    // If this is missing, the SDK expects the complex '0:"..."' protocol and hides raw text.
+    streamProtocol: 'text', 
     initialMessages: [
       {
         id: '1',
