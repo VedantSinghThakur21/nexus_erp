@@ -1,4 +1,4 @@
-import { StreamingTextResponse } from 'ai'
+
 
 // This should match your Python backend URL
 const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://localhost:8000'
@@ -54,23 +54,23 @@ export async function POST(req: Request) {
     const contentType = response.headers.get('content-type')
     
     if (contentType?.includes('text/event-stream') || contentType?.includes('text/plain')) {
-      // Streaming response
-      return new StreamingTextResponse(response.body!)
+      // Streaming or plain text response from backend
+      return new Response(response.body, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType || 'text/plain',
+        },
+      })
     } else {
-      // JSON response - extract the message and stream it
+      // JSON response - extract the message and return as text
       const data = await response.json()
       const message = data.response || data.message || data.output || 'No response from agent'
-      
-      // Convert to stream
-      const encoder = new TextEncoder()
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(message))
-          controller.close()
-        }
+      return new Response(message, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain',
+        },
       })
-      
-      return new StreamingTextResponse(stream)
     }
 
   } catch (error) {
