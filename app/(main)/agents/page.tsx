@@ -12,16 +12,16 @@ import remarkGfm from 'remark-gfm'
 export default function AgentsPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
-    // Important: Matches the stream format we implemented in route.ts
-    // 0:"text" -> text-part
-    streamProtocol: 'text', 
+    // FIX: Explicitly tell Vercel SDK this is a plain text stream (matches route.ts)
+    streamProtocol: 'text',
     initialMessages: [
       {
         id: '1',
         role: 'assistant',
         content: "Hello! I am Nexus. I can help you manage Leads, Fleet, and Invoices. Try asking: **'Find available 50T Cranes'** or **'Create a lead for John Doe'**."
       }
-    ]
+    ],
+    onError: (error) => console.error("Chat Error:", error)
   })
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -65,9 +65,6 @@ export default function AgentsPage() {
               <div className={`prose prose-sm ${m.role === 'user' ? 'prose-invert' : 'dark:prose-invert'} max-w-none`}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
               </div>
-              
-              {/* Optional: Display tool calls if present in message data (advanced usage) */}
-              {/* {m.toolInvocations && (...)} */}
             </Card>
           </div>
         ))}
