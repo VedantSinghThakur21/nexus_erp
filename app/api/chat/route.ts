@@ -1,56 +1,101 @@
-import { NextResponse } from 'next/server';
-import { cookies, headers } from 'next/headers';
+import { StreamingTextResponse } from 'ai'
 
-const AI_SERVICE_URL = 'http://127.0.0.1:8001/chat';
+// This should match your Python backend URL
+const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://localhost:8000'
 
-export const maxDuration = 60; 
-export const dynamic = 'force-dynamic';
+export const runtime = 'edge'
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
-    
-    const headerStore = await headers();
-    const cookieStore = await cookies();
-    
-    const tenantId = headerStore.get('x-tenant-id') || cookieStore.get('tenant_id')?.value || 'master';
-    const userEmail = cookieStore.get('user_id')?.value || 'Guest';
-    const apiKey = cookieStore.get('tenant_api_key')?.value;
-    const apiSecret = cookieStore.get('tenant_api_secret')?.value;
+    const { messages, tenant_id } = await req.json()
 
-    const response = await fetch(AI_SERVICE_URL, {
+    // FIX: Get the last user message
+    const lastMessage = messages[messages.length - 1]
+    if (!lastMessage || lastMessage.role !== 'user') {
+      return new Response('No user message found', { status: 400 })
+    }
+
+    // FIX: Format the user input with tenant context as required by the enhanced agent
+    const formattedInput = formatUserInputWithContext(
+      lastMessage.content,
+      tenant_id || 'TENANT-001' // Default tenant if not provided
+    )
+
+    console.log('Sending to Python backend:', {
+      url: `${PYTHON_BACKEND_URL}/chat`,
+      tenant_id,
+      message_preview: lastMessage.content.substring(0, 100)
+    })
+
+    // Call your Python FastAPI backend
+    const response = await fetch(`${PYTHON_BACKEND_URL}/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        messages,
-        tenant_id: tenantId,
-        user_email: userEmail,
-        api_key: apiKey || process.env.ERP_API_KEY, 
-        api_secret: apiSecret || process.env.ERP_API_SECRET
+        message: formattedInput, // Send formatted input with context
+        tenant_id: tenant_id || 'TENANT-001',
+        // Include conversation history if your backend supports it
+        history: messages.slice(0, -1).map((m: any) => ({
+          role: m.role,
+          content: m.content
+        }))
       }),
-    });
+    })
 
     if (!response.ok) {
-      return NextResponse.json({ error: "AI Service Unavailable" }, { status: 500 });
+      const errorText = await response.text()
+      console.error('Python backend error:', errorText)
+      return new Response(`Backend error: ${errorText}`, { status: response.status })
     }
 
-    if (!response.body) {
-        return NextResponse.json({ error: "Empty response" }, { status: 500 });
+    // FIX: Check if the backend is streaming or returning JSON
+    const contentType = response.headers.get('content-type')
+    
+    if (contentType?.includes('text/event-stream') || contentType?.includes('text/plain')) {
+      // Streaming response
+      return new StreamingTextResponse(response.body!)
+    } else {
+      // JSON response - extract the message and stream it
+      const data = await response.json()
+      const message = data.response || data.message || data.output || 'No response from agent'
+      
+      // Convert to stream
+      const encoder = new TextEncoder()
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(message))
+          controller.close()
+        }
+      })
+      
+      return new StreamingTextResponse(stream)
     }
-
-    // Pass the stream directly (Raw Text Mode)
-    // We do NOT wrap it in 0:"..." anymore.
-    return new Response(response.body, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8', 
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-      },
-    });
 
   } catch (error) {
-    console.error("Chat Proxy Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error('API Route Error:', error)
+    return new Response(
+      `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      { status: 500 }
+    )
   }
+}
+
+/**
+ * Format user input with tenant context as required by the enhanced agent
+ * This matches the Python format_user_input_with_context() function
+ */
+function formatUserInputWithContext(
+  userMessage: string,
+  tenantId: string
+): string {
+  const timestamp = new Date().toISOString()
+  
+  return `Context:
+- Current Tenant ID: ${tenantId}
+- Timestamp: ${timestamp}
+
+User Request:
+${userMessage}`
 }
