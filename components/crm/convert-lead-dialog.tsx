@@ -20,15 +20,14 @@ import { ArrowRight } from "lucide-react"
 export function ConvertLeadDialog({ leadId, leadName }: { leadId: string; leadName: string }) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [createCustomer, setCreateCustomer] = useState(false)
   const [opportunityAmount, setOpportunityAmount] = useState<number>(0)
-  // Customer creation is now always mandatory; checkbox removed
   const router = useRouter()
 
   const handleConvert = async () => {
     setIsLoading(true)
     try {
-      const opportunity = await convertLeadToOpportunity(typeof leadId === "string" ? leadId : "", createCustomer, opportunityAmount)
+      // Always create customer as per ERP logic
+      const opportunity = await convertLeadToOpportunity(typeof leadId === "string" ? leadId : "", true, opportunityAmount)
       setIsOpen(false)
       router.push(`/crm/opportunities/${encodeURIComponent(typeof opportunity.opportunityId === "string" ? opportunity.opportunityId : "")}`)
     } catch (error) {
@@ -72,7 +71,6 @@ export function ConvertLeadDialog({ leadId, leadName }: { leadId: string; leadNa
             </p>
           </div>
 
-          {/* Create Customer Checkbox */}
           <p className="text-sm text-muted-foreground">
             This will create a new Opportunity and Customer record linked to this lead.
           </p>
