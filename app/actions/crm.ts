@@ -430,6 +430,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
   try {
     console.log('[convertLeadToOpportunity] Starting conversion for lead:', leadId)
     
+
     // 1. Fetch Lead details (needed for organization_slug)
     const lead = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Lead',
@@ -451,14 +452,54 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       console.log('[convertLeadToOpportunity] Customer created:', customerResult.customerId)
     }
 
-    // 3. Always construct Opportunity doc from Lead data (no make_opportunity call)
+    // 3. Ensure a Contact exists for this lead (by email or name)
+    let contactPersonName: string | undefined = undefined;
+    if (lead.email_id) {
+      // Try to find contact by email
+      const contactSearch = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Contact',
+        fields: ['name'],
+        filters: { email_id: lead.email_id },
+        limit_page_length: 1
+      }) as Array<{ name: string }>;
+      if (contactSearch && contactSearch.length > 0) {
+        contactPersonName = contactSearch[0].name;
+      }
+    }
+    if (!contactPersonName && lead.lead_name) {
+      // Try to find contact by name
+      const contactSearch = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Contact',
+        fields: ['name'],
+        filters: { first_name: lead.lead_name },
+        limit_page_length: 1
+      }) as Array<{ name: string }>;
+      if (contactSearch && contactSearch.length > 0) {
+        contactPersonName = contactSearch[0].name;
+      }
+    }
+    if (!contactPersonName) {
+      // Create a new Contact for this lead
+      const contactDoc = {
+        doctype: 'Contact',
+        first_name: lead.lead_name || 'Lead Contact',
+        email_id: lead.email_id || undefined,
+        phone: lead.mobile_no || undefined,
+        organization_slug: lead.organization_slug || undefined
+      };
+      const createdContact = await frappeRequest('frappe.client.insert', 'POST', { doc: contactDoc }) as { name: string };
+      contactPersonName = createdContact.name;
+      console.log('[convertLeadToOpportunity] Created new Contact:', contactPersonName);
+    }
+
+    // 4. Always construct Opportunity doc from Lead data (no make_opportunity call)
     let opportunityDoc: any = {
       doctype: 'Opportunity',
       opportunity_from: createCustomer ? 'Customer' : 'Lead',
       party_name: createCustomer && lead.company_name ? lead.company_name : leadId,
       title: lead.company_name || lead.lead_name || `Opportunity from ${leadId}`,
       customer_name: lead.company_name || undefined,
-      contact_person: lead.lead_name || undefined,
+      contact_person: contactPersonName,
       contact_email: lead.email_id || undefined,
       territory: lead.territory || undefined,
       source: lead.source || undefined,
@@ -470,7 +511,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       expected_closing: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       notes: ''
     };
-    
+
     // Remove the name field if it exists (it might be empty)
     if (opportunityDoc.name === undefined || opportunityDoc.name === null || opportunityDoc.name === '') {
       delete opportunityDoc.name

@@ -22,6 +22,7 @@ export function ConvertLeadDialog({ leadId, leadName }: { leadId: string; leadNa
   const [isLoading, setIsLoading] = useState(false)
   const [createCustomer, setCreateCustomer] = useState(false)
   const [opportunityAmount, setOpportunityAmount] = useState<number>(0)
+  // Customer creation is now always mandatory; checkbox removed
   const router = useRouter()
 
   const handleConvert = async () => {
@@ -72,22 +73,8 @@ export function ConvertLeadDialog({ leadId, leadName }: { leadId: string; leadNa
           </div>
 
           {/* Create Customer Checkbox */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="createCustomer"
-              checked={createCustomer}
-              onChange={(e) => setCreateCustomer(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            <Label htmlFor="createCustomer" className="text-sm font-normal cursor-pointer">
-              Also create Customer record
-            </Label>
-          </div>
-          
           <p className="text-sm text-muted-foreground">
-            This will create a new Opportunity linked to this lead. 
-            {createCustomer && " A Customer record will also be created."}
+            This will create a new Opportunity and Customer record linked to this lead.
           </p>
         </div>
 
