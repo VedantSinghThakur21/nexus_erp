@@ -138,19 +138,8 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                 />
                 <p className="text-xs text-muted-foreground">This helps track pipeline value and forecast revenue</p>
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="convertCreateCustomer"
-                  checked={convertCreateCustomer}
-                  onChange={e => setConvertCreateCustomer(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="convertCreateCustomer" className="text-sm font-normal cursor-pointer">Also create Customer record</label>
-              </div>
               <p className="text-sm text-muted-foreground">
-                This will create a new Opportunity linked to this lead.
-                {convertCreateCustomer && " A Customer record will also be created."}
+                This will create a new Opportunity and Customer record linked to this lead.
               </p>
             </div>
             <div className="flex justify-end gap-2 mt-6">
@@ -163,7 +152,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                   try {
                     const leadIdToConvert = convertLeadId ?? "";
                     const opportunityAmountToUse = typeof convertOpportunityAmount === "number" && !isNaN(convertOpportunityAmount) ? convertOpportunityAmount : 0;
-                    const result = await convertLeadToOpportunity(leadIdToConvert, convertCreateCustomer, opportunityAmountToUse);
+                    const result = await convertLeadToOpportunity(leadIdToConvert, true, opportunityAmountToUse);
                     if (result.error) {
                       alert('❌ Failed to convert lead to opportunity.\n' + (result.error || 'Unknown error. See server logs for details.'));
                       throw new Error(result.error);
