@@ -1,4 +1,3 @@
-import { StreamingTextResponse } from 'ai'
 
 const PYTHON_BACKEND_URL = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || 'http://localhost:8000'
 
@@ -70,7 +69,8 @@ export async function POST(req: Request) {
     console.log('✅ Streaming response from backend')
 
     // CRITICAL: Return the stream directly without modification
-    return new StreamingTextResponse(response.body, {
+    return new Response(response.body, {
+      status: 200,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
