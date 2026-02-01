@@ -20,6 +20,7 @@ import {
   Activity,
 } from "lucide-react";
 import { getDashboardStats, getOpportunities, getRecentActivities, getAtRiskDeals } from "@/app/actions/dashboard";
+import { formatIndianCurrency, formatIndianCurrencyInCrores } from "@/lib/currency";
 
 type Opportunity = {
   name: string;
@@ -107,15 +108,15 @@ export default function DashboardPage() {
   }
 
   const highProbOpportunities = opportunities
-    .filter((opp) => opp.probability >= 50 && opp.status === 'Open')
-    .sort((a, b) => b.probability - a.probability)
+    .filter((opp: Opportunity) => opp.probability >= 50 && opp.status === 'Open')
+    .sort((a: Opportunity, b: Opportunity) => b.probability - a.probability)
     .slice(0, 3);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center">
         <div className="text-center">
-          <div className="h-12 w-12 border-4 border-[#5B7FDB] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="h-12 w-12 border-4 border-[#5B6FE3] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-sm text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -130,7 +131,7 @@ export default function DashboardPage() {
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B7FDB]/20 focus:border-[#5B7FDB] text-gray-700 placeholder:text-gray-400"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B6FE3]/20 focus:border-[#5B6FE3] text-gray-700 placeholder:text-gray-400"
               placeholder="Ask AI anything..."
               type="text"
             />
@@ -139,7 +140,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4">
           <button className="relative text-gray-500 hover:text-gray-700 transition-colors p-2">
             <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-[#5B7FDB] rounded-full"></span>
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-[#5B6FE3] rounded-full"></span>
           </button>
           <div className="h-8 w-px bg-gray-200"></div>
           <div className="flex items-center gap-3">
@@ -147,7 +148,7 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold text-gray-900">Adrian Chen</p>
               <p className="text-xs text-gray-500">Regional Director</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#5B7FDB] to-[#4A63B0] flex items-center justify-center text-white font-semibold text-sm">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#5B6FE3] to-[#4A5BC9] flex items-center justify-center text-white font-semibold text-sm">
               AC
             </div>
           </div>
@@ -162,7 +163,7 @@ export default function DashboardPage() {
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>
-                <TrendingUp className="h-5 w-5 text-[#5B7FDB]" />
+                <TrendingUp className="h-5 w-5 text-[#5B6FE3]" />
               </div>
               <h3 className="text-4xl font-bold text-white mb-2">{stats.winRate.toFixed(1)}%</h3>
               <div className="flex items-center gap-2">
@@ -177,11 +178,11 @@ export default function DashboardPage() {
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
-                <BarChart3 className="h-5 w-5 text-[#5B7FDB]" />
+                <BarChart3 className="h-5 w-5 text-[#5B6FE3]" />
               </div>
-              <h3 className="text-4xl font-bold text-white mb-1">${(stats.pipelineValue / 1000000).toFixed(1)}M</h3>
+              <h3 className="text-4xl font-bold text-white mb-1">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-gray-400">TARGET: $20M</span>
+                <span className="text-gray-400">TARGET: ₹20Cr</span>
                 <span className="text-gray-500">•</span>
                 <span className="text-gray-400">65% ACHIEVED</span>
               </div>
@@ -193,9 +194,9 @@ export default function DashboardPage() {
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
-                <Zap className="h-5 w-5 text-[#5B7FDB]" />
+                <Zap className="h-5 w-5 text-[#5B6FE3]" />
               </div>
-              <h3 className="text-4xl font-bold text-white mb-2">${(stats.revenue / 1000000).toFixed(2)}M</h3>
+              <h3 className="text-4xl font-bold text-white mb-2">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
               <div className="flex gap-1">
                 <div className="h-1 w-2 bg-white rounded-full"></div>
                 <div className="h-1 w-2 bg-white rounded-full"></div>
@@ -210,7 +211,7 @@ export default function DashboardPage() {
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
-                <Zap className="h-5 w-5 text-[#5B7FDB]" />
+                <Zap className="h-5 w-5 text-[#5B6FE3]" />
               </div>
               <h3 className="text-4xl font-bold text-white mb-2">{stats.activeLeads.toLocaleString()}</h3>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Confidence</p>
@@ -226,7 +227,7 @@ export default function DashboardPage() {
             <Card className="rounded-xl border border-gray-200 bg-white">
               <CardHeader className="px-6 py-4 border-b border-gray-100 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-bold text-gray-900">High-Probability Opportunities</CardTitle>
-                <a href="/crm/opportunities" className="text-xs font-bold text-[#5B7FDB] uppercase tracking-wider hover:underline">
+                <a href="/crm/opportunities" className="text-xs font-bold text-[#5B6FE3] uppercase tracking-wider hover:underline">
                   Full Pipeline
                 </a>
               </CardHeader>
@@ -249,14 +250,14 @@ export default function DashboardPage() {
                           </td>
                         </tr>
                       ) : (
-                        highProbOpportunities.map((opp, idx) => {
+                        highProbOpportunities.map((opp: Opportunity, idx: number) => {
                           const customerName = opp.customer_name || opp.party_name || 'Unknown';
                           const initials = customerName.substring(0, 2).toUpperCase();
 
                           const stageColors: Record<string, { bg: string; text: string }> = {
-                            'Proposal': { bg: 'bg-blue-50', text: 'text-[#5B7FDB]' },
-                            'Discovery': { bg: 'bg-purple-50', text: 'text-purple-600' },
-                            'Negotiation': { bg: 'bg-orange-50', text: 'text-orange-600' },
+                            'Proposal': { bg: 'bg-blue-50', text: 'text-[#5B6FE3]' },
+                            'Discovery': { bg: 'bg-purple-50', text: 'text-[#8B5CF6]' },
+                            'Negotiation': { bg: 'bg-orange-50', text: 'text-[#F59E0B]' },
                           };
                           const stageStyle = stageColors[opp.sales_stage] || stageColors['Proposal'];
 
@@ -276,10 +277,7 @@ export default function DashboardPage() {
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 font-semibold text-gray-900">
-                                ${opp.opportunity_amount >= 1000000
-                                  ? `${(opp.opportunity_amount / 1000000).toFixed(1)}M`
-                                  : `${(opp.opportunity_amount / 1000).toFixed(0)}K`
-                                }
+                                {formatIndianCurrency(opp.opportunity_amount)}
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex items-center justify-end gap-3">
@@ -317,27 +315,27 @@ export default function DashboardPage() {
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-semibold text-gray-500 uppercase">Discovery</span>
-                        <span className="text-xs font-semibold text-gray-400">$4.2M</span>
+                        <span className="text-xs font-semibold text-gray-400">₹4.2Cr</span>
                       </div>
-                      <div className="bg-[#5B7FDB] h-10 rounded flex items-center justify-between px-3">
+                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3">
                         <span className="text-sm font-bold text-white">12 Deals</span>
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-semibold text-gray-500 uppercase">Proposal</span>
-                        <span className="text-xs font-semibold text-gray-400">$2.1M</span>
+                        <span className="text-xs font-semibold text-gray-400">₹2.1Cr</span>
                       </div>
-                      <div className="bg-[#5B7FDB] h-10 rounded flex items-center justify-between px-3" style={{ width: '70%' }}>
+                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3" style={{ width: '70%' }}>
                         <span className="text-sm font-bold text-white">8 Deals</span>
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-semibold text-gray-500 uppercase">Negotiation</span>
-                        <span className="text-xs font-semibold text-gray-400">$2.8M</span>
+                        <span className="text-xs font-semibold text-gray-400">₹2.8Cr</span>
                       </div>
-                      <div className="bg-[#5B7FDB] h-10 rounded flex items-center justify-between px-3" style={{ width: '50%' }}>
+                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3" style={{ width: '50%' }}>
                         <span className="text-sm font-bold text-white">5 Deals</span>
                       </div>
                     </div>
@@ -357,7 +355,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-center">
                     <div className="relative">
                       <svg width="180" height="180" viewBox="0 0 180 180">
-                        <circle cx="90" cy="90" r="70" fill="none" stroke="#5B7FDB" strokeWidth="28" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#5B6FE3" strokeWidth="28" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
                         <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="28" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -369,7 +367,7 @@ export default function DashboardPage() {
                   <div className="mt-6 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-[#5B7FDB]"></div>
+                        <div className="h-3 w-3 rounded-full bg-[#5B6FE3]"></div>
                         <span className="text-sm text-gray-700">Direct</span>
                       </div>
                       <span className="text-sm font-semibold text-gray-900">65%</span>
@@ -405,18 +403,18 @@ export default function DashboardPage() {
                       <p className="font-semibold text-gray-900 truncate">Sarah Jenkins</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#5B7FDB] transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-[#5B7FDB]/10 flex items-center justify-center shrink-0">
-                      <UserPlus className="h-5 w-5 text-[#5B7FDB]" />
+                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#5B6FE3] transition-colors">
+                    <div className="h-10 w-10 rounded-full bg-[#5B6FE3]/10 flex items-center justify-center shrink-0">
+                      <UserPlus className="h-5 w-5 text-[#5B6FE3]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-500 uppercase mb-1">New Lead</p>
                       <p className="font-semibold text-gray-900 truncate">Mike Rossi</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-purple-500 transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-                      <MessageSquare className="h-5 w-5 text-purple-600" />
+                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#8B5CF6] transition-colors">
+                    <div className="h-10 w-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                      <MessageSquare className="h-5 w-5 text-[#8B5CF6]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Outbound</p>
@@ -433,12 +431,12 @@ export default function DashboardPage() {
             <Card className="rounded-xl border border-gray-200 bg-white sticky top-24">
               <CardHeader className="px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 bg-[#5B7FDB]/10 rounded-lg flex items-center justify-center">
-                    <Lightbulb className="h-5 w-5 text-[#5B7FDB]" />
+                  <div className="h-9 w-9 bg-[#5B6FE3]/10 rounded-lg flex items-center justify-center">
+                    <Lightbulb className="h-5 w-5 text-[#5B6FE3]" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-bold text-gray-900">Intelligence Hub</CardTitle>
-                    <p className="text-xs font-semibold text-[#5B7FDB] uppercase tracking-wider">AI Copilot Active</p>
+                    <p className="text-xs font-semibold text-[#5B6FE3] uppercase tracking-wider">AI Copilot Active</p>
                   </div>
                 </div>
               </CardHeader>
@@ -454,7 +452,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-600 mb-4">
                       Health score dropped to <span className="font-bold text-orange-600">{atRiskDeal.healthScore}/100</span>.
                     </p>
-                    <button className="w-full py-2.5 bg-[#5B7FDB] hover:bg-[#4A63B0] text-white font-semibold text-sm rounded-lg transition-colors">
+                    <button className="w-full py-2.5 bg-[#5B6FE3] hover:bg-[#4A5BC9] text-white font-semibold text-sm rounded-lg transition-colors">
                       Generate Strategy
                     </button>
                   </div>
@@ -466,7 +464,7 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
                       <div className="h-8 w-8 rounded bg-white border border-gray-200 flex items-center justify-center shrink-0">
-                        <Mail className="h-4 w-4 text-[#5B7FDB]" />
+                        <Mail className="h-4 w-4 text-[#5B6FE3]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900">Follow up: Velocity</p>

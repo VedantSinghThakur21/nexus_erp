@@ -94,7 +94,7 @@ function SidebarContent() {
   return (
     <div
       suppressHydrationWarning
-      className="flex h-full flex-col bg-[#2C3E50] text-gray-100 border-r border-black/20"
+      className="flex h-full flex-col bg-[#1C2536] text-gray-100 border-r border-black/20"
     >
       {/* Logo Area - matching HTML design */}
       <div suppressHydrationWarning className="p-4 flex items-center gap-2.5 shrink-0">
@@ -134,7 +134,7 @@ function SidebarContent() {
                         flex items-center gap-2 px-3 py-1.5 rounded-md text-[13px] font-medium
                         transition-all duration-200
                         ${isActive
-                          ? 'bg-[#385197] text-white'
+                          ? 'bg-[#5B6FE3] text-white'
                           : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }
                       `}
