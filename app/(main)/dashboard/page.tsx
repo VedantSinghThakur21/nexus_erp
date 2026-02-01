@@ -334,39 +334,37 @@ export default function DashboardPage() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-xl border border-gray-200 bg-white">
-                <CardHeader className="px-6 py-4 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-gray-400" />
-                    <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
-                  </div>
+              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+                <CardHeader className="px-8 py-6 flex flex-row items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-[#5B7CFA]" />
+                  <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
+                <CardContent className="p-8">
+                  <div className="space-y-6">
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">Discovery</span>
-                        <span className="text-xs font-semibold text-gray-400">₹4.2Cr</span>
+                        <span className="text-xs font-bold text-gray-500 uppercase">Discovery</span>
+                        <span className="text-xs font-bold text-gray-400">₹4.2Cr</span>
                       </div>
-                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3">
+                      <div className="bg-[#5B7CFA] h-9 rounded-lg flex items-center justify-between px-4 shadow-sm">
                         <span className="text-sm font-bold text-white">12 Deals</span>
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">Proposal</span>
-                        <span className="text-xs font-semibold text-gray-400">₹2.1Cr</span>
+                        <span className="text-xs font-bold text-gray-500 uppercase">Proposal</span>
+                        <span className="text-xs font-bold text-gray-400">₹3.1Cr</span>
                       </div>
-                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3" style={{ width: '70%' }}>
+                      <div className="bg-[#5B7CFA] h-9 rounded-lg flex items-center justify-between px-4 shadow-sm" style={{ width: '70%' }}>
                         <span className="text-sm font-bold text-white">8 Deals</span>
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">Negotiation</span>
-                        <span className="text-xs font-semibold text-gray-400">₹2.8Cr</span>
+                        <span className="text-xs font-bold text-gray-500 uppercase">Negotiation</span>
+                        <span className="text-xs font-bold text-gray-400">₹2.8Cr</span>
                       </div>
-                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3" style={{ width: '50%' }}>
+                      <div className="bg-[#5B7CFA] h-9 rounded-lg flex items-center justify-between px-4 shadow-sm" style={{ width: '50%' }}>
                         <span className="text-sm font-bold text-white">5 Deals</span>
                       </div>
                     </div>
@@ -375,40 +373,35 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-              <Card className="rounded-xl border border-gray-200 bg-white">
-                <CardHeader className="px-6 py-4 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-gray-400" />
-                    <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
-                  </div>
+              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+                <CardHeader className="px-8 py-6 border-b border-gray-100 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-[#5B7CFA]" />
+                  <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-center">
+                <CardContent className="p-8">
+                  <div className="flex items-center justify-between">
                     <div className="relative">
                       <svg width="180" height="180" viewBox="0 0 180 180">
-                        <circle cx="90" cy="90" r="70" fill="none" stroke="#5B6FE3" strokeWidth="28" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
-                        <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="28" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#5B7CFA" strokeWidth="18" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="18" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#E5EAF2" strokeWidth="18" strokeDasharray="67 440" strokeDashoffset="-373" transform="rotate(-90 90 90)" />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <p className="text-2xl font-bold text-gray-900">1.2k</p>
                         <p className="text-xs font-semibold text-gray-500 uppercase">Total</p>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-6 space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-4 ml-8">
                       <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-[#5B6FE3]"></div>
+                        <span className="h-3 w-3 rounded-full bg-[#5B7CFA]"></span>
                         <span className="text-sm text-gray-700">Direct</span>
+                        <span className="text-sm text-gray-700 ml-2">65%</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">65%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-[#10B981]"></div>
+                        <span className="h-3 w-3 rounded-full bg-[#10B981]"></span>
                         <span className="text-sm text-gray-700">Referral</span>
+                        <span className="text-sm text-gray-700 ml-2">20%</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">20%</span>
                     </div>
                   </div>
                 </CardContent>
