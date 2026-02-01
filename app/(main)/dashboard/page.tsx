@@ -1,3 +1,6 @@
+
+"use client"
+
 // Type guard for stats object
 function isStats(obj: any): obj is {
   pipelineValue: number;
@@ -17,8 +20,6 @@ function isStats(obj: any): obj is {
     typeof obj.winRate === "number"
   );
 }
-
-"use client"
 
 import { useEffect, useMemo, useState } from "react";
 import { getDashboardStats } from "@/app/actions/dashboard";
