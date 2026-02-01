@@ -1,16 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react";
-import type { Opportunity } from "@/app/actions/crm";
-import { getDashboardStats } from "@/app/actions/dashboard";
-import { getOpportunities } from "@/app/actions/crm";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
   TrendingUp, 
   DollarSign, 
-  Target, 
   Users, 
   AlertCircle, 
   Sparkles, 
@@ -23,130 +19,140 @@ import {
   Activity,
   BarChart3,
   Calendar,
-  FileText
+  FileText,
+  RefreshCw
 } from "lucide-react";
 import Link from "next/link";
+import { getDashboardStats, getOpportunities, getRecentActivities, getAtRiskDeals } from "@/app/actions/dashboard";
+
+type Opportunity = {
+  name: string;
+  customer_name?: string;
+  party_name?: string;
+  sales_stage: string;
+  opportunity_amount: number;
+  probability: number;
+  status: string;
+  modified: string;
+};
 
 type Stats = {
   pipelineValue: number;
   revenue: number;
-  openOpportunities: number;
+  activeLeads: number;
   winRate: number;
-  winRateChange?: number;
-  leadsChange?: number;
+  winRateChange: number;
+  leadsChange: number;
 };
 
-function isStats(obj: any): obj is Stats {
-  return (
-    obj &&
-    typeof obj === "object" &&
-    typeof obj.pipelineValue === "number" &&
-    typeof obj.revenue === "number" &&
-    typeof obj.openOpportunities === "number" &&
-    typeof obj.winRate === "number"
-  );
-}
+type ActivityItem = {
+  type: 'closed-won' | 'hot-prospect' | 'engagement';
+  title: string;
+  subtitle: string;
+  time: string;
+};
+
+type AtRiskDeal = {
+  name: string;
+  healthScore: number;
+};
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
-    pipelineValue: 12800000,
-    revenue: 2450000,
-    openOpportunities: 1402,
-    winRate: 64.5,
-    winRateChange: 2.4,
-    leadsChange: 18,
+    pipelineValue: 0,
+    revenue: 0,
+    activeLeads: 0,
+    winRate: 0,
+    winRateChange: 0,
+    leadsChange: 0,
   });
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [atRiskDeal, setAtRiskDeal] = useState<AtRiskDeal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      getDashboardStats().catch(() => ({})),
-      getOpportunities().catch(() => []),
-    ]).then(([statsRes, oppsRes]) => {
-      if (isStats(statsRes)) {
-        setStats(statsRes);
-      }
-      setOpportunities(oppsRes || []);
-      setLoading(false);
-    }).catch(() => {
-      setError("Failed to load dashboard");
-      setLoading(false);
-    });
+    loadDashboardData();
   }, []);
 
-  const highProbOpportunities = useMemo(
-    () => {
-      // Use real data if available, otherwise use demo data
-      const realOpps = (opportunities || [])
-        .filter((opp) => opp.probability >= 50 && opp.status === "Open")
-        .slice(0, 4);
+  async function loadDashboardData() {
+    try {
+      setLoading(true);
       
-      if (realOpps.length > 0) return realOpps;
-      
-      // Demo data
-      return [
-        {
-          name: "velocity-tech",
-          customer_name: "Velocity Tech",
-          party_name: "Velocity Tech",
-          sales_stage: "Proposal",
-          opportunity_amount: 420000,
-          probability: 92,
-          status: "Open"
-        },
-        {
-          name: "cloudsphere",
-          customer_name: "CloudSphere",
-          party_name: "CloudSphere",
-          sales_stage: "Discovery",
-          opportunity_amount: 315000,
-          probability: 78,
-          status: "Open"
-        },
-        {
-          name: "urban-mobility",
-          customer_name: "Urban Mobility",
-          party_name: "Urban Mobility",
-          sales_stage: "Negotiation",
-          opportunity_amount: 890000,
-          probability: 45,
-          status: "Open"
-        },
-        {
-          name: "nextgen-tech",
-          customer_name: "NextGen Tech",
-          party_name: "NextGen Tech",
-          sales_stage: "Closed",
-          opportunity_amount: 1200000,
-          probability: 100,
-          status: "Closed Won"
-        }
-      ] as Opportunity[];
-    },
-    [opportunities]
-  );
+      // Fetch all data using server actions
+      const [statsData, oppsData, activitiesData, atRiskData] = await Promise.all([
+        getDashboardStats(),
+        getOpportunities(),
+        getRecentActivities(),
+        getAtRiskDeals(),
+      ]);
+
+      // Set opportunities
+      setOpportunities(oppsData);
+
+      // Set stats
+      setStats({
+        pipelineValue: statsData.pipelineValue,
+        revenue: statsData.revenue,
+        activeLeads: statsData.openOpportunities,
+        winRate: statsData.winRate,
+        winRateChange: statsData.winRateChange,
+        leadsChange: statsData.leadsChange,
+      });
+
+      // Set activities
+      setActivities(activitiesData);
+
+      // Set at-risk deal (for Intelligence Hub)
+      if (atRiskData.length > 0) {
+        setAtRiskDeal(atRiskData[0]);
+      }
+
+      setLoading(false);
+    } catch (err) {
+      console.error('Dashboard load error:', err);
+      setError('Failed to load dashboard data');
+      setLoading(false);
+    }
+  }
+
+  const highProbOpportunities = opportunities
+    .filter((opp) => opp.probability >= 50 && opp.status === 'Open')
+    .sort((a, b) => b.probability - a.probability)
+    .slice(0, 4);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#385197]"></div>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-12 w-12 text-[#385197] animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-600">{error}</div>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={loadDashboardData}
+            className="px-4 py-2 bg-[#385197] text-white rounded-lg hover:brightness-110"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Header - Note: Sidebar is handled by AppSidebar component */}
+      {/* Header */}
       <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40">
         <div className="flex items-center w-full max-w-xl">
           <div className="relative w-full">
@@ -190,7 +196,7 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-start mb-3">
                   <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Win Rate</p>
                   <Badge className="bg-emerald-50 text-emerald-600 border-0 text-[10px] font-bold px-2 py-0.5 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" /> {stats.winRateChange?.toFixed(1)}%
+                    <TrendingUp className="h-3 w-3" /> {stats.winRateChange.toFixed(1)}%
                   </Badge>
                 </div>
                 <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
@@ -219,8 +225,12 @@ export default function DashboardPage() {
                   {[30, 50, 40, 70, 60, 90].map((height, idx) => (
                     <div
                       key={idx}
-                      className="flex-1 bg-[#385197] rounded-sm transition-all hover:opacity-80"
-                      style={{ height: `${height}%`, opacity: 0.1 + (idx * 0.15) }}
+                      className="flex-1 rounded-sm transition-all hover:opacity-80"
+                      style={{ 
+                        height: `${height}%`, 
+                        backgroundColor: '#385197',
+                        opacity: 0.1 + (idx * 0.15) 
+                      }}
                     ></div>
                   ))}
                 </div>
@@ -254,10 +264,10 @@ export default function DashboardPage() {
                   <Users className="h-5 w-5 text-gray-300" />
                 </div>
                 <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
-                  {stats.openOpportunities.toLocaleString()}
+                  {stats.activeLeads.toLocaleString()}
                 </h3>
                 <p className="text-[11px] text-emerald-600 font-bold mt-3 uppercase tracking-wide">
-                  +{stats.leadsChange}% vs LW
+                  +{stats.leadsChange.toFixed(0)}% vs LW
                 </p>
               </CardContent>
             </Card>
@@ -288,63 +298,75 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {highProbOpportunities.map((opp, idx) => {
-                      const stageColors: Record<string, { bg: string; text: string; border: string }> = {
-                        'Proposal': { bg: 'bg-blue-50', text: 'text-[#385197]', border: 'border-blue-100' },
-                        'Discovery': { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100' },
-                        'Negotiation': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' },
-                        'Closed': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
-                      };
-                      const stageStyle = stageColors[opp.sales_stage] || stageColors['Proposal'];
-                      
-                      const confidenceColor = opp.probability >= 80 
-                        ? 'bg-emerald-500' 
-                        : opp.probability >= 50 
-                        ? 'bg-[#385197]' 
-                        : 'bg-amber-500';
-                      
-                      const confidenceTextColor = opp.probability >= 80 
-                        ? 'text-emerald-600' 
-                        : opp.probability >= 50 
-                        ? 'text-[#385197]' 
-                        : 'text-amber-500';
+                    {highProbOpportunities.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-500">
+                          No high-probability opportunities found
+                        </td>
+                      </tr>
+                    ) : (
+                      highProbOpportunities.map((opp, idx) => {
+                        const stageColors: Record<string, { bg: string; text: string; border: string }> = {
+                          'Proposal': { bg: 'bg-blue-50', text: 'text-[#385197]', border: 'border-blue-100' },
+                          'Discovery': { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100' },
+                          'Negotiation': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' },
+                          'Closed': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
+                          'Qualifying': { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100' },
+                        };
+                        const stageStyle = stageColors[opp.sales_stage] || stageColors['Proposal'];
+                        
+                        const confidenceColor = opp.probability >= 80 
+                          ? 'bg-emerald-500' 
+                          : opp.probability >= 50 
+                          ? 'bg-[#385197]' 
+                          : 'bg-amber-500';
+                        
+                        const confidenceTextColor = opp.probability >= 80 
+                          ? 'text-emerald-600' 
+                          : opp.probability >= 50 
+                          ? 'text-[#385197]' 
+                          : 'text-amber-500';
 
-                      return (
-                        <tr key={idx} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded bg-gray-100 flex items-center justify-center text-[10px] font-bold border border-gray-200">
-                                {(opp.customer_name || opp.party_name || '??').substring(0, 2).toUpperCase()}
+                        return (
+                          <tr key={idx} className="hover:bg-gray-50 transition-colors cursor-pointer">
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded bg-gray-100 flex items-center justify-center text-[10px] font-bold border border-gray-200">
+                                  {(opp.customer_name || opp.party_name || '??').substring(0, 2).toUpperCase()}
+                                </div>
+                                <span className="font-bold text-gray-900">
+                                  {opp.customer_name || opp.party_name}
+                                </span>
                               </div>
-                              <span className="font-bold text-gray-900">
-                                {opp.customer_name || opp.party_name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4">
-                            <Badge className={`${stageStyle.bg} ${stageStyle.text} ${stageStyle.border} text-[10px] font-bold border px-2 py-0.5`}>
-                              {opp.sales_stage}
-                            </Badge>
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-gray-700">
-                            ${(opp.opportunity_amount / 1000).toFixed(0)}K
-                          </td>
-                          <td className="px-5 py-4">
-                            <div className="flex items-center justify-end gap-3">
-                              <span className={`font-bold ${confidenceTextColor}`}>
-                                {opp.probability}%
-                              </span>
-                              <div className="w-24 h-1.5 bg-gray-100 rounded-full">
-                                <div 
-                                  className={`h-full ${confidenceColor} rounded-full transition-all duration-500`}
-                                  style={{ width: `${opp.probability}%` }}
-                                ></div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <Badge className={`${stageStyle.bg} ${stageStyle.text} ${stageStyle.border} text-[10px] font-bold border px-2 py-0.5`}>
+                                {opp.sales_stage}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-4 font-semibold text-gray-700">
+                              ${opp.opportunity_amount >= 1000000 
+                                ? `${(opp.opportunity_amount / 1000000).toFixed(1)}M`
+                                : `${(opp.opportunity_amount / 1000).toFixed(0)}K`
+                              }
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center justify-end gap-3">
+                                <span className={`font-bold ${confidenceTextColor}`}>
+                                  {opp.probability}%
+                                </span>
+                                <div className="w-24 h-1.5 bg-gray-100 rounded-full">
+                                  <div 
+                                    className={`h-full ${confidenceColor} rounded-full transition-all duration-500`}
+                                    style={{ width: `${opp.probability}%` }}
+                                  ></div>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -445,50 +467,49 @@ export default function DashboardPage() {
               <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Real-Time Revenue Activity</h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Closed Won */}
-              <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-4 flex items-start gap-4">
-                  <div className="h-11 w-11 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                    <CheckCircle className="h-6 w-6 fill-current" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase">Closed-Won</p>
-                    <h5 className="text-sm font-bold text-gray-900 truncate mt-1">Sarah Jenkins</h5>
-                    <p className="text-xs text-gray-600 truncate mt-0.5">Cyberdyne Corp • $85k</p>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase mt-2 block">2 min ago</span>
-                  </div>
-                </CardContent>
-              </Card>
+              {activities.map((activity, idx) => {
+                const config = {
+                  'closed-won': {
+                    icon: CheckCircle,
+                    bgColor: 'bg-emerald-50',
+                    iconColor: 'text-emerald-600',
+                    label: 'CLOSED-WON',
+                    labelColor: 'text-emerald-600',
+                  },
+                  'hot-prospect': {
+                    icon: UserPlus,
+                    bgColor: 'bg-blue-50',
+                    iconColor: 'text-blue-600',
+                    label: 'HOT PROSPECT',
+                    labelColor: 'text-blue-600',
+                  },
+                  'engagement': {
+                    icon: Mail,
+                    bgColor: 'bg-purple-50',
+                    iconColor: 'text-purple-600',
+                    label: 'ENGAGEMENT',
+                    labelColor: 'text-purple-600',
+                  },
+                }[activity.type];
 
-              {/* Hot Prospect */}
-              <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-4 flex items-start gap-4">
-                  <div className="h-11 w-11 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                    <UserPlus className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-blue-600 uppercase">Hot Prospect</p>
-                    <h5 className="text-sm font-bold text-gray-900 truncate mt-1">Mike Rossi</h5>
-                    <p className="text-xs text-gray-600 truncate mt-0.5">TechFlow Systems</p>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase mt-2 block">15 min ago</span>
-                  </div>
-                </CardContent>
-              </Card>
+                const Icon = config.icon;
 
-              {/* Engagement */}
-              <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-4 flex items-start gap-4">
-                  <div className="h-11 w-11 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-                    <Mail className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-purple-600 uppercase">Engagement</p>
-                    <h5 className="text-sm font-bold text-gray-900 truncate mt-1">David Geller</h5>
-                    <p className="text-xs text-gray-600 truncate mt-0.5">Stark Ind. Proposal Opened</p>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase mt-2 block">45 min ago</span>
-                  </div>
-                </CardContent>
-              </Card>
+                return (
+                  <Card key={idx} className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-4 flex items-start gap-4">
+                      <div className={`h-11 w-11 rounded-full ${config.bgColor} flex items-center justify-center ${config.iconColor} shrink-0`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[10px] font-bold ${config.labelColor} uppercase`}>{config.label}</p>
+                        <h5 className="text-sm font-bold text-gray-900 truncate mt-1">{activity.title}</h5>
+                        <p className="text-xs text-gray-600 truncate mt-0.5">{activity.subtitle}</p>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase mt-2 block">{activity.time}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
 
@@ -525,22 +546,24 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="p-5 space-y-5">
               {/* Deal at Risk Alert */}
-              <div className="bg-white p-5 rounded-xl border-2 border-[#FFCC3F] shadow-sm relative overflow-hidden">
-                <div className="absolute top-2 right-2">
-                  <div className="h-1.5 w-1.5 bg-[#FFCC3F] rounded-full animate-pulse"></div>
+              {atRiskDeal && (
+                <div className="bg-white p-5 rounded-xl border-2 border-[#FFCC3F] shadow-sm relative overflow-hidden">
+                  <div className="absolute top-2 right-2">
+                    <div className="h-1.5 w-1.5 bg-[#FFCC3F] rounded-full animate-pulse"></div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3 text-[#FFCC3F] font-bold">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-[10px] uppercase tracking-widest">Deal at Risk</span>
+                  </div>
+                  <h5 className="text-sm font-bold text-gray-900">{atRiskDeal.name}</h5>
+                  <p className="text-xs text-gray-500 leading-tight mt-1.5">
+                    Health score dropped to <span className="font-bold text-rose-500">{atRiskDeal.healthScore}/100</span>.
+                  </p>
+                  <button className="w-full mt-4 py-2 bg-[#385197] hover:brightness-110 active:scale-95 transition-all text-white font-bold text-[11px] rounded-lg">
+                    Generate Strategy
+                  </button>
                 </div>
-                <div className="flex items-center gap-2 mb-3 text-[#FFCC3F] font-bold">
-                  <AlertCircle className="h-4 w-4" />
-                  <span className="text-[10px] uppercase tracking-widest">Deal at Risk</span>
-                </div>
-                <h5 className="text-sm font-bold text-gray-900">Acme Corp HQ</h5>
-                <p className="text-xs text-gray-500 leading-tight mt-1.5">
-                  Health score dropped to <span className="font-bold text-rose-500">42/100</span>.
-                </p>
-                <button className="w-full mt-4 py-2 bg-[#385197] hover:brightness-110 active:scale-95 transition-all text-white font-bold text-[11px] rounded-lg">
-                  Generate Strategy
-                </button>
-              </div>
+              )}
 
               {/* Priority Actions */}
               <div className="space-y-3">
