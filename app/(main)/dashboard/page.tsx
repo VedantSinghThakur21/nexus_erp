@@ -379,45 +379,6 @@ export default function DashboardPage() {
       </div>
     </div>
   )
-              <option>This Month</option>
-              <option>This Quarter</option>
-            </select>
-        </div>
-      </div>
-
-      {/* Performance Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        
-        {/* New Leads Today */}
-        <AnimatedStatCard
-          title="New Leads Today"
-          value={safeStats.newLeadsToday}
-          change={{ value: 2, trend: 'up' }}
-          icon={<Users className="h-5 w-5" />}
-          delay={0}
-        />
-
-        {/* Open Opportunities */}
-        <AnimatedStatCard
-          title="Open Opportunities"
-          value={safeStats.openOpportunities}
-          change={{ value: 4, trend: 'up' }}
-          icon={<Briefcase className="h-5 w-5" />}
-          delay={0.1}
-        />
-
-        {/* Pipeline Value */}
-        <AnimatedStatCard
-          title="Pipeline Value"
-          value={`₹${(safeStats.pipelineValue / 100000).toFixed(1)}L`}
-          change={{ value: 10, trend: 'up' }}
-          icon={<DollarSign className="h-5 w-5" />}
-          variant="neon"
-          delay={0.2}
-        />
-
-        {/* Deals Won MTD */}
-        <AnimatedStatCard
           title="Deals Won MTD"
           value={safeStats.dealsWonMTD}
           icon={<Trophy className="h-5 w-5" />}
