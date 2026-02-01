@@ -1,12 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
   FileText,
-  LogOut,
   FolderKanban,
   Calendar,
   Settings,
@@ -27,8 +26,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from 'react'
-import { logoutUser as logoutUserAuth } from '@/app/actions/user-auth'
-import { logoutUser as logoutUserAction } from '@/app/actions/logout'
 
 // Organized menu structure by category matching HTML design
 const menuStructure = [
@@ -78,18 +75,6 @@ const menuStructure = [
 // Reusable Sidebar Content
 function SidebarContent() {
   const pathname = usePathname()
-  const router = useRouter()
-
-  async function handleLogout() {
-    try {
-      await logoutUserAction()
-    } catch (error) {
-      console.error('Logout error:', error)
-      await logoutUserAuth()
-      router.push('/login')
-      router.refresh()
-    }
-  }
 
   return (
     <div
@@ -152,18 +137,10 @@ function SidebarContent() {
 
       {/* Footer - matching HTML design */}
       <div suppressHydrationWarning className="p-4 border-t border-white/5 shrink-0 bg-black/10">
-        <div className="flex flex-col items-center gap-0.5 mb-3">
+        <div className="flex flex-col items-center gap-0.5">
           <span className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.3em]">Powered by</span>
           <span className="text-[10px] font-bold text-white tracking-[0.2em]">AVARIQ</span>
         </div>
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
-          className="w-full justify-start text-[13px] text-gray-400 hover:text-white hover:bg-white/5 h-9"
-        >
-          <LogOut className="h-[18px] w-[18px] mr-2" strokeWidth={1.5} />
-          Logout
-        </Button>
       </div>
     </div>
   )
