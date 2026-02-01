@@ -156,11 +156,11 @@ export default function DashboardPage() {
       </header>
 
       <div className="p-8">
-        {/* KPI Cards - 24px gaps, 180px height */}
+        {/* KPI Cards - Proper font sizing (text-4xl = 36px) */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[200px] shadow-lg">
-            <CardContent className="p-6 w-full h-full relative flex flex-col justify-between">
+          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg">
+            <CardContent className="p-6 w-full h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em]">WIN RATE</p>
                 <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-[#5B6FE3]/10">
@@ -168,23 +168,20 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div>
-                <h3 
-                  className="text-[64px] font-black text-white leading-none tracking-tight mb-2" 
-                  style={{fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 900}}
-                >
+                <h3 className="text-4xl font-bold text-white leading-none tracking-tight mb-2">
                   {stats.winRate.toFixed(1)}%
                 </h3>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-3.5 w-3.5 text-[#5B6FE3]" />
-                  <span className="text-sm font-bold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
+                  <span className="text-sm font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[200px] shadow-lg">
-            <CardContent className="p-6 w-full h-full relative flex flex-col justify-between">
+          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg">
+            <CardContent className="p-6 w-full h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em]">PIPELINE VALUE</p>
                 <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-[#10B981]/10">
@@ -192,14 +189,11 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div>
-                <h3 
-                  className="text-[64px] font-black text-white leading-none tracking-tight mb-3" 
-                  style={{fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 900}}
-                >
+                <h3 className="text-4xl font-bold text-white leading-none tracking-tight mb-3">
                   {formatIndianCurrencyInCrores(stats.pipelineValue)}
                 </h3>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-medium">
+                  <div className="flex items-center justify-between text-[10px] font-medium">
                     <span className="text-gray-400">TARGET: ₹20Cr</span>
                     <span className="text-gray-400">65% ACHIEVED</span>
                   </div>
@@ -212,8 +206,8 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[200px] shadow-lg">
-            <CardContent className="p-6 w-full h-full relative flex flex-col justify-between">
+          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg">
+            <CardContent className="p-6 w-full h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em]">REVENUE MTD</p>
                 <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-[#F59E0B]/10">
@@ -221,10 +215,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div>
-                <h3 
-                  className="text-[64px] font-black text-white leading-none tracking-tight mb-3" 
-                  style={{fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 900}}
-                >
+                <h3 className="text-4xl font-bold text-white leading-none tracking-tight mb-3">
                   {formatIndianCurrencyInCrores(stats.revenue)}
                 </h3>
                 <div className="flex gap-1.5 mt-1">
@@ -238,8 +229,8 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[200px] shadow-lg">
-            <CardContent className="p-6 w-full h-full relative flex flex-col justify-between">
+          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg">
+            <CardContent className="p-6 w-full h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em]">ACTIVE LEADS</p>
                 <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-[#F59E0B]/10">
@@ -247,10 +238,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div>
-                <h3 
-                  className="text-[64px] font-black text-white leading-none tracking-tight mb-3" 
-                  style={{fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 900}}
-                >
+                <h3 className="text-4xl font-bold text-white leading-none tracking-tight mb-3">
                   {stats.activeLeads.toLocaleString()}
                 </h3>
                 <div className="inline-block px-3 py-1.5 bg-gray-700/40 rounded-lg border border-gray-600/30">
