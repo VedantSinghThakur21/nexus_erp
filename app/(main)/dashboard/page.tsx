@@ -159,75 +159,73 @@ export default function DashboardPage() {
         {/* KPI Cards - 24px gaps, 180px height */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px]">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between">
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>
-                <div className="p-1.5 bg-[#5B6FE3]/10 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-[#5B6FE3]" />
-                </div>
+                <TrendingUp className="h-5 w-5 text-[#5B6FE3] bg-[#5B6FE3]/10 rounded-lg p-1.5" />
               </div>
-              <h3 className="text-[32px] font-semibold text-white mb-2">{stats.winRate.toFixed(1)}%</h3>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-3 w-3 text-[#5B6FE3]" />
-                <span className="text-xs font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
+              <div className="flex-1 flex flex-col justify-center">
+                <h3 className="text-[32px] font-semibold text-white leading-none mb-1">{stats.winRate.toFixed(1)}%</h3>
+                <div className="flex items-center gap-1 mt-1">
+                  <TrendingUp className="h-3 w-3 text-[#5B6FE3]" />
+                  <span className="text-xs font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px]">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between">
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
-                <div className="p-1.5 bg-[#10B981]/10 rounded-lg">
-                  <BarChart3 className="h-4 w-4 text-[#10B981]" />
-                </div>
+                <BarChart3 className="h-5 w-5 text-[#10B981] bg-[#10B981]/10 rounded-lg p-1.5" />
               </div>
-              <h3 className="text-[32px] font-semibold text-white mb-2">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
+              <div className="flex-1 flex flex-col justify-center">
+                <h3 className="text-[32px] font-semibold text-white leading-none mb-1">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
+                <div className="flex items-center justify-between text-xs mt-1 mb-1">
                   <span className="text-gray-400">TARGET: ₹20Cr</span>
                   <span className="text-gray-400">65% ACHIEVED</span>
                 </div>
-                <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#10B981] rounded-full" style={{ width: '65%' }}></div>
+                <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden mt-1">
+                  <div className="h-full bg-[#10B981] rounded-full transition-all duration-500" style={{ width: '65%' }}></div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px]">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between">
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
-                <div className="p-1.5 bg-[#F59E0B]/10 rounded-lg">
-                  <Zap className="h-4 w-4 text-[#F59E0B]" />
-                </div>
+                <Zap className="h-5 w-5 text-[#F59E0B] bg-[#F59E0B]/10 rounded-lg p-1.5" />
               </div>
-              <h3 className="text-[32px] font-semibold text-white mb-2">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
-              <div className="flex gap-1">
-                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                <div className="h-1 w-2 bg-gray-600 rounded-full"></div>
+              <div className="flex-1 flex flex-col justify-center">
+                <h3 className="text-[32px] font-semibold text-white leading-none mb-1">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
+                <div className="flex gap-1 mt-2">
+                  <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
+                  <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
+                  <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
+                  <div className="h-1 w-2 bg-gray-600 rounded-full"></div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px]">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between">
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
-                <div className="p-1.5 bg-[#F59E0B]/10 rounded-lg">
-                  <Zap className="h-4 w-4 text-[#F59E0B]" />
-                </div>
+                <Zap className="h-5 w-5 text-[#F59E0B] bg-[#F59E0B]/10 rounded-lg p-1.5" />
               </div>
-              <h3 className="text-[32px] font-semibold text-white mb-2">{stats.activeLeads.toLocaleString()}</h3>
-              <div className="inline-block px-2.5 py-1 bg-gray-700/50 rounded-md">
-                <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">AI Confidence</p>
+              <div className="flex-1 flex flex-col justify-center">
+                <h3 className="text-[32px] font-semibold text-white leading-none mb-1">{stats.activeLeads.toLocaleString()}</h3>
+                <div className="inline-block px-2.5 py-1 bg-gray-700/50 rounded-md mt-2">
+                  <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">AI Confidence</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -531,5 +529,5 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
-    );
+      );
   }
