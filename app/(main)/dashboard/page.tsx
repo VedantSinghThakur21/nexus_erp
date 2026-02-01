@@ -273,9 +273,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Intelligence Hub (as 5th card) */}
-                </Link>
-              </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="px-6 py-4 border-b border-gray-100">
+              <CardTitle>High Probability Opportunities</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
