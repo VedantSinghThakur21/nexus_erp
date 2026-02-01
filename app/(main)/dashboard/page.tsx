@@ -159,62 +159,76 @@ export default function DashboardPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           {/* Win Rate */}
-          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>
-                <TrendingUp className="h-5 w-5 text-[#5B6FE3]" />
+                <div className="p-1.5 bg-[#5B6FE3]/10 rounded-lg">
+                  <TrendingUp className="h-4 w-4 text-[#5B6FE3]" />
+                </div>
               </div>
               <h3 className="text-4xl font-bold text-white mb-2">{stats.winRate.toFixed(1)}%</h3>
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-3 w-3 text-[#10B981]" />
-                <span className="text-xs font-semibold text-[#10B981]">+{stats.winRateChange.toFixed(1)}%</span>
+                <TrendingUp className="h-3 w-3 text-[#5B6FE3]" />
+                <span className="text-xs font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
-                <BarChart3 className="h-5 w-5 text-[#5B6FE3]" />
+                <div className="p-1.5 bg-[#10B981]/10 rounded-lg">
+                  <BarChart3 className="h-4 w-4 text-[#10B981]" />
+                </div>
               </div>
-              <h3 className="text-4xl font-bold text-white mb-1">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-gray-400">TARGET: ₹20Cr</span>
-                <span className="text-gray-500">•</span>
-                <span className="text-gray-400">65% ACHIEVED</span>
+              <h3 className="text-4xl font-bold text-white mb-2">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">TARGET: ₹20Cr</span>
+                  <span className="text-gray-400">65% ACHIEVED</span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#10B981] rounded-full" style={{ width: '65%' }}></div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
-                <Zap className="h-5 w-5 text-[#5B6FE3]" />
+                <div className="p-1.5 bg-[#F59E0B]/10 rounded-lg">
+                  <Zap className="h-4 w-4 text-[#F59E0B]" />
+                </div>
               </div>
               <h3 className="text-4xl font-bold text-white mb-2">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
               <div className="flex gap-1">
-                <div className="h-1 w-2 bg-white rounded-full"></div>
-                <div className="h-1 w-2 bg-white rounded-full"></div>
-                <div className="h-1 w-2 bg-white rounded-full"></div>
+                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
+                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
+                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
                 <div className="h-1 w-2 bg-gray-600 rounded-full"></div>
               </div>
             </CardContent>
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
-                <Zap className="h-5 w-5 text-[#5B6FE3]" />
+                <div className="p-1.5 bg-[#F59E0B]/10 rounded-lg">
+                  <Zap className="h-4 w-4 text-[#F59E0B]" />
+                </div>
               </div>
               <h3 className="text-4xl font-bold text-white mb-2">{stats.activeLeads.toLocaleString()}</h3>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Confidence</p>
+              <div className="inline-block px-2.5 py-1 bg-gray-700/50 rounded-md">
+                <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">AI Confidence</p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -225,7 +239,7 @@ export default function DashboardPage() {
           <div className="xl:col-span-2 space-y-6">
             {/* High-Probability Opportunities */}
             <Card className="rounded-xl border border-gray-200 bg-white">
-              <CardHeader className="px-6 py-4 border-b border-gray-100 flex flex-row items-center justify-between">
+              <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-bold text-gray-900">High-Probability Opportunities</CardTitle>
                 <a href="/crm/opportunities" className="text-xs font-bold text-[#5B6FE3] uppercase tracking-wider hover:underline">
                   Full Pipeline
