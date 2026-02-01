@@ -334,20 +334,20 @@ export default function DashboardPage() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <CardHeader className="px-6 py-4 flex flex-row items-center gap-2">
+              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm w-[520px] min-h-[260px]">
+                <CardHeader className="px-8 py-6 flex flex-row items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-[#5B7CFA]" />
                   <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
+                <CardContent className="p-8">
+                  <div className="space-y-7">
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-bold text-gray-500 uppercase">Discovery</span>
                         <span className="text-xs font-bold text-gray-400">₹4.2Cr</span>
                       </div>
-                      <div className="bg-[#5B7CFA] h-8 rounded-lg flex items-center justify-between px-4 shadow-sm w-full">
-                        <span className="text-sm font-bold text-white">12 Deals</span>
+                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm w-full">
+                        <span className="text-base font-bold text-white">12 Deals</span>
                       </div>
                     </div>
                     <div>
@@ -355,8 +355,8 @@ export default function DashboardPage() {
                         <span className="text-xs font-bold text-gray-500 uppercase">Proposal</span>
                         <span className="text-xs font-bold text-gray-400">₹3.1Cr</span>
                       </div>
-                      <div className="bg-[#5B7CFA] h-8 rounded-lg flex items-center justify-between px-4 shadow-sm" style={{ width: '70%' }}>
-                        <span className="text-sm font-bold text-white">8 Deals</span>
+                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm" style={{ width: '70%' }}>
+                        <span className="text-base font-bold text-white">8 Deals</span>
                       </div>
                     </div>
                     <div>
@@ -364,8 +364,8 @@ export default function DashboardPage() {
                         <span className="text-xs font-bold text-gray-500 uppercase">Negotiation</span>
                         <span className="text-xs font-bold text-gray-400">₹2.8Cr</span>
                       </div>
-                      <div className="bg-[#5B7CFA] h-8 rounded-lg flex items-center justify-between px-4 shadow-sm" style={{ width: '50%' }}>
-                        <span className="text-sm font-bold text-white">5 Deals</span>
+                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm" style={{ width: '50%' }}>
+                        <span className="text-base font-bold text-white">5 Deals</span>
                       </div>
                     </div>
                   </div>
@@ -373,25 +373,25 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <CardHeader className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm w-[420px] min-h-[260px]">
+                <CardHeader className="px-8 py-6 border-b border-gray-100 flex items-center gap-2">
                   <Users className="h-5 w-5 text-[#5B7CFA]" />
                   <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-8">
                   <div className="flex items-center justify-between">
                     <div className="relative">
-                      <svg width="160" height="160" viewBox="0 0 160 160">
-                        <circle cx="80" cy="80" r="60" fill="none" stroke="#5B7CFA" strokeWidth="16" strokeDasharray="245 377" transform="rotate(-90 80 80)" />
-                        <circle cx="80" cy="80" r="60" fill="none" stroke="#10B981" strokeWidth="16" strokeDasharray="75 377" strokeDashoffset="-245" transform="rotate(-90 80 80)" />
-                        <circle cx="80" cy="80" r="60" fill="none" stroke="#E5EAF2" strokeWidth="16" strokeDasharray="57 377" strokeDashoffset="-320" transform="rotate(-90 80 80)" />
+                      <svg width="180" height="180" viewBox="0 0 180 180">
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#5B7CFA" strokeWidth="18" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="18" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#E5EAF2" strokeWidth="18" strokeDasharray="67 440" strokeDashoffset="-373" transform="rotate(-90 90 90)" />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <p className="text-xl font-bold text-gray-900">1.2k</p>
+                        <p className="text-2xl font-bold text-gray-900">1.2k</p>
                         <p className="text-xs font-semibold text-gray-500 uppercase">Total</p>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-3 ml-6">
+                    <div className="flex flex-col gap-4 ml-8">
                       <div className="flex items-center gap-2">
                         <span className="h-3 w-3 rounded-full bg-[#5B7CFA]"></span>
                         <span className="text-sm text-gray-700">Direct</span>
