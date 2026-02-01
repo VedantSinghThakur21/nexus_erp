@@ -94,7 +94,7 @@ function SidebarContent() {
   return (
     <div
       suppressHydrationWarning
-      className="flex h-full flex-col bg-[#1C2536] text-gray-100 border-r border-black/20"
+      className="flex h-full flex-col bg-[#101927] text-gray-100 border-r border-black/20"
     >
       {/* Logo Area - matching HTML design */}
       <div suppressHydrationWarning className="p-4 flex items-center gap-2.5 shrink-0">

@@ -125,6 +125,29 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
+      {/* Custom Scrollbar Styles */}
+      <style jsx global>{`
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #F5F7FA;
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #CBD5E1;
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #94A3B8;
+        }
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #CBD5E1 #F5F7FA;
+        }
+      `}</style>
+
       {/* Header */}
       <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40">
         <div className="flex items-center w-full max-w-xl">
@@ -159,7 +182,7 @@ export default function DashboardPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           {/* Win Rate */}
-          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden shadow-sm">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>
@@ -174,7 +197,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden shadow-sm">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
@@ -190,7 +213,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden shadow-sm">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
@@ -207,7 +230,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden shadow-sm">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
@@ -224,8 +247,8 @@ export default function DashboardPage() {
           {/* Left Column - Main Content */}
           <div className="xl:col-span-2 space-y-6">
             {/* High-Probability Opportunities */}
-            <Card className="rounded-xl border border-gray-200 bg-white">
-              <CardHeader className="px-6 py-4 border-b border-gray-100 flex flex-row items-center justify-between">
+            <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
+              <CardHeader className="px-6 py-5 border-b border-gray-100 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-bold text-gray-900">High-Probability Opportunities</CardTitle>
                 <a href="/crm/opportunities" className="text-xs font-bold text-[#5B6FE3] uppercase tracking-wider hover:underline">
                   Full Pipeline
@@ -261,31 +284,40 @@ export default function DashboardPage() {
                           };
                           const stageStyle = stageColors[opp.sales_stage] || stageColors['Proposal'];
 
+                          const confidenceColor = opp.probability >= 80 ? '#10B981' : opp.probability >= 60 ? '#5B6FE3' : '#F59E0B';
+
                           return (
                             <tr key={idx} className="hover:bg-gray-50 transition-colors">
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="h-8 w-8 rounded bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-700 border border-gray-200">
+                                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-700 border border-gray-200">
                                     {initials}
                                   </div>
                                   <span className="font-semibold text-gray-900">{customerName}</span>
                                 </div>
                               </td>
                               <td className="px-6 py-4">
-                                <Badge className={`${stageStyle.bg} ${stageStyle.text} text-xs font-semibold px-2.5 py-0.5 border-0`}>
-                                  {opp.sales_stage}
+                                <Badge className={`${stageStyle.bg} ${stageStyle.text} text-xs font-bold px-3 py-1 border-0 rounded-md`}>
+                                  {opp.sales_stage.toUpperCase()}
                                 </Badge>
                               </td>
-                              <td className="px-6 py-4 font-semibold text-gray-900">
-                                {formatIndianCurrency(opp.opportunity_amount)}
+                              <td className="px-6 py-4">
+                                <span className="text-base font-bold text-gray-900">
+                                  {formatIndianCurrency(opp.opportunity_amount)}
+                                </span>
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex items-center justify-end gap-3">
-                                  <span className="font-bold text-sm text-[#10B981]">{opp.probability}%</span>
+                                  <span className="text-sm font-bold" style={{ color: confidenceColor }}>
+                                    {opp.probability}%
+                                  </span>
                                   <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
                                     <div
-                                      className="h-full bg-[#10B981] rounded-full transition-all"
-                                      style={{ width: `${opp.probability}%` }}
+                                      className="h-full rounded-full transition-all"
+                                      style={{
+                                        width: `${opp.probability}%`,
+                                        backgroundColor: confidenceColor
+                                      }}
                                     ></div>
                                   </div>
                                 </div>
@@ -303,7 +335,7 @@ export default function DashboardPage() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-xl border border-gray-200 bg-white">
+              <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
                 <CardHeader className="px-6 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-2">
                     <BarChart3 className="h-4 w-4 text-gray-400" />
@@ -317,7 +349,7 @@ export default function DashboardPage() {
                         <span className="text-xs font-semibold text-gray-500 uppercase">Discovery</span>
                         <span className="text-xs font-semibold text-gray-400">₹4.2Cr</span>
                       </div>
-                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3">
+                      <div className="bg-[#5B6FE3] h-10 rounded-lg flex items-center justify-between px-3 shadow-sm">
                         <span className="text-sm font-bold text-white">12 Deals</span>
                       </div>
                     </div>
@@ -326,7 +358,7 @@ export default function DashboardPage() {
                         <span className="text-xs font-semibold text-gray-500 uppercase">Proposal</span>
                         <span className="text-xs font-semibold text-gray-400">₹2.1Cr</span>
                       </div>
-                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3" style={{ width: '70%' }}>
+                      <div className="bg-[#5B6FE3] h-10 rounded-lg flex items-center justify-between px-3 shadow-sm" style={{ width: '70%' }}>
                         <span className="text-sm font-bold text-white">8 Deals</span>
                       </div>
                     </div>
@@ -335,7 +367,7 @@ export default function DashboardPage() {
                         <span className="text-xs font-semibold text-gray-500 uppercase">Negotiation</span>
                         <span className="text-xs font-semibold text-gray-400">₹2.8Cr</span>
                       </div>
-                      <div className="bg-[#5B6FE3] h-10 rounded flex items-center justify-between px-3" style={{ width: '50%' }}>
+                      <div className="bg-[#5B6FE3] h-10 rounded-lg flex items-center justify-between px-3 shadow-sm" style={{ width: '50%' }}>
                         <span className="text-sm font-bold text-white">5 Deals</span>
                       </div>
                     </div>
@@ -344,7 +376,7 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-              <Card className="rounded-xl border border-gray-200 bg-white">
+              <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
                 <CardHeader className="px-6 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-400" />
@@ -385,7 +417,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Team Performance */}
-            <Card className="rounded-xl border border-gray-200 bg-white">
+            <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
               <CardHeader className="px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <Activity className="h-4 w-4 text-gray-400" />
@@ -393,32 +425,64 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#10B981] transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
-                      <CheckCircle className="h-5 w-5 text-[#10B981]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Closed Deal</p>
-                      <p className="font-semibold text-gray-900 truncate">Sarah Jenkins</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#5B6FE3] transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-[#5B6FE3]/10 flex items-center justify-center shrink-0">
-                      <UserPlus className="h-5 w-5 text-[#5B6FE3]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">New Lead</p>
-                      <p className="font-semibold text-gray-900 truncate">Mike Rossi</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Closed Deal */}
+                  <div className="flex flex-col gap-3 p-4 rounded-xl border border-gray-200 hover:border-[#10B981] hover:shadow-md transition-all bg-white">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
+                        <CheckCircle className="h-5 w-5 text-[#10B981]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Closed Deal</p>
+                        <p className="font-bold text-gray-900 truncate">Sarah Jenkins</p>
+                        <p className="text-xs text-gray-500">Cyberdyne Corp</p>
+                        <p className="text-xs text-gray-400">2 minutes ago</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#8B5CF6] transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                      <MessageSquare className="h-5 w-5 text-[#8B5CF6]" />
+
+                  {/* New Lead */}
+                  <div className="flex flex-col gap-3 p-4 rounded-xl border border-gray-200 hover:border-[#5B6FE3] hover:shadow-md transition-all bg-white">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-[#5B6FE3]/10 flex items-center justify-center shrink-0">
+                        <UserPlus className="h-5 w-5 text-[#5B6FE3]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">New Lead</p>
+                        <p className="font-bold text-gray-900 truncate">Mike Rossi</p>
+                        <p className="text-xs text-gray-500">TechFlow Systems</p>
+                        <p className="text-xs text-gray-400">15 minutes ago</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Outbound</p>
-                      <p className="font-semibold text-gray-900 truncate">David Geller</p>
+                  </div>
+
+                  {/* Outbound */}
+                  <div className="flex flex-col gap-3 p-4 rounded-xl border border-gray-200 hover:border-[#8B5CF6] hover:shadow-md transition-all bg-white">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                        <MessageSquare className="h-5 w-5 text-[#8B5CF6]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Outbound</p>
+                        <p className="font-bold text-gray-900 truncate">David Geller</p>
+                        <p className="text-xs text-gray-500">Stark Industries</p>
+                        <p className="text-xs text-gray-400">45 minutes ago</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Meeting Set */}
+                  <div className="flex flex-col gap-3 p-4 rounded-xl border border-gray-200 hover:border-[#F59E0B] hover:shadow-md transition-all bg-white">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-[#F59E0B]/10 flex items-center justify-center shrink-0">
+                        <Calendar className="h-5 w-5 text-[#F59E0B]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Meeting Set</p>
+                        <p className="font-bold text-gray-900 truncate">Amy Pond</p>
+                        <p className="text-xs text-gray-500">Waltham Co.</p>
+                        <p className="text-xs text-gray-400">1 hour ago</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -426,9 +490,9 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Right Column - Intelligence Hub */}
+          {/* Right Column - Intelligence Hub (Fixed/Sticky) */}
           <div className="space-y-6">
-            <Card className="rounded-xl border border-gray-200 bg-white sticky top-24">
+            <Card className="rounded-xl border border-gray-200 bg-white shadow-sm sticky top-24">
               <CardHeader className="px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 bg-[#5B6FE3]/10 rounded-lg flex items-center justify-center">
@@ -443,7 +507,7 @@ export default function DashboardPage() {
               <CardContent className="p-6 space-y-6">
                 {/* Deal at Risk Alert */}
                 {atRiskDeal && (
-                  <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-5 rounded-xl border-2 border-orange-200">
+                  <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-5 rounded-xl border-2 border-orange-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-3">
                       <AlertTriangle className="h-4 w-4 text-orange-600" />
                       <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Deal at Risk</span>
@@ -452,7 +516,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-600 mb-4">
                       Health score dropped to <span className="font-bold text-orange-600">{atRiskDeal.healthScore}/100</span>.
                     </p>
-                    <button className="w-full py-2.5 bg-[#5B6FE3] hover:bg-[#4A5BC9] text-white font-semibold text-sm rounded-lg transition-colors">
+                    <button className="w-full py-2.5 bg-[#5B6FE3] hover:bg-[#4A5BC9] text-white font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md">
                       Generate Strategy
                     </button>
                   </div>
