@@ -1,103 +1,302 @@
-import { getDashboardStats, getSalesPipelineFunnel, getDealsByStage, getMyOpenLeads, getMyOpenOpportunities } from "@/app/actions/dashboard"
-import { debugDatabaseConnection } from "@/app/actions/debug"
+import { getDashboardStats } from "@/app/actions/dashboard"
+import { getOpportunities } from "@/app/actions/crm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { AnimatedStatCard, AnimatedCard, AnimatedButton, AnimatedBadge, AnimatedList, AnimatedListItem } from "@/components/ui/animated"
-import { AnimatedAreaChart, AnimatedBarChart, AnimatedFunnelChart } from "@/components/dashboard/animated-charts"
-import { TrendingUp, TrendingDown, Users, Briefcase, DollarSign, Target, Trophy, ArrowRight } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { TrendingUp, DollarSign, Target, Users, AlertCircle, Sparkles, ChevronRight } from "lucide-react"
 import Link from "next/link"
-import { frappeRequest } from "@/app/lib/api"
 
 export const dynamic = 'force-dynamic'
 
-// Helper to get user name
-async function getUser() {
-  try {
-    const userEmail = await frappeRequest('frappe.auth.get_logged_user')
-    const userRes = await fetch(`${process.env.ERP_NEXT_URL}/api/resource/User/${userEmail}`, {
-       headers: { 
-         'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}` 
-       },
-       cache: 'no-store'
-    })
-    const userData = await userRes.json()
-    return userData.data || { full_name: 'User' }
-  } catch (e) {
-    return { full_name: 'User' }
-  }
-}
-
-// Get Revenue Trend (Last 6 Months)
-async function getRevenueData() {
-    try {
-        const invoices = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Sales Invoice',
-            fields: '["grand_total", "posting_date"]',
-            filters: '[["docstatus", "=", 1]]',
-            order_by: 'posting_date asc',
-            limit_page_length: 1000
-        }) as Array<{ grand_total: number; posting_date: string }>;
-
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const now = new Date();
-        const last6Months = [];
-        
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            last6Months.push(months[d.getMonth()]);
-        }
-
-        const monthlyData: Record<string, number> = {};
-        last6Months.forEach(month => monthlyData[month] = 0);
-        
-        invoices.forEach((inv: any) => {
-            const date = new Date(inv.posting_date);
-            const month = months[date.getMonth()];
-            if (monthlyData.hasOwnProperty(month)) {
-                monthlyData[month] += inv.grand_total;
-            }
-        });
-
-        return last6Months.map(key => ({
-            name: key,
-            total: Math.round(monthlyData[key])
-        }));
-    } catch (e) {
-        return [];
-    }
-}
-
 export default async function DashboardPage() {
-  // DEBUG: Check database connection
-  const debugInfo = await debugDatabaseConnection().catch((e) => ({ error: e.message }))
-  console.log('=== DASHBOARD DEBUG INFO ===', debugInfo)
-  
   // Fetch all data with error handling
-  const user = await getUser().catch(() => ({ full_name: 'User' }))
   const stats = await getDashboardStats().catch(() => ({
-    newLeadsToday: 0,
-    openOpportunities: 0,
     pipelineValue: 0,
-    dealsWonMTD: 0,
+    revenue: 0,
+    openOpportunities: 0,
     winRate: 0
   }))
-  const pipelineFunnel = await getSalesPipelineFunnel().catch(() => [])
-  const dealsByStage = await getDealsByStage().catch(() => [])
-  const revenueData = await getRevenueData().catch(() => [])
-  const myLeads = await getMyOpenLeads().catch(() => [])
-  const myOpportunities = await getMyOpenOpportunities().catch(() => [])
-
-  // Safe validation - ensure all data is arrays/objects, not error objects
-  const safePipelineFunnel = Array.isArray(pipelineFunnel) ? pipelineFunnel : []
-  const safeDealsByStage = Array.isArray(dealsByStage) ? dealsByStage : []
-  const safeRevenueData = Array.isArray(revenueData) ? revenueData : []
-  const safeMyLeads = Array.isArray(myLeads) ? myLeads : []
-  const safeMyOpportunities = Array.isArray(myOpportunities) ? myOpportunities : []
   
-  const safeStats = {
-    newLeadsToday: typeof stats.newLeadsToday === 'number' ? stats.newLeadsToday : 0,
-    openOpportunities: typeof stats.openOpportunities === 'number' ? stats.openOpportunities : 0,
+  const allOpportunities = await getOpportunities().catch(() => [])
+  
+  // Filter high-probability opportunities (>50%)
+  const highProbOpportunities = allOpportunities
+    .filter(opp => opp.probability >= 50 && opp.status === 'Open')
+    .slice(0, 3)
+
+  // Calculate revenue MTD from stats
+  const revenueMTD = stats.revenue || 0
+  
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="border-b border-gray-200 bg-white px-8 py-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-1">February 1, 2026</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <select className="text-sm border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option>This Week</option>
+              <option>This Month</option>
+              <option>This Quarter</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-8 max-w-[1800px] mx-auto space-y-6">
+        {/* Top Row - 4 Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          
+          {/* Win Rate */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-600">WIN RATE</p>
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-4xl font-bold text-gray-900">{stats.winRate}%</h2>
+                  <Badge className="bg-green-100 text-green-700 text-xs px-2 py-0.5">
+                    +2.4%
+                  </Badge>
+                </div>
+                <Progress value={stats.winRate} className="h-1.5 mt-3" />
+                <p className="text-xs text-gray-500 mt-2">+18% vs LW</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pipeline Value */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-600">PIPELINE VALUE</p>
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-4xl font-bold text-gray-900">
+                    ${(stats.pipelineValue / 1000000).toFixed(1)}M
+                  </h2>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Total opportunity value</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Revenue MTD */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-600">REVENUE MTD</p>
+                <Target className="h-4 w-4 text-purple-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-4xl font-bold text-gray-900">
+                    ${(revenueMTD / 1000000).toFixed(2)}M
+                  </h2>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">From invoices</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Active Leads */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-600">ACTIVE LEADS</p>
+                <Users className="h-4 w-4 text-orange-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-4xl font-bold text-gray-900">{stats.openOpportunities}</h2>
+                  <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5">
+                    +18%
+                  </Badge>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">vs last week</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Middle Row - Split View */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* High-Probability Opportunities Table (2/3) */}
+          <Card className="lg:col-span-2 border-gray-200 shadow-sm bg-white">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">High-Probability Opportunities</CardTitle>
+                  <p className="text-sm text-gray-500 mt-1">Full Pipeline <ChevronRight className="inline h-3 w-3" /></p>
+                </div>
+                <Link href="/crm/opportunities" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  Full Pipeline →
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 pb-3 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase">
+                  <div className="col-span-3">ACCOUNT</div>
+                  <div className="col-span-2">STAGE</div>
+                  <div className="col-span-3">VALUE</div>
+                  <div className="col-span-4">CONFIDENCE</div>
+                </div>
+
+                {/* Table Rows */}
+                {highProbOpportunities.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 text-sm">
+                    No high-probability opportunities found
+                  </div>
+                ) : (
+                  highProbOpportunities.map((opp, idx) => (
+                    <Link
+                      key={idx}
+                      href={`/crm/opportunities/${opp.name}`}
+                      className="grid grid-cols-12 gap-4 items-center py-3 hover:bg-gray-50 rounded-lg px-2 transition-colors"
+                    >
+                      <div className="col-span-3">
+                        <p className="font-medium text-gray-900 text-sm">{opp.customer_name || opp.party_name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{opp.name}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">
+                          {opp.sales_stage || 'Proposal'}
+                        </Badge>
+                      </div>
+                      <div className="col-span-3">
+                        <p className="font-semibold text-gray-900 text-sm">
+                          ${(opp.opportunity_amount / 1000).toFixed(0)}K
+                        </p>
+                      </div>
+                      <div className="col-span-4">
+                        <div className="flex items-center gap-3">
+                          <Progress value={opp.probability} className="h-2" />
+                          <span className="text-sm font-medium text-gray-700 w-10">{opp.probability}%</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Intelligence Hub (1/3) */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-600" />
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">Intelligence Hub</CardTitle>
+                  <p className="text-xs text-green-600 font-medium mt-0.5">AI COPILOT ACTIVE</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              
+              {/* Deal at Risk Alert */}
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-900">DEAL AT RISK</p>
+                    <p className="text-xs text-red-700 mt-1">Acme Corp HQ</p>
+                    <p className="text-xs text-red-600 mt-2">Health score dropped to 42/100</p>
+                    <button className="mt-3 text-xs font-semibold text-red-700 hover:text-red-900 bg-red-100 px-3 py-1.5 rounded-lg">
+                      Generate Strategy
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority Actions */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">PRIORITY ACTIONS</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="h-2 w-2 rounded-full bg-blue-600"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">Follow up: Velocity Tech</p>
+                      <p className="text-xs text-gray-500">Proposal viewed 2x</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="h-2 w-2 rounded-full bg-green-600"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">Executive Demo</p>
+                      <p className="text-xs text-gray-500">Confirm: Stark Enterprises</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Bottom Row - Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Stage Conversions */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900">Stage Conversions</CardTitle>
+              <p className="text-xs text-gray-500 mt-1">LEAD TO SQL</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">Lead to SQL</p>
+                  <div className="flex items-center gap-3 flex-1 max-w-xs">
+                    <Progress value={34} className="h-2" />
+                    <span className="text-sm font-semibold text-gray-900 w-10">34%</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">Proposal to Win</p>
+                  <div className="flex items-center gap-3 flex-1 max-w-xs">
+                    <Progress value={42} className="h-2" />
+                    <span className="text-sm font-semibold text-gray-900 w-10">42%</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Activity Volume */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900">Activity Volume</CardTitle>
+              <p className="text-xs text-gray-500 mt-1">SYSTEMS OPERATIONAL</p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-sm text-gray-500">Sales cycles shortening by 2-4 days this quarter</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
     pipelineValue: typeof stats.pipelineValue === 'number' ? stats.pipelineValue : 0,
     dealsWonMTD: typeof stats.dealsWonMTD === 'number' ? stats.dealsWonMTD : 0,
     winRate: typeof stats.winRate === 'number' ? stats.winRate : 0
