@@ -38,7 +38,17 @@ export default function DashboardPage() {
         return [];
       }),
     ]).then(([statsRes, oppsRes]) => {
-      setStats(statsRes || {});
+      setStats(
+        statsRes || {
+          pipelineValue: 0,
+          revenue: 0,
+          openOpportunities: 0,
+          winRate: 0,
+          winRateChange: undefined,
+          leadsChange: undefined,
+          vsLastWeek: undefined,
+        }
+      );
       setOpportunities(oppsRes || []);
       setLoading(false);
     }).catch((err) => {
