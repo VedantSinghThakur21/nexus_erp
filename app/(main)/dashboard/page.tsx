@@ -189,94 +189,169 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="xl:grid xl:grid-cols-[1fr_360px] xl:gap-6 xl:p-6">
-        {/* Left Column - Main Dashboard */}
-        <div className="space-y-6 p-6 xl:p-0">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {/* Win Rate */}
-            <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Win Rate</p>
-                  <Badge className="bg-emerald-50 text-emerald-600 border-0 text-[10px] font-bold px-2 py-0.5 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" /> {stats.winRateChange.toFixed(1)}%
-                  </Badge>
-                </div>
-                <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
-                  {stats.winRate.toFixed(1)}%
-                </h3>
-                <div className="w-full bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div 
-                    className="bg-[#FFCC3F] h-full rounded-full transition-all duration-500" 
-                    style={{ width: `${stats.winRate}%` }}
-                  ></div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Top Row: 5-column grid for KPI cards + Intelligence Hub */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 p-6">
+        {/* Win Rate */}
+        <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-3">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Win Rate</p>
+              <Badge className="bg-green-50 text-green-600 border-0 text-[10px] font-bold px-2 py-0.5 flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" /> {stats.winRateChange.toFixed(1)}%
+              </Badge>
+            </div>
+            <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
+              {stats.winRate.toFixed(1)}%
+            </h3>
+            <div className="w-full bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden">
+              <div 
+                className="bg-[#FFCC3F] h-full rounded-full transition-all duration-500" 
+                style={{ width: `${stats.winRate}%` }}
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Pipeline Value */}
-            <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pipeline Value</p>
-                  <BarChart3 className="h-5 w-5 text-gray-300" />
-                </div>
-                <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
-                  ${(stats.pipelineValue / 1000000).toFixed(1)}M
-                </h3>
-                <div className="flex items-end gap-1 h-8 mt-3">
-                  {[30, 50, 40, 70, 60, 90].map((height, idx) => (
-                    <div
-                      key={idx}
-                      className="flex-1 rounded-sm transition-all hover:opacity-80"
-                      style={{ 
-                        height: `${height}%`, 
-                        backgroundColor: '#385197',
-                        opacity: 0.1 + (idx * 0.15) 
-                      }}
-                    ></div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Pipeline Value */}
+        <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-3">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pipeline Value</p>
+              <BarChart3 className="h-5 w-5 text-[#385197]" />
+            </div>
+            <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
+              ${(stats.pipelineValue / 1000000).toFixed(1)}M
+            </h3>
+            <div className="flex items-end gap-1 h-8 mt-3">
+              {[30, 50, 40, 70, 60, 90].map((height, idx) => (
+                <div
+                  key={idx}
+                  className="flex-1 rounded-sm transition-all hover:opacity-80"
+                  style={{ 
+                    height: `${height}%`, 
+                    backgroundColor: '#385197',
+                    opacity: 0.1 + (idx * 0.15) 
+                  }}
+                ></div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Revenue MTD */}
-            <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Revenue MTD</p>
-                  <DollarSign className="h-5 w-5 text-gray-300" />
-                </div>
-                <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
-                  ${(stats.revenue / 1000000).toFixed(2)}M
-                </h3>
-                <div className="flex gap-1.5 mt-4">
-                  <div className="h-1.5 flex-1 bg-[#385197] rounded-full"></div>
-                  <div className="h-1.5 flex-1 bg-[#385197] rounded-full"></div>
-                  <div className="h-1.5 flex-1 bg-[#385197] rounded-full"></div>
-                  <div className="h-1.5 flex-1 bg-gray-100 rounded-full"></div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Revenue MTD */}
+        <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-3">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Revenue MTD</p>
+              <DollarSign className="h-5 w-5 text-[#385197]" />
+            </div>
+            <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
+              ${(stats.revenue / 1000000).toFixed(2)}M
+            </h3>
+            <div className="flex gap-1.5 mt-4">
+              <div className="h-1.5 flex-1 bg-[#385197] rounded-full"></div>
+              <div className="h-1.5 flex-1 bg-[#385197] rounded-full"></div>
+              <div className="h-1.5 flex-1 bg-[#385197] rounded-full"></div>
+              <div className="h-1.5 flex-1 bg-gray-100 rounded-full"></div>
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Active Leads */}
-            <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Active Leads</p>
-                  <Users className="h-5 w-5 text-gray-300" />
+        {/* Active Leads */}
+        <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-3">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Active Leads</p>
+              <Users className="h-5 w-5 text-[#385197]" />
+            </div>
+            <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
+              {stats.activeLeads.toLocaleString()}
+            </h3>
+            <p className="text-[11px] text-emerald-600 font-bold mt-3 uppercase tracking-wide">
+              +{stats.leadsChange.toFixed(0)}% vs LW
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Intelligence Hub (as 5th card) */}
+        <Card className="rounded-xl border border-gray-200 bg-white shadow-sm xl:col-span-1 flex flex-col justify-between">
+          <CardHeader className="p-4 border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-[#385197]/10 rounded-lg flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-[#385197]" />
+              </div>
+              <div>
+                <CardTitle className="text-xs font-bold text-gray-800 leading-none">Intelligence Hub</CardTitle>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">AI Copilot active</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            {/* Deal at Risk Alert */}
+            {atRiskDeal && (
+              <div className="bg-white p-3 rounded-xl border-2 border-[#FFCC3F] shadow-sm relative overflow-hidden">
+                <div className="absolute top-2 right-2">
+                  <div className="h-1.5 w-1.5 bg-[#FFCC3F] rounded-full animate-pulse"></div>
                 </div>
-                <h3 className="text-3xl font-bold tracking-tight text-gray-900 leading-none">
-                  {stats.activeLeads.toLocaleString()}
-                </h3>
-                <p className="text-[11px] text-emerald-600 font-bold mt-3 uppercase tracking-wide">
-                  +{stats.leadsChange.toFixed(0)}% vs LW
+                <div className="flex items-center gap-2 mb-2 text-[#FFCC3F] font-bold">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-[10px] uppercase tracking-widest">Deal at Risk</span>
+                </div>
+                <h5 className="text-xs font-bold text-gray-900">{atRiskDeal.name}</h5>
+                <p className="text-xs text-gray-500 leading-tight mt-1.5">
+                  Health score dropped to <span className="font-bold text-rose-500">{atRiskDeal.healthScore}/100</span>.
                 </p>
-              </CardContent>
-            </Card>
-          </div>
+                <button className="w-full mt-3 py-2 bg-[#385197] hover:brightness-110 active:scale-95 transition-all text-white font-bold text-[11px] rounded-lg">
+                  Generate Strategy
+                </button>
+              </div>
+            )}
+
+            {/* Priority Actions */}
+            <div className="space-y-2">
+              <h6 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Priority Actions</h6>
+              <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex gap-3 hover:border-[#385197] transition-colors cursor-pointer group">
+                <Mail className="h-4 w-4 text-[#385197]" />
+                <div>
+                  <p className="text-xs font-bold text-gray-900 leading-tight group-hover:text-[#385197]">
+                    Follow up: Velocity
+                  </p>
+                  <p className="text-[10px] text-gray-500">Proposal viewed 3x.</p>
+                </div>
+              </div>
+              <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex gap-3 hover:border-[#385197] transition-colors cursor-pointer group">
+                <Calendar className="h-4 w-4 text-emerald-600" />
+                <div>
+                  <p className="text-xs font-bold text-gray-900 leading-tight group-hover:text-[#385197]">
+                    Executive Demo
+                  </p>
+                  <p className="text-[10px] text-gray-500">Confirm Stark Ent.</p>
+                </div>
+              </div>
+              <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex gap-3 hover:border-[#385197] transition-colors cursor-pointer group">
+                <FileText className="h-4 w-4 text-amber-600" />
+                <div>
+                  <p className="text-xs font-bold text-gray-900 leading-tight group-hover:text-[#385197]">
+                    Update Pricing
+                  </p>
+                  <p className="text-[10px] text-gray-500">CloudSphere request.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Market Insight Footer */}
+            <div className="pt-3 border-t border-gray-100 bg-gray-50/50">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Market Insight</span>
+                <span className="text-[11px] font-bold text-emerald-600">+14%</span>
+              </div>
+              <p className="text-[11px] text-gray-500 leading-tight italic">
+                "Sales cycles shortening by 2.4 days this quarter due to AI-driven vetting."
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
           {/* High-Probability Opportunities Table */}
           <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
