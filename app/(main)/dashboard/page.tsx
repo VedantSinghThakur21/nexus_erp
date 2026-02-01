@@ -318,12 +318,6 @@ export default function DashboardPage() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Sales Funnel */}
-          </div>
-        </div>
-
-        {/* Charts Row (Full Width) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Sales Funnel */}
               <Card className="rounded-xl border border-gray-200 bg-white">
                 <CardHeader className="px-6 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-2">
@@ -474,7 +468,6 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </CardContent>
-            {/* Intelligence Hub Card duplicate removed. */}
             </Card>
           </div>
         </div>
@@ -538,5 +531,5 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
-  );
-}
+    );
+  }
