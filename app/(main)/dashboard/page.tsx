@@ -332,45 +332,56 @@ export default function DashboardPage() {
             </Card>
             <div className="flex gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm flex-1 min-w-0">
-                <CardHeader className="px-8 py-6 flex flex-row items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-[#5B7CFA]" />
-                  <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm w-[420px] min-h-[210px]">
+                <CardHeader className="px-6 py-4 flex flex-row items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-[#A0AEC0]" />
+                  <CardTitle className="text-lg font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
-                <CardContent className="p-8">
-                  <div className="space-y-7">
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    {/* Discovery */}
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-gray-500 uppercase">Discovery</span>
-                        <span className="text-xs font-bold text-gray-400">₹4.2Cr</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase">Discovery</span>
+                        <span className="text-xs font-bold text-gray-400">$4.2M</span>
                       </div>
-                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm w-full">
-                        <span className="text-base font-bold text-white">12 Deals</span>
+                      <div className="flex items-center h-10 rounded-lg overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#2256F2] to-[#2D7CF2] h-full flex items-center px-4 font-bold text-white text-sm" style={{ width: '100%' }}>
+                          12 Deals
+                        </div>
                       </div>
                     </div>
+                    {/* Proposal */}
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-gray-500 uppercase">Proposal</span>
-                        <span className="text-xs font-bold text-gray-400">₹3.1Cr</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase">Proposal</span>
+                        <span className="text-xs font-bold text-gray-400">$3.1M</span>
                       </div>
-                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm" style={{ width: '70%' }}>
-                        <span className="text-base font-bold text-white">8 Deals</span>
+                      <div className="flex items-center h-10 rounded-lg overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] h-full flex items-center px-4 font-bold text-white text-sm" style={{ width: '70%' }}>
+                          8 Deals
+                        </div>
+                        <div className="bg-[#F3F6FA] h-full" style={{ width: '30%' }}></div>
                       </div>
                     </div>
+                    {/* Negotiation */}
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-gray-500 uppercase">Negotiation</span>
-                        <span className="text-xs font-bold text-gray-400">₹2.8Cr</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase">Negotiation</span>
+                        <span className="text-xs font-bold text-gray-400">$2.8M</span>
                       </div>
-                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm" style={{ width: '50%' }}>
-                        <span className="text-base font-bold text-white">5 Deals</span>
+                      <div className="flex items-center h-10 rounded-lg overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#60A5FA] to-[#93C5FD] h-full flex items-center px-4 font-bold text-white text-sm" style={{ width: '50%' }}>
+                          5 Deals
+                        </div>
+                        <div className="bg-[#F3F6FA] h-full" style={{ width: '50%' }}></div>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               {/* Leads Source */}
-              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm flex-1 min-w-0">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm w-[320px] min-h-[210px]">
                 <CardHeader className="px-8 py-6 border-b border-gray-100 flex items-center gap-2">
                   <Users className="h-5 w-5 text-[#5B7CFA]" />
                   <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
@@ -406,7 +417,7 @@ export default function DashboardPage() {
             </div>
           </div>
           {/* Right Column - Intelligence Hub (1/3 width) */}
-          <div className="space-y-6 min-w-[340px] max-w-[360px]">
+          <div className="space-y-6 min-w-[420px] max-w-[480px]">
             <Card className="rounded-xl border border-gray-200 bg-white sticky top-24">
               <CardHeader className="px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
