@@ -157,9 +157,9 @@ export default function DashboardPage() {
 
       <div className="p-8">
         {/* KPI Cards - 24px gaps, 180px height */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden h-[180px]">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px]">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>

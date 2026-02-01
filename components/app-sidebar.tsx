@@ -79,7 +79,7 @@ function SidebarContent() {
   return (
     <div
       suppressHydrationWarning
-      className="flex h-full flex-col bg-[#101927] text-gray-100 border-r border-black/20"
+      className="flex h-full flex-col bg-[#151B28] text-gray-100 border-r border-black/20"
     >
       {/* Logo Area - matching HTML design */}
       <div suppressHydrationWarning className="p-4 flex items-center gap-2.5 shrink-0">
@@ -165,7 +165,7 @@ export function AppSidebar() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[260px]">
+          <SheetContent side="left" className="p-0 w-[280px] bg-[#151B28]">
             <div className="h-full" onClick={() => setOpen(false)}>
               <SidebarContent />
             </div>
@@ -176,7 +176,7 @@ export function AppSidebar() {
       {/* Desktop Sidebar (Fixed) - 260px width per specs */}
       <div
         suppressHydrationWarning
-        className="hidden lg:flex h-screen w-[260px] flex-col shrink-0"
+        className="hidden lg:flex h-screen w-[280px] flex-col shrink-0 bg-[#151B28]"
       >
         <SidebarContent />
       </div>
