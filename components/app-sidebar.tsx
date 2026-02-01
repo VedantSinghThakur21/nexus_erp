@@ -163,11 +163,6 @@ function SidebarContent() {
           <p className="text-gray-400">AVARIQ</p>
         </div>
       </div>
-        <div className="mt-3 px-3">
-          <p className="text-xs text-gray-600">POWERED BY</p>
-          <p className="text-xs text-gray-500 font-semibold mt-0.5">AVARIQ</p>
-        </div>
-      </div>
     </div>
   )
 }
