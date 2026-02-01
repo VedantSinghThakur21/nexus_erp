@@ -166,56 +166,36 @@ function SidebarContent() {
     </div>
   )
 }
-      <div suppressHydrationWarning className="border-t p-4 space-y-3 shrink-0">
-        {!isCollapsed ? (
-          <>
-            <div className="flex items-center justify-between px-3">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Theme</span>
-              <ThemeToggle />
-            </div>
-            
-            <a 
-                href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition-colors"
-            >
-                <ExternalLink className="h-4 w-4" />
-                Classic ERP
-            </a>
 
-            <Button 
-              variant="outline" 
-              className="w-full gap-2 justify-start"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
+// 2. Main Responsive Component
+export function AppSidebar() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      {/* Mobile Sidebar (Drawer) */}
+      <div suppressHydrationWarning className="lg:hidden fixed top-4 left-4 z-50">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild suppressHydrationWarning>
+            <Button variant="outline" size="icon" className="bg-white shadow-lg border-gray-300" suppressHydrationWarning>
+              <Menu className="h-5 w-5" />
             </Button>
-          </>
-        ) : (
-          <div className="flex flex-col gap-2 items-center">
-            <ThemeToggle />
-            <a 
-                href={`${process.env.NEXT_PUBLIC_ERP_NEXT_URL || 'http://103.224.243.242:8080'}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="p-2 rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition-colors"
-                title="Classic ERP"
-            >
-                <ExternalLink className="h-4 w-4" />
-            </a>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleLogout}
-              title="Sign Out"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72">
+            <div className="h-full" onClick={() => setOpen(false)}>
+              <SidebarContent />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
-    </div>
+
+      {/* Desktop Sidebar (Fixed) */}
+      <div 
+        suppressHydrationWarning
+        className="hidden lg:flex h-screen w-64 flex-col"
+      >
+        <SidebarContent />
+      </div>
+    </>
   )
 }

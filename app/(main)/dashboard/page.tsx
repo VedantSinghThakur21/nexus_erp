@@ -143,8 +143,124 @@ export default function DashboardPage() {
                 </div>
                 <Progress value={stats.winRate} className="h-1.5 mt-3" />
                 {typeof stats.vsLastWeek === 'number' && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    {stats.vsLastWeek > 0 ? '+' : ''}{stats.vsLastWeek.toFixed(1)}% vs LW
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pipeline Value */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-600">PIPELINE VALUE</p>
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-4xl font-bold text-gray-900">
+                    ${(stats.pipelineValue / 1000000).toFixed(1)}M
+                  </h2>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Total opportunity value</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Revenue MTD */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-600">REVENUE MTD</p>
+                <Target className="h-4 w-4 text-purple-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-4xl font-bold text-gray-900">
+                    ${(revenueMTD / 1000000).toFixed(2)}M
+                  </h2>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">From invoices</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Active Leads */}
+          <Card className="border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-600">ACTIVE LEADS</p>
+                <Users className="h-4 w-4 text-orange-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-4xl font-bold text-gray-900">{stats.openOpportunities}</h2>
+                  {typeof stats.leadsChange === 'number' && (
+                    <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5">
+                      {stats.leadsChange > 0 ? '+' : ''}{stats.leadsChange.toFixed(1)}%
+                    </Badge>
+                  )}
+                </div>
+                {typeof stats.leadsChange === 'number' && (
+                  <p className="text-xs text-gray-500 mt-2">vs last week</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Middle Row - Split View */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* High-Probability Opportunities Table (2/3) */}
+          <Card className="lg:col-span-2 border-gray-200 shadow-sm bg-white">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">High-Probability Opportunities</CardTitle>
+                  <p className="text-sm text-gray-500 mt-1">Full Pipeline <ChevronRight className="inline h-3 w-3" /></p>
+                </div>
+                <Link href="/crm/opportunities" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  Full Pipeline →
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 pb-3 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase">
+                  <div className="col-span-3">ACCOUNT</div>
+                  <div className="col-span-2">STAGE</div>
+                  <div className="col-span-3">VALUE</div>
+                  <div className="col-span-4">CONFIDENCE</div>
+                </div>
+
+                {/* Table Rows */}
+                {highProbOpportunities.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 text-sm">
+                    No high-probability opportunities found
                   </div>
-                )
+                ) : (
+                  highProbOpportunities.map((opp, idx) => (
+                    <Link
+                      key={idx}
+                      href={`/crm/opportunities/${opp.name}`}
+                      className="grid grid-cols-12 gap-4 items-center py-3 hover:bg-gray-50 rounded-lg px-2 transition-colors"
+                    >
+                      <div className="col-span-3">
+                        <p className="font-medium text-gray-900 text-sm">{opp.customer_name || opp.party_name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{opp.name}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">
                           {opp.sales_stage || 'Proposal'}
                         </Badge>
                       </div>
@@ -260,139 +376,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>
-  )
-          title="Deals Won MTD"
-          value={safeStats.dealsWonMTD}
-          icon={<Trophy className="h-5 w-5" />}
-          delay={0.3}
-        />
-
-        {/* Win Rate % */}
-        <AnimatedStatCard
-          title="Win Rate %"
-          value={`${safeStats.winRate}%`}
-          change={{ value: 2, trend: 'up' }}
-          icon={<Target className="h-5 w-5" />}
-          delay={0.4}
-        />
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        
-        {/* Sales Pipeline Funnel */}
-        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.5}>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-semibold">Sales Pipeline Funnel</CardTitle>
-            <p className="text-xs text-slate-500">₹{(safeStats.pipelineValue / 100000).toFixed(1)}L Potential Value</p>
-          </CardHeader>
-          <CardContent>
-            <AnimatedFunnelChart data={safePipelineFunnel} delay={0.5} />
-          </CardContent>
-        </AnimatedCard>
-
-        {/* Deals by Stage Bar Chart */}
-        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.6}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Deals by Stage</CardTitle>
-            <p className="text-xs text-slate-500">{safeStats.openOpportunities} Active Deals</p>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <AnimatedBarChart data={safeDealsByStage} height={200} delay={0.6} />
-          </CardContent>
-        </AnimatedCard>
-
-        {/* Revenue Trend Area Chart */}
-        <AnimatedCard className="lg:col-span-1" variant="glass" delay={0.7}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Revenue Trend</CardTitle>
-            <p className="text-xs text-slate-500">Last 6 Months</p>
-          </CardHeader>
-          <CardContent className="pb-2">
-            <AnimatedAreaChart data={safeRevenueData} height={200} delay={0.7} />
-          </CardContent>
-        </AnimatedCard>
-      </div>
-
-      {/* Tables Section */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        
-        {/* My Open Leads */}
-        <AnimatedCard variant="glass" delay={0.8}>
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-semibold">My Open Leads</CardTitle>
-            <Link href="/crm">
-              <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
-                View All <ArrowRight className="h-3 w-3 ml-1" />
-              </AnimatedButton>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {safeMyLeads.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-sm">No open leads</div>
-            ) : (
-              <AnimatedList>
-                {safeMyLeads.map((lead, idx) => (
-                  <AnimatedListItem key={idx} index={idx}>
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-slate-900 dark:text-white">{lead.name}</p>
-                        <p className="text-xs text-slate-500">{lead.company}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <AnimatedBadge variant="default" className="text-xs">{lead.status}</AnimatedBadge>
-                        <span className="text-xs text-slate-400">{lead.lastContact}</span>
-                      </div>
-                    </div>
-                  </AnimatedListItem>
-                ))}
-              </AnimatedList>
-            )}
-          </CardContent>
-        </AnimatedCard>
-
-        {/* My Open Opportunities */}
-        <AnimatedCard variant="glass" delay={0.9}>
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-semibold">My Open Opportunities</CardTitle>
-            <Link href="/crm">
-              <AnimatedButton variant="ghost" size="sm" className="text-blue-600 p-0 h-auto">
-                View All <ArrowRight className="h-3 w-3 ml-1" />
-              </AnimatedButton>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {safeMyOpportunities.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-sm">No open opportunities</div>
-            ) : (
-              <AnimatedList>
-                {safeMyOpportunities.map((opp, idx) => (
-                  <AnimatedListItem key={idx} index={idx}>
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-slate-900 dark:text-white">{opp.name}</p>
-                        <p className="text-xs text-slate-500">{opp.stage}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                          ₹{(opp.value / 1000).toFixed(0)}K
-                        </span>
-                        <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-600 transition-all duration-700" 
-                            style={{ width: `${opp.probability}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </AnimatedListItem>
-                ))}
-              </AnimatedList>
-            )}
-          </CardContent>
-        </AnimatedCard>
       </div>
     </div>
   )
