@@ -101,8 +101,13 @@ export default function DashboardPage() {
         leadsChange: statsData.leadsChange,
       });
 
-      // Set activities
-      setActivities(activitiesData);
+      // Set activities (ensure type is correct literal)
+      setActivities(
+        (activitiesData as any[]).map(item => ({
+          ...item,
+          type: item.type as "closed-won" | "hot-prospect" | "engagement"
+        }))
+      );
 
       // Set at-risk deal (for Intelligence Hub)
       if (atRiskData.length > 0) {
