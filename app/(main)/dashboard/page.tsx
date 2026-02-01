@@ -334,49 +334,49 @@ export default function DashboardPage() {
             {/* Charts Row - Responsive Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
-                <CardHeader className="px-6 py-1 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-gray-400" />
-                    <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
-                  </div>
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm w-[360px] min-h-[140px]">
+                <CardHeader className="px-5 py-1 flex flex-row items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-[#A0AEC0]" />
+                  <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
+                <CardContent className="px-5 py-1">
+                  <div className="space-y-2">
                     {/* Discovery */}
                     <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">Discovery</span>
-                        <span className="text-xs font-semibold text-gray-400">$4.2M</span>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Discovery</span>
+                        <span className="text-[10px] font-bold text-gray-400">$4.2M</span>
                       </div>
-                      <div className="h-10 bg-[#5B6FE3] rounded flex items-center px-3">
-                        <span className="text-sm font-bold text-white">12 Deals</span>
+                      <div className="flex items-center h-7 rounded-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#2256F2] to-[#2D7CF2] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '100%' }}>
+                          12 Deals
+                        </div>
                       </div>
                     </div>
                     {/* Proposal */}
                     <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">Proposal</span>
-                        <span className="text-xs font-semibold text-gray-400">$3.1M</span>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Proposal</span>
+                        <span className="text-[10px] font-bold text-gray-400">$3.1M</span>
                       </div>
-                      <div className="relative h-10">
-                        <div className="absolute inset-0 bg-gray-100 rounded"></div>
-                        <div className="absolute inset-0 bg-[#5B6FE3] rounded flex items-center px-3" style={{ width: '70%' }}>
-                          <span className="text-sm font-bold text-white">8 Deals</span>
+                      <div className="flex items-center h-7 rounded-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '70%' }}>
+                          8 Deals
                         </div>
+                        <div className="bg-[#F3F6FA] h-full" style={{ width: '30%' }}></div>
                       </div>
                     </div>
                     {/* Negotiation */}
                     <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">Negotiation</span>
-                        <span className="text-xs font-semibold text-gray-400">$2.8M</span>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Negotiation</span>
+                        <span className="text-[10px] font-bold text-gray-400">$2.8M</span>
                       </div>
-                      <div className="relative h-10">
-                        <div className="absolute inset-0 bg-gray-100 rounded"></div>
-                        <div className="absolute inset-0 bg-[#5B6FE3] rounded flex items-center px-3" style={{ width: '50%' }}>
-                          <span className="text-sm font-bold text-white">5 Deals</span>
+                      <div className="flex items-center h-7 rounded-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#60A5FA] to-[#93C5FD] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '50%' }}>
+                          5 Deals
                         </div>
+                        <div className="bg-[#F3F6FA] h-full" style={{ width: '50%' }}></div>
                       </div>
                     </div>
                   </div>
@@ -384,14 +384,12 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-              <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
-                <CardHeader className="px-6 py-1 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-gray-400" />
-                    <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
-                  </div>
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm w-[420px] min-h-[140px]">
+                <CardHeader className="px-6 py-1 flex flex-row items-center gap-2">
+                  <Users className="h-4 w-4 text-[#A0AEC0]" />
+                  <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="px-6 py-1">
                   <div className="flex items-center justify-center">
                     <div className="relative">
                       <svg width="180" height="180" viewBox="0 0 180 180">
