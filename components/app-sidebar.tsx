@@ -93,12 +93,12 @@ function SidebarContent() {
   return (
     <div 
       suppressHydrationWarning
-      className="flex h-full flex-col bg-[#1a1c1e] text-gray-100"
+      className="flex h-full flex-col bg-[#2C3E50] text-gray-100"
     >
       {/* Logo Area */}
-      <div suppressHydrationWarning className="flex h-16 items-center px-6 shrink-0 border-b border-gray-800">
+      <div suppressHydrationWarning className="flex h-16 items-center px-6 shrink-0 border-b border-gray-700/50">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div suppressHydrationWarning className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-500 via-yellow-400 to-yellow-600 flex items-center justify-center shadow-lg">
+          <div suppressHydrationWarning className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center shadow-lg">
             <span className="text-black font-bold text-base">A</span>
           </div>
           <span className="text-xl font-bold text-white tracking-tight">Avariq</span>
@@ -132,8 +132,8 @@ function SidebarContent() {
                         flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                         transition-all duration-200
                         ${isActive
-                          ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                          : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/50'
+                          ? 'bg-[#2596be] text-white'
+                          : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                         }
                       `}
                     >
@@ -149,15 +149,20 @@ function SidebarContent() {
       </div>
 
       {/* Footer */}
-      <div suppressHydrationWarning className="shrink-0 border-t border-gray-800 p-4">
+      <div suppressHydrationWarning className="shrink-0 border-t border-gray-700/50 p-4">
         <Button
           onClick={handleLogout}
           variant="ghost"
-          className="w-full justify-start text-gray-400 hover:text-gray-100 hover:bg-gray-800/50"
+          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700/50"
         >
           <LogOut className="h-4 w-4 mr-3" />
           Logout
         </Button>
+        <div className="mt-4 px-3 text-xs text-gray-500">
+          <p className="font-semibold mb-1">POWERED BY</p>
+          <p className="text-gray-400">AVARIQ</p>
+        </div>
+      </div>
         <div className="mt-3 px-3">
           <p className="text-xs text-gray-600">POWERED BY</p>
           <p className="text-xs text-gray-500 font-semibold mt-0.5">AVARIQ</p>
