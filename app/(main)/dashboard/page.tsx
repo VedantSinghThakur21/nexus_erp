@@ -335,7 +335,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Sales Funnel */}
               <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
-                <CardHeader className="px-6 py-4 border-b border-gray-100">
+                <CardHeader className="px-6 py-1 border-b border-gray-100">
                   <div className="flex items-center gap-2">
                     <BarChart3 className="h-4 w-4 text-gray-400" />
                     <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
@@ -385,7 +385,7 @@ export default function DashboardPage() {
 
               {/* Leads Source */}
               <Card className="rounded-xl border border-gray-200 bg-white shadow-sm">
-                <CardHeader className="px-6 py-4 border-b border-gray-100">
+                <CardHeader className="px-6 py-1 border-b border-gray-100">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-400" />
                     <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
