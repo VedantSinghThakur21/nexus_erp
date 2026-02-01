@@ -1,16 +1,18 @@
 
 "use client"
 
-// Type guard for stats object
-function isStats(obj: any): obj is {
+// Stats type and type guard
+type Stats = {
   pipelineValue: number;
   revenue: number;
   openOpportunities: number;
   winRate: number;
-  winRateChange: undefined;
-  leadsChange: undefined;
-  vsLastWeek: undefined;
-} {
+  winRateChange?: number;
+  leadsChange?: number;
+  vsLastWeek?: number;
+};
+
+function isStats(obj: any): obj is Stats {
   return (
     obj &&
     typeof obj === "object" &&
@@ -32,7 +34,7 @@ import { TrendingUp, DollarSign, Target, Users, AlertCircle, Sparkles, ChevronRi
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<Stats>({
     pipelineValue: 0,
     revenue: 0,
     openOpportunities: 0,
