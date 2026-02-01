@@ -17,7 +17,12 @@ import {
   Wallet,
   Package,
   Percent,
-  UserCircle
+  UserCircle,
+  Zap,
+  ShoppingCart,
+  Layers,
+  Tag,
+  Bot
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -25,17 +30,12 @@ import { useState } from 'react'
 import { logoutUser as logoutUserAuth } from '@/app/actions/user-auth'
 import { logoutUser as logoutUserAction } from '@/app/actions/logout'
 
-// Organized menu structure by category
+// Organized menu structure by category matching HTML design
 const menuStructure = [
   {
     category: 'MAIN',
     items: [
       { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    ]
-  },
-  {
-    category: 'CRM',
-    items: [
       { name: 'Leads', icon: Users, href: '/crm' },
       { name: 'Opportunities', icon: TrendingUp, href: '/crm/opportunities' },
     ]
@@ -44,7 +44,7 @@ const menuStructure = [
     category: 'SALES',
     items: [
       { name: 'Quotations', icon: Receipt, href: '/quotations' },
-      { name: 'Sales Orders', icon: Package, href: '/sales-orders' },
+      { name: 'Sales Orders', icon: ShoppingCart, href: '/sales-orders' },
       { name: 'Invoices', icon: FileText, href: '/invoices' },
       { name: 'Payments', icon: Wallet, href: '/payments' },
     ]
@@ -52,8 +52,8 @@ const menuStructure = [
   {
     category: 'INVENTORY',
     items: [
-      { name: 'Catalogue', icon: Package, href: '/catalogue' },
-      { name: 'Pricing Rules', icon: Percent, href: '/pricing-rules' },
+      { name: 'Catalogue', icon: Layers, href: '/catalogue' },
+      { name: 'Pricing Rules', icon: Tag, href: '/pricing-rules' },
     ]
   },
   {
@@ -66,15 +66,16 @@ const menuStructure = [
     ]
   },
   {
-    category: 'ADMIN',
+    category: 'MANAGEMENT',
     items: [
       { name: 'Team', icon: Users, href: '/team' },
       { name: 'Settings', icon: Settings, href: '/settings' },
+      { name: 'AI Agent', icon: Bot, href: '/ai-agent' },
     ]
   }
 ]
 
-// 1. Reusable Sidebar Content
+// Reusable Sidebar Content
 function SidebarContent() {
   const pathname = usePathname()
   const router = useRouter()
@@ -93,32 +94,33 @@ function SidebarContent() {
   return (
     <div 
       suppressHydrationWarning
-      className="flex h-full flex-col bg-[#2C3E50] text-gray-100"
+      className="flex h-full flex-col bg-[#1A1F2B] text-gray-100 border-r border-black/20"
     >
-      {/* Logo Area */}
-      <div suppressHydrationWarning className="flex h-16 items-center px-6 shrink-0 border-b border-gray-700/50">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <div suppressHydrationWarning className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center shadow-lg">
-            <span className="text-black font-bold text-base">A</span>
-          </div>
-          <span className="text-xl font-bold text-white tracking-tight">Avariq</span>
-        </Link>
+      {/* Logo Area - matching HTML design */}
+      <div suppressHydrationWarning className="p-4 flex items-center gap-2.5 shrink-0">
+        <div className="w-7 h-7 bg-[#FFCC3F] rounded flex items-center justify-center text-[#1A1F2B]">
+          <Zap className="h-[18px] w-[18px] font-bold" strokeWidth={3} />
+        </div>
+        <div className="flex flex-col">
+          <h1 className="text-lg font-bold tracking-tight text-white leading-none">Avariq</h1>
+          <span className="text-[8px] font-bold text-[#FFCC3F] tracking-[0.2em] uppercase">Ultimate</span>
+        </div>
       </div>
 
       {/* Navigation Links */}
-      <div suppressHydrationWarning className="flex-1 overflow-auto py-6 px-3">
-        <nav className="space-y-6">
+      <nav className="flex-1 px-3 pb-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+        <div className="space-y-0.5">
           {menuStructure.map((section, sectionIndex) => (
             <div key={sectionIndex}>
-              {/* Category Header */}
-              <div className="px-3 mb-2">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {/* Category Header - matching HTML styling */}
+              <div className="px-4 mt-5 mb-1.5 first:mt-2">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                   {section.category}
                 </h3>
               </div>
               
               {/* Category Items */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {section.items.map((item, itemIndex) => {
                   const isActive =
                     pathname === item.href ||
@@ -129,15 +131,15 @@ function SidebarContent() {
                       key={itemIndex}
                       href={item.href}
                       className={`
-                        flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                        flex items-center gap-2 px-3 py-1.5 rounded-md text-[13px] font-medium
                         transition-all duration-200
                         ${isActive
-                          ? 'bg-[#2596be] text-white'
-                          : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                          ? 'bg-[#385197] text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }
                       `}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
                       <span>{item.name}</span>
                     </Link>
                   );
@@ -145,29 +147,29 @@ function SidebarContent() {
               </div>
             </div>
           ))}
-        </nav>
-      </div>
+        </div>
+      </nav>
 
-      {/* Footer */}
-      <div suppressHydrationWarning className="shrink-0 border-t border-gray-700/50 p-4">
+      {/* Footer - matching HTML design */}
+      <div suppressHydrationWarning className="p-4 border-t border-white/5 shrink-0 bg-black/10">
+        <div className="flex flex-col items-center gap-0.5 mb-3">
+          <span className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.3em]">Powered by</span>
+          <span className="text-[10px] font-bold text-white tracking-[0.2em]">AVARIQ</span>
+        </div>
         <Button
           onClick={handleLogout}
           variant="ghost"
-          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700/50"
+          className="w-full justify-start text-[13px] text-gray-400 hover:text-white hover:bg-white/5 h-9"
         >
-          <LogOut className="h-4 w-4 mr-3" />
+          <LogOut className="h-[18px] w-[18px] mr-2" strokeWidth={1.5} />
           Logout
         </Button>
-        <div className="mt-4 px-3 text-xs text-gray-500">
-          <p className="font-semibold mb-1">POWERED BY</p>
-          <p className="text-gray-400">AVARIQ</p>
-        </div>
       </div>
     </div>
   )
 }
 
-// 2. Main Responsive Component
+// Main Responsive Component
 export function AppSidebar() {
   const [open, setOpen] = useState(false)
 
@@ -177,11 +179,16 @@ export function AppSidebar() {
       <div suppressHydrationWarning className="lg:hidden fixed top-4 left-4 z-50">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild suppressHydrationWarning>
-            <Button variant="outline" size="icon" className="bg-white shadow-lg border-gray-300" suppressHydrationWarning>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="bg-white shadow-lg border-gray-300" 
+              suppressHydrationWarning
+            >
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72">
+          <SheetContent side="left" className="p-0 w-60">
             <div className="h-full" onClick={() => setOpen(false)}>
               <SidebarContent />
             </div>
@@ -189,10 +196,10 @@ export function AppSidebar() {
         </Sheet>
       </div>
 
-      {/* Desktop Sidebar (Fixed) */}
+      {/* Desktop Sidebar (Fixed) - matching HTML width of 240px (w-60) */}
       <div 
         suppressHydrationWarning
-        className="hidden lg:flex h-screen w-64 flex-col"
+        className="hidden lg:flex h-screen w-60 flex-col shrink-0"
       >
         <SidebarContent />
       </div>
