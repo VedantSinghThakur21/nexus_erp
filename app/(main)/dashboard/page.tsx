@@ -17,6 +17,7 @@ import {
   UserPlus,
   MessageSquare,
   AlertTriangle,
+  Activity,
 } from "lucide-react";
 import { getDashboardStats, getOpportunities, getRecentActivities, getAtRiskDeals } from "@/app/actions/dashboard";
 
