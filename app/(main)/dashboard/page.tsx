@@ -1,3 +1,22 @@
+// Type guard for stats object
+function isStats(obj: any): obj is {
+  pipelineValue: number;
+  revenue: number;
+  openOpportunities: number;
+  winRate: number;
+  winRateChange: undefined;
+  leadsChange: undefined;
+  vsLastWeek: undefined;
+} {
+  return (
+    obj &&
+    typeof obj === "object" &&
+    typeof obj.pipelineValue === "number" &&
+    typeof obj.revenue === "number" &&
+    typeof obj.openOpportunities === "number" &&
+    typeof obj.winRate === "number"
+  );
+}
 
 "use client"
 
@@ -39,15 +58,17 @@ export default function DashboardPage() {
       }),
     ]).then(([statsRes, oppsRes]) => {
       setStats(
-        statsRes || {
-          pipelineValue: 0,
-          revenue: 0,
-          openOpportunities: 0,
-          winRate: 0,
-          winRateChange: undefined,
-          leadsChange: undefined,
-          vsLastWeek: undefined,
-        }
+        isStats(statsRes)
+          ? statsRes
+          : {
+              pipelineValue: 0,
+              revenue: 0,
+              openOpportunities: 0,
+              winRate: 0,
+              winRateChange: undefined,
+              leadsChange: undefined,
+              vsLastWeek: undefined,
+            }
       );
       setOpportunities(oppsRes || []);
       setLoading(false);
