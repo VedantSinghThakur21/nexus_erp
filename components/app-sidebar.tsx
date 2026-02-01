@@ -165,7 +165,7 @@ export function AppSidebar() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-60">
+          <SheetContent side="left" className="p-0 w-[260px]">
             <div className="h-full" onClick={() => setOpen(false)}>
               <SidebarContent />
             </div>
@@ -173,10 +173,10 @@ export function AppSidebar() {
         </Sheet>
       </div>
 
-      {/* Desktop Sidebar (Fixed) - matching HTML width of 240px (w-60) */}
+      {/* Desktop Sidebar (Fixed) - 260px width per specs */}
       <div
         suppressHydrationWarning
-        className="hidden lg:flex h-screen w-60 flex-col shrink-0"
+        className="hidden lg:flex h-screen w-[260px] flex-col shrink-0"
       >
         <SidebarContent />
       </div>

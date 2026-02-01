@@ -125,13 +125,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      {/* Header */}
-      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40">
-        <div className="flex items-center w-full max-w-xl">
-          <div className="relative w-full">
+      {/* Header - 72px height */}
+      <header className="h-[72px] bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-40">
+        <div className="flex items-center">
+          <div className="relative w-[480px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B6FE3]/20 focus:border-[#5B6FE3] text-gray-700 placeholder:text-gray-400"
+              className="w-full h-10 bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B6FE3]/20 focus:border-[#5B6FE3] text-gray-700 placeholder:text-gray-400"
               placeholder="Ask AI anything..."
               type="text"
             />
@@ -155,19 +155,19 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="p-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <div className="p-8">
+        {/* KPI Cards - 24px gaps, 180px height */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden">
-            <CardContent className="p-5">
+          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden h-[180px]">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>
                 <div className="p-1.5 bg-[#5B6FE3]/10 rounded-lg">
                   <TrendingUp className="h-4 w-4 text-[#5B6FE3]" />
                 </div>
               </div>
-              <h3 className="text-4xl font-bold text-white mb-2">{stats.winRate.toFixed(1)}%</h3>
+              <h3 className="text-[32px] font-semibold text-white mb-2">{stats.winRate.toFixed(1)}%</h3>
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-3 w-3 text-[#5B6FE3]" />
                 <span className="text-xs font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
@@ -176,15 +176,15 @@ export default function DashboardPage() {
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden">
-            <CardContent className="p-5">
+          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden h-[180px]">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
                 <div className="p-1.5 bg-[#10B981]/10 rounded-lg">
                   <BarChart3 className="h-4 w-4 text-[#10B981]" />
                 </div>
               </div>
-              <h3 className="text-4xl font-bold text-white mb-2">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
+              <h3 className="text-[32px] font-semibold text-white mb-2">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">TARGET: ₹20Cr</span>
@@ -198,15 +198,15 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden">
-            <CardContent className="p-5">
+          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden h-[180px]">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
                 <div className="p-1.5 bg-[#F59E0B]/10 rounded-lg">
                   <Zap className="h-4 w-4 text-[#F59E0B]" />
                 </div>
               </div>
-              <h3 className="text-4xl font-bold text-white mb-2">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
+              <h3 className="text-[32px] font-semibold text-white mb-2">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
               <div className="flex gap-1">
                 <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
                 <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
@@ -217,15 +217,15 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden">
-            <CardContent className="p-5">
+          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden h-[180px]">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
                 <div className="p-1.5 bg-[#F59E0B]/10 rounded-lg">
                   <Zap className="h-4 w-4 text-[#F59E0B]" />
                 </div>
               </div>
-              <h3 className="text-4xl font-bold text-white mb-2">{stats.activeLeads.toLocaleString()}</h3>
+              <h3 className="text-[32px] font-semibold text-white mb-2">{stats.activeLeads.toLocaleString()}</h3>
               <div className="inline-block px-2.5 py-1 bg-gray-700/50 rounded-md">
                 <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">AI Confidence</p>
               </div>
@@ -233,9 +233,9 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Main Content Grid */}
+        {/* Main Content Grid - 24px gaps */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Left Column - Main Content */}
+          {/* Left Column - Main Content (2/3 width) */}
           <div className="xl:col-span-2 space-y-6">
             {/* High-Probability Opportunities */}
             <Card className="rounded-xl border border-gray-200 bg-white">
