@@ -159,65 +159,103 @@ export default function DashboardPage() {
         {/* KPI Cards - 24px gaps, 180px height */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#181C2A] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
-            <CardContent className="p-7 w-full h-full relative flex flex-col justify-center">
-              <div className="absolute top-5 right-5 flex items-center justify-center h-8 w-8 rounded-lg bg-[#5B6FE3]/10">
-                <TrendingUp className="h-5 w-5 text-[#5B6FE3]" />
+          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[200px] shadow-lg">
+            <CardContent className="p-6 w-full h-full relative flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em]">WIN RATE</p>
+                <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-[#5B6FE3]/10">
+                  <TrendingUp className="h-4 w-4 text-[#5B6FE3]" />
+                </div>
               </div>
-              <p className="text-[15px] font-bold text-gray-400 uppercase tracking-widest mb-6" style={{letterSpacing: '0.12em'}}>WIN RATE</p>
-              <h3 className="text-[48px] font-black text-white mb-3 leading-none tracking-tight" style={{fontFamily: 'Inter, Arial, sans-serif'}}> {stats.winRate.toFixed(1)}% </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <TrendingUp className="h-4 w-4 text-[#5B6FE3]" />
-                <span className="text-[16px] font-bold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
+              <div>
+                <h3 
+                  className="text-[64px] font-black text-white leading-none tracking-tight mb-2" 
+                  style={{fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 900}}
+                >
+                  {stats.winRate.toFixed(1)}%
+                </h3>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-3.5 w-3.5 text-[#5B6FE3]" />
+                  <span className="text-sm font-bold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#181C2A] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
-            <CardContent className="p-7 w-full h-full relative flex flex-col justify-center">
-              <div className="absolute top-5 right-5 flex items-center justify-center h-8 w-8 rounded-lg bg-[#10B981]/10">
-                <BarChart3 className="h-5 w-5 text-[#10B981]" />
+          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[200px] shadow-lg">
+            <CardContent className="p-6 w-full h-full relative flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em]">PIPELINE VALUE</p>
+                <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-[#10B981]/10">
+                  <BarChart3 className="h-4 w-4 text-[#10B981]" />
+                </div>
               </div>
-              <p className="text-[15px] font-bold text-gray-400 uppercase tracking-widest mb-6" style={{letterSpacing: '0.12em'}}>PIPELINE VALUE</p>
-              <h3 className="text-[48px] font-black text-white mb-3 leading-none tracking-tight" style={{fontFamily: 'Inter, Arial, sans-serif'}}>{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
-              <div className="flex items-center justify-between text-[13px] font-bold mb-2">
-                <span className="text-gray-400">TARGET: ₹20Cr</span>
-                <span className="text-gray-400">65% ACHIEVED</span>
-              </div>
-              <div className="w-full h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                <div className="h-full bg-[#10B981] rounded-full transition-all duration-500" style={{ width: '65%' }}></div>
+              <div>
+                <h3 
+                  className="text-[64px] font-black text-white leading-none tracking-tight mb-3" 
+                  style={{fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 900}}
+                >
+                  {formatIndianCurrencyInCrores(stats.pipelineValue)}
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-medium">
+                    <span className="text-gray-400">TARGET: ₹20Cr</span>
+                    <span className="text-gray-400">65% ACHIEVED</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#10B981] rounded-full transition-all duration-500" style={{ width: '65%' }}></div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#181C2A] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
-            <CardContent className="p-7 w-full h-full relative flex flex-col justify-center">
-              <div className="absolute top-5 right-5 flex items-center justify-center h-8 w-8 rounded-lg bg-[#F59E0B]/10">
-                <Zap className="h-5 w-5 text-[#F59E0B]" />
+          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[200px] shadow-lg">
+            <CardContent className="p-6 w-full h-full relative flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em]">REVENUE MTD</p>
+                <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-[#F59E0B]/10">
+                  <Zap className="h-4 w-4 text-[#F59E0B]" />
+                </div>
               </div>
-              <p className="text-[15px] font-bold text-gray-400 uppercase tracking-widest mb-6" style={{letterSpacing: '0.12em'}}>REVENUE MTD</p>
-              <h3 className="text-[48px] font-black text-white mb-3 leading-none tracking-tight" style={{fontFamily: 'Inter, Arial, sans-serif'}}>{formatIndianCurrencyInCrores(stats.revenue)}</h3>
-              <div className="flex gap-1 mt-1">
-                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                <div className="h-1 w-2 bg-gray-600 rounded-full"></div>
+              <div>
+                <h3 
+                  className="text-[64px] font-black text-white leading-none tracking-tight mb-3" 
+                  style={{fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 900}}
+                >
+                  {formatIndianCurrencyInCrores(stats.revenue)}
+                </h3>
+                <div className="flex gap-1.5 mt-1">
+                  <div className="h-1.5 w-2 bg-[#F59E0B] rounded-full"></div>
+                  <div className="h-1.5 w-2 bg-[#F59E0B] rounded-full"></div>
+                  <div className="h-1.5 w-2 bg-[#F59E0B] rounded-full"></div>
+                  <div className="h-1.5 w-2 bg-gray-600 rounded-full"></div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#181C2A] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
-            <CardContent className="p-7 w-full h-full relative flex flex-col justify-center">
-              <div className="absolute top-5 right-5 flex items-center justify-center h-8 w-8 rounded-lg bg-[#F59E0B]/10">
-                <Zap className="h-5 w-5 text-[#F59E0B]" />
+          <Card className="bg-[#1E293B] border-none rounded-2xl overflow-hidden h-[200px] shadow-lg">
+            <CardContent className="p-6 w-full h-full relative flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.15em]">ACTIVE LEADS</p>
+                <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-[#F59E0B]/10">
+                  <Zap className="h-4 w-4 text-[#F59E0B]" />
+                </div>
               </div>
-              <p className="text-[15px] font-bold text-gray-400 uppercase tracking-widest mb-6" style={{letterSpacing: '0.12em'}}>ACTIVE LEADS</p>
-              <h3 className="text-[48px] font-black text-white mb-3 leading-none tracking-tight" style={{fontFamily: 'Inter, Arial, sans-serif'}}>{stats.activeLeads.toLocaleString()}</h3>
-              <div className="inline-block px-4 py-1 bg-gray-700/40 rounded-lg border border-gray-600/30">
-                <p className="text-[15px] font-bold text-gray-300 uppercase tracking-widest" style={{letterSpacing: '0.12em'}}>AI CONFIDENCE</p>
+              <div>
+                <h3 
+                  className="text-[64px] font-black text-white leading-none tracking-tight mb-3" 
+                  style={{fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 900}}
+                >
+                  {stats.activeLeads.toLocaleString()}
+                </h3>
+                <div className="inline-block px-3 py-1.5 bg-gray-700/40 rounded-lg border border-gray-600/30">
+                  <p className="text-[11px] font-bold text-gray-300 uppercase tracking-[0.12em]">AI CONFIDENCE</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -525,5 +563,5 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
-    );
-  }
+  );
+}
