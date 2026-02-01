@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Sparkles, X } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -69,6 +69,12 @@ export function FloatingAIChat() {
             <div className="border-t pt-4">
               <ChatInput />
             </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
 
 function ChatInput() {
   const [message, setMessage] = useState("");
@@ -79,7 +85,7 @@ function ChatInput() {
     setMessage("");
   }
 
-  function handleKeyDown(e) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -94,7 +100,7 @@ function ChatInput() {
           placeholder="Ask me anything..."
           className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           value={message}
-          onChange={e => setMessage(e.target.value)}
+          onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
         />
         <Button
@@ -106,14 +112,8 @@ function ChatInput() {
         </Button>
       </div>
       <p className="text-xs text-gray-500 mt-2">
-        Press Enter to send • Shift+Enter for new line
+        Press Enter to send
       </p>
     </>
   );
-}
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
-  )
 }
