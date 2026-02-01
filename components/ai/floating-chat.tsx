@@ -25,6 +25,7 @@ export function FloatingAIChat() {
       {/* Floating Button */}
       <Button
         onClick={() => setOpen(true)}
+        aria-label="Open chat"
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl z-50 bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 hover:from-blue-700 hover:via-blue-600 hover:to-purple-700 border-0 transition-all duration-300 hover:scale-110"
         size="icon"
       >
@@ -66,20 +67,50 @@ export function FloatingAIChat() {
 
             {/* Input Area */}
             <div className="border-t pt-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Ask me anything..."
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-                <Button className="px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  Send
-                </Button>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Press Enter to send • Shift+Enter for new line
-              </p>
+              <ChatInput />
             </div>
+
+function ChatInput() {
+  const [message, setMessage] = useState("");
+
+  function handleSend() {
+    if (!message.trim()) return;
+    // TODO: send message to chat logic here
+    setMessage("");
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Ask me anything..."
+          className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <Button
+          className="px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          onClick={handleSend}
+          aria-label="Send message"
+        >
+          Send
+        </Button>
+      </div>
+      <p className="text-xs text-gray-500 mt-2">
+        Press Enter to send • Shift+Enter for new line
+      </p>
+    </>
+  );
+}
           </div>
         </SheetContent>
       </Sheet>

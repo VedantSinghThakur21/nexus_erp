@@ -1,32 +1,60 @@
-import { getDashboardStats } from "@/app/actions/dashboard"
-import { getOpportunities } from "@/app/actions/crm"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { TrendingUp, DollarSign, Target, Users, AlertCircle, Sparkles, ChevronRight } from "lucide-react"
-import Link from "next/link"
 
-export const dynamic = 'force-dynamic'
+"use client"
 
-export default async function DashboardPage() {
-  // Fetch all data with error handling
-  const stats = await getDashboardStats().catch(() => ({
+import { useEffect, useMemo, useState } from "react";
+import { getDashboardStats } from "@/app/actions/dashboard";
+import { getOpportunities } from "@/app/actions/crm";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { TrendingUp, DollarSign, Target, Users, AlertCircle, Sparkles, ChevronRight } from "lucide-react";
+import Link from "next/link";
+
+export default function DashboardPage() {
+  const [stats, setStats] = useState({
     pipelineValue: 0,
     revenue: 0,
     openOpportunities: 0,
-    winRate: 0
-  }))
-  
-  const allOpportunities = await getOpportunities().catch(() => [])
-  
+    winRate: 0,
+    winRateChange: undefined,
+    leadsChange: undefined,
+    vsLastWeek: undefined,
+  });
+  const [opportunities, setOpportunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState("This Week");
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      getDashboardStats().catch(() => ({})),
+      getOpportunities().catch(() => []),
+    ]).then(([statsRes, oppsRes]) => {
+      setStats(statsRes || {});
+      setOpportunities(oppsRes || []);
+      setLoading(false);
+    });
+  }, [timeframe]);
+
   // Filter high-probability opportunities (>50%)
-  const highProbOpportunities = allOpportunities
-    .filter(opp => opp.probability >= 50 && opp.status === 'Open')
-    .slice(0, 3)
+  const highProbOpportunities = useMemo(
+    () => (opportunities || [])
+      .filter((opp) => opp.probability >= 50 && opp.status === "Open")
+      .slice(0, 3),
+    [opportunities]
+  );
 
   // Calculate revenue MTD from stats
-  const revenueMTD = stats.revenue || 0
-  
+  const revenueMTD = stats.revenue || 0;
+
+  // Format date
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -34,10 +62,14 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">February 1, 2026</p>
+            <p className="text-sm text-gray-500 mt-1">{formattedDate}</p>
           </div>
           <div className="flex items-center gap-3">
-            <select className="text-sm border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <select
+              className="text-sm border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+            >
               <option>This Week</option>
               <option>This Month</option>
               <option>This Quarter</option>
@@ -62,12 +94,18 @@ export default async function DashboardPage() {
               <div className="space-y-1">
                 <div className="flex items-baseline gap-2">
                   <h2 className="text-4xl font-bold text-gray-900">{stats.winRate}%</h2>
-                  <Badge className="bg-green-100 text-green-700 text-xs px-2 py-0.5">
-                    +2.4%
-                  </Badge>
+                  {typeof stats.winRateChange === 'number' && (
+                    <Badge className="bg-green-100 text-green-700 text-xs px-2 py-0.5">
+                      {stats.winRateChange > 0 ? '+' : ''}{stats.winRateChange.toFixed(1)}%
+                    </Badge>
+                  )}
                 </div>
                 <Progress value={stats.winRate} className="h-1.5 mt-3" />
-                <p className="text-xs text-gray-500 mt-2">+18% vs LW</p>
+                {typeof stats.vsLastWeek === 'number' && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    {stats.vsLastWeek > 0 ? '+' : ''}{stats.vsLastWeek.toFixed(1)}% vs LW
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -124,11 +162,15 @@ export default async function DashboardPage() {
               <div className="space-y-1">
                 <div className="flex items-baseline gap-2">
                   <h2 className="text-4xl font-bold text-gray-900">{stats.openOpportunities}</h2>
-                  <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5">
-                    +18%
-                  </Badge>
+                  {typeof stats.leadsChange === 'number' && (
+                    <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5">
+                      {stats.leadsChange > 0 ? '+' : ''}{stats.leadsChange.toFixed(1)}%
+                    </Badge>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">vs last week</p>
+                {typeof stats.leadsChange === 'number' && (
+                  <p className="text-xs text-gray-500 mt-2">vs last week</p>
+                )}
               </div>
             </CardContent>
           </Card>

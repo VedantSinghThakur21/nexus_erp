@@ -120,19 +120,19 @@ function SidebarContent() {
               {/* Category Items */}
               <div className="space-y-1">
                 {section.items.map((item, itemIndex) => {
-                  const isActive = pathname === item.href || 
-                    (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
-                  const Icon = item.icon
-                  
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== '/dashboard' && item.href !== '/crm' && pathname.startsWith(item.href + '/'));
+                  const Icon = item.icon;
                   return (
-                    <Link 
+                    <Link
                       key={itemIndex}
                       href={item.href}
                       className={`
                         flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                         transition-all duration-200
-                        ${isActive 
-                          ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
+                        ${isActive
+                          ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
                           : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/50'
                         }
                       `}
@@ -140,7 +140,7 @@ function SidebarContent() {
                       <Icon className="h-4 w-4 shrink-0" />
                       <span>{item.name}</span>
                     </Link>
-                  )
+                  );
                 })}
               </div>
             </div>
