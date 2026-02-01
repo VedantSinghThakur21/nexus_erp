@@ -379,25 +379,6 @@ export default function DashboardPage() {
       </div>
     </div>
   )
-}
-    pipelineValue: typeof stats.pipelineValue === 'number' ? stats.pipelineValue : 0,
-    dealsWonMTD: typeof stats.dealsWonMTD === 'number' ? stats.dealsWonMTD : 0,
-    winRate: typeof stats.winRate === 'number' ? stats.winRate : 0
-  }
-
-  return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-            <h1 className="text-2xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent">
-                Overview
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-2 text-sm">Performance metrics and sales pipeline</p>
-        </div>
-        <div className="flex gap-2">
-            <select className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm hover:shadow-md transition-shadow">
-              <option>This Week</option>
               <option>This Month</option>
               <option>This Quarter</option>
             </select>

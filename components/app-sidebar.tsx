@@ -165,39 +165,7 @@ function SidebarContent() {
       </div>
     </div>
   )
-} 
-              (item.href !== '/crm' && pathname.startsWith(item.href + '/'))
-            return (
-              <Link
-                key={index}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors 
-                  ${isActive 
-                    ? 'bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-900' 
-                    : 'text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-50'
-                  } ${isCollapsed ? 'justify-center' : ''}`}
-                title={isCollapsed ? item.name : ''}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {!isCollapsed && <span>{item.name}</span>}
-              </Link>
-            )
-          })}
-          {/* AI Agent Link (internal route) */}
-          <Link
-            href="/agents"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors 
-              ${pathname === '/agents' ? 'bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-900' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-slate-800 dark:hover:text-blue-400'}
-              ${isCollapsed ? 'justify-center' : ''}`}
-            title={isCollapsed ? 'AI Agent' : ''}
-          >
-            <Bot className="h-4 w-4 shrink-0" />
-            {!isCollapsed && <span>AI Agent</span>}
-          </Link>
-        </nav>
-      </div>
-
-      {/* Footer Links */}
+}
       <div suppressHydrationWarning className="border-t p-4 space-y-3 shrink-0">
         {!isCollapsed ? (
           <>
