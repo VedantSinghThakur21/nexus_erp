@@ -176,7 +176,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden h-[180px]">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px]">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden h-[180px]">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px]">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
@@ -217,7 +217,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#1A2332] border-none rounded-xl overflow-hidden h-[180px]">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px]">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
@@ -234,9 +234,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Grid - 24px gaps */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Left Column - Main Content (2/3 width) */}
-          <div className="xl:col-span-2 space-y-6">
+        <div className="space-y-6">
+          {/* High-Probability Opportunities and Intelligence Hub Row */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Left Column - High-Probability Opportunities (2/3 width) */}
+            <div className="xl:col-span-2">
             {/* High-Probability Opportunities */}
             <Card className="rounded-xl border border-gray-200 bg-white">
               <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
@@ -314,9 +316,84 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Right Column - Intelligence Hub (1/3 width) */}
+          <div className="space-y-6">
+            <Card className="rounded-xl border border-gray-200 bg-white sticky top-24">
+              <CardHeader className="px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 bg-[#5B6FE3]/10 rounded-lg flex items-center justify-center">
+                      <Lightbulb className="h-5 w-5 text-[#5B6FE3]" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base font-bold text-gray-900">Intelligence Hub</CardTitle>
+                      <p className="text-xs text-[#5B6FE3] font-semibold uppercase tracking-wider mt-0.5">AI Copilot Active</p>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                {/* Deal at Risk Alert */}
+                {atRiskDeal && (
+                  <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-5 rounded-xl border-2 border-orange-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                      <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Deal at Risk</span>
+                    </div>
+                    <h5 className="text-sm font-bold text-gray-900 mb-2">{atRiskDeal.name}</h5>
+                    <p className="text-xs text-gray-600 mb-4">
+                      Health score dropped to <span className="font-bold text-orange-600">{atRiskDeal.healthScore}/100</span>.
+                    </p>
+                    <button className="w-full py-2.5 bg-[#5B6FE3] hover:bg-[#4A5BC9] text-white font-semibold text-sm rounded-lg transition-colors">
+                      Generate Strategy
+                    </button>
+                  </div>
+                )}
+
+                {/* Priority Actions */}
+                <div>
+                  <h6 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Priority Actions</h6>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                      <div className="h-8 w-8 rounded bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                        <Mail className="h-4 w-4 text-[#5B6FE3]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">Follow up: Velocity</p>
+                        <p className="text-xs text-gray-500">Proposal viewed 3x.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                      <div className="h-8 w-8 rounded bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                        <Calendar className="h-4 w-4 text-[#10B981]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">Executive Demo</p>
+                        <p className="text-xs text-gray-500">Confirm Stark Ent.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Market Insight */}
+                <div className="pt-6 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Market Insight</span>
+                    <span className="text-sm font-bold text-[#10B981]">+14%</span>
+                  </div>
+                  <p className="text-xs text-gray-600 italic leading-relaxed">
+                    "Sales cycles shortening by 2.4 days this quarter."
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Charts Row (Full Width) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Sales Funnel */}
               <Card className="rounded-xl border border-gray-200 bg-white">
                 <CardHeader className="px-6 py-4 border-b border-gray-100">
@@ -398,119 +475,65 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
+          </div>
 
-            {/* Team Performance */}
-            <Card className="rounded-xl border border-gray-200 bg-white">
-              <CardHeader className="px-6 py-4 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-gray-400" />
-                  <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Team Performance & Intelligence</CardTitle>
-                </div>
-              </CardHeader>
+          {/* Team Performance Row (Full Width) */}
+          <Card className="rounded-xl border border-gray-200 bg-white">
+            <CardHeader className="px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-gray-400" />
+                <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Team Performance & Intelligence</CardTitle>
+              </div>
+            </CardHeader>
               <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#10B981] transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-[#10B981] transition-colors bg-white">
+                    <div className="h-10 w-10 rounded-lg bg-[#10B981]/10 flex items-center justify-center shrink-0">
                       <CheckCircle className="h-5 w-5 text-[#10B981]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Closed Deal</p>
                       <p className="font-semibold text-gray-900 truncate">Sarah Jenkins</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Cyberdyne Corp</p>
+                      <p className="text-xs text-gray-400 mt-0.5">2 MINUTES AGO</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#5B6FE3] transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-[#5B6FE3]/10 flex items-center justify-center shrink-0">
+                  <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-[#5B6FE3] transition-colors bg-white">
+                    <div className="h-10 w-10 rounded-lg bg-[#5B6FE3]/10 flex items-center justify-center shrink-0">
                       <UserPlus className="h-5 w-5 text-[#5B6FE3]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-500 uppercase mb-1">New Lead</p>
                       <p className="font-semibold text-gray-900 truncate">Mike Rossi</p>
+                      <p className="text-xs text-gray-500 mt-0.5">TechFlow Systems</p>
+                      <p className="text-xs text-gray-400 mt-0.5">15 MINUTES AGO</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4 p-4 rounded-lg border border-gray-100 hover:border-[#8B5CF6] transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                      <MessageSquare className="h-5 w-5 text-[#8B5CF6]" />
+                  <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-[#8B5CF6] transition-colors bg-white">
+                    <div className="h-10 w-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                      <Mail className="h-5 w-5 text-[#8B5CF6]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Outbound</p>
                       <p className="font-semibold text-gray-900 truncate">David Geller</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Stark Industries</p>
+                      <p className="text-xs text-gray-400 mt-0.5">45 MINUTES AGO</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-[#F59E0B] transition-colors bg-white">
+                    <div className="h-10 w-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center shrink-0">
+                      <Calendar className="h-5 w-5 text-[#F59E0B]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Meeting Set</p>
+                      <p className="font-semibold text-gray-900 truncate">Amy Pond</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Waltham Co.</p>
+                      <p className="text-xs text-gray-400 mt-0.5">1 HOUR AGO</p>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Right Column - Intelligence Hub */}
-          <div className="space-y-6">
-            <Card className="rounded-xl border border-gray-200 bg-white sticky top-24">
-              <CardHeader className="px-6 py-4 border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 bg-[#5B6FE3]/10 rounded-lg flex items-center justify-center">
-                    <Lightbulb className="h-5 w-5 text-[#5B6FE3]" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm font-bold text-gray-900">Intelligence Hub</CardTitle>
-                    <p className="text-xs font-semibold text-[#5B6FE3] uppercase tracking-wider">AI Copilot Active</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                {/* Deal at Risk Alert */}
-                {atRiskDeal && (
-                  <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-5 rounded-xl border-2 border-orange-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle className="h-4 w-4 text-orange-600" />
-                      <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Deal at Risk</span>
-                    </div>
-                    <h5 className="text-sm font-bold text-gray-900 mb-2">{atRiskDeal.name}</h5>
-                    <p className="text-xs text-gray-600 mb-4">
-                      Health score dropped to <span className="font-bold text-orange-600">{atRiskDeal.healthScore}/100</span>.
-                    </p>
-                    <button className="w-full py-2.5 bg-[#5B6FE3] hover:bg-[#4A5BC9] text-white font-semibold text-sm rounded-lg transition-colors">
-                      Generate Strategy
-                    </button>
-                  </div>
-                )}
-
-                {/* Priority Actions */}
-                <div>
-                  <h6 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Priority Actions</h6>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-                      <div className="h-8 w-8 rounded bg-white border border-gray-200 flex items-center justify-center shrink-0">
-                        <Mail className="h-4 w-4 text-[#5B6FE3]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">Follow up: Velocity</p>
-                        <p className="text-xs text-gray-500">Proposal viewed 3x.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-                      <div className="h-8 w-8 rounded bg-white border border-gray-200 flex items-center justify-center shrink-0">
-                        <Calendar className="h-4 w-4 text-[#10B981]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">Executive Demo</p>
-                        <p className="text-xs text-gray-500">Confirm Stark Ent.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Market Insight */}
-                <div className="pt-6 border-t border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Market Insight</span>
-                    <span className="text-sm font-bold text-[#10B981]">+14%</span>
-                  </div>
-                  <p className="text-xs text-gray-600 italic leading-relaxed">
-                    "Sales cycles shortening by 2.4 days this quarter."
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </div>

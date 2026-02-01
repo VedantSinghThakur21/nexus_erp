@@ -93,7 +93,7 @@ function SidebarContent() {
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 pb-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+      <nav className="flex-1 px-3 pb-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600/50 scrollbar-track-transparent hover:scrollbar-thumb-gray-500">
         <div className="space-y-0.5">
           {menuStructure.map((section, sectionIndex) => (
             <div key={sectionIndex}>
@@ -116,7 +116,7 @@ function SidebarContent() {
                       key={itemIndex}
                       href={item.href}
                       className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded-md text-[13px] font-medium
+                        flex items-center gap-2.5 px-3 py-2 rounded-md text-[14px] font-medium
                         transition-all duration-200
                         ${isActive
                           ? 'bg-[#5B6FE3] text-white'
@@ -124,7 +124,7 @@ function SidebarContent() {
                         }
                       `}
                     >
-                      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+                      <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} />
                       <span>{item.name}</span>
                     </Link>
                   );
