@@ -159,73 +159,73 @@ export default function DashboardPage() {
         {/* KPI Cards - 24px gaps, 180px height */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between shadow-lg">
             <CardContent className="p-6 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start">
+              <div className="flex justify-between items-start mb-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>
-                <TrendingUp className="h-5 w-5 text-[#5B6FE3] bg-[#5B6FE3]/10 rounded-lg p-1.5" />
+                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#5B6FE3]/10">
+                  <TrendingUp className="h-5 w-5 text-[#5B6FE3]" />
+                </span>
               </div>
-              <div className="flex-1 flex flex-col justify-center">
-                <h3 className="text-[32px] font-semibold text-white leading-none mb-1">{stats.winRate.toFixed(1)}%</h3>
-                <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="h-3 w-3 text-[#5B6FE3]" />
-                  <span className="text-xs font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
-                </div>
+              <h3 className="text-[36px] font-bold text-white mb-1 leading-tight">{stats.winRate.toFixed(1)}%</h3>
+              <div className="flex items-center gap-1 mt-1">
+                <TrendingUp className="h-4 w-4 text-[#5B6FE3]" />
+                <span className="text-sm font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between shadow-lg">
             <CardContent className="p-6 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start">
+              <div className="flex justify-between items-start mb-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
-                <BarChart3 className="h-5 w-5 text-[#10B981] bg-[#10B981]/10 rounded-lg p-1.5" />
+                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#10B981]/10">
+                  <BarChart3 className="h-5 w-5 text-[#10B981]" />
+                </span>
               </div>
-              <div className="flex-1 flex flex-col justify-center">
-                <h3 className="text-[32px] font-semibold text-white leading-none mb-1">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
-                <div className="flex items-center justify-between text-xs mt-1 mb-1">
-                  <span className="text-gray-400">TARGET: ₹20Cr</span>
-                  <span className="text-gray-400">65% ACHIEVED</span>
-                </div>
-                <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden mt-1">
-                  <div className="h-full bg-[#10B981] rounded-full transition-all duration-500" style={{ width: '65%' }}></div>
-                </div>
+              <h3 className="text-[36px] font-bold text-white mb-1 leading-tight">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-gray-400">TARGET: ₹20Cr</span>
+                <span className="text-gray-400">65% ACHIEVED</span>
+              </div>
+              <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden mt-1">
+                <div className="h-full bg-[#10B981] rounded-full transition-all duration-500" style={{ width: '65%' }}></div>
               </div>
             </CardContent>
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between shadow-lg">
             <CardContent className="p-6 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start">
+              <div className="flex justify-between items-start mb-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
-                <Zap className="h-5 w-5 text-[#F59E0B] bg-[#F59E0B]/10 rounded-lg p-1.5" />
+                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#F59E0B]/10">
+                  <Zap className="h-5 w-5 text-[#F59E0B]" />
+                </span>
               </div>
-              <div className="flex-1 flex flex-col justify-center">
-                <h3 className="text-[32px] font-semibold text-white leading-none mb-1">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
-                <div className="flex gap-1 mt-2">
-                  <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                  <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                  <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
-                  <div className="h-1 w-2 bg-gray-600 rounded-full"></div>
-                </div>
+              <h3 className="text-[36px] font-bold text-white mb-1 leading-tight">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
+              <div className="flex gap-1 mt-2">
+                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
+                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
+                <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
+                <div className="h-1 w-2 bg-gray-600 rounded-full"></div>
               </div>
             </CardContent>
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between">
+          <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between shadow-lg">
             <CardContent className="p-6 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start">
+              <div className="flex justify-between items-start mb-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
-                <Zap className="h-5 w-5 text-[#F59E0B] bg-[#F59E0B]/10 rounded-lg p-1.5" />
+                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#F59E0B]/10">
+                  <Zap className="h-5 w-5 text-[#F59E0B]" />
+                </span>
               </div>
-              <div className="flex-1 flex flex-col justify-center">
-                <h3 className="text-[32px] font-semibold text-white leading-none mb-1">{stats.activeLeads.toLocaleString()}</h3>
-                <div className="inline-block px-2.5 py-1 bg-gray-700/50 rounded-md mt-2">
-                  <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">AI Confidence</p>
-                </div>
+              <h3 className="text-[36px] font-bold text-white mb-1 leading-tight">{stats.activeLeads.toLocaleString()}</h3>
+              <div className="inline-block px-3 py-1 bg-gray-700/50 rounded-md mt-2">
+                <p className="text-sm font-semibold text-gray-300 uppercase tracking-wider">AI Confidence</p>
               </div>
             </CardContent>
           </Card>
@@ -471,63 +471,67 @@ export default function DashboardPage() {
         </div>
 
         {/* Team Performance Row (Full Width) */}
-        <Card className="rounded-xl border border-gray-200 bg-white">
-          <CardHeader className="px-6 py-4 border-b border-gray-100">
+        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm mb-8">
+          <CardHeader className="px-8 py-6 border-b border-gray-100">
             <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-gray-400" />
-              <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Team Performance & Intelligence</CardTitle>
+              <Activity className="h-5 w-5 text-[#5B6FE3]" />
+              <CardTitle className="text-lg font-bold text-gray-700 uppercase tracking-wider">Team Performance & Intelligence</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-[#10B981] transition-colors bg-white">
-                <div className="h-10 w-10 rounded-lg bg-[#10B981]/10 flex items-center justify-center shrink-0">
-                  <CheckCircle className="h-5 w-5 text-[#10B981]" />
+          <CardContent className="p-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Closed Deal */}
+              <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#10B981]/10">
+                    <CheckCircle className="h-6 w-6 text-[#10B981]" />
+                  </span>
+                  <span className="text-xs font-semibold text-gray-500 uppercase">Closed Deal</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Closed Deal</p>
-                  <p className="font-semibold text-gray-900 truncate">Sarah Jenkins</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Cyberdyne Corp</p>
-                  <p className="text-xs text-gray-400 mt-0.5">2 MINUTES AGO</p>
-                </div>
+                <div className="font-bold text-gray-900 text-lg mb-1">Sarah Jenkins</div>
+                <div className="text-sm text-gray-500 mb-1">Cyberdyne Corp</div>
+                <div className="text-xs text-[#10B981] font-medium">2 MINUTES AGO</div>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-[#5B6FE3] transition-colors bg-white">
-                <div className="h-10 w-10 rounded-lg bg-[#5B6FE3]/10 flex items-center justify-center shrink-0">
-                  <UserPlus className="h-5 w-5 text-[#5B6FE3]" />
+              {/* New Lead */}
+              <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#8B5CF6]/10">
+                    <UserPlus className="h-6 w-6 text-[#8B5CF6]" />
+                  </span>
+                  <span className="text-xs font-semibold text-gray-500 uppercase">New Lead</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">New Lead</p>
-                  <p className="font-semibold text-gray-900 truncate">Mike Rossi</p>
-                  <p className="text-xs text-gray-500 mt-0.5">TechFlow Systems</p>
-                  <p className="text-xs text-gray-400 mt-0.5">15 MINUTES AGO</p>
-                </div>
+                <div className="font-bold text-gray-900 text-lg mb-1">Mike Rossi</div>
+                <div className="text-sm text-gray-500 mb-1">TechFlow Systems</div>
+                <div className="text-xs text-[#8B5CF6] font-medium">15 MINUTES AGO</div>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-[#8B5CF6] transition-colors bg-white">
-                <div className="h-10 w-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
-                  <Mail className="h-5 w-5 text-[#8B5CF6]" />
+              {/* Outbound */}
+              <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#A78BFA]/10">
+                    <Mail className="h-6 w-6 text-[#A78BFA]" />
+                  </span>
+                  <span className="text-xs font-semibold text-gray-500 uppercase">Outbound</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Outbound</p>
-                  <p className="font-semibold text-gray-900 truncate">David Geller</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Stark Industries</p>
-                  <p className="text-xs text-gray-400 mt-0.5">45 MINUTES AGO</p>
-                </div>
+                <div className="font-bold text-gray-900 text-lg mb-1">David Geller</div>
+                <div className="text-sm text-gray-500 mb-1">Stark Industries</div>
+                <div className="text-xs text-[#A78BFA] font-medium">45 MINUTES AGO</div>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-[#F59E0B] transition-colors bg-white">
-                <div className="h-10 w-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center shrink-0">
-                  <Calendar className="h-5 w-5 text-[#F59E0B]" />
+              {/* Meeting Set */}
+              <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#F59E0B]/10">
+                    <Calendar className="h-6 w-6 text-[#F59E0B]" />
+                  </span>
+                  <span className="text-xs font-semibold text-gray-500 uppercase">Meeting Set</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Meeting Set</p>
-                  <p className="font-semibold text-gray-900 truncate">Amy Pond</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Waltham Co.</p>
-                  <p className="text-xs text-gray-400 mt-0.5">1 HOUR AGO</p>
-                </div>
+                <div className="font-bold text-gray-900 text-lg mb-1">Amy Pond</div>
+                <div className="text-sm text-gray-500 mb-1">Waltham Co.</div>
+                <div className="text-xs text-[#F59E0B] font-medium">1 HOUR AGO</div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-      );
+    );
   }
