@@ -489,66 +489,58 @@ export default function DashboardPage() {
         </div>
 
         {/* Team Performance Row (Full Width) */}
-        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm mb-8">
-          <CardHeader className="px-8 py-6 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-[#5B6FE3]" />
-              <CardTitle className="text-lg font-bold text-gray-700 uppercase tracking-wider">Team Performance & Intelligence</CardTitle>
+        <div className="w-full mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Closed Deal */}
+            <div className="flex flex-col rounded-xl border border-gray-200 p-6 h-full bg-transparent shadow-none">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#10B981]/10">
+                  <CheckCircle className="h-6 w-6 text-[#10B981]" />
+                </span>
+                <span className="text-xs font-semibold text-gray-500 uppercase">Closed Deal</span>
+              </div>
+              <div className="font-bold text-gray-900 text-lg mb-1">Sarah Jenkins</div>
+              <div className="text-sm text-gray-500 mb-1">Cyberdyne Corp</div>
+              <div className="text-xs text-[#10B981] font-medium">2 MINUTES AGO</div>
             </div>
-          </CardHeader>
-          <CardContent className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {/* Closed Deal */}
-              <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#10B981]/10">
-                    <CheckCircle className="h-6 w-6 text-[#10B981]" />
-                  </span>
-                  <span className="text-xs font-semibold text-gray-500 uppercase">Closed Deal</span>
-                </div>
-                <div className="font-bold text-gray-900 text-lg mb-1">Sarah Jenkins</div>
-                <div className="text-sm text-gray-500 mb-1">Cyberdyne Corp</div>
-                <div className="text-xs text-[#10B981] font-medium">2 MINUTES AGO</div>
+            {/* New Lead */}
+            <div className="flex flex-col rounded-xl border border-gray-200 p-6 h-full bg-transparent shadow-none">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#8B5CF6]/10">
+                  <UserPlus className="h-6 w-6 text-[#8B5CF6]" />
+                </span>
+                <span className="text-xs font-semibold text-gray-500 uppercase">New Lead</span>
               </div>
-              {/* New Lead */}
-              <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#8B5CF6]/10">
-                    <UserPlus className="h-6 w-6 text-[#8B5CF6]" />
-                  </span>
-                  <span className="text-xs font-semibold text-gray-500 uppercase">New Lead</span>
-                </div>
-                <div className="font-bold text-gray-900 text-lg mb-1">Mike Rossi</div>
-                <div className="text-sm text-gray-500 mb-1">TechFlow Systems</div>
-                <div className="text-xs text-[#8B5CF6] font-medium">15 MINUTES AGO</div>
-              </div>
-              {/* Outbound */}
-              <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#A78BFA]/10">
-                    <Mail className="h-6 w-6 text-[#A78BFA]" />
-                  </span>
-                  <span className="text-xs font-semibold text-gray-500 uppercase">Outbound</span>
-                </div>
-                <div className="font-bold text-gray-900 text-lg mb-1">David Geller</div>
-                <div className="text-sm text-gray-500 mb-1">Stark Industries</div>
-                <div className="text-xs text-[#A78BFA] font-medium">45 MINUTES AGO</div>
-              </div>
-              {/* Meeting Set */}
-              <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-full">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#F59E0B]/10">
-                    <Calendar className="h-6 w-6 text-[#F59E0B]" />
-                  </span>
-                  <span className="text-xs font-semibold text-gray-500 uppercase">Meeting Set</span>
-                </div>
-                <div className="font-bold text-gray-900 text-lg mb-1">Amy Pond</div>
-                <div className="text-sm text-gray-500 mb-1">Waltham Co.</div>
-                <div className="text-xs text-[#F59E0B] font-medium">1 HOUR AGO</div>
-              </div>
+              <div className="font-bold text-gray-900 text-lg mb-1">Mike Rossi</div>
+              <div className="text-sm text-gray-500 mb-1">TechFlow Systems</div>
+              <div className="text-xs text-[#8B5CF6] font-medium">15 MINUTES AGO</div>
             </div>
-          </CardContent>
-        </Card>
+            {/* Outbound */}
+            <div className="flex flex-col rounded-xl border border-gray-200 p-6 h-full bg-transparent shadow-none">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#A78BFA]/10">
+                  <Mail className="h-6 w-6 text-[#A78BFA]" />
+                </span>
+                <span className="text-xs font-semibold text-gray-500 uppercase">Outbound</span>
+              </div>
+              <div className="font-bold text-gray-900 text-lg mb-1">David Geller</div>
+              <div className="text-sm text-gray-500 mb-1">Stark Industries</div>
+              <div className="text-xs text-[#A78BFA] font-medium">45 MINUTES AGO</div>
+            </div>
+            {/* Meeting Set */}
+            <div className="flex flex-col rounded-xl border border-gray-200 p-6 h-full bg-transparent shadow-none">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[#F59E0B]/10">
+                  <Calendar className="h-6 w-6 text-[#F59E0B]" />
+                </span>
+                <span className="text-xs font-semibold text-gray-500 uppercase">Meeting Set</span>
+              </div>
+              <div className="font-bold text-gray-900 text-lg mb-1">Amy Pond</div>
+              <div className="text-sm text-gray-500 mb-1">Waltham Co.</div>
+              <div className="text-xs text-[#F59E0B] font-medium">1 HOUR AGO</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
