@@ -490,6 +490,10 @@ export default function DashboardPage() {
 
         {/* Team Performance Row (Full Width) */}
         <div className="w-full mt-8">
+          <div className="flex items-center gap-2 mb-6">
+            <Activity className="h-5 w-5 text-gray-400" />
+            <span className="text-lg font-bold text-gray-700 uppercase tracking-wider">Team Performance & Intelligence</span>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Closed Deal */}
             <div className="flex flex-col rounded-xl border border-gray-200 p-6 h-full bg-transparent shadow-none">
