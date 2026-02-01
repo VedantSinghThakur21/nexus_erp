@@ -252,79 +252,158 @@ export default function DashboardPage() {
         {/* Main Content Grid - 24px gaps */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
           {/* Left Column - Main Content (2/3 width) */}
-          <div className="xl:col-span-2 flex gap-6">
-            {/* Sales Funnel */}
-            <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm flex-1 min-w-0">
-              <CardHeader className="px-8 py-6 flex flex-row items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-[#5B7CFA]" />
-                <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
+          <div className="xl:col-span-2 space-y-6">
+            {/* High-Probability Opportunities */}
+            <Card className="rounded-xl border border-gray-200 bg-white">
+              <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
+                <CardTitle className="text-base font-bold text-gray-900">High-Probability Opportunities</CardTitle>
+                <a href="/crm/opportunities" className="text-xs font-bold text-[#5B6FE3] uppercase tracking-wider hover:underline">
+                  Full Pipeline
+                </a>
               </CardHeader>
-              <CardContent className="p-8">
-                <div className="space-y-7">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-gray-500 uppercase">Discovery</span>
-                      <span className="text-xs font-bold text-gray-400">₹4.2Cr</span>
-                    </div>
-                    <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm w-full">
-                      <span className="text-base font-bold text-white">12 Deals</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-gray-500 uppercase">Proposal</span>
-                      <span className="text-xs font-bold text-gray-400">₹3.1Cr</span>
-                    </div>
-                    <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm" style={{ width: '70%' }}>
-                      <span className="text-base font-bold text-white">8 Deals</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-gray-500 uppercase">Negotiation</span>
-                      <span className="text-xs font-bold text-gray-400">₹2.8Cr</span>
-                    </div>
-                    <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm" style={{ width: '50%' }}>
-                      <span className="text-base font-bold text-white">5 Deals</span>
-                    </div>
-                  </div>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-widest">Account</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-widest">Stage</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-widest">Value</th>
+                        <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-widest">Confidence</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {highProbOpportunities.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">
+                            No high-probability opportunities found
+                          </td>
+                        </tr>
+                      ) : (
+                        highProbOpportunities.map((opp: Opportunity, idx: number) => {
+                          const customerName = opp.customer_name || opp.party_name || 'Unknown';
+                          const initials = customerName.substring(0, 2).toUpperCase();
+
+                          const stageColors: Record<string, { bg: string; text: string; barBg: string; textColor: string }> = {
+                            'Prospecting': { bg: 'bg-blue-50', text: 'text-[#5B6FE3]', barBg: '#5B6FE3', textColor: '#5B6FE3' },
+                            'Qualification': { bg: 'bg-purple-50', text: 'text-[#8B5CF6]', barBg: '#8B5CF6', textColor: '#8B5CF6' },
+                            'Proposal/Price Quote': { bg: 'bg-blue-50', text: 'text-[#5B6FE3]', barBg: '#5B6FE3', textColor: '#5B6FE3' },
+                            'Negotiation/Review': { bg: 'bg-emerald-50', text: 'text-[#10B981]', barBg: '#10B981', textColor: '#10B981' },
+                          };
+                          const stageStyle = stageColors[opp.sales_stage] || stageColors['Prospecting'];
+
+                          return (
+                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 rounded bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-700 border border-gray-200">
+                                    {initials}
+                                  </div>
+                                  <span className="font-semibold text-gray-900">{customerName}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <Badge className={`${stageStyle.bg} ${stageStyle.text} text-xs font-semibold px-2.5 py-0.5 border-0 uppercase`}>
+                                  {opp.sales_stage}
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 font-semibold text-gray-900">
+                                {formatIndianCurrency(opp.opportunity_amount)}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center justify-end gap-3">
+                                  <span className="font-bold text-sm" style={{ color: stageStyle.textColor }}>{opp.probability}%</span>
+                                  <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full transition-all"
+                                      style={{ width: `${opp.probability}%`, backgroundColor: stageStyle.barBg }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
-            {/* Leads Source */}
-            <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm flex-1 min-w-0">
-              <CardHeader className="px-8 py-6 border-b border-gray-100 flex items-center gap-2">
-                <Users className="h-5 w-5 text-[#5B7CFA]" />
-                <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
-              </CardHeader>
-              <CardContent className="p-8">
-                <div className="flex items-center justify-between">
-                  <div className="relative">
-                    <svg width="180" height="180" viewBox="0 0 180 180">
-                      <circle cx="90" cy="90" r="70" fill="none" stroke="#5B7CFA" strokeWidth="18" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
-                      <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="18" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
-                      <circle cx="90" cy="90" r="70" fill="none" stroke="#E5EAF2" strokeWidth="18" strokeDasharray="67 440" strokeDashoffset="-373" transform="rotate(-90 90 90)" />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <p className="text-2xl font-bold text-gray-900">1.2k</p>
-                      <p className="text-xs font-semibold text-gray-500 uppercase">Total</p>
+            <div className="flex gap-6">
+              {/* Sales Funnel */}
+              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm flex-1 min-w-0">
+                <CardHeader className="px-8 py-6 flex flex-row items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-[#5B7CFA]" />
+                  <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
+                </CardHeader>
+                <CardContent className="p-8">
+                  <div className="space-y-7">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Discovery</span>
+                        <span className="text-xs font-bold text-gray-400">₹4.2Cr</span>
+                      </div>
+                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm w-full">
+                        <span className="text-base font-bold text-white">12 Deals</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Proposal</span>
+                        <span className="text-xs font-bold text-gray-400">₹3.1Cr</span>
+                      </div>
+                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm" style={{ width: '70%' }}>
+                        <span className="text-base font-bold text-white">8 Deals</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Negotiation</span>
+                        <span className="text-xs font-bold text-gray-400">₹2.8Cr</span>
+                      </div>
+                      <div className="bg-[#5B7CFA] h-10 rounded-lg flex items-center justify-between px-5 shadow-sm" style={{ width: '50%' }}>
+                        <span className="text-base font-bold text-white">5 Deals</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-4 ml-8">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-[#5B7CFA]"></span>
-                      <span className="text-sm text-gray-700">Direct</span>
-                      <span className="text-sm text-gray-700 ml-2">65%</span>
+                </CardContent>
+              </Card>
+              {/* Leads Source */}
+              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm flex-1 min-w-0">
+                <CardHeader className="px-8 py-6 border-b border-gray-100 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-[#5B7CFA]" />
+                  <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
+                </CardHeader>
+                <CardContent className="p-8">
+                  <div className="flex items-center justify-between">
+                    <div className="relative">
+                      <svg width="180" height="180" viewBox="0 0 180 180">
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#5B7CFA" strokeWidth="18" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="18" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
+                        <circle cx="90" cy="90" r="70" fill="none" stroke="#E5EAF2" strokeWidth="18" strokeDasharray="67 440" strokeDashoffset="-373" transform="rotate(-90 90 90)" />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <p className="text-2xl font-bold text-gray-900">1.2k</p>
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Total</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-[#10B981]"></span>
-                      <span className="text-sm text-gray-700">Referral</span>
-                      <span className="text-sm text-gray-700 ml-2">20%</span>
+                    <div className="flex flex-col gap-4 ml-8">
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-[#5B7CFA]"></span>
+                        <span className="text-sm text-gray-700">Direct</span>
+                        <span className="text-sm text-gray-700 ml-2">65%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-[#10B981]"></span>
+                        <span className="text-sm text-gray-700">Referral</span>
+                        <span className="text-sm text-gray-700 ml-2">20%</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
           {/* Right Column - Intelligence Hub (1/3 width) */}
           <div className="space-y-6 min-w-[340px] max-w-[360px]">
