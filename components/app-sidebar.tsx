@@ -70,7 +70,7 @@ const menuStructure = [
     items: [
       { name: 'Team', icon: Users, href: '/team' },
       { name: 'Settings', icon: Settings, href: '/settings' },
-      { name: 'AI Agent', icon: Bot, href: '/ai-agent' },
+      { name: 'AI Agent', icon: Bot, href: '/agents' },
     ]
   }
 ]

@@ -159,7 +159,7 @@ export default function DashboardPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           {/* Win Rate */}
-          <Card className="bg-[#2A3441] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#2A3441] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
@@ -190,7 +190,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#2A3441] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#2A3441] border-none rounded-xl overflow-hidden">
+          <Card className="bg-[#101927] border-none rounded-xl overflow-hidden">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
