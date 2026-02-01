@@ -159,29 +159,29 @@ export default function DashboardPage() {
         {/* KPI Cards - 24px gaps, 180px height */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#1E2432] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
-            <CardContent className="p-6 w-full h-full relative flex flex-col justify-center">
+          <Card className="bg-[#181C2A] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
+            <CardContent className="p-7 w-full h-full relative flex flex-col justify-center">
               <div className="absolute top-5 right-5 flex items-center justify-center h-8 w-8 rounded-lg bg-[#5B6FE3]/10">
                 <TrendingUp className="h-5 w-5 text-[#5B6FE3]" />
               </div>
-              <p className="text-xs font-extrabold text-gray-300 uppercase tracking-wider mb-4">Win Rate</p>
-              <h3 className="text-[44px] font-extrabold text-white mb-2 leading-none">{stats.winRate.toFixed(1)}%</h3>
-              <div className="flex items-center gap-1.5">
+              <p className="text-[13px] font-semibold text-gray-400 uppercase tracking-widest mb-6">WIN RATE</p>
+              <h3 className="text-[38px] font-extrabold text-white mb-3 leading-none tracking-tight">{stats.winRate.toFixed(1)}%</h3>
+              <div className="flex items-center gap-2 mt-1">
                 <TrendingUp className="h-4 w-4 text-[#5B6FE3]" />
-                <span className="text-base font-bold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
+                <span className="text-[15px] font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#1E2432] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
-            <CardContent className="p-6 w-full h-full relative flex flex-col justify-center">
+          <Card className="bg-[#181C2A] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
+            <CardContent className="p-7 w-full h-full relative flex flex-col justify-center">
               <div className="absolute top-5 right-5 flex items-center justify-center h-8 w-8 rounded-lg bg-[#10B981]/10">
                 <BarChart3 className="h-5 w-5 text-[#10B981]" />
               </div>
-              <p className="text-xs font-extrabold text-gray-300 uppercase tracking-wider mb-4">Pipeline Value</p>
-              <h3 className="text-[44px] font-extrabold text-white mb-2 leading-none">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
-              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+              <p className="text-[13px] font-semibold text-gray-400 uppercase tracking-widest mb-6">PIPELINE VALUE</p>
+              <h3 className="text-[38px] font-extrabold text-white mb-3 leading-none tracking-tight">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
+              <div className="flex items-center justify-between text-[12px] font-semibold mb-2">
                 <span className="text-gray-400">TARGET: ₹20Cr</span>
                 <span className="text-gray-400">65% ACHIEVED</span>
               </div>
@@ -192,14 +192,14 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#1E2432] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
-            <CardContent className="p-6 w-full h-full relative flex flex-col justify-center">
+          <Card className="bg-[#181C2A] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
+            <CardContent className="p-7 w-full h-full relative flex flex-col justify-center">
               <div className="absolute top-5 right-5 flex items-center justify-center h-8 w-8 rounded-lg bg-[#F59E0B]/10">
                 <Zap className="h-5 w-5 text-[#F59E0B]" />
               </div>
-              <p className="text-xs font-extrabold text-gray-300 uppercase tracking-wider mb-4">Revenue MTD</p>
-              <h3 className="text-[44px] font-extrabold text-white mb-2 leading-none">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
-              <div className="flex gap-1">
+              <p className="text-[13px] font-semibold text-gray-400 uppercase tracking-widest mb-6">REVENUE MTD</p>
+              <h3 className="text-[38px] font-extrabold text-white mb-3 leading-none tracking-tight">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
+              <div className="flex gap-1 mt-1">
                 <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
                 <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
                 <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
@@ -209,15 +209,15 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#1E2432] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
-            <CardContent className="p-6 w-full h-full relative flex flex-col justify-center">
+          <Card className="bg-[#181C2A] border-none rounded-2xl overflow-hidden h-[180px] shadow-lg flex items-center justify-center">
+            <CardContent className="p-7 w-full h-full relative flex flex-col justify-center">
               <div className="absolute top-5 right-5 flex items-center justify-center h-8 w-8 rounded-lg bg-[#F59E0B]/10">
                 <Zap className="h-5 w-5 text-[#F59E0B]" />
               </div>
-              <p className="text-xs font-extrabold text-gray-300 uppercase tracking-wider mb-4">Active Leads</p>
-              <h3 className="text-[44px] font-extrabold text-white mb-2 leading-none">{stats.activeLeads.toLocaleString()}</h3>
-              <div className="inline-block px-3 py-1 bg-gray-700/40 rounded-lg border border-gray-600/30">
-                <p className="text-xs font-bold text-gray-300 uppercase tracking-wider">AI Confidence</p>
+              <p className="text-[13px] font-semibold text-gray-400 uppercase tracking-widest mb-6">ACTIVE LEADS</p>
+              <h3 className="text-[38px] font-extrabold text-white mb-3 leading-none tracking-tight">{stats.activeLeads.toLocaleString()}</h3>
+              <div className="inline-block px-4 py-1 bg-gray-700/40 rounded-lg border border-gray-600/30">
+                <p className="text-[13px] font-semibold text-gray-300 uppercase tracking-widest">AI CONFIDENCE</p>
               </div>
             </CardContent>
           </Card>
