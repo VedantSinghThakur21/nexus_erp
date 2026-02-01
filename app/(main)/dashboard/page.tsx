@@ -29,11 +29,11 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     Promise.all([
-      getDashboardStats(timeframe).catch((err) => {
+      getDashboardStats().catch((err) => {
         setError(`Failed to load stats: ${err.message}`);
         return {};
       }),
-      getOpportunities(timeframe).catch((err) => {
+      getOpportunities().catch((err) => {
         setError(`Failed to load opportunities: ${err.message}`);
         return [];
       }),
