@@ -594,31 +594,87 @@ export default function DashboardPage() {
                     </p>
                     <p className="text-[10px] text-gray-500">CloudSphere request.</p>
                   </div>
-                </div>
-              </div>
-            </CardContent>
+                        {/* Intelligence Hub (as 5th card) */}
+                        <Card className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+                          <CardHeader className="p-4 flex items-center gap-3 border-b border-gray-100">
+                            <div className="h-9 w-9 bg-[#385197]/5 rounded-lg flex items-center justify-center">
+                              <Sparkles className="h-5 w-5 text-[#385197]" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-sm font-bold text-gray-800 leading-none">Intelligence Hub</CardTitle>
+                              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">AI Copilot active</p>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-5 space-y-5">
+                            {/* Deal at Risk Alert */}
+                            {atRiskDeal && (
+                              <div className="bg-white p-5 rounded-xl border-2 border-[#FFCC3F] shadow-sm relative overflow-hidden">
+                                <div className="absolute top-2 right-2">
+                                  <div className="h-1.5 w-1.5 bg-[#FFCC3F] rounded-full animate-pulse"></div>
+                                </div>
+                                <div className="flex items-center gap-2 mb-3 text-[#FFCC3F] font-bold">
+                                  <AlertCircle className="h-4 w-4" />
+                                  <span className="text-[10px] uppercase tracking-widest">Deal at Risk</span>
+                                </div>
+                                <h5 className="text-sm font-bold text-gray-900">{atRiskDeal.name}</h5>
+                                <p className="text-xs text-gray-500 leading-tight mt-1.5">
+                                  Health score dropped to <span className="font-bold text-rose-500">{atRiskDeal.healthScore}/100</span>.
+                                </p>
+                                <button className="w-full mt-4 py-2 bg-[#385197] hover:brightness-110 active:scale-95 transition-all text-white font-bold text-[11px] rounded-lg">
+                                  Generate Strategy
+                                </button>
+                              </div>
+                            )}
 
-            {/* Market Insight Footer */}
-            <div className="p-5 border-t border-gray-100 bg-gray-50/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Market Insight</span>
-                <span className="text-[11px] font-bold text-emerald-600">+14%</span>
-              </div>
-              <p className="text-[11px] text-gray-500 leading-tight italic">
-                "Sales cycles shortening by 2.4 days this quarter due to AI-driven vetting."
-              </p>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Floating AI Button */}
-      <button className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-[#385197] text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all z-50 flex items-center justify-center border-2 border-white/10 group">
-        <Sparkles className="h-7 w-7" />
-        <div className="absolute right-full mr-3 bg-gray-900 text-white text-[10px] font-bold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase tracking-widest border border-white/10">
-          Ask Avariq AI
-        </div>
-      </button>
+                            {/* Priority Actions */}
+                            <div className="space-y-3">
+                              <h6 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Priority Actions</h6>
+                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex gap-4 hover:border-[#385197] transition-colors cursor-pointer group">
+                                <div className="h-8 w-8 rounded bg-white border border-gray-100 flex items-center justify-center text-[#385197] shrink-0">
+                                  <Mail className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900 leading-tight group-hover:text-[#385197]">
+                                    Follow up: Velocity
+                                  </p>
+                                  <p className="text-[10px] text-gray-500">Proposal viewed 3x.</p>
+                                </div>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex gap-4 hover:border-[#385197] transition-colors cursor-pointer group">
+                                <div className="h-8 w-8 rounded bg-white border border-gray-100 flex items-center justify-center text-emerald-600 shrink-0">
+                                  <Calendar className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900 leading-tight group-hover:text-[#385197]">
+                                    Executive Demo
+                                  </p>
+                                  <p className="text-[10px] text-gray-500">Confirm Stark Ent.</p>
+                                </div>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex gap-4 hover:border-[#385197] transition-colors cursor-pointer group">
+                                <div className="h-8 w-8 rounded bg-white border border-gray-100 flex items-center justify-center text-amber-600 shrink-0">
+                                  <FileText className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900 leading-tight group-hover:text-[#385197]">
+                                    Update Pricing
+                                  </p>
+                                  <p className="text-[10px] text-gray-500">CloudSphere request.</p>
+                                </div>
+                              </div>
+                            </div>
+                            {/* Market Insight Footer */}
+                            <div className="p-5 border-t border-gray-100 bg-gray-50/50">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Market Insight</span>
+                                <span className="text-[11px] font-bold text-emerald-600">+14%</span>
+                              </div>
+                              <p className="text-[11px] text-gray-500 leading-tight italic">
+                                "Sales cycles shortening by 2.4 days this quarter due to AI-driven vetting."
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
     </div>
   );
 }
