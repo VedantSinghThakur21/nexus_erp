@@ -333,93 +333,95 @@ export default function DashboardPage() {
 
             {/* Charts Row - Responsive Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Sales Funnel */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm w-[360px] min-h-[140px]">
-                <CardHeader className="px-5 py-1 flex flex-row items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-[#A0AEC0]" />
-                  <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
-                </CardHeader>
-                <CardContent className="px-5 py-1">
-                  <div className="space-y-2">
-                    {/* Discovery */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Discovery</span>
-                        <span className="text-[10px] font-bold text-gray-400">$4.2M</span>
+              <div className="flex flex-row items-stretch gap-6 w-full">
+                {/* Sales Funnel */}
+                <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[220px] flex flex-col justify-center">
+                  <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-[#A0AEC0]" />
+                    <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-6 py-2 flex flex-col justify-center">
+                    <div className="space-y-2">
+                      {/* Discovery */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Discovery</span>
+                          <span className="text-[10px] font-bold text-gray-400">$4.2M</span>
+                        </div>
+                        <div className="flex items-center h-7 rounded-md overflow-hidden">
+                          <div className="bg-gradient-to-r from-[#2256F2] to-[#2D7CF2] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '100%' }}>
+                            12 Deals
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center h-7 rounded-md overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#2256F2] to-[#2D7CF2] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '100%' }}>
-                          12 Deals
+                      {/* Proposal */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Proposal</span>
+                          <span className="text-[10px] font-bold text-gray-400">$3.1M</span>
+                        </div>
+                        <div className="flex items-center h-7 rounded-md overflow-hidden">
+                          <div className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '70%' }}>
+                            8 Deals
+                          </div>
+                          <div className="bg-[#F3F6FA] h-full" style={{ width: '30%' }}></div>
+                        </div>
+                      </div>
+                      {/* Negotiation */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Negotiation</span>
+                          <span className="text-[10px] font-bold text-gray-400">$2.8M</span>
+                        </div>
+                        <div className="flex items-center h-7 rounded-md overflow-hidden">
+                          <div className="bg-gradient-to-r from-[#60A5FA] to-[#93C5FD] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '50%' }}>
+                            5 Deals
+                          </div>
+                          <div className="bg-[#F3F6FA] h-full" style={{ width: '50%' }}></div>
                         </div>
                       </div>
                     </div>
-                    {/* Proposal */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Proposal</span>
-                        <span className="text-[10px] font-bold text-gray-400">$3.1M</span>
-                      </div>
-                      <div className="flex items-center h-7 rounded-md overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '70%' }}>
-                          8 Deals
-                        </div>
-                        <div className="bg-[#F3F6FA] h-full" style={{ width: '30%' }}></div>
-                      </div>
-                    </div>
-                    {/* Negotiation */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Negotiation</span>
-                        <span className="text-[10px] font-bold text-gray-400">$2.8M</span>
-                      </div>
-                      <div className="flex items-center h-7 rounded-md overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#60A5FA] to-[#93C5FD] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '50%' }}>
-                          5 Deals
-                        </div>
-                        <div className="bg-[#F3F6FA] h-full" style={{ width: '50%' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              {/* Leads Source */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm w-[420px] min-h-[140px]">
-                <CardHeader className="px-6 py-1 flex flex-row items-center gap-2">
-                  <Users className="h-4 w-4 text-[#A0AEC0]" />
-                  <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
-                </CardHeader>
-                <CardContent className="px-6 py-1">
-                  <div className="flex items-center justify-center">
-                    <div className="relative">
-                      <svg width="180" height="180" viewBox="0 0 180 180">
-                        <circle cx="90" cy="90" r="70" fill="none" stroke="#5B6FE3" strokeWidth="28" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
-                        <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="28" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <p className="text-2xl font-bold text-gray-900">1.2k</p>
-                        <p className="text-xs font-semibold text-gray-500 uppercase">Total</p>
+                {/* Leads Source */}
+                <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[220px] flex flex-col justify-center">
+                  <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
+                    <Users className="h-4 w-4 text-[#A0AEC0]" />
+                    <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-6 py-2 flex flex-col justify-center">
+                    <div className="flex items-center justify-center">
+                      <div className="relative">
+                        <svg width="180" height="180" viewBox="0 0 180 180">
+                          <circle cx="90" cy="90" r="70" fill="none" stroke="#5B6FE3" strokeWidth="28" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
+                          <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="28" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <p className="text-2xl font-bold text-gray-900">1.2k</p>
+                          <p className="text-xs font-semibold text-gray-500 uppercase">Total</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-6 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-[#5B6FE3]"></div>
-                        <span className="text-sm text-gray-700">Direct</span>
+                    <div className="mt-6 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full bg-[#5B6FE3]"></div>
+                          <span className="text-sm text-gray-700">Direct</span>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">65%</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">65%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-[#10B981]"></div>
-                        <span className="text-sm text-gray-700">Referral</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full bg-[#10B981]"></div>
+                          <span className="text-sm text-gray-700">Referral</span>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">20%</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">20%</span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
 
