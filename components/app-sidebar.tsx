@@ -219,36 +219,3 @@ function SidebarContent() {
     </div>
   )
 }
-
-// 2. Main Responsive Component
-export function AppSidebar() {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <>
-      {/* Mobile Sidebar (Drawer) */}
-      <div suppressHydrationWarning className="lg:hidden fixed top-4 left-4 z-50">
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild suppressHydrationWarning>
-            <Button variant="outline" size="icon" className="bg-white shadow-lg border-gray-300" suppressHydrationWarning>
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72">
-            <div className="h-full" onClick={() => setOpen(false)}>
-              <SidebarContent />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-
-      {/* Desktop Sidebar (Fixed) */}
-      <div 
-        suppressHydrationWarning
-        className="hidden lg:flex h-screen w-64 flex-col"
-      >
-        <SidebarContent />
-      </div>
-    </>
-  )
-}
