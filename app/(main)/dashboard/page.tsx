@@ -22,6 +22,7 @@ function isStats(obj: any): obj is {
 }
 
 import { useEffect, useMemo, useState } from "react";
+import type { Opportunity } from "@/app/actions/crm";
 import { getDashboardStats } from "@/app/actions/dashboard";
 import { getOpportunities } from "@/app/actions/crm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +41,7 @@ export default function DashboardPage() {
     leadsChange: undefined,
     vsLastWeek: undefined,
   });
-  const [opportunities, setOpportunities] = useState([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState("This Week");
