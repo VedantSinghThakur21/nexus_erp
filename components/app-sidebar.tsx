@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  LogOut, 
-  FolderKanban, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  LogOut,
+  FolderKanban,
   Calendar,
   Settings,
   Menu,
@@ -90,11 +90,11 @@ function SidebarContent() {
       router.refresh()
     }
   }
-  
+
   return (
-    <div 
+    <div
       suppressHydrationWarning
-      className="flex h-full flex-col bg-[#1A1F2B] text-gray-100 border-r border-black/20"
+      className="flex h-full flex-col bg-[#2C3E50] text-gray-100 border-r border-black/20"
     >
       {/* Logo Area - matching HTML design */}
       <div suppressHydrationWarning className="p-4 flex items-center gap-2.5 shrink-0">
@@ -118,7 +118,7 @@ function SidebarContent() {
                   {section.category}
                 </h3>
               </div>
-              
+
               {/* Category Items */}
               <div className="space-y-0.5">
                 {section.items.map((item, itemIndex) => {
@@ -179,10 +179,10 @@ export function AppSidebar() {
       <div suppressHydrationWarning className="lg:hidden fixed top-4 left-4 z-50">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild suppressHydrationWarning>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="bg-white shadow-lg border-gray-300" 
+            <Button
+              variant="outline"
+              size="icon"
+              className="bg-white shadow-lg border-gray-300"
               suppressHydrationWarning
             >
               <Menu className="h-5 w-5" />
@@ -197,7 +197,7 @@ export function AppSidebar() {
       </div>
 
       {/* Desktop Sidebar (Fixed) - matching HTML width of 240px (w-60) */}
-      <div 
+      <div
         suppressHydrationWarning
         className="hidden lg:flex h-screen w-60 flex-col shrink-0"
       >
