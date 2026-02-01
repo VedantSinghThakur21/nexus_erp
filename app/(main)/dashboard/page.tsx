@@ -160,15 +160,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
           <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between shadow-lg">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Win Rate</p>
-                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#5B6FE3]/10">
-                  <TrendingUp className="h-5 w-5 text-[#5B6FE3]" />
-                </span>
-              </div>
-              <h3 className="text-[36px] font-bold text-white mb-1 leading-tight">{stats.winRate.toFixed(1)}%</h3>
-              <div className="flex items-center gap-1 mt-1">
+            <CardContent className="p-6 h-full relative">
+              <span className="absolute top-6 right-6 flex items-center justify-center h-7 w-7 rounded-lg bg-[#5B6FE3]/10">
+                <TrendingUp className="h-5 w-5 text-[#5B6FE3]" />
+              </span>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Win Rate</p>
+              <h3 className="text-[36px] font-bold text-white mb-2 leading-tight">{stats.winRate.toFixed(1)}%</h3>
+              <div className="flex items-center gap-1">
                 <TrendingUp className="h-4 w-4 text-[#5B6FE3]" />
                 <span className="text-sm font-semibold text-[#5B6FE3]">+{stats.winRateChange.toFixed(1)}%</span>
               </div>
@@ -177,14 +175,12 @@ export default function DashboardPage() {
 
           {/* Pipeline Value */}
           <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between shadow-lg">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pipeline Value</p>
-                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#10B981]/10">
-                  <BarChart3 className="h-5 w-5 text-[#10B981]" />
-                </span>
-              </div>
-              <h3 className="text-[36px] font-bold text-white mb-1 leading-tight">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
+            <CardContent className="p-6 h-full relative">
+              <span className="absolute top-6 right-6 flex items-center justify-center h-7 w-7 rounded-lg bg-[#10B981]/10">
+                <BarChart3 className="h-5 w-5 text-[#10B981]" />
+              </span>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Pipeline Value</p>
+              <h3 className="text-[36px] font-bold text-white mb-2 leading-tight">{formatIndianCurrencyInCrores(stats.pipelineValue)}</h3>
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="text-gray-400">TARGET: ₹20Cr</span>
                 <span className="text-gray-400">65% ACHIEVED</span>
@@ -197,14 +193,12 @@ export default function DashboardPage() {
 
           {/* Revenue MTD */}
           <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between shadow-lg">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Revenue MTD</p>
-                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#F59E0B]/10">
-                  <Zap className="h-5 w-5 text-[#F59E0B]" />
-                </span>
-              </div>
-              <h3 className="text-[36px] font-bold text-white mb-1 leading-tight">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
+            <CardContent className="p-6 h-full relative">
+              <span className="absolute top-6 right-6 flex items-center justify-center h-7 w-7 rounded-lg bg-[#F59E0B]/10">
+                <Zap className="h-5 w-5 text-[#F59E0B]" />
+              </span>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Revenue MTD</p>
+              <h3 className="text-[36px] font-bold text-white mb-2 leading-tight">{formatIndianCurrencyInCrores(stats.revenue)}</h3>
               <div className="flex gap-1 mt-2">
                 <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
                 <div className="h-1 w-2 bg-[#F59E0B] rounded-full"></div>
@@ -216,14 +210,12 @@ export default function DashboardPage() {
 
           {/* Active Leads */}
           <Card className="bg-[#181C2A] border-none rounded-xl overflow-hidden h-[180px] flex flex-col justify-between shadow-lg">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Leads</p>
-                <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#F59E0B]/10">
-                  <Zap className="h-5 w-5 text-[#F59E0B]" />
-                </span>
-              </div>
-              <h3 className="text-[36px] font-bold text-white mb-1 leading-tight">{stats.activeLeads.toLocaleString()}</h3>
+            <CardContent className="p-6 h-full relative">
+              <span className="absolute top-6 right-6 flex items-center justify-center h-7 w-7 rounded-lg bg-[#F59E0B]/10">
+                <Zap className="h-5 w-5 text-[#F59E0B]" />
+              </span>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Active Leads</p>
+              <h3 className="text-[36px] font-bold text-white mb-2 leading-tight">{stats.activeLeads.toLocaleString()}</h3>
               <div className="inline-block px-3 py-1 bg-gray-700/50 rounded-md mt-2">
                 <p className="text-sm font-semibold text-gray-300 uppercase tracking-wider">AI Confidence</p>
               </div>
