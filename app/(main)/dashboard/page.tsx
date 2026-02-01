@@ -332,33 +332,33 @@ export default function DashboardPage() {
             </Card>
             <div className="flex gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm w-[420px] min-h-[210px]">
-                <CardHeader className="px-6 py-4 flex flex-row items-center gap-2">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm w-[340px] min-h-[170px]">
+                <CardHeader className="px-5 py-3 flex flex-row items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-[#A0AEC0]" />
-                  <CardTitle className="text-lg font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
+                  <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-6">
+                <CardContent className="p-5">
+                  <div className="space-y-4">
                     {/* Discovery */}
                     <div>
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex justify-between items-center mb-1">
                         <span className="text-xs font-bold text-gray-400 uppercase">Discovery</span>
                         <span className="text-xs font-bold text-gray-400">$4.2M</span>
                       </div>
-                      <div className="flex items-center h-10 rounded-lg overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#2256F2] to-[#2D7CF2] h-full flex items-center px-4 font-bold text-white text-sm" style={{ width: '100%' }}>
+                      <div className="flex items-center h-8 rounded-lg overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#2256F2] to-[#2D7CF2] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '100%' }}>
                           12 Deals
                         </div>
                       </div>
                     </div>
                     {/* Proposal */}
                     <div>
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex justify-between items-center mb-1">
                         <span className="text-xs font-bold text-gray-400 uppercase">Proposal</span>
                         <span className="text-xs font-bold text-gray-400">$3.1M</span>
                       </div>
-                      <div className="flex items-center h-10 rounded-lg overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] h-full flex items-center px-4 font-bold text-white text-sm" style={{ width: '70%' }}>
+                      <div className="flex items-center h-8 rounded-lg overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '70%' }}>
                           8 Deals
                         </div>
                         <div className="bg-[#F3F6FA] h-full" style={{ width: '30%' }}></div>
@@ -366,12 +366,12 @@ export default function DashboardPage() {
                     </div>
                     {/* Negotiation */}
                     <div>
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex justify-between items-center mb-1">
                         <span className="text-xs font-bold text-gray-400 uppercase">Negotiation</span>
                         <span className="text-xs font-bold text-gray-400">$2.8M</span>
                       </div>
-                      <div className="flex items-center h-10 rounded-lg overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#60A5FA] to-[#93C5FD] h-full flex items-center px-4 font-bold text-white text-sm" style={{ width: '50%' }}>
+                      <div className="flex items-center h-8 rounded-lg overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#60A5FA] to-[#93C5FD] h-full flex items-center px-3 font-bold text-white text-xs" style={{ width: '50%' }}>
                           5 Deals
                         </div>
                         <div className="bg-[#F3F6FA] h-full" style={{ width: '50%' }}></div>
