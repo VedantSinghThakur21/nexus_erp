@@ -301,23 +301,19 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#1a2332] border-none rounded-2xl h-[140px] shadow-md">
-            <CardContent className="relative p-5 flex flex-col justify-between h-full">
-              <div className="flex items-start justify-between">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">ACTIVE LEADS</span>
-                <div className="absolute top-4 right-4 h-7 w-7 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
-                  <Zap className="h-4 w-4 text-[#F59E0B]" />
-                </div>
-              </div>
+          <Card className="bg-[#1A2233] rounded-2xl p-5 flex flex-col justify-between relative min-w-[320px] min-h-[120px]">
+            <div className="flex flex-row justify-between items-start">
               <div>
-                <h3 className="text-4xl font-bold text-white mb-2 leading-none">
-                  {stats.activeLeads.toLocaleString()}
-                </h3>
-                <div className="inline-block px-3 py-1.5 bg-gray-700/40 rounded-lg border border-gray-600/30">
-                  <span className="text-[11px] font-bold text-gray-300 uppercase tracking-[0.1em]">AI CONFIDENCE</span>
-                </div>
+                <div className="text-xs font-semibold text-gray-400 tracking-widest mb-1">ACTIVE LEADS</div>
+                <div className="text-3xl font-bold text-white leading-tight">1</div>
               </div>
-            </CardContent>
+              <div className="mt-1">
+                <Zap className="h-6 w-6 text-[#FFC700] bg-[#232B3E] rounded-full p-1" />
+              </div>
+            </div>
+            <div className="absolute left-4 bottom-4">
+              <span className="bg-[#232B3E] text-xs font-semibold text-white px-4 py-2 rounded-xl shadow-md tracking-widest">AI CONFIDENCE</span>
+            </div>
           </Card>
         </div>
 
