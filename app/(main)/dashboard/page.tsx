@@ -19,7 +19,7 @@ import {
   AlertTriangle,
   Activity,
 } from "lucide-react";
-import { getDashboardStats, getOpportunities, getRecentActivities, getAtRiskDeals } from "@/app/actions/dashboard";
+import { getDashboardStats, getOpportunities, getRecentActivities, getAtRiskDeals, getLeadsBySource } from "@/app/actions/dashboard";
 import { formatIndianCurrency, formatIndianCurrencyInCrores } from "@/lib/currency";
 
 type Opportunity = {
@@ -54,6 +54,12 @@ type AtRiskDeal = {
   healthScore: number;
 };
 
+type LeadSource = {
+  source: string;
+  count: number;
+  percentage: number;
+};
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
     pipelineValue: 0,
@@ -66,6 +72,7 @@ export default function DashboardPage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [atRiskDeal, setAtRiskDeal] = useState<AtRiskDeal | null>(null);
+  const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -75,14 +82,16 @@ export default function DashboardPage() {
   async function loadDashboardData() {
     try {
       setLoading(true);
-      const [statsData, oppsData, activitiesData, atRiskData] = await Promise.all([
+      const [statsData, oppsData, activitiesData, atRiskData, leadSourcesData] = await Promise.all([
         getDashboardStats(),
         getOpportunities(),
         getRecentActivities(),
         getAtRiskDeals(),
+        getLeadsBySource(),
       ]);
 
       setOpportunities(oppsData);
+      setLeadSources(leadSourcesData);
       setStats({
         pipelineValue: statsData.pipelineValue,
         revenue: statsData.revenue,
@@ -174,9 +183,12 @@ export default function DashboardPage() {
     // Calculate max value for width percentages
     const maxValue = Math.max(...funnelData.map(s => s.value), 1);
 
+    // Calculate total opportunities for percentage calculation
+    const totalOpportunities = funnelData.reduce((sum, stage) => sum + stage.count, 0);
+
     return funnelData.map(stage => ({
       ...stage,
-      percentage: (stage.value / maxValue) * 100
+      percentage: totalOpportunities > 0 ? (stage.count / totalOpportunities) * 100 : 0
     }));
   };
 
@@ -421,7 +433,7 @@ export default function DashboardPage() {
                         <div className="flex justify-between items-center mb-1.5">
                           <span className="text-[11px] font-bold text-gray-500 uppercase">{stage.name}</span>
                           <span className="text-[11px] font-semibold text-gray-400">
-                            {formatIndianCurrencyInCrores(stage.value)}
+                            {formatIndianCurrency(stage.value)}
                           </span>
                         </div>
                         {index === 0 ? (
@@ -456,34 +468,94 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="px-6 pb-6">
-                  <div className="flex items-center justify-center mb-6">
-                    <div className="relative">
-                      <svg width="180" height="180" viewBox="0 0 180 180">
-                        <circle cx="90" cy="90" r="70" fill="none" stroke="#3B82F6" strokeWidth="28" strokeDasharray="285 440" transform="rotate(-90 90 90)" />
-                        <circle cx="90" cy="90" r="70" fill="none" stroke="#10B981" strokeWidth="28" strokeDasharray="88 440" strokeDashoffset="-285" transform="rotate(-90 90 90)" />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <p className="text-3xl font-bold text-gray-900">1.2k</p>
-                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-[#3B82F6]"></div>
-                        <span className="text-sm text-gray-700">Direct</span>
-                      </div>
-                      <span className="text-sm font-semibold text-gray-900">65%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-[#10B981]"></div>
-                        <span className="text-sm text-gray-700">Referral</span>
-                      </div>
-                      <span className="text-sm font-semibold text-gray-900">20%</span>
-                    </div>
-                  </div>
+                  {(() => {
+                    // Calculate total leads
+                    const totalLeads = leadSources.reduce((sum, source) => sum + source.count, 0);
+
+                    // Color mapping for sources
+                    const colorMap: Record<string, string> = {
+                      'Direct': '#3B82F6',
+                      'Referral': '#10B981',
+                      'Website': '#F59E0B',
+                      'Campaign': '#8B5CF6',
+                      'Partner': '#EC4899',
+                      'Unknown': '#6B7280'
+                    };
+
+                    // Get color for source, or use a default
+                    const getColor = (source: string, index: number) => {
+                      if (colorMap[source]) return colorMap[source];
+                      const defaultColors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280'];
+                      return defaultColors[index % defaultColors.length];
+                    };
+
+                    // Calculate SVG arc paths
+                    const radius = 70;
+                    const strokeWidth = 28;
+                    const circumference = 2 * Math.PI * radius;
+
+                    let currentOffset = 0;
+                    const arcs = leadSources.map((source, index) => {
+                      const dashLength = (source.percentage / 100) * circumference;
+                      const arc = {
+                        color: getColor(source.source, index),
+                        dasharray: `${dashLength} ${circumference}`,
+                        dashoffset: -currentOffset
+                      };
+                      currentOffset += dashLength;
+                      return arc;
+                    });
+
+                    return (
+                      <>
+                        <div className="flex items-center justify-center mb-6">
+                          <div className="relative">
+                            <svg width="180" height="180" viewBox="0 0 180 180">
+                              {arcs.map((arc, index) => (
+                                <circle
+                                  key={index}
+                                  cx="90"
+                                  cy="90"
+                                  r={radius}
+                                  fill="none"
+                                  stroke={arc.color}
+                                  strokeWidth={strokeWidth}
+                                  strokeDasharray={arc.dasharray}
+                                  strokeDashoffset={arc.dashoffset}
+                                  transform="rotate(-90 90 90)"
+                                />
+                              ))}
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <p className="text-3xl font-bold text-gray-900">
+                                {totalLeads >= 1000 ? `${(totalLeads / 1000).toFixed(1)}k` : totalLeads}
+                              </p>
+                              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {leadSources.map((source, index) => (
+                            <div key={source.source} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="h-3 w-3 rounded-full"
+                                  style={{ backgroundColor: getColor(source.source, index) }}
+                                ></div>
+                                <span className="text-sm text-gray-700">{source.source}</span>
+                              </div>
+                              <span className="text-sm font-semibold text-gray-900">
+                                {source.percentage.toFixed(0)}%
+                              </span>
+                            </div>
+                          ))}
+                          {leadSources.length === 0 && (
+                            <p className="text-sm text-gray-500 text-center py-4">No lead source data available</p>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </div>

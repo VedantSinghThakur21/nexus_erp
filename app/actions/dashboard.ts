@@ -11,7 +11,7 @@ export async function getDashboardStats() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0]
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0]
-    
+
     // 1. Win Rate Calculation
     // Get won deals this month
     const dealsWonMTD = await frappeRequest('frappe.client.get_count', 'GET', {
@@ -50,7 +50,7 @@ export async function getDashboardStats() {
       filters: '[["status", "in", ["Open", "Quotation"]]]',
       limit_page_length: 1000
     })
-    const pipelineValue = Array.isArray(opportunities) 
+    const pipelineValue = Array.isArray(opportunities)
       ? opportunities.reduce((sum: number, opp: any) => sum + (opp.opportunity_amount || 0), 0)
       : 0
 
@@ -345,12 +345,12 @@ export async function getMyOpenLeads() {
     // Get logged-in user from cookies (set by Frappe during login)
     const cookieStore = await cookies()
     const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
-    
+
     if (!userEmail) {
       console.error('No user found in cookies for getMyOpenLeads')
       return []
     }
-    
+
     const leads = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Lead',
       fields: '["name", "lead_name", "company_name", "status", "modified"]',
@@ -383,12 +383,12 @@ export async function getMyOpenOpportunities() {
     // Get logged-in user from cookies (set by Frappe during login)
     const cookieStore = await cookies()
     const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
-    
+
     if (!userEmail) {
       console.error('No user found in cookies for getMyOpenOpportunities')
       return []
     }
-    
+
     const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Opportunity',
       fields: '["name", "title", "sales_stage", "opportunity_amount", "probability"]',
@@ -412,6 +412,48 @@ export async function getMyOpenOpportunities() {
   } catch (error) {
     console.error("My Open Opportunities Error:", error)
     return []
+  }
+}
+
+// Get Leads by Source (for donut chart)
+export async function getLeadsBySource() {
+  try {
+    // Get all active leads with source field
+    const leads = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Lead',
+      fields: '["source"]',
+      filters: '[["status", "in", ["Open", "Replied", "Interested"]]]',
+      limit_page_length: 1000
+    });
+
+    // Validate leads is an array
+    if (!Array.isArray(leads)) {
+      console.error("getLeadsBySource: leads is not an array:", leads);
+      return [];
+    }
+
+    // Group by source
+    const sourceGroups: Record<string, number> = {};
+    let total = 0;
+
+    leads.forEach((lead: any) => {
+      const source = lead.source || 'Unknown';
+      sourceGroups[source] = (sourceGroups[source] || 0) + 1;
+      total++;
+    });
+
+    // Convert to array and calculate percentages
+    const result = Object.entries(sourceGroups).map(([source, count]) => ({
+      source,
+      count,
+      percentage: total > 0 ? (count / total) * 100 : 0
+    })).sort((a, b) => b.count - a.count);
+
+    return result;
+
+  } catch (error) {
+    console.error("Get Leads By Source Error:", error);
+    return [];
   }
 }
 
