@@ -156,10 +156,10 @@ export default function DashboardPage() {
       </header>
 
       <div className="p-8">
-        {/* KPI Cards - 160px height, #1E293B background */}
+        {/* KPI Cards - 180px height, #1E293B background */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl h-[160px] shadow-md">
+          <Card className="bg-[#1E293B] border-none rounded-2xl h-[180px] shadow-md">
             <CardContent className="p-6 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">WIN RATE</span>
@@ -182,7 +182,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl h-[160px] shadow-md">
+          <Card className="bg-[#1E293B] border-none rounded-2xl h-[180px] shadow-md">
             <CardContent className="p-6 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">PIPELINE VALUE</span>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl h-[160px] shadow-md">
+          <Card className="bg-[#1E293B] border-none rounded-2xl h-[180px] shadow-md">
             <CardContent className="p-6 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">REVENUE MTD</span>
@@ -231,7 +231,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl h-[160px] shadow-md">
+          <Card className="bg-[#1E293B] border-none rounded-2xl h-[180px] shadow-md">
             <CardContent className="p-6 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">ACTIVE LEADS</span>
@@ -252,9 +252,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Grid - 2/3 + 1/3 */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-          {/* Left Column - 2/3 width */}
-          <div className="xl:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6 mb-8">
+          {/* Left Column - Main content */}
+          <div className="space-y-6">
             {/* High-Probability Opportunities */}
             <Card className="rounded-xl border border-gray-200 bg-white">
               <CardHeader className="px-6 py-5 flex flex-row items-center justify-between">
@@ -438,8 +438,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right Column - Intelligence Hub (1/3 width, STICKY) */}
-          <div className="xl:col-span-1">
+          {/* Right Column - Intelligence Hub (400px width, STICKY) */}
+          <div>
             <div className="sticky top-[76px]">
               <Card className="rounded-xl border border-gray-200 bg-white">
                 <CardHeader className="px-6 py-4 border-b border-gray-100">
