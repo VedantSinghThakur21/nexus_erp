@@ -419,13 +419,13 @@ export default function DashboardPage() {
             {/* Charts Row - Side by Side */}
             <div className="grid grid-cols-2 gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[110px] flex flex-col justify-center">
-                <CardHeader className="px-6 py-1 flex flex-row items-center gap-2">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[160px] flex flex-col justify-center">
+                <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
-                <CardContent className="px-6 py-1 flex flex-col justify-center">
-                  <div className="space-y-1.5">
+                <CardContent className="px-6 py-2 flex flex-col justify-center">
+                  <div className="space-y-2">
                     {funnelData.map((stage, index) => (
                       <div key={stage.name}>
                         <div className="flex justify-between items-center mb-1.5">
@@ -451,12 +451,12 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[110px] flex flex-col justify-center">
-                <CardHeader className="px-6 py-1 flex flex-row items-center gap-2">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[160px] flex flex-col justify-center">
+                <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
                   <Users className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="px-6 py-1 flex flex-col justify-center">
+                <CardContent className="px-6 py-2 flex flex-col justify-center">
                   {(() => {
                     // Calculate total leads
                     const totalLeads = leadSources.reduce((sum, source) => sum + source.count, 0);

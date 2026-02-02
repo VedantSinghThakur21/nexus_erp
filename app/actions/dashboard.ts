@@ -418,11 +418,11 @@ export async function getMyOpenOpportunities() {
 // Get Leads by Source (for donut chart)
 export async function getLeadsBySource() {
   try {
-    // Get all active leads with source field
+    // Get all leads except converted ones
     const leads = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Lead',
       fields: '["source"]',
-      filters: '[["status", "in", ["Open", "Replied", "Interested"]]]',
+      filters: '[["status", "!=", "Converted"]]',
       limit_page_length: 1000
     });
 
