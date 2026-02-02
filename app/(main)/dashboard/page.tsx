@@ -419,15 +419,13 @@ export default function DashboardPage() {
             {/* Charts Row - Side by Side */}
             <div className="grid grid-cols-2 gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-xl border border-gray-200 bg-white">
-                <CardHeader className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-gray-400" />
-                    <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">SALES FUNNEL</CardTitle>
-                  </div>
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[140px] flex flex-col justify-center">
+                <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-[#A0AEC0]" />
+                  <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
-                <CardContent className="px-6 pb-6">
-                  <div className="space-y-3">
+                <CardContent className="px-6 py-2 flex flex-col justify-center">
+                  <div className="space-y-2">
                     {funnelData.map((stage, index) => (
                       <div key={stage.name}>
                         <div className="flex justify-between items-center mb-1.5">
@@ -436,23 +434,16 @@ export default function DashboardPage() {
                             {formatIndianCurrency(stage.value)}
                           </span>
                         </div>
-                        {index === 0 ? (
-                          // First stage - full width
-                          <div className="h-9 bg-[#3B82F6] rounded-lg flex items-center px-3">
-                            <span className="text-sm font-bold text-white">{stage.count} Deals</span>
+                        {/* All stages - proportional width based on percentage of total */}
+                        <div className="flex items-center h-9 rounded-lg overflow-hidden">
+                          <div
+                            className="bg-[#3B82F6] h-full flex items-center px-3"
+                            style={{ width: `${stage.percentage}%` }}
+                          >
+                            <span className="text-sm font-bold text-white whitespace-nowrap">{stage.count} Deals</span>
                           </div>
-                        ) : (
-                          // Other stages - proportional width
-                          <div className="flex items-center h-9 rounded-lg overflow-hidden">
-                            <div
-                              className="bg-[#3B82F6] h-full flex items-center px-3"
-                              style={{ width: `${stage.percentage}%` }}
-                            >
-                              <span className="text-sm font-bold text-white whitespace-nowrap">{stage.count} Deals</span>
-                            </div>
-                            <div className="bg-gray-100 h-full" style={{ width: `${100 - stage.percentage}%` }}></div>
-                          </div>
-                        )}
+                          <div className="bg-gray-100 h-full" style={{ width: `${100 - stage.percentage}%` }}></div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -460,14 +451,12 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-              <Card className="rounded-xl border border-gray-200 bg-white">
-                <CardHeader className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-gray-400" />
-                    <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">LEADS SOURCE</CardTitle>
-                  </div>
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[140px] flex flex-col justify-center">
+                <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
+                  <Users className="h-4 w-4 text-[#A0AEC0]" />
+                  <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="px-6 pb-6">
+                <CardContent className="px-6 py-2 flex flex-col justify-center">
                   {(() => {
                     // Calculate total leads
                     const totalLeads = leadSources.reduce((sum, source) => sum + source.count, 0);
