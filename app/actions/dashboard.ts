@@ -418,11 +418,10 @@ export async function getMyOpenOpportunities() {
 // Get Leads by Source (for donut chart)
 export async function getLeadsBySource() {
   try {
-    // Get all active leads with source-related fields
-    // ERPNext Lead doctype may use 'source', 'lead_source', or other field names
+    // Get all active leads with source field
     const leads = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Lead',
-      fields: '["source", "lead_source", "name"]',
+      fields: '["source"]',
       filters: '[["status", "in", ["Open", "Replied", "Interested"]]]',
       limit_page_length: 1000
     });
@@ -433,20 +432,16 @@ export async function getLeadsBySource() {
       return [];
     }
 
-    console.log("getLeadsBySource: Sample lead data:", leads.slice(0, 3));
-
     // Group by source
     const sourceGroups: Record<string, number> = {};
     let total = 0;
 
     leads.forEach((lead: any) => {
-      // Try different field names
-      const source = lead.source || lead.lead_source || 'Direct';
+      // Use source field, default to 'Walk In' if not specified
+      const source = lead.source || 'Walk In';
       sourceGroups[source] = (sourceGroups[source] || 0) + 1;
       total++;
     });
-
-    console.log("getLeadsBySource: Source groups:", sourceGroups);
 
     // Convert to array and calculate percentages
     const result = Object.entries(sourceGroups).map(([source, count]) => ({

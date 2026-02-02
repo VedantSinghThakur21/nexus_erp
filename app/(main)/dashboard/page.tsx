@@ -419,13 +419,13 @@ export default function DashboardPage() {
             {/* Charts Row - Side by Side */}
             <div className="grid grid-cols-2 gap-6">
               {/* Sales Funnel */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[140px] flex flex-col justify-center">
-                <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[110px] flex flex-col justify-center">
+                <CardHeader className="px-6 py-1 flex flex-row items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
-                <CardContent className="px-6 py-2 flex flex-col justify-center">
-                  <div className="space-y-2">
+                <CardContent className="px-6 py-1 flex flex-col justify-center">
+                  <div className="space-y-1.5">
                     {funnelData.map((stage, index) => (
                       <div key={stage.name}>
                         <div className="flex justify-between items-center mb-1.5">
@@ -451,23 +451,29 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[140px] flex flex-col justify-center">
-                <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[110px] flex flex-col justify-center">
+                <CardHeader className="px-6 py-1 flex flex-row items-center gap-2">
                   <Users className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="px-6 py-2 flex flex-col justify-center">
+                <CardContent className="px-6 py-1 flex flex-col justify-center">
                   {(() => {
                     // Calculate total leads
                     const totalLeads = leadSources.reduce((sum, source) => sum + source.count, 0);
 
-                    // Color mapping for sources
+                    // Color mapping for ERPNext lead sources
                     const colorMap: Record<string, string> = {
+                      'Existing Customer': '#3B82F6',
+                      'Reference': '#10B981',
+                      'Advertisement': '#F59E0B',
+                      'Cold Calling': '#8B5CF6',
+                      'Exhibition': '#EC4899',
+                      'Supplier Reference': '#06B6D4',
+                      'Mass Mailing': '#EF4444',
+                      'Customer\'s Vendor': '#14B8A6',
+                      'Campaign': '#F97316',
+                      'Walk In': '#84CC16',
                       'Direct': '#3B82F6',
-                      'Referral': '#10B981',
-                      'Website': '#F59E0B',
-                      'Campaign': '#8B5CF6',
-                      'Partner': '#EC4899',
                       'Unknown': '#6B7280'
                     };
 
