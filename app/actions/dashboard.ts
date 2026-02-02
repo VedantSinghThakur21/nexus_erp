@@ -135,69 +135,125 @@ export async function getOpportunities() {
   }
 }
 
-// Get recent activities for the activity feed
+// Get recent activities for Team Performance section
 export async function getRecentActivities() {
   try {
-    const activities = []
+    const allActivities: Array<{
+      type: 'closed-deal' | 'new-lead' | 'outbound' | 'booking-scheduled';
+      owner: string;
+      company: string;
+      time: string;
+      timestamp: Date;
+    }> = []
 
-    // 1. Recent Closed Won Deals
-    const recentWon = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["name", "customer_name", "party_name", "opportunity_amount", "modified"]',
-      filters: '[["status", "=", "Converted"]]',
-      order_by: 'modified desc',
-      limit_page_length: 1
-    })
-
-    if (Array.isArray(recentWon) && recentWon.length > 0) {
-      const opp = recentWon[0]
-      activities.push({
-        type: 'closed-won',
-        title: opp.customer_name || opp.party_name || 'Unknown Customer',
-        subtitle: `Cyberdyne Corp • $${((opp.opportunity_amount || 0) / 1000).toFixed(0)}k`,
-        time: getTimeAgo(new Date(opp.modified)),
+    // 1. Fetch Recent Closed Deals (Converted Opportunities)
+    try {
+      const closedDeals = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Opportunity',
+        fields: '["name", "customer_name", "party_name", "company_name", "modified", "lead_owner"]',
+        filters: '[["status", "=", "Converted"]]',
+        order_by: 'modified desc',
+        limit_page_length: 5
       })
+
+      if (Array.isArray(closedDeals)) {
+        closedDeals.forEach((deal: any) => {
+          allActivities.push({
+            type: 'closed-deal',
+            owner: deal.lead_owner || 'Team Member',
+            company: deal.customer_name || deal.party_name || deal.company_name || 'Unknown Company',
+            time: getTimeAgo(new Date(deal.modified)),
+            timestamp: new Date(deal.modified)
+          })
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching closed deals:", error)
     }
 
-    // 2. Hot Prospects (High Probability)
-    const hotProspects = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["name", "customer_name", "party_name", "probability", "modified"]',
-      filters: '[["status", "in", ["Open", "Quotation"]], ["probability", ">=", 70]]',
-      order_by: 'modified desc',
-      limit_page_length: 1
-    })
-
-    if (Array.isArray(hotProspects) && hotProspects.length > 0) {
-      const opp = hotProspects[0]
-      activities.push({
-        type: 'hot-prospect',
-        title: opp.customer_name || opp.party_name || 'Unknown Customer',
-        subtitle: 'TechFlow Systems',
-        time: getTimeAgo(new Date(opp.modified)),
+    // 2. Fetch Recent New Leads
+    try {
+      const newLeads = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Lead',
+        fields: '["name", "lead_name", "company_name", "creation", "lead_owner"]',
+        filters: '[["status", "in", ["Open", "Lead"]]]',
+        order_by: 'creation desc',
+        limit_page_length: 5
       })
+
+      if (Array.isArray(newLeads)) {
+        newLeads.forEach((lead: any) => {
+          allActivities.push({
+            type: 'new-lead',
+            owner: lead.lead_owner || 'Team Member',
+            company: lead.company_name || lead.lead_name || 'Unknown Company',
+            time: getTimeAgo(new Date(lead.creation)),
+            timestamp: new Date(lead.creation)
+          })
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching new leads:", error)
     }
 
-    // 3. Recent Engagement (Recently Modified Opportunities)
-    const recentEngagement = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["name", "customer_name", "party_name", "sales_stage", "modified"]',
-      filters: '[["status", "in", ["Open", "Quotation"]]]',
-      order_by: 'modified desc',
-      limit_page_length: 1
-    })
-
-    if (Array.isArray(recentEngagement) && recentEngagement.length > 0) {
-      const opp = recentEngagement[0]
-      activities.push({
-        type: 'engagement',
-        title: opp.customer_name || opp.party_name || 'Unknown Customer',
-        subtitle: 'Stark Ind. Proposal Opened',
-        time: getTimeAgo(new Date(opp.modified)),
+    // 3. Fetch Recent Communications (Outbound)
+    try {
+      const communications = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Communication',
+        fields: '["name", "subject", "reference_name", "reference_doctype", "creation", "sender"]',
+        filters: '[["reference_doctype", "in", ["Opportunity", "Lead"]], ["sent_or_received", "=", "Sent"]]',
+        order_by: 'creation desc',
+        limit_page_length: 5
       })
+
+      if (Array.isArray(communications)) {
+        communications.forEach((comm: any) => {
+          allActivities.push({
+            type: 'outbound',
+            owner: comm.sender || 'Team Member',
+            company: comm.subject || comm.reference_name || 'Client',
+            time: getTimeAgo(new Date(comm.creation)),
+            timestamp: new Date(comm.creation)
+          })
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching communications:", error)
     }
 
-    return activities
+    // 4. Fetch Recent Bookings/Scheduled Services
+    try {
+      const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Booking',
+        fields: '["name", "customer_name", "service_type", "scheduled_date", "creation", "owner"]',
+        filters: '[["status", "in", ["Confirmed", "Scheduled"]]]',
+        order_by: 'creation desc',
+        limit_page_length: 5
+      })
+
+      if (Array.isArray(bookings)) {
+        bookings.forEach((booking: any) => {
+          const timestamp = new Date(booking.scheduled_date || booking.creation)
+          allActivities.push({
+            type: 'booking-scheduled',
+            owner: booking.owner || 'Team Member',
+            company: booking.customer_name || booking.service_type || 'Service Booking',
+            time: getTimeAgo(timestamp),
+            timestamp: timestamp
+          })
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching bookings:", error)
+    }
+
+    // Sort all activities by timestamp (most recent first) and return top 4
+    const sortedActivities = allActivities
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, 4)
+      .map(({ timestamp, ...activity }) => activity) // Remove timestamp from final result
+
+    return sortedActivities
   } catch (error) {
     console.error("Get Recent Activities Error:", error)
     return []

@@ -43,9 +43,9 @@ type Stats = {
 };
 
 type ActivityItem = {
-  type: 'closed-won' | 'hot-prospect' | 'engagement';
-  title: string;
-  subtitle: string;
+  type: 'closed-deal' | 'new-lead' | 'outbound' | 'booking-scheduled';
+  owner: string;
+  company: string;
   time: string;
 };
 
@@ -452,11 +452,11 @@ export default function DashboardPage() {
 
               {/* Leads Source */}
               <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[160px] flex flex-col justify-center">
-                <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
+                <CardHeader className="px-4 py-1 flex flex-row items-center gap-2">
                   <Users className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="px-6 py-2 flex flex-row items-center justify-between">
+                <CardContent className="px-4 py-1 flex flex-row items-center justify-between">
                   {(() => {
                     // Calculate total leads
                     const totalLeads = leadSources.reduce((sum, source) => sum + source.count, 0);
@@ -484,9 +484,9 @@ export default function DashboardPage() {
                       return defaultColors[index % defaultColors.length];
                     };
 
-                    // Calculate SVG arc paths - smaller size
-                    const radius = 50;
-                    const strokeWidth = 20;
+                    // Calculate SVG arc paths
+                    const radius = 70;
+                    const strokeWidth = 28;
                     const circumference = 2 * Math.PI * radius;
 
                     let currentOffset = 0;
@@ -506,27 +506,27 @@ export default function DashboardPage() {
                         {/* Donut Chart - Left Side */}
                         <div className="flex items-center">
                           <div className="relative">
-                            <svg width="100" height="100" viewBox="0 0 120 120">
+                            <svg width="140" height="140" viewBox="0 0 180 180">
                               {arcs.map((arc, index) => (
                                 <circle
                                   key={index}
-                                  cx="60"
-                                  cy="60"
+                                  cx="90"
+                                  cy="90"
                                   r={radius}
                                   fill="none"
                                   stroke={arc.color}
                                   strokeWidth={strokeWidth}
                                   strokeDasharray={arc.dasharray}
                                   strokeDashoffset={arc.dashoffset}
-                                  transform="rotate(-90 60 60)"
+                                  transform="rotate(-90 90 90)"
                                 />
                               ))}
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                              <p className="text-xl font-bold text-gray-900">
+                              <p className="text-2xl font-bold text-gray-900">
                                 {totalLeads >= 1000 ? `${(totalLeads / 1000).toFixed(1)}k` : totalLeads}
                               </p>
-                              <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
                             </div>
                           </div>
                         </div>
@@ -641,57 +641,65 @@ export default function DashboardPage() {
           </div>
           <div className="px-6">
             <div className="grid grid-cols-4 gap-6">
-              {/* Closed Deal */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
-                    <CheckCircle className="h-5 w-5 text-[#10B981]" />
-                  </div>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">CLOSED DEAL</span>
-                </div>
-                <p className="text-base font-bold text-gray-900 mb-1">Sarah Jenkins</p>
-                <p className="text-sm text-gray-500 mb-3">Cyberdyne Corp</p>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">2 MINUTES AGO</p>
-              </div>
+              {activities.map((activity, index) => {
+                // Determine card styling based on activity type
+                let icon, iconBg, iconColor, label;
 
-              {/* New Lead */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center">
-                    <UserPlus className="h-5 w-5 text-[#3B82F6]" />
-                  </div>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">NEW LEAD</span>
-                </div>
-                <p className="text-base font-bold text-gray-900 mb-1">Mike Rossi</p>
-                <p className="text-sm text-gray-500 mb-3">TechFlow Systems</p>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">15 MINUTES AGO</p>
-              </div>
+                switch (activity.type) {
+                  case 'closed-deal':
+                    icon = CheckCircle;
+                    iconBg = 'bg-[#10B981]/10';
+                    iconColor = 'text-[#10B981]';
+                    label = 'CLOSED DEAL';
+                    break;
+                  case 'new-lead':
+                    icon = UserPlus;
+                    iconBg = 'bg-[#3B82F6]/10';
+                    iconColor = 'text-[#3B82F6]';
+                    label = 'NEW LEAD';
+                    break;
+                  case 'outbound':
+                    icon = MessageSquare;
+                    iconBg = 'bg-[#8B5CF6]/10';
+                    iconColor = 'text-[#8B5CF6]';
+                    label = 'OUTBOUND';
+                    break;
+                  case 'booking-scheduled':
+                    icon = Calendar;
+                    iconBg = 'bg-[#F59E0B]/10';
+                    iconColor = 'text-[#F59E0B]';
+                    label = 'BOOKING SCHEDULED';
+                    break;
+                  default:
+                    icon = Activity;
+                    iconBg = 'bg-gray-100';
+                    iconColor = 'text-gray-500';
+                    label = 'ACTIVITY';
+                }
 
-              {/* Outbound */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center">
-                    <MessageSquare className="h-5 w-5 text-[#8B5CF6]" />
-                  </div>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">OUTBOUND</span>
-                </div>
-                <p className="text-base font-bold text-gray-900 mb-1">David Geller</p>
-                <p className="text-sm text-gray-500 mb-3">Stark Industries</p>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">45 MINUTES AGO</p>
-              </div>
+                const Icon = icon;
 
-              {/* Meeting Set */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-[#F59E0B]" />
+                return (
+                  <div key={index} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`h-10 w-10 rounded-lg ${iconBg} flex items-center justify-center`}>
+                        <Icon className={`h-5 w-5 ${iconColor}`} />
+                      </div>
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</span>
+                    </div>
+                    <p className="text-base font-bold text-gray-900 mb-1">{activity.owner}</p>
+                    <p className="text-sm text-gray-500 mb-3">{activity.company}</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">{activity.time}</p>
                   </div>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">MEETING SET</span>
+                );
+              })}
+
+              {/* Show placeholder if no activities */}
+              {activities.length === 0 && (
+                <div className="col-span-4 text-center py-8 text-gray-500">
+                  No recent activities available
                 </div>
-                <p className="text-base font-bold text-gray-900 mb-1">Amy Pond</p>
-                <p className="text-sm text-gray-500 mb-3">Waltham Co.</p>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">1 HOUR AGO</p>
-              </div>
+              )}
             </div>
           </div>
         </div>
