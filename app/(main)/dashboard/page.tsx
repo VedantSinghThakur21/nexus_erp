@@ -237,7 +237,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="p-8">
+      <div className="p-8 pt-0">
         {/* KPI Cards - 180px height, #1E293B background */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
@@ -324,7 +324,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Grid - 2/3 + 1/3 */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6 mb-8">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6 mb-8 items-start">
           {/* Left Column - Main content */}
           <div className="space-y-6">
             {/* High-Probability Opportunities */}
@@ -559,7 +559,7 @@ export default function DashboardPage() {
           {/* Right Column - Intelligence Hub (400px width, STICKY) */}
           <div>
             <div className="sticky top-[76px]">
-              <Card className="rounded-xl border border-gray-200 bg-white min-h-[800px]">
+              <Card className="rounded-xl border border-gray-200 bg-white min-h-0 h-full flex flex-col justify-between">
                 <CardHeader className="px-6 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-[#3B82F6]/10 rounded-lg flex items-center justify-center">
