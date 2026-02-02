@@ -420,12 +420,12 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-6">
               {/* Sales Funnel */}
               <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[160px] flex flex-col justify-center">
-                <CardHeader className="px-6 py-2 flex flex-row items-center gap-2">
+                <CardHeader className="px-4 py-1 flex flex-row items-center gap-2 min-h-0">
                   <BarChart3 className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Sales Funnel</CardTitle>
                 </CardHeader>
                 <CardContent className="px-6 py-2 flex flex-col justify-center">
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {funnelData.map((stage, index) => (
                       <div key={stage.name}>
                         <div className="flex justify-between items-center mb-1.5">
