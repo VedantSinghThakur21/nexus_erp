@@ -559,8 +559,8 @@ export default function DashboardPage() {
           {/* Right Column - Intelligence Hub (400px width, STICKY) */}
           <div>
             <div className="sticky top-[76px]">
-              <Card className="rounded-xl border border-gray-200 bg-white min-h-0 h-full flex flex-col justify-between">
-                <CardHeader className="px-6 py-4 border-b border-gray-100">
+              <Card className="rounded-xl border border-gray-200 bg-white min-h-[340px] flex flex-col">
+                <CardHeader className="px-6 py-2 border-b border-gray-100 min-h-0">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-[#3B82F6]/10 rounded-lg flex items-center justify-center">
                       <Lightbulb className="h-5 w-5 text-[#3B82F6]" />
@@ -591,8 +591,8 @@ export default function DashboardPage() {
 
                   {/* Priority Actions */}
                   <div>
-                    <h6 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">PRIORITY ACTIONS</h6>
-                    <div className="space-y-3">
+                    <h6 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">PRIORITY ACTIONS</h6>
+                    <div className="space-y-2">
                       <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
                         <div className="h-8 w-8 rounded bg-white border border-gray-200 flex items-center justify-center shrink-0">
                           <Mail className="h-4 w-4 text-[#3B82F6]" />
@@ -616,11 +616,11 @@ export default function DashboardPage() {
 
                   {/* Market Insight */}
                   <div className="pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">MARKET INSIGHT</span>
                       <span className="text-sm font-bold text-[#10B981]">+14%</span>
                     </div>
-                    <p className="text-xs text-gray-600 italic leading-relaxed">
+                    <p className="text-xs text-gray-600 italic leading-relaxed mb-0">
                       "Sales cycles shortening by 2.4 days this quarter."
                     </p>
                   </div>
