@@ -159,8 +159,8 @@ export default function DashboardPage() {
         {/* KPI Cards - 180px height, #1E293B background */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="p-5 flex flex-col justify-between h-full">
+          <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
+            <CardContent className="p-6 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">WIN RATE</span>
                 <div className="h-8 w-8 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center">
@@ -182,8 +182,8 @@ export default function DashboardPage() {
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="p-5 flex flex-col justify-between h-full">
+          <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
+            <CardContent className="p-6 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">PIPELINE VALUE</span>
                 <div className="h-8 w-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
@@ -208,8 +208,8 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="p-5 flex flex-col justify-between h-full">
+          <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
+            <CardContent className="p-6 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">REVENUE MTD</span>
                 <div className="h-8 w-8 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
@@ -231,8 +231,8 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#1E293B] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="p-5 flex flex-col justify-between h-full">
+          <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
+            <CardContent className="p-6 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">ACTIVE LEADS</span>
                 <div className="h-8 w-8 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
@@ -513,17 +513,17 @@ export default function DashboardPage() {
         </div>
 
         {/* Team Performance - Full Width */}
-        <Card className="rounded-xl border border-gray-200 bg-white">
-          <CardHeader className="px-6 py-4 border-b border-gray-100">
+        <div>
+          <div className="px-6 py-4 mb-4">
             <div className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-gray-400" />
-              <CardTitle className="text-base font-bold text-gray-700 uppercase tracking-wider">TEAM PERFORMANCE & INTELLIGENCE</CardTitle>
+              <h3 className="text-base font-bold text-gray-700 uppercase tracking-wider">TEAM PERFORMANCE & INTELLIGENCE</h3>
             </div>
-          </CardHeader>
-          <CardContent className="p-6">
+          </div>
+          <div className="px-6">
             <div className="grid grid-cols-4 gap-6">
               {/* Closed Deal */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-10 w-10 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
                     <CheckCircle className="h-5 w-5 text-[#10B981]" />
@@ -536,7 +536,7 @@ export default function DashboardPage() {
               </div>
 
               {/* New Lead */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-10 w-10 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center">
                     <UserPlus className="h-5 w-5 text-[#3B82F6]" />
@@ -549,7 +549,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Outbound */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-10 w-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center">
                     <MessageSquare className="h-5 w-5 text-[#8B5CF6]" />
@@ -562,7 +562,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Meeting Set */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-10 w-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
                     <Calendar className="h-5 w-5 text-[#F59E0B]" />
@@ -574,8 +574,8 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-400 uppercase tracking-wider">1 HOUR AGO</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
