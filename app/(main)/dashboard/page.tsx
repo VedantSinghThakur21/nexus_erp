@@ -237,7 +237,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="p-8 pt-0">
+      <div className="p-8 pt-6">
         {/* KPI Cards - 180px height, #1E293B background */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
