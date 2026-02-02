@@ -451,12 +451,12 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-                <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 flex flex-col">
+                <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
                 <CardHeader className="px-4 py-2 flex flex-row items-center gap-2">
                   <Users className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4 pt-2 flex items-center justify-between">
+                <CardContent className="px-4 pt-2 pb-3 flex items-start justify-between">
                   {(() => {
                     // Calculate total leads
                     const totalLeads = leadSources.reduce((sum, source) => sum + source.count, 0);
@@ -506,19 +506,19 @@ export default function DashboardPage() {
                         {/* Donut Chart - Left Side */}
                         <div className="flex items-center">
                           <div className="relative">
-                            <svg width="140" height="140" viewBox="0 0 180 180">
+                            <svg width="140" height="140" viewBox="0 0 140 140">
                               {arcs.map((arc, index) => (
                                 <circle
                                   key={index}
-                                  cx="90"
-                                  cy="90"
+                                  cx="70"
+                                  cy="70"
                                   r={radius}
                                   fill="none"
                                   stroke={arc.color}
                                   strokeWidth={strokeWidth}
                                   strokeDasharray={arc.dasharray}
                                   strokeDashoffset={arc.dashoffset}
-                                  transform="rotate(-90 90 90)"
+                                  transform="rotate(-90 70 70)"
                                 />
                               ))}
                             </svg>
