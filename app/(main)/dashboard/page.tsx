@@ -451,12 +451,12 @@ export default function DashboardPage() {
               </Card>
 
               {/* Leads Source */}
-              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 min-h-[120px] flex flex-col justify-center">
-                <CardHeader className="px-4 pt-0 pb-1 flex flex-row items-center gap-2 min-h-0">
+                <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm flex-1 flex flex-col">
+                <CardHeader className="px-4 py-2 flex flex-row items-center gap-2">
                   <Users className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pt-1 pb-2 flex flex-row items-center justify-between min-h-0">
+                <CardContent className="px-4 pb-4 pt-2 flex items-center justify-between">
                   {(() => {
                     // Calculate total leads
                     const totalLeads = leadSources.reduce((sum, source) => sum + source.count, 0);
