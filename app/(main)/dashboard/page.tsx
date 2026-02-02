@@ -558,7 +558,7 @@ export default function DashboardPage() {
 
           {/* Right Column - Intelligence Hub (400px width, STICKY) */}
           <div className="h-full">
-            <div className="sticky top-[76px] h-[calc(100vh-76px)]">
+            <div className="sticky top-[76px] h-full">
               <Card className="rounded-xl border border-gray-200 bg-white h-full flex flex-col">
                 <CardHeader className="px-6 py-2 border-b border-gray-100">
                   <div className="flex items-center gap-3">
