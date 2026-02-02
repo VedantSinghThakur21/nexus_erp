@@ -324,7 +324,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Grid - 2/3 + 1/3 */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6 mb-8 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6 mb-8 items-stretch">
           {/* Left Column - Main content */}
           <div className="space-y-6">
             {/* High-Probability Opportunities */}
@@ -557,10 +557,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column - Intelligence Hub (400px width, STICKY) */}
-          <div>
-            <div className="sticky top-[76px]">
-              <Card className="rounded-xl border border-gray-200 bg-white min-h-[340px] flex flex-col">
-                <CardHeader className="px-6 py-2 border-b border-gray-100 min-h-0">
+          <div className="h-full">
+            <div className="sticky top-[76px] h-[calc(100vh-76px)]">
+              <Card className="rounded-xl border border-gray-200 bg-white h-full flex flex-col">
+                <CardHeader className="px-6 py-2 border-b border-gray-100">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-[#3B82F6]/10 rounded-lg flex items-center justify-center">
                       <Lightbulb className="h-5 w-5 text-[#3B82F6]" />
@@ -571,7 +571,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-4 space-y-4">
+                <CardContent className="p-4 space-y-4 flex-1 overflow-auto">
                   {/* Deal at Risk Alert */}
                   {atRiskDeal && (
                     <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-5 rounded-xl border-2 border-orange-200">
