@@ -483,9 +483,9 @@ export default function DashboardPage() {
                       return defaultColors[index % defaultColors.length];
                     };
 
-                    // Calculate SVG arc paths - smaller size
-                    const radius = 50;
-                    const strokeWidth = 22;
+                    // Calculate SVG arc paths - larger size
+                    const radius = 60;
+                    const strokeWidth = 26;
                     const circumference = 2 * Math.PI * radius;
 
                     let currentOffset = 0;
@@ -505,27 +505,27 @@ export default function DashboardPage() {
                         {/* Donut Chart - Left Side */}
                         <div className="flex items-center flex-shrink-0">
                           <div className="relative">
-                            <svg width="110" height="110" viewBox="0 0 120 120">
+                            <svg width="140" height="140" viewBox="0 0 150 150">
                               {arcs.map((arc, index) => (
                                 <circle
                                   key={index}
-                                  cx="60"
-                                  cy="60"
+                                  cx="75"
+                                  cy="75"
                                   r={radius}
                                   fill="none"
                                   stroke={arc.color}
                                   strokeWidth={strokeWidth}
                                   strokeDasharray={arc.dasharray}
                                   strokeDashoffset={arc.dashoffset}
-                                  transform="rotate(-90 60 60)"
+                                  transform="rotate(-90 75 75)"
                                 />
                               ))}
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                              <p className="text-xl font-bold text-gray-900">
+                              <p className="text-2xl font-bold text-gray-900">
                                 {totalLeads >= 1000 ? `${(totalLeads / 1000).toFixed(1)}k` : totalLeads}
                               </p>
-                              <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
                             </div>
                           </div>
                         </div>
@@ -571,7 +571,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
+                <CardContent className="p-4 space-y-4">
                   {/* Deal at Risk Alert */}
                   {atRiskDeal && (
                     <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-5 rounded-xl border-2 border-orange-200">
