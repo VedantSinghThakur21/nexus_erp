@@ -484,9 +484,9 @@ export default function DashboardPage() {
                       return defaultColors[index % defaultColors.length];
                     };
 
-                    // Calculate SVG arc paths
-                    const radius = 70;
-                    const strokeWidth = 28;
+                    // Calculate SVG arc paths - smaller size
+                    const radius = 50;
+                    const strokeWidth = 20;
                     const circumference = 2 * Math.PI * radius;
 
                     let currentOffset = 0;
@@ -506,27 +506,27 @@ export default function DashboardPage() {
                         {/* Donut Chart - Left Side */}
                         <div className="flex items-center">
                           <div className="relative">
-                            <svg width="140" height="140" viewBox="0 0 180 180">
+                            <svg width="100" height="100" viewBox="0 0 120 120">
                               {arcs.map((arc, index) => (
                                 <circle
                                   key={index}
-                                  cx="90"
-                                  cy="90"
+                                  cx="60"
+                                  cy="60"
                                   r={radius}
                                   fill="none"
                                   stroke={arc.color}
                                   strokeWidth={strokeWidth}
                                   strokeDasharray={arc.dasharray}
                                   strokeDashoffset={arc.dashoffset}
-                                  transform="rotate(-90 90 90)"
+                                  transform="rotate(-90 60 60)"
                                 />
                               ))}
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                              <p className="text-2xl font-bold text-gray-900">
+                              <p className="text-xl font-bold text-gray-900">
                                 {totalLeads >= 1000 ? `${(totalLeads / 1000).toFixed(1)}k` : totalLeads}
                               </p>
-                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
+                              <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
                             </div>
                           </div>
                         </div>
