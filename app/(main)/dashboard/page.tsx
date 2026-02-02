@@ -506,19 +506,19 @@ export default function DashboardPage() {
                         {/* Donut Chart - Left Side */}
                         <div className="flex items-center">
                           <div className="relative">
-                            <svg width="140" height="140" viewBox="0 0 140 140">
+                            <svg width="140" height="140" viewBox="0 0 180 180">
                               {arcs.map((arc, index) => (
                                 <circle
                                   key={index}
-                                  cx="70"
-                                  cy="70"
+                                  cx="90"
+                                  cy="90"
                                   r={radius}
                                   fill="none"
                                   stroke={arc.color}
                                   strokeWidth={strokeWidth}
                                   strokeDasharray={arc.dasharray}
                                   strokeDashoffset={arc.dashoffset}
-                                  transform="rotate(-90 70 70)"
+                                  transform="rotate(-90 90 90)"
                                 />
                               ))}
                             </svg>
