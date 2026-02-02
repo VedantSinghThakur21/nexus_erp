@@ -160,18 +160,18 @@ export default function DashboardPage() {
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
           <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="relative p-6 flex flex-col h-full">
-              <div className="absolute top-5 right-5 h-6 w-6 rounded-md bg-[#3B82F6]/10 flex items-center justify-center">
-                <TrendingUp className="h-3.5 w-3.5 text-[#3B82F6]" />
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+              <div className="flex items-start justify-between">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">WIN RATE</span>
+                <div className="absolute top-6 right-6 h-8 w-8 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-[#3B82F6]" />
+                </div>
               </div>
-              <div className="-mt-1">
-                <span className="text-[11px] font-semibold text-[#8FA3BF] uppercase tracking-widest">WIN RATE</span>
-              </div>
-              <div className="mt-[22px]">
-                <h3 className="text-[42px] font-semibold text-white leading-tight">
+              <div>
+                <h3 className="text-5xl font-bold text-white mb-2 leading-none">
                   {stats.winRate.toFixed(1)}%
                 </h3>
-                <div className="flex items-center gap-1.5 mt-3">
+                <div className="flex items-center gap-1.5">
                   <TrendingUp className="h-3.5 w-3.5 text-[#3B82F6]" />
                   <span className="text-sm font-semibold text-[#3B82F6]">
                     +{stats.winRateChange.toFixed(1)}%
@@ -183,23 +183,23 @@ export default function DashboardPage() {
 
           {/* Pipeline Value */}
           <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="relative p-6 flex flex-col h-full">
-              <div className="absolute top-5 right-5 h-6 w-6 rounded-md bg-[#10B981]/10 flex items-center justify-center">
-                <BarChart3 className="h-3.5 w-3.5 text-[#10B981]" />
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+              <div className="flex items-start justify-between">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">PIPELINE VALUE</span>
+                <div className="absolute top-6 right-6 h-8 w-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
+                  <BarChart3 className="h-4 w-4 text-[#10B981]" />
+                </div>
               </div>
-              <div className="-mt-1">
-                <span className="text-[11px] font-semibold text-[#8FA3BF] uppercase tracking-widest">PIPELINE VALUE</span>
-              </div>
-              <div className="mt-[22px]">
-                <h3 className="text-[42px] font-semibold text-white mb-3 leading-tight">
+              <div>
+                <h3 className="text-5xl font-bold text-white mb-3 leading-none">
                   {formatIndianCurrencyInCrores(stats.pipelineValue)}
                 </h3>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[9px] font-medium">
+                  <div className="flex items-center justify-between text-[10px] font-medium">
                     <span className="text-gray-400">TARGET: ₹20Cr</span>
                     <span className="text-gray-400">65% ACHIEVED</span>
                   </div>
-                  <div className="w-full h-1 bg-gray-700/50 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
                     <div className="h-full bg-[#10B981] rounded-full transition-all duration-500" style={{ width: '65%' }}></div>
                   </div>
                 </div>
@@ -209,15 +209,15 @@ export default function DashboardPage() {
 
           {/* Revenue MTD */}
           <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="relative p-6 flex flex-col h-full">
-              <div className="absolute top-5 right-5 h-6 w-6 rounded-md bg-[#F59E0B]/10 flex items-center justify-center">
-                <Zap className="h-3.5 w-3.5 text-[#F59E0B]" />
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+              <div className="flex items-start justify-between">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">REVENUE MTD</span>
+                <div className="absolute top-6 right-6 h-8 w-8 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
+                  <Zap className="h-4 w-4 text-[#F59E0B]" />
+                </div>
               </div>
-              <div className="-mt-1">
-                <span className="text-[11px] font-semibold text-[#8FA3BF] uppercase tracking-widest">REVENUE MTD</span>
-              </div>
-              <div className="mt-[22px]">
-                <h3 className="text-[42px] font-semibold text-white mb-3 leading-tight">
+              <div>
+                <h3 className="text-5xl font-bold text-white mb-3 leading-none">
                   {formatIndianCurrencyInCrores(stats.revenue)}
                 </h3>
                 <div className="flex gap-1.5">
@@ -232,19 +232,19 @@ export default function DashboardPage() {
 
           {/* Active Leads */}
           <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="relative p-6 flex flex-col h-full">
-              <div className="absolute top-5 right-5 h-6 w-6 rounded-md bg-[#F59E0B]/10 flex items-center justify-center">
-                <Zap className="h-3.5 w-3.5 text-[#F59E0B]" />
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+              <div className="flex items-start justify-between">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">ACTIVE LEADS</span>
+                <div className="absolute top-6 right-6 h-8 w-8 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
+                  <Zap className="h-4 w-4 text-[#F59E0B]" />
+                </div>
               </div>
-              <div className="-mt-1">
-                <span className="text-[11px] font-semibold text-[#8FA3BF] uppercase tracking-widest">ACTIVE LEADS</span>
-              </div>
-              <div className="mt-[22px]">
-                <h3 className="text-[42px] font-semibold text-white mb-3 leading-tight">
+              <div>
+                <h3 className="text-5xl font-bold text-white mb-3 leading-none">
                   {stats.activeLeads.toLocaleString()}
                 </h3>
-                <div className="inline-block px-3 py-1 bg-white/5 rounded-full border border-white/10">
-                  <span className="text-[10px] font-semibold tracking-widest text-[#C7D2E0]">AI CONFIDENCE</span>
+                <div className="inline-block px-3 py-1.5 bg-gray-700/40 rounded-lg border border-gray-600/30">
+                  <span className="text-[11px] font-bold text-gray-300 uppercase tracking-[0.1em]">AI CONFIDENCE</span>
                 </div>
               </div>
             </CardContent>
