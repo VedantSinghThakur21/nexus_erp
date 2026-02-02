@@ -164,10 +164,10 @@ export default function DashboardPage() {
               <div className="absolute top-5 right-5 h-6 w-6 rounded-md bg-[#3B82F6]/10 flex items-center justify-center">
                 <TrendingUp className="h-3.5 w-3.5 text-[#3B82F6]" />
               </div>
-              <div>
+              <div className="-mt-1">
                 <span className="text-[11px] font-semibold text-[#8FA3BF] uppercase tracking-widest">WIN RATE</span>
               </div>
-              <div className="mt-auto">
+              <div className="mt-[22px]">
                 <h3 className="text-[42px] font-semibold text-white leading-tight">
                   {stats.winRate.toFixed(1)}%
                 </h3>
@@ -187,10 +187,10 @@ export default function DashboardPage() {
               <div className="absolute top-5 right-5 h-6 w-6 rounded-md bg-[#10B981]/10 flex items-center justify-center">
                 <BarChart3 className="h-3.5 w-3.5 text-[#10B981]" />
               </div>
-              <div>
+              <div className="-mt-1">
                 <span className="text-[11px] font-semibold text-[#8FA3BF] uppercase tracking-widest">PIPELINE VALUE</span>
               </div>
-              <div className="mt-auto">
+              <div className="mt-[22px]">
                 <h3 className="text-[42px] font-semibold text-white mb-3 leading-tight">
                   {formatIndianCurrencyInCrores(stats.pipelineValue)}
                 </h3>
@@ -213,10 +213,10 @@ export default function DashboardPage() {
               <div className="absolute top-5 right-5 h-6 w-6 rounded-md bg-[#F59E0B]/10 flex items-center justify-center">
                 <Zap className="h-3.5 w-3.5 text-[#F59E0B]" />
               </div>
-              <div>
+              <div className="-mt-1">
                 <span className="text-[11px] font-semibold text-[#8FA3BF] uppercase tracking-widest">REVENUE MTD</span>
               </div>
-              <div className="mt-auto">
+              <div className="mt-[22px]">
                 <h3 className="text-[42px] font-semibold text-white mb-3 leading-tight">
                   {formatIndianCurrencyInCrores(stats.revenue)}
                 </h3>
@@ -236,10 +236,10 @@ export default function DashboardPage() {
               <div className="absolute top-5 right-5 h-6 w-6 rounded-md bg-[#F59E0B]/10 flex items-center justify-center">
                 <Zap className="h-3.5 w-3.5 text-[#F59E0B]" />
               </div>
-              <div>
+              <div className="-mt-1">
                 <span className="text-[11px] font-semibold text-[#8FA3BF] uppercase tracking-widest">ACTIVE LEADS</span>
               </div>
-              <div className="mt-auto">
+              <div className="mt-[22px]">
                 <h3 className="text-[42px] font-semibold text-white mb-3 leading-tight">
                   {stats.activeLeads.toLocaleString()}
                 </h3>
