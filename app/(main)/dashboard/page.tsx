@@ -456,7 +456,7 @@ export default function DashboardPage() {
                   <Users className="h-4 w-4 text-[#A0AEC0]" />
                   <CardTitle className="text-sm font-bold text-gray-700 uppercase tracking-wider">Leads Source</CardTitle>
                 </CardHeader>
-                <CardContent className="px-6 py-2 flex flex-col justify-center">
+                <CardContent className="px-6 py-2 flex flex-row items-center justify-between">
                   {(() => {
                     // Calculate total leads
                     const totalLeads = leadSources.reduce((sum, source) => sum + source.count, 0);
@@ -503,9 +503,10 @@ export default function DashboardPage() {
 
                     return (
                       <>
-                        <div className="flex items-center justify-center mb-6">
+                        {/* Donut Chart - Left Side */}
+                        <div className="flex items-center">
                           <div className="relative">
-                            <svg width="180" height="180" viewBox="0 0 180 180">
+                            <svg width="140" height="140" viewBox="0 0 180 180">
                               {arcs.map((arc, index) => (
                                 <circle
                                   key={index}
@@ -522,25 +523,25 @@ export default function DashboardPage() {
                               ))}
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                              <p className="text-3xl font-bold text-gray-900">
+                              <p className="text-2xl font-bold text-gray-900">
                                 {totalLeads >= 1000 ? `${(totalLeads / 1000).toFixed(1)}k` : totalLeads}
                               </p>
-                              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">TOTAL</p>
                             </div>
                           </div>
                         </div>
-                        <div className="space-y-2">
+
+                        {/* Legend - Right Side */}
+                        <div className="flex flex-col gap-2">
                           {leadSources.map((source, index) => (
-                            <div key={source.source} className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="h-3 w-3 rounded-full"
-                                  style={{ backgroundColor: getColor(source.source, index) }}
-                                ></div>
-                                <span className="text-sm text-gray-700">{source.source}</span>
-                              </div>
-                              <span className="text-sm font-semibold text-gray-900">
-                                {source.percentage.toFixed(0)}%
+                            <div key={source.source} className="flex items-center gap-2">
+                              <div
+                                className="h-3 w-3 rounded-full"
+                                style={{ backgroundColor: getColor(source.source, index) }}
+                              ></div>
+                              <span className="text-sm text-gray-700">{source.source}</span>
+                              <span className="text-sm font-semibold text-gray-900 ml-auto">
+                                ({source.percentage.toFixed(0)}%)
                               </span>
                             </div>
                           ))}
