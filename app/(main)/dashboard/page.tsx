@@ -112,6 +112,76 @@ export default function DashboardPage() {
     .sort((a: Opportunity, b: Opportunity) => b.probability - a.probability)
     .slice(0, 3);
 
+  // Calculate Sales Funnel data from opportunities
+  const calculateFunnelData = () => {
+    // Group opportunities by sales stage
+    const stageGroups: Record<string, { count: number; value: number }> = {};
+
+    opportunities
+      .filter((opp: Opportunity) => opp.status === 'Open')
+      .forEach((opp: Opportunity) => {
+        const stage = opp.sales_stage;
+        if (!stageGroups[stage]) {
+          stageGroups[stage] = { count: 0, value: 0 };
+        }
+        stageGroups[stage].count += 1;
+        stageGroups[stage].value += opp.opportunity_amount || 0;
+      });
+
+    // Map to funnel stages (you can customize these mappings based on your ERPNext stages)
+    const funnelStages = [
+      {
+        name: 'PROSPECTING',
+        erpStages: ['Prospecting', 'Lead'],
+        color: '#3B82F6'
+      },
+      {
+        name: 'QUALIFICATION',
+        erpStages: ['Qualification', 'Qualified'],
+        color: '#3B82F6'
+      },
+      {
+        name: 'PROPOSAL',
+        erpStages: ['Proposal/Price Quote', 'Proposal', 'Quote'],
+        color: '#3B82F6'
+      },
+      {
+        name: 'NEGOTIATION',
+        erpStages: ['Negotiation/Review', 'Negotiation'],
+        color: '#3B82F6'
+      }
+    ];
+
+    const funnelData = funnelStages.map(stage => {
+      let count = 0;
+      let value = 0;
+
+      stage.erpStages.forEach(erpStage => {
+        if (stageGroups[erpStage]) {
+          count += stageGroups[erpStage].count;
+          value += stageGroups[erpStage].value;
+        }
+      });
+
+      return {
+        name: stage.name,
+        count,
+        value,
+        color: stage.color
+      };
+    });
+
+    // Calculate max value for width percentages
+    const maxValue = Math.max(...funnelData.map(s => s.value), 1);
+
+    return funnelData.map(stage => ({
+      ...stage,
+      percentage: (stage.value / maxValue) * 100
+    }));
+  };
+
+  const funnelData = calculateFunnelData();
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center">
@@ -159,16 +229,16 @@ export default function DashboardPage() {
         {/* KPI Cards - 180px height, #1E293B background */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {/* Win Rate */}
-          <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
+          <Card className="bg-[#1a2332] border-none rounded-2xl h-[140px] shadow-md">
+            <CardContent className="relative p-5 flex flex-col justify-between h-full">
               <div className="flex items-start justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">WIN RATE</span>
-                <div className="absolute top-6 right-6 h-8 w-8 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center">
+                <div className="absolute top-4 right-4 h-7 w-7 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center">
                   <TrendingUp className="h-4 w-4 text-[#3B82F6]" />
                 </div>
               </div>
               <div>
-                <h3 className="text-5xl font-bold text-white mb-2 leading-none">
+                <h3 className="text-4xl font-bold text-white mb-1 leading-none">
                   {stats.winRate.toFixed(1)}%
                 </h3>
                 <div className="flex items-center gap-1.5">
@@ -182,16 +252,16 @@ export default function DashboardPage() {
           </Card>
 
           {/* Pipeline Value */}
-          <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
+          <Card className="bg-[#1a2332] border-none rounded-2xl h-[140px] shadow-md">
+            <CardContent className="relative p-5 flex flex-col justify-between h-full">
               <div className="flex items-start justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">PIPELINE VALUE</span>
-                <div className="absolute top-6 right-6 h-8 w-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
+                <div className="absolute top-4 right-4 h-7 w-7 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
                   <BarChart3 className="h-4 w-4 text-[#10B981]" />
                 </div>
               </div>
               <div>
-                <h3 className="text-5xl font-bold text-white mb-3 leading-none">
+                <h3 className="text-4xl font-bold text-white mb-2 leading-none">
                   {formatIndianCurrencyInCrores(stats.pipelineValue)}
                 </h3>
                 <div className="space-y-2">
@@ -208,16 +278,16 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue MTD */}
-          <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
+          <Card className="bg-[#1a2332] border-none rounded-2xl h-[140px] shadow-md">
+            <CardContent className="relative p-5 flex flex-col justify-between h-full">
               <div className="flex items-start justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">REVENUE MTD</span>
-                <div className="absolute top-6 right-6 h-8 w-8 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
+                <div className="absolute top-4 right-4 h-7 w-7 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
                   <Zap className="h-4 w-4 text-[#F59E0B]" />
                 </div>
               </div>
               <div>
-                <h3 className="text-5xl font-bold text-white mb-3 leading-none">
+                <h3 className="text-4xl font-bold text-white mb-2 leading-none">
                   {formatIndianCurrencyInCrores(stats.revenue)}
                 </h3>
                 <div className="flex gap-1.5">
@@ -231,16 +301,16 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Leads */}
-          <Card className="bg-[#1a2332] border-none rounded-2xl h-[180px] shadow-md">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
+          <Card className="bg-[#1a2332] border-none rounded-2xl h-[140px] shadow-md">
+            <CardContent className="relative p-5 flex flex-col justify-between h-full">
               <div className="flex items-start justify-between">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">ACTIVE LEADS</span>
-                <div className="absolute top-6 right-6 h-8 w-8 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
+                <div className="absolute top-4 right-4 h-7 w-7 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
                   <Zap className="h-4 w-4 text-[#F59E0B]" />
                 </div>
               </div>
               <div>
-                <h3 className="text-5xl font-bold text-white mb-3 leading-none">
+                <h3 className="text-4xl font-bold text-white mb-2 leading-none">
                   {stats.activeLeads.toLocaleString()}
                 </h3>
                 <div className="inline-block px-3 py-1.5 bg-gray-700/40 rounded-lg border border-gray-600/30">
@@ -356,42 +426,33 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="px-6 pb-6">
                   <div className="space-y-3">
-                    {/* Discovery */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[11px] font-bold text-gray-500 uppercase">DISCOVERY</span>
-                        <span className="text-[11px] font-semibold text-gray-400">₹4.2Cr</span>
-                      </div>
-                      <div className="h-9 bg-[#3B82F6] rounded-lg flex items-center px-3">
-                        <span className="text-sm font-bold text-white">12 Deals</span>
-                      </div>
-                    </div>
-                    {/* Proposal */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[11px] font-bold text-gray-500 uppercase">PROPOSAL</span>
-                        <span className="text-[11px] font-semibold text-gray-400">₹3.1Cr</span>
-                      </div>
-                      <div className="flex items-center h-9 rounded-lg overflow-hidden">
-                        <div className="bg-[#3B82F6] h-full flex items-center px-3" style={{ width: '70%' }}>
-                          <span className="text-sm font-bold text-white">8 Deals</span>
+                    {funnelData.map((stage, index) => (
+                      <div key={stage.name}>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[11px] font-bold text-gray-500 uppercase">{stage.name}</span>
+                          <span className="text-[11px] font-semibold text-gray-400">
+                            {formatIndianCurrencyInCrores(stage.value)}
+                          </span>
                         </div>
-                        <div className="bg-gray-100 h-full" style={{ width: '30%' }}></div>
+                        {index === 0 ? (
+                          // First stage - full width
+                          <div className="h-9 bg-[#3B82F6] rounded-lg flex items-center px-3">
+                            <span className="text-sm font-bold text-white">{stage.count} Deals</span>
+                          </div>
+                        ) : (
+                          // Other stages - proportional width
+                          <div className="flex items-center h-9 rounded-lg overflow-hidden">
+                            <div
+                              className="bg-[#3B82F6] h-full flex items-center px-3"
+                              style={{ width: `${stage.percentage}%` }}
+                            >
+                              <span className="text-sm font-bold text-white whitespace-nowrap">{stage.count} Deals</span>
+                            </div>
+                            <div className="bg-gray-100 h-full" style={{ width: `${100 - stage.percentage}%` }}></div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    {/* Negotiation */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[11px] font-bold text-gray-500 uppercase">NEGOTIATION</span>
-                        <span className="text-[11px] font-semibold text-gray-400">₹2.8Cr</span>
-                      </div>
-                      <div className="flex items-center h-9 rounded-lg overflow-hidden">
-                        <div className="bg-[#3B82F6] h-full flex items-center px-3" style={{ width: '50%' }}>
-                          <span className="text-sm font-bold text-white">5 Deals</span>
-                        </div>
-                        <div className="bg-gray-100 h-full" style={{ width: '50%' }}></div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
