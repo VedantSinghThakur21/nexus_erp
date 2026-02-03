@@ -1,20 +1,12 @@
-import { getQuotations, getOpportunities } from "@/app/actions/crm"
-import { QuotationsView } from "@/components/crm/quotations-view"
+import { getQuotations } from "@/app/actions/crm"
+import { QuotationsClient } from "@/components/crm/quotations-client"
 
 export const dynamic = 'force-dynamic'
 
 export default async function QuotationsPage() {
-  const [quotations, opportunities] = await Promise.all([
-    getQuotations(),
-    getOpportunities()
-  ])
+  const quotations = await getQuotations()
 
-  // Filter opportunities in Proposal/Price Quote stage
-  const proposalOpportunities = opportunities.filter(
-    opp => opp.sales_stage === 'Proposal/Price Quote' && opp.status === 'Open'
-  )
-
-  return <QuotationsView quotations={quotations} proposalOpportunities={proposalOpportunities} />
+  return <QuotationsClient quotations={quotations} />
 }
 
 
