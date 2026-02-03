@@ -35,6 +35,8 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStage, setSelectedStage] = useState("All Stages")
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 20
 
   // Filter opportunities
   const openOpportunities = opportunities.filter(opp => opp.status === "Open")
@@ -65,6 +67,17 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
 
     return result
   }, [openOpportunities, searchQuery, selectedStage])
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredOpportunities.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedOpportunities = filteredOpportunities.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedStage])
 
   // Helper: Get owner initials (mock)
   const getOwnerInitials = (opp: Opportunity): string => {
@@ -239,7 +252,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                   </td>
                 </tr>
               ) : (
-                filteredOpportunities.map((opp) => {
+                paginatedOpportunities.map((opp) => {
                   const ownerInitials = getOwnerInitials(opp)
                   const ownerName = getOwnerName(ownerInitials)
                   const aiStatus = getAIStatus(opp)
@@ -299,6 +312,58 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
               )}
             </tbody>
           </table>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-8 py-6 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-sm text-slate-600 dark:text-slate-400">
+                Showing <span className="font-semibold text-slate-900 dark:text-white">{startIndex + 1}</span> to <span className="font-semibold text-slate-900 dark:text-white">{Math.min(endIndex, filteredOpportunities.length)}</span> of <span className="font-semibold text-slate-900 dark:text-white">{filteredOpportunities.length}</span> opportunities
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          currentPage === pageNum
+                            ? "bg-blue-600 text-white"
+                            : "text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Won Opportunities Section */}
