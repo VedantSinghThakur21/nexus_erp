@@ -98,89 +98,69 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950">
-      {/* Header - matching HTML */}
+      {/* Header */}
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center space-x-8">
-          <div className="flex items-center space-x-2 text-slate-900 dark:text-white font-bold text-xl tracking-tight">
-            <div className="w-8 h-8 bg-yellow-400 rounded flex items-center justify-center text-slate-900">
-              <Grid className="h-5 w-5" />
-            </div>
-            <span>AVARIQ</span>
-          </div>
-          <div className="relative w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              className="w-full bg-slate-50 dark:bg-slate-900/50 border-0 rounded-full h-10 py-2 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none text-sm"
-              placeholder="Ask AI anything..."
-              type="text"
-            />
-          </div>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Opportunities</h1>
         </div>
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-4">
           <Link href="/crm/opportunities/new">
             <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 font-medium shadow-lg shadow-blue-600/20 transition-all">
               <span className="text-sm">+</span>
               <span>New Opportunity</span>
             </button>
           </Link>
-          <div className="flex items-center space-x-4 border-l border-slate-200 dark:border-slate-700 pl-6">
-            <div className="text-right">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">Alex Thompson</p>
-              <p className="text-[10px] uppercase text-slate-500 tracking-wider">Sales Operations Manager</p>
-            </div>
-            <div className="w-10 h-10 rounded-full border-2 border-blue-600/20 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white text-sm font-bold">
-              AT
-            </div>
-          </div>
         </div>
       </header>
 
       <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-[#111827] rounded-xl p-8 text-white relative overflow-hidden shadow-lg h-52 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <h4 className="text-xs font-bold tracking-[0.15em] text-slate-400 uppercase">Open Opportunities</h4>
-              <TrendingUp className="text-blue-500 h-6 w-6" strokeWidth={2.5} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Open Opportunities</span>
+              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                <TrendingUp className="h-5 w-5" />
+              </div>
             </div>
-            <div>
-              <div className="text-[64px] font-bold tracking-tight leading-none mb-4">{totalOpenOpportunities}</div>
-              <p className="text-blue-500 text-sm font-bold flex items-center">
-                <TrendingUp className="h-4 w-4 mr-1.5" strokeWidth={2.5} />
-                +12% from last month
-              </p>
+            <div className="flex items-end gap-3">
+              <span className="text-[28px] font-bold text-white leading-none">{totalOpenOpportunities}</span>
+              <span className="text-sm font-semibold text-blue-400 mb-1">+12%</span>
+            </div>
+            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 w-[72%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
             </div>
           </div>
 
-          <div className="bg-[#111827] rounded-xl p-8 text-white relative overflow-hidden shadow-lg h-52 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <h4 className="text-xs font-bold tracking-[0.15em] text-slate-400 uppercase">Won This Month</h4>
-              <DollarSign className="text-green-500 h-6 w-6" strokeWidth={2} />
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Won This Month</span>
+              <div className="p-2 rounded-lg bg-green-500/10 text-green-400">
+                <DollarSign className="h-5 w-5" />
+              </div>
             </div>
-            <div className="flex-1 flex flex-col justify-end">
-              <div className="text-[64px] font-bold tracking-tight leading-none mb-4">{wonThisMonth}</div>
-              <div className="w-full bg-slate-700/50 rounded-full h-2.5 mb-3">
-                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: "70%" }}></div>
-              </div>
-              <div className="flex justify-between text-[11px] font-extrabold uppercase tracking-widest">
-                <span className="text-slate-500">Target: 40</span>
-                <span className="text-green-500">70% Achieved</span>
-              </div>
+            <div className="flex items-end gap-3">
+              <span className="text-[28px] font-bold text-white leading-none">{wonThisMonth}</span>
+              <span className="text-sm font-semibold text-emerald-400 mb-1">Target: 40</span>
+            </div>
+            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-green-500 w-[70%] rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
             </div>
           </div>
 
-          <div className="bg-[#111827] rounded-xl p-8 text-white relative overflow-hidden shadow-lg h-52 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <h4 className="text-xs font-bold tracking-[0.15em] text-slate-400 uppercase">Avg. Probability</h4>
-              <Zap className="text-yellow-400 h-6 w-6" strokeWidth={2} />
-            </div>
-            <div className="flex-1 flex flex-col justify-end">
-              <div className="text-[64px] font-bold tracking-tight leading-none mb-3">{avgProbability}%</div>
-              <div>
-                <div className="inline-flex items-center px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-blue-300 text-[10px] font-extrabold tracking-[0.1em] uppercase">
-                  AI Confidence: High Accuracy
-                </div>
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Avg. Probability</span>
+              <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-400">
+                <Zap className="h-5 w-5" />
               </div>
+            </div>
+            <div className="flex items-end gap-3">
+              <span className="text-[28px] font-bold text-white leading-none">{avgProbability}%</span>
+              <span className="text-sm font-semibold text-slate-400 mb-1">AI Rating</span>
+            </div>
+            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-yellow-500 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]" style={{ width: `${avgProbability}%` }}></div>
             </div>
           </div>
         </div>
