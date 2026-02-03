@@ -290,6 +290,237 @@ If new implementation has issues:
 
 ---
 
+## Sales Orders Page
+
+### Overview
+Converted HTML-based sales orders workspace to Next.js TSX implementation with full integration to existing ERPNext backend data and AI-driven insights display.
+
+### Files Created
+
+#### New Components
+- **`components/sales-orders/sales-orders-client.tsx`** (570+ lines)
+  - Full client-side implementation of sales orders workspace
+  - Features: KPI cards, dual tabs (All Sales Orders/Ready for Sales Order), table view with AI columns, search/filter UI, pagination (10 per page)
+  - Uses React hooks for state management (useState)
+  - Fully responsive with Tailwind CSS styling matching original HTML design
+  - AI Fulfillment Risk column with color-coded status indicators
+  - AI Insight badges with contextual recommendations
+
+### Files Modified
+
+#### Updated Pages
+- **`app/(main)/sales-orders/page.tsx`**
+  - **Before**: Complex component using shadcn UI components (Card, Button, Badge, AnimatedCard, Tabs), inline rendering with DeliveryStatusBadge and DeliveryUpdateCard
+  - **After**: Simple server wrapper that fetches data and delegates rendering to SalesOrdersClient
+  - **Removed**: All UI imports (Card, Button, Badge, Tabs, AnimatedCard, DeliveryStatusBadge, DeliveryUpdateCard)
+  - **Removed**: 260+ lines of inline rendering code
+  - **Simplified**: Now only calls server actions and passes data to client component (17 lines total)
+
+### Files Deprecated (NOT Removed - Still in Use)
+The following components are still used elsewhere in the application and should NOT be removed:
+- **`components/sales-orders/delivery-status-badge.tsx`** - Used in individual sales order detail pages
+- **`components/sales-orders/delivery-update-card.tsx`** - Used in individual sales order detail pages
+- **`components/sales-orders/sales-order-actions.tsx`** - Used in individual sales order detail pages
+- **`components/sales-orders/delete-sales-order-button.tsx`** - Used in individual sales order detail pages
+- **`components/sales-orders/delivery-status-filter.tsx`** - Used in individual sales order detail pages
+- **`components/sales-orders/sales-order-form.tsx`** - Used in sales order creation/edit pages
+
+### Key Features Implemented
+
+#### ✅ Completed Features
+- **KPI Cards**: Draft, Confirmed, In Progress, Total Value (exact HTML sizing: h-36, text-[28px], text-[12px] headers)
+- **Dual Tab System**: 
+  - All Sales Orders tab with table view
+  - Ready for Sales Order tab showing submitted quotations
+- **Sales Orders Table**: Full listing with columns:
+  - Order ID (clickable link to detail page)
+  - Customer (name from customer_name or customer field)
+  - Order Date (formatted as "Dec 29, 2025")
+  - Items (count from total_qty field)
+  - Amount (formatted with INR currency symbol)
+  - AI Fulfillment Risk (color-coded: On Time/In Progress/Delayed with glowing dot)
+  - AI Insight (badge with icon: Ready to Bill/Expedite Shipping/On Track)
+  - Status (delivery_status or status field with color-coded badge)
+  - Actions (View button + Update button with truck icon)
+- **Pagination**: 10 orders per page with Previous/Next controls and showing X of Y entries
+- **Search**: Live search across order ID, customer name
+- **Filter Button**: UI button ready for filter panel implementation
+- **Ready for Sales Order Tab**:
+  - Shows submitted quotations not yet converted to sales orders
+  - Green highlighted cards with customer, valid till date, value
+  - Create Sales Order button linking to `/sales-orders/new?quotation=${quotation.name}`
+  - View Quotation button linking to quotation detail page
+  - Empty state with "Go to Quotations" CTA when no ready quotations
+- **Responsive Design**: Mobile-first Tailwind CSS classes
+- **Dark Mode Support**: Tailwind dark: variants throughout
+- **Header**: AI search bar with Sparkles icon and "New Sales Order" button (AVARIQ logo removed per requirements)
+
+#### ⚠️ Partially Implemented Features
+- **AI Fulfillment Risk Logic**: Currently using mock logic based on per_delivered percentage
+  - Shows "On Time" if per_delivered === 100
+  - Shows "In Progress" if per_delivered > 0
+  - Shows "Delayed" otherwise
+  - TODO: Connect to actual AI risk assessment service
+  - TODO: Consider delivery_date vs current date for more accurate risk calculation
+
+- **AI Insight Logic**: Currently using mock logic based on order status
+  - Shows "Ready to Bill" if per_delivered === 100 and per_billed !== 100
+  - Shows "Expedite Shipping" for Draft orders
+  - Shows "On Track" otherwise
+  - TODO: Connect to actual AI service for real insights
+  - TODO: Consider more factors: delivery_date proximity, inventory levels, customer history
+
+- **Filter Functionality**: Filter button exists but doesn't open filter panel
+  - TODO: Create filter panel with options for:
+    - Status filtering (Draft, Confirmed, In Progress, Fully Delivered)
+    - Date range filtering
+    - Amount range filtering
+    - Customer filtering
+
+- **Update Button**: Exists but not wired to delivery update functionality
+  - Original implementation used DeliveryUpdateCard component
+  - TODO: Wire to delivery status update modal/dialog
+  - TODO: Integrate with existing updateSalesOrder action
+
+#### ❌ Missing from Original HTML
+- **Notifications Bell**: Not implemented (would require notification system)
+- **Dark Mode Toggle**: Not implemented in header (handled by app-level theme toggle)
+- **User Avatar with Real Initials**: Shows "JD" as static, not connected to real user data
+- **AI Search Functionality**: Input exists but not connected to AI service
+- **More Filters**: Advanced filtering options not implemented
+
+### Data Integration
+
+#### Backend Actions Used
+- `getSalesOrders()`: Primary data source from `app/actions/sales-orders.ts`
+  - Returns: Array of SalesOrder objects
+  - Fields: name, customer, customer_name, status, delivery_status, transaction_date, delivery_date, grand_total, currency, total_qty, per_delivered, per_billed
+- `getSalesOrderStats()`: Stats calculation from `app/actions/sales-orders.ts`
+  - Returns: Object with draft, confirmed, inProgress, totalValue counts
+- `getQuotations()`: For "Ready for Sales Order" tab from `app/actions/quotations.ts`
+  - Filtered to show: docstatus === 1 && status !== 'Ordered'
+
+#### Data Flow
+1. **Server Component** (`app/(main)/sales-orders/page.tsx`):
+   - Calls `getSalesOrders()`, `getSalesOrderStats()`, `getQuotations()` in parallel
+   - Filters quotations for ready state
+   - Passes all data to SalesOrdersClient component
+   - No data transformation on server
+
+2. **Client Component** (`components/sales-orders/sales-orders-client.tsx`):
+   - Receives orders, stats, readyQuotations as props
+   - Manages search query and pagination state
+   - Filters orders based on search query
+   - Calculates AI risk and insights per order
+   - Renders appropriate tab content based on activeTab state
+
+### Status & Workflow Integration
+
+#### Sales Order Statuses Supported
+- **Draft**: New orders not yet submitted
+- **To Deliver and Bill**: Confirmed orders awaiting delivery and billing
+- **To Bill**: Delivered orders awaiting billing
+- **To Deliver**: Billed orders awaiting delivery
+- **Fully Delivered**: Completed deliveries
+- **Completed**: Fully billed and delivered
+- **Cancelled**: Cancelled orders
+- **On Hold**: Paused orders
+
+#### Quotation to Sales Order Flow
+- Quotations with `docstatus === 1` (submitted) and `status !== 'Ordered'` appear in "Ready for Sales Order" tab
+- "Create Sales Order" button links to `/sales-orders/new?quotation=${quotation.name}`
+- This preserves existing workflow where sales order creation pulls quotation data
+
+### Testing Checklist
+
+#### Core Functionality
+- [ ] KPI cards display correct counts from getSalesOrderStats()
+- [ ] Sales orders table loads with real data from ERPNext
+- [ ] Search filters orders correctly (by ID, customer name)
+- [ ] Pagination works correctly (10 per page)
+- [ ] Previous/Next buttons disable appropriately
+- [ ] Order ID links navigate to detail page
+- [ ] View button navigates to detail page
+- [ ] Tab switching works (All Sales Orders ↔ Ready for Sales Order)
+- [ ] Ready for Sales Order tab shows submitted quotations
+- [ ] Create Sales Order button works with quotation parameter
+- [ ] Empty state shows when no ready quotations exist
+- [ ] Dark mode styling works correctly
+
+#### AI Features
+- [ ] AI Fulfillment Risk shows appropriate color (emerald/blue/red)
+- [ ] AI Insight badges display with correct icon
+- [ ] Risk glowing dots render correctly
+- [ ] Insights update when connected to real AI service
+
+#### Edge Cases
+- [ ] Empty search results display properly
+- [ ] Orders without customer_name fall back to customer field
+- [ ] Orders without delivery_date show "-"
+- [ ] Zero total_qty displays as "0 items"
+- [ ] Large amounts format correctly with locale
+
+### Known Issues & TODOs
+
+#### High Priority
+- **AI Service Integration**: Mock logic needs replacement with real AI service
+  - Risk assessment should consider delivery dates, inventory, patterns
+  - Insights should provide actionable recommendations
+- **Update Button Functionality**: Wire to delivery status update functionality
+  - Reuse existing updateSalesOrder action
+  - Consider modal/dialog for status update
+- **Filter Panel**: Implement full filter functionality
+  - Status filters
+  - Date range filters
+  - Amount range filters
+
+#### Medium Priority
+- **User Avatar**: Connect to real user data (current user from auth)
+- **AI Search**: Wire search input to AI service for natural language queries
+- **Notifications**: Implement notification system if required
+
+#### Low Priority
+- **Export**: Add CSV/Excel export for sales orders table
+- **Bulk Actions**: Select multiple orders for bulk updates
+- **Column Sorting**: Add sorting by date, amount, status
+- **Column Customization**: Allow users to show/hide columns
+
+### Design System Consistency
+
+#### Component Sizing (Matching Other Pages)
+- **KPI Cards**: `p-6`, `h-36`, `text-[28px]` for values, `text-[12px]` for headers
+- **Table Headers**: `text-[12px]`, `font-bold`, `uppercase`, `tracking-wider`
+- **Table Cells**: `text-[16px]` for content, `px-8 py-6` padding
+- **Status Badges**: `text-[10px]`, `font-bold`, `uppercase`, `px-3 py-1`
+- **Buttons**: `px-4 py-2` for table actions, `px-6 py-2.5` for header actions
+
+#### Color Palette (Dark Mode)
+- **Cards**: `bg-card-dark` (#111827), `border-slate-800`
+- **Headers**: `text-[12px]`, `text-slate-400`
+- **Values**: `text-[28px]`, `text-white`
+- **Icons**: Status-specific colors (emerald-500, blue-500, red-500, purple-500)
+
+### Integration with Existing Systems
+
+#### Preserved Functionality
+- **Sales Order Detail Pages**: Still use individual components (DeliveryStatusBadge, DeliveryUpdateCard, SalesOrderActions)
+- **Sales Order Creation**: `/sales-orders/new` page unchanged, accepts quotation parameter
+- **Server Actions**: All existing actions (getSalesOrders, getSalesOrderStats, updateSalesOrder) remain functional
+- **Print Views**: Print templates for sales orders unaffected
+- **Invoice Creation**: Sales Order → Invoice workflow preserved
+
+#### Navigation Flow
+- **From CRM Quotations** → Ready for Sales Order tab → Create Sales Order
+- **From Sales Orders Table** → View button → Sales Order detail page
+- **From Header** → New Sales Order button → Sales order creation form
+- **From Ready Tab** → View Quotation → Quotation detail page
+
+### Next Steps
+
+- **Next Action**: "User testing of sales orders page to verify data accuracy and AI features"
+
+---
+
 ## Questions for Product Team
 1. Should we implement Kanban view for opportunities as priority?
 2. What AI service should we connect for real insights?

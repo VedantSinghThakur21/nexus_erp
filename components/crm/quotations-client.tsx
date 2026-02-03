@@ -216,8 +216,7 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="p-8 border-b border-slate-100 dark:border-slate-700">
             {/* Tabs */}
-            <div className="flex items-center justify-between mb-8 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-10">
+            <div className="flex items-center gap-10 mb-8 border-b border-slate-100 dark:border-slate-700">
               {STATUS_TABS.map((tab) => (
                 <button
                   key={tab.filter}
@@ -231,14 +230,6 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
                   {tab.name} ({tab.filter === "all" ? filteredQuotations.length : quotations.filter(q => q.status === 'Draft').length})
                 </button>
               ))}
-              </div>
-              {selectedTab === "ready" && (
-                <Link href="/crm/quotations/new">
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-md shadow-blue-600/20 mb-4">
-                    <span className="text-lg">+</span> Create Quotation
-                  </button>
-                </Link>
-              )}
             </div>
 
             {/* Filters */}
@@ -315,9 +306,20 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
                           <Zap className="h-3.5 w-3.5" /> {aiInsight.text}
                         </span>
                       )}
-                      <button className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-600 rounded-lg px-6 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
-                        View Details <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
+                      {quotation.status === 'Draft' ? (
+                        <Link href={`/crm/quotations/new?from=${quotation.name}`}>
+                          <button 
+                            className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Create Quotation <ArrowRight className="h-3.5 w-3.5" />
+                          </button>
+                        </Link>
+                      ) : (
+                        <button className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-600 rounded-lg px-6 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                          View Details <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4 mb-10">
