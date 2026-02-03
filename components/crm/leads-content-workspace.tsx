@@ -473,66 +473,90 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                         </div>
                                     )}
 
-                                    {/* Kanban View (Placeholder) */}
+                                    {/* Kanban View */}
                                     {viewMode === "grid" && (
-                                        <div className="p-4 overflow-x-auto">
-                                            <div className="flex gap-4 min-w-max">
+                                        <div className="p-6 overflow-x-auto h-full">
+                                            <div className="flex gap-6 min-w-max h-full">
                                                 {LEAD_STAGES.map(stage => {
                                                     const stageLeads = filteredLeads.filter(l => l.status === stage)
                                                     return (
                                                         <div
                                                             key={stage}
-                                                            className="flex-shrink-0 w-72"
+                                                            className="flex flex-col gap-4 flex-shrink-0 w-80"
                                                             onDragOver={handleDragOver}
                                                             onDrop={() => handleDrop(stage)}
                                                         >
-                                                            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 mb-3">
-                                                                <div className="flex items-center justify-between">
-                                                                    <h3 className="font-semibold text-sm text-slate-900 dark:text-white">{stage}</h3>
-                                                                    <span className="text-xs font-bold px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded-full">
-                                                                        {stageLeads.length}
-                                                                    </span>
-                                                                </div>
+                                                            {/* Column Header */}
+                                                            <div className="flex items-center justify-between px-2">
+                                                                <h3 className="text-[12px] font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                                                    {stage} <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-[10px]">{stageLeads.length}</span>
+                                                                </h3>
+                                                                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
+                                                                    <span className="material-symbols-outlined text-lg">more_horiz</span>
+                                                                </button>
                                                             </div>
-                                                            <div className="space-y-3 min-h-[200px]">
-                                                                {stageLeads.map(lead => (
-                                                                    <div
-                                                                        key={lead.name}
-                                                                        className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-md transition cursor-move"
-                                                                        draggable
-                                                                        onDragStart={() => handleDragStart(lead.name)}
-                                                                        onClick={() => router.push(`/crm/${encodeURIComponent(lead.name)}`)}
-                                                                    >
-                                                                        <div className="flex items-start gap-3">
-                                                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                                                                {lead.lead_name.charAt(0).toUpperCase()}
+
+                                                            {/* Lead Cards */}
+                                                            <div className="flex-1 space-y-4 overflow-y-auto no-scrollbar pr-1">
+                                                                {stageLeads.map(lead => {
+                                                                    // Determine priority icon based on AI score
+                                                                    const priorityIcon = lead.aiScore >= 75
+                                                                        ? { icon: 'local_fire_department', color: 'text-orange-500' }
+                                                                        : lead.aiScore >= 50
+                                                                            ? { icon: 'wb_sunny', color: 'text-blue-400' }
+                                                                            : { icon: 'ac_unit', color: 'text-slate-400' }
+
+                                                                    return (
+                                                                        <div
+                                                                            key={lead.name}
+                                                                            className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition cursor-move group"
+                                                                            draggable
+                                                                            onDragStart={() => handleDragStart(lead.name)}
+                                                                            onClick={() => router.push(`/crm/${encodeURIComponent(lead.name)}`)}
+                                                                        >
+                                                                            {/* Lead Header */}
+                                                                            <div className="flex justify-between items-start mb-3">
+                                                                                <div>
+                                                                                    <h4 className="text-[16px] font-bold text-[#3b82f6] mb-0.5">{lead.lead_name}</h4>
+                                                                                    <p className="text-[12px] text-slate-500 font-medium">{lead.company_name || 'Individual'}</p>
+                                                                                </div>
+                                                                                <span className={`material-symbols-outlined ${priorityIcon.color} text-lg`}>
+                                                                                    {priorityIcon.icon}
+                                                                                </span>
                                                                             </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <p className="font-medium text-sm text-slate-900 dark:text-white truncate">
-                                                                                    {lead.lead_name}
-                                                                                </p>
-                                                                                <p className="text-xs text-slate-500 truncate">{lead.email_id}</p>
-                                                                                {lead.company_name && (
-                                                                                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
-                                                                                        {lead.company_name}
-                                                                                    </p>
-                                                                                )}
-                                                                                <div className="flex items-center gap-2 mt-2">
-                                                                                    <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+
+                                                                            {/* AI Score Section */}
+                                                                            <div className="flex items-center gap-3 mt-4">
+                                                                                {/* Avatar or Initials */}
+                                                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-[10px] flex-shrink-0">
+                                                                                    {lead.lead_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                                                                </div>
+
+                                                                                {/* AI Score Bar */}
+                                                                                <div className="flex-1">
+                                                                                    <div className="flex justify-between items-center mb-1">
+                                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">AI Score</span>
+                                                                                        <span className={`text-[10px] font-bold ${lead.aiScore >= 75 ? 'text-emerald-500' :
+                                                                                                lead.aiScore >= 50 ? 'text-orange-500' :
+                                                                                                    'text-red-500'
+                                                                                            }`}>
+                                                                                            {lead.aiScore}%
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                                                         <div
-                                                                                            className={`h-full ${lead.aiScore >= 75 ? "bg-emerald-500" : lead.aiScore >= 50 ? "bg-orange-500" : "bg-red-500"
+                                                                                            className={`h-full rounded-full ${lead.aiScore >= 75 ? 'bg-emerald-500' :
+                                                                                                    lead.aiScore >= 50 ? 'bg-orange-500' :
+                                                                                                        'bg-red-500'
                                                                                                 }`}
                                                                                             style={{ width: `${lead.aiScore}%` }}
                                                                                         ></div>
                                                                                     </div>
-                                                                                    <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                                                                                        {lead.aiScore}
-                                                                                    </span>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                ))}
+                                                                    )
+                                                                })}
                                                                 {stageLeads.length === 0 && (
                                                                     <div className="text-center py-8 text-sm text-slate-400">No leads</div>
                                                                 )}
