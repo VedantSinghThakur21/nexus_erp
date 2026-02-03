@@ -73,6 +73,15 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     const [selectedSource, setSelectedSource] = useState("All Sources")
     const [selectedPriority, setSelectedPriority] = useState<"hot" | "warm" | "cold" | null>("hot")
     const [draggedLead, setDraggedLead] = useState<string | null>(null)
+    const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false })
+
+    // Show toast notification
+    const showToast = (message: string) => {
+        setToast({ message, show: true })
+        setTimeout(() => {
+            setToast({ message: "", show: false })
+        }, 2000)
+    }
 
     // Enrich leads with AI scores
     const leadsWithScores = useMemo(() => {
@@ -156,7 +165,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     }
 
     // Drag and drop handlers for Kanban
-    const handleDragStart = (leadName: string) => {
+    const handleDragStart = (e: React.DragEvent, leadName: string, leadStatus: string) => {
+        // Prevent dragging converted leads
+        if (leadStatus === "Converted") {
+            e.preventDefault()
+            showToast("Converted leads cannot be moved to other stages")
+            return
+        }
         setDraggedLead(leadName)
     }
 
@@ -166,6 +181,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
 
     const handleDrop = async (targetStage: string) => {
         if (!draggedLead) return
+
+        // Prevent dropping into Converted stage
+        if (targetStage === "Converted") {
+            setDraggedLead(null)
+            showToast("Leads cannot be manually moved to Converted stage")
+            return
+        }
 
         const lead = leads.find(l => l.name === draggedLead)
         if (lead && lead.status !== targetStage) {
@@ -449,9 +471,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                             <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                                 <div className="flex justify-center">
                                                                     <select
-                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-0 cursor-pointer transition-colors ${getStageColor(lead.status)}`}
+                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-0 transition-colors ${lead.status === "Converted"
+                                                                            ? "cursor-not-allowed opacity-60"
+                                                                            : "cursor-pointer"
+                                                                            } ${getStageColor(lead.status)}`}
                                                                         value={lead.status}
                                                                         onChange={(e) => handleStatusChange(lead.name, e.target.value)}
+                                                                        disabled={lead.status === "Converted"}
                                                                     >
                                                                         {LEAD_STAGES.map(stage => (
                                                                             <option key={stage} value={stage}>{stage}</option>
@@ -514,13 +540,21 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                                             ? { icon: 'wb_sunny', color: 'text-blue-400' }
                                                                             : { icon: 'ac_unit', color: 'text-slate-400' }
 
+                                                                    const isConverted = lead.status === "Converted"
+
                                                                     return (
                                                                         <div
                                                                             key={lead.name}
-                                                                            className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition cursor-move group"
-                                                                            draggable
-                                                                            onDragStart={() => handleDragStart(lead.name)}
-                                                                            onClick={() => router.push(`/crm/${encodeURIComponent(lead.name)}`)}
+                                                                            className={`bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition group ${isConverted ? 'opacity-60 cursor-not-allowed' : 'cursor-move'
+                                                                                }`}
+                                                                            draggable={!isConverted}
+                                                                            onDragStart={(e) => handleDragStart(e, lead.name, lead.status)}
+                                                                            onClick={(e) => {
+                                                                                // Prevent navigation if dragging
+                                                                                if (!draggedLead) {
+                                                                                    router.push(`/crm/${encodeURIComponent(lead.name)}`)
+                                                                                }
+                                                                            }}
                                                                         >
                                                                             {/* Lead Header */}
                                                                             <div className="flex justify-between items-start mb-3">
