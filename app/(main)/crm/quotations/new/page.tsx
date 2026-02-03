@@ -18,7 +18,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ItemSearch } from "@/components/invoices/item-search"
 import { getTaxTemplates, getTaxTemplate } from "@/app/actions/settings"
-import { getCompanyDetails, getBankDetails } from "@/app/actions/crm"
+import { getCompanyDetails, getBankDetails, getQuotation } from "@/app/actions/crm"
 import { getItemGroups } from "@/app/actions/invoices"
 import { PricingRulesIndicator } from "@/components/pricing-rules/pricing-rules-indicator"
 import { AppliedRulesSummary } from "@/components/pricing-rules/applied-rules-summary"
@@ -60,6 +60,7 @@ export default function NewQuotationPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const opportunityId = searchParams.get('opportunity')
+  const fromQuotationName = searchParams.get('from')
 
   // Category filter state
   const [itemGroups, setItemGroups] = useState<string[]>([])
@@ -147,6 +148,50 @@ export default function NewQuotationPage() {
       setSelectedTaxTemplateDetails(null)
     }
   }, [taxTemplate])
+
+  // Prefill from quotation if 'from' parameter provided
+  useEffect(() => {
+    if (fromQuotationName) {
+      setPrefilling(true)
+      getQuotation(fromQuotationName)
+        .then(quotation => {
+          if (quotation) {
+            // Set party info
+            setQuotationTo(quotation.quotation_to || 'Customer')
+            setPartyName(quotation.party_name || quotation.customer_name || '')
+            setCurrency(quotation.currency || 'INR')
+            
+            // Set dates
+            if (quotation.transaction_date) {
+              setTransactionDate(quotation.transaction_date)
+            }
+            if (quotation.valid_till) {
+              setValidTill(quotation.valid_till)
+            }
+            
+            // Set items if available
+            if (quotation.items && quotation.items.length > 0) {
+              const prefillItems = quotation.items.map((item: any, index: number) => ({
+                id: index + 1,
+                item_code: item.item_code || '',
+                item_name: item.item_name || item.item_code || '',
+                description: item.description || item.item_name || '',
+                qty: item.qty || 1,
+                rate: item.rate || 0,
+                amount: item.amount || (item.qty || 1) * (item.rate || 0),
+                is_rental: item.is_rental || false
+              }))
+              setItems(prefillItems)
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching quotation:', error)
+          alert('Failed to load quotation details')
+        })
+        .finally(() => setPrefilling(false))
+    }
+  }, [fromQuotationName])
 
   // Prefill from opportunity if provided
   useEffect(() => {

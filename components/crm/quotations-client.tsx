@@ -20,8 +20,23 @@ interface Quotation {
   contact_email?: string
 }
 
+interface Opportunity {
+  name: string
+  opportunity_from: string
+  party_name: string
+  customer_name?: string
+  opportunity_type: string
+  status: string
+  sales_stage: string
+  expected_closing: string
+  probability: number
+  opportunity_amount: number
+  currency: string
+}
+
 interface QuotationsClientProps {
   quotations: Quotation[]
+  opportunities: Opportunity[]
 }
 
 const STATUS_TABS = [
@@ -29,7 +44,7 @@ const STATUS_TABS = [
   { name: "Ready for Quotation", filter: "ready" }
 ] as const
 
-export function QuotationsClient({ quotations }: QuotationsClientProps) {
+export function QuotationsClient({ quotations, opportunities }: QuotationsClientProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTab, setSelectedTab] = useState("all")
@@ -131,6 +146,22 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
     }
     return { text: `${diffDays} days remaining`, color: 'text-slate-400' }
   }
+
+  // Find opportunities in Proposal/Price Quote stage, Open status, and no draft quotation exists
+  const draftQuotations = quotations.filter(q => q.status === 'Draft')
+  const proposalOpportunities = opportunities.filter(
+    opp => opp.sales_stage === 'Proposal/Price Quote' && opp.status === 'Open'
+  )
+
+  // Only use combined array for ready tab, otherwise just show quotations
+  const readyQuotationsAndOpportunities = useMemo(() => {
+    if (selectedTab !== "ready") return paginatedQuotations.map(q => ({ type: "quotation" as const, data: q }));
+    // Combine paginated draft quotations and proposal opportunities (no deduplication by opportunity possible)
+    return [
+      ...paginatedQuotations.map(q => ({ type: "quotation" as const, data: q })),
+      ...proposalOpportunities.map(o => ({ type: "opportunity" as const, data: o }))
+    ];
+  }, [selectedTab, paginatedQuotations, proposalOpportunities])
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950">
@@ -285,28 +316,28 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
             </div>
 
             {/* Quotation Cards */}
-            {paginatedQuotations.length === 0 ? (
+            {readyQuotationsAndOpportunities.length === 0 ? (
               <div className="text-center py-12 text-slate-500">
                 No quotations found
               </div>
             ) : (
-              paginatedQuotations.map((quotation) => {
-                const aiInsight = getAIInsight(quotation)
-                const daysRemaining = getDaysRemaining(quotation.valid_till)
-                
-                return (
-                  <div
-                    key={quotation.name}
-                    className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-white dark:bg-slate-800/50 relative cursor-pointer"
-                    onClick={() => router.push(`/crm/quotations/${quotation.name}`)}
-                  >
-                    <div className="absolute top-10 right-10 flex items-center gap-4">
-                      {aiInsight && (
-                        <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase flex items-center gap-2 ${aiInsight.color}`}>
-                          <Zap className="h-3.5 w-3.5" /> {aiInsight.text}
-                        </span>
-                      )}
-                      {selectedTab === "ready" && quotation.status === 'Draft' ? (
+              readyQuotationsAndOpportunities.map((item) => {
+                if (item.type === "quotation") {
+                  const quotation = item.data;
+                  const aiInsight = getAIInsight(quotation);
+                  const daysRemaining = getDaysRemaining(quotation.valid_till);
+                  return (
+                    <div
+                      key={quotation.name}
+                      className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-white dark:bg-slate-800/50 relative cursor-pointer"
+                      onClick={() => router.push(`/crm/quotations/${quotation.name}`)}
+                    >
+                      <div className="absolute top-10 right-10 flex items-center gap-4">
+                        {aiInsight && (
+                          <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase flex items-center gap-2 ${aiInsight.color}`}>
+                            <Zap className="h-3.5 w-3.5" /> {aiInsight.text}
+                          </span>
+                        )}
                         <Link href={`/crm/quotations/new?from=${quotation.name}`}>
                           <button 
                             className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
@@ -315,73 +346,126 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
                             Create Quotation <ArrowRight className="h-3.5 w-3.5" />
                           </button>
                         </Link>
-                      ) : (
-                        <button className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-slate-600 rounded-lg px-6 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
-                          View Details <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-4 mb-10">
-                      <h4 className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">{quotation.name}</h4>
-                      <span className={`text-[11px] px-3 py-1 rounded-md font-bold uppercase tracking-widest ${getStatusBadge(quotation.status)}`}>
-                        {quotation.status}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-16">
-                      {/* Customer */}
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                          <User className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Customer</p>
-                          <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{quotation.customer_name || quotation.party_name}</p>
-                          <p className="text-sm text-slate-400">{quotation.contact_email || 'No email'}</p>
-                        </div>
                       </div>
 
-                      {/* Valid Till */}
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-                          <Calendar className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Valid till</p>
-                          <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">
-                            {new Date(quotation.valid_till).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                          <p className={`text-sm font-medium ${daysRemaining.color}`}>{daysRemaining.text}</p>
-                        </div>
+                      <div className="flex items-center gap-4 mb-10">
+                        <h4 className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">{quotation.name}</h4>
+                        <span className={`text-[11px] px-3 py-1 rounded-md font-bold uppercase tracking-widest ${getStatusBadge(quotation.status)}`}>
+                          {quotation.status}
+                        </span>
                       </div>
 
-                      {/* Amount */}
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                          <DollarSign className="h-6 w-6" />
+                      <div className="grid grid-cols-4 gap-16">
+                        <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                            <User className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Customer</p>
+                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{quotation.customer_name || quotation.party_name}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Amount</p>
-                          <p className="text-[20px] font-bold text-slate-900 dark:text-white leading-tight">{formatCurrency(quotation.grand_total)}</p>
-                          <p className="text-sm text-emerald-500 font-medium">Incl. GST 18%</p>
-                        </div>
-                      </div>
 
-                      {/* Items */}
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 shrink-0">
-                          <Package className="h-6 w-6" />
+                        <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                            <Calendar className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Valid till</p>
+                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">
+                              {new Date(quotation.valid_till).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </p>
+                            <p className={`text-sm font-medium ${daysRemaining.color}`}>{daysRemaining.text}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Items</p>
-                          <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{quotation.total_qty || 0} SKUs</p>
-                          <p className="text-sm text-slate-400">View items</p>
+
+                        <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <DollarSign className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Amount</p>
+                            <p className="text-[20px] font-bold text-slate-900 dark:text-white leading-tight">{formatCurrency(quotation.grand_total)}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 shrink-0">
+                            <Package className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Items</p>
+                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{quotation.total_qty || 0} SKUs</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )
+                  );
+                } else if (item.type === "opportunity") {
+                  const opp = item.data;
+                  return (
+                    <div
+                      key={opp.name}
+                      className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-white dark:bg-slate-800/50 relative"
+                    >
+                      <div className="absolute top-10 right-10 flex items-center gap-4">
+                        <Link href={`/crm/quotations/new?opportunity=${opp.name}`}>
+                          <button 
+                            className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Create Quotation <ArrowRight className="h-3.5 w-3.5" />
+                          </button>
+                        </Link>
+                      </div>
+                      <div className="flex items-center gap-4 mb-10">
+                        <h4 className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">{opp.name}</h4>
+                        <span className="text-[11px] px-3 py-1 rounded-md font-bold uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 border border-blue-100 dark:border-blue-900">
+                          Proposal/Price Quote
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-16">
+                        <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                            <User className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Customer</p>
+                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{opp.customer_name || opp.party_name}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                            <Calendar className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Expected Closing</p>
+                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{new Date(opp.expected_closing).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <DollarSign className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Amount</p>
+                            <p className="text-[20px] font-bold text-slate-900 dark:text-white leading-tight">{formatCurrency(opp.opportunity_amount)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 shrink-0">
+                            <Package className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Stage</p>
+                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">Proposal/Price Quote</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
               })
             )}
 
