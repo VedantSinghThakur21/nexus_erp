@@ -258,7 +258,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                       : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium'
                   }`}
                 >
-                  {tab.name} ({tab.filter === "all" ? filteredQuotations.length : quotations.filter(q => q.status === 'Draft').length})
+                  {tab.name} ({tab.filter === "all" ? filteredQuotations.length : draftQuotations.length + proposalOpportunities.length})
                 </button>
               ))}
             </div>
@@ -338,14 +338,16 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                             <Zap className="h-3.5 w-3.5" /> {aiInsight.text}
                           </span>
                         )}
-                        <Link href={`/crm/quotations/new?from=${quotation.name}`}>
-                          <button 
-                            className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Create Quotation <ArrowRight className="h-3.5 w-3.5" />
-                          </button>
-                        </Link>
+                        {selectedTab === "ready" && (
+                          <Link href={`/crm/quotations/new?from=${quotation.name}`}>
+                            <button 
+                              className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Create Quotation <ArrowRight className="h-3.5 w-3.5" />
+                            </button>
+                          </Link>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-4 mb-10">
