@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, TrendingUp, Wallet, Zap, User, Calendar, DollarSign, Package, ArrowRight } from "lucide-react"
 
+
 interface Quotation {
   name: string
   quotation_to: string
@@ -14,7 +15,7 @@ interface Quotation {
   valid_till: string
   grand_total: number
   currency: string
-  transaction_date: string
+  transaction_date?: string
   total_qty?: number
   contact_email?: string
 }
