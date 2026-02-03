@@ -26,8 +26,7 @@ interface QuotationsClientProps {
 
 const STATUS_TABS = [
   { name: "All Quotations", filter: "all" },
-  { name: "Ready for Quotation", filter: "ready" },
-  { name: "Pending Approval", filter: "pending" }
+  { name: "Ready for Quotation", filter: "ready" }
 ] as const
 
 export function QuotationsClient({ quotations }: QuotationsClientProps) {
@@ -66,8 +65,6 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
     // Tab filter
     if (selectedTab === "ready") {
       result = result.filter(q => q.status === 'Draft')
-    } else if (selectedTab === "pending") {
-      result = result.filter(q => q.status === 'Sent')
     }
 
     return result
@@ -219,7 +216,8 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="p-8 border-b border-slate-100 dark:border-slate-700">
             {/* Tabs */}
-            <div className="flex items-center gap-10 mb-8 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-between mb-8 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-10">
               {STATUS_TABS.map((tab) => (
                 <button
                   key={tab.filter}
@@ -230,9 +228,17 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
                       : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium'
                   }`}
                 >
-                  {tab.name} ({tab.filter === "all" ? filteredQuotations.length : tab.filter === "ready" ? quotations.filter(q => q.status === 'Draft').length : quotations.filter(q => q.status === 'Sent').length})
+                  {tab.name} ({tab.filter === "all" ? filteredQuotations.length : quotations.filter(q => q.status === 'Draft').length})
                 </button>
               ))}
+              </div>
+              {selectedTab === "ready" && (
+                <Link href="/crm/quotations/new">
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-md shadow-blue-600/20 mb-4">
+                    <span className="text-lg">+</span> Create Quotation
+                  </button>
+                </Link>
+              )}
             </div>
 
             {/* Filters */}
