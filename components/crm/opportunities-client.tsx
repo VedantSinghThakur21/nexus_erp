@@ -113,16 +113,28 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950">
       {/* Header */}
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Opportunities</h1>
+        <div className="flex items-center space-x-8">
+          {/* AVARIQ logo removed */}
+          <div className="relative w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              className="w-full bg-slate-50 dark:bg-slate-900/50 border-0 rounded-full h-10 py-2 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none text-sm"
+              placeholder="Ask AI anything..."
+              type="text"
+            />
+          </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <Link href="/crm/opportunities/new">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 font-medium shadow-lg shadow-blue-600/20 transition-all">
-              <span className="text-sm">+</span>
-              <span>New Opportunity</span>
-            </button>
-          </Link>
+        <div className="flex items-center space-x-6">
+          {/* New Opportunity button intentionally removed */}
+          <div className="flex items-center space-x-4 border-l border-slate-200 dark:border-slate-700 pl-6">
+            <div className="text-right">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">Alex Thompson</p>
+              <p className="text-[10px] uppercase text-slate-500 tracking-wider">Sales Operations Manager</p>
+            </div>
+            <div className="w-10 h-10 rounded-full border-2 border-blue-600/20 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white text-sm font-bold">
+              AT
+            </div>
+          </div>
         </div>
       </header>
 
