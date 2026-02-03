@@ -306,7 +306,7 @@ export function QuotationsClient({ quotations }: QuotationsClientProps) {
                           <Zap className="h-3.5 w-3.5" /> {aiInsight.text}
                         </span>
                       )}
-                      {quotation.status === 'Draft' ? (
+                      {selectedTab === "ready" && quotation.status === 'Draft' ? (
                         <Link href={`/crm/quotations/new?from=${quotation.name}`}>
                           <button 
                             className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"

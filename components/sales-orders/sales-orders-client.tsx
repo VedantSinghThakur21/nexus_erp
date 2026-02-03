@@ -127,38 +127,39 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
             </p>
           </div>
 
-          {/* KPI Cards - matching exact HTML with proper light/dark mode */}
+          {/* KPI Cards - match leads page styling */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div className="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+            {/* Draft */}
+            <div className="bg-background-light dark:bg-card-dark border border-slate-200 dark:border-slate-800 rounded-[20px] p-6 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-400 transition-colors">
               <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Draft</span>
-                <Package className="h-6 w-6 text-slate-400 dark:text-slate-600" />
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">DRAFT</span>
+                <Package className="text-slate-400 dark:text-slate-600 text-2xl" />
               </div>
-              <div className="text-[40px] font-bold text-slate-900 dark:text-white">{stats.draft}</div>
+              <div className="text-[40px] font-bold text-slate-900 dark:text-white leading-none">{stats.draft}</div>
             </div>
-
-            <div className="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+            {/* Confirmed */}
+            <div className="bg-background-light dark:bg-card-dark border border-slate-200 dark:border-slate-800 rounded-[20px] p-6 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-400 transition-colors">
               <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Confirmed</span>
-                <CheckCircle className="h-6 w-6 text-emerald-500" />
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">CONFIRMED</span>
+                <CheckCircle className="text-emerald-500 text-2xl" />
               </div>
-              <div className="text-[40px] font-bold text-slate-900 dark:text-white">{stats.confirmed}</div>
+              <div className="text-[40px] font-bold text-slate-900 dark:text-white leading-none">{stats.confirmed}</div>
             </div>
-
-            <div className="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+            {/* In Progress */}
+            <div className="bg-background-light dark:bg-card-dark border border-slate-200 dark:border-slate-800 rounded-[20px] p-6 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-400 transition-colors">
               <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">In Progress</span>
-                <Clock className="h-6 w-6 text-blue-500" />
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">IN PROGRESS</span>
+                <Clock className="text-blue-500 text-2xl" />
               </div>
-              <div className="text-[40px] font-bold text-slate-900 dark:text-white">{stats.inProgress}</div>
+              <div className="text-[40px] font-bold text-slate-900 dark:text-white leading-none">{stats.inProgress}</div>
             </div>
-
-            <div className="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+            {/* Total Value */}
+            <div className="bg-background-light dark:bg-card-dark border border-slate-200 dark:border-slate-800 rounded-[20px] p-6 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-400 transition-colors">
               <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Value</span>
-                <IndianRupee className="h-6 w-6 text-purple-500" />
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">TOTAL VALUE</span>
+                <IndianRupee className="text-purple-500 text-2xl" />
               </div>
-              <div className="text-[40px] font-bold text-slate-900 dark:text-white">₹{stats.totalValue.toLocaleString()}</div>
+              <div className="text-[40px] font-bold text-slate-900 dark:text-white leading-none">₹{stats.totalValue.toLocaleString()}</div>
             </div>
           </div>
 
