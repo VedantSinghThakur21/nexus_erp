@@ -127,39 +127,70 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
             </p>
           </div>
 
-          {/* KPI Cards - match leads page styling */}
+          {/* KPI Cards - exact match to leads page styling */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             {/* Draft */}
-            <div className="bg-background-light dark:bg-card-dark border border-slate-200 dark:border-slate-800 rounded-[20px] p-6 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-400 transition-colors">
-              <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">DRAFT</span>
-                <Package className="text-slate-400 dark:text-slate-600 text-2xl" />
+            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-400 transition-colors">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">DRAFT</span>
+                <div className="p-2 rounded-lg bg-slate-600/10 text-slate-400">
+                  <Package className="h-5 w-5" />
+                </div>
               </div>
-              <div className="text-[40px] font-bold text-slate-900 dark:text-white leading-none">{stats.draft}</div>
+              <div className="flex items-end gap-3">
+                <span className="text-[28px] font-bold text-white leading-none">{stats.draft}</span>
+              </div>
+              <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-slate-500 w-[20%] rounded-full"></div>
+              </div>
             </div>
+
             {/* Confirmed */}
-            <div className="bg-background-light dark:bg-card-dark border border-slate-200 dark:border-slate-800 rounded-[20px] p-6 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-400 transition-colors">
-              <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">CONFIRMED</span>
-                <CheckCircle className="text-emerald-500 text-2xl" />
+            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-400 transition-colors">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">CONFIRMED</span>
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                  <CheckCircle className="h-5 w-5" />
+                </div>
               </div>
-              <div className="text-[40px] font-bold text-slate-900 dark:text-white leading-none">{stats.confirmed}</div>
+              <div className="flex items-end gap-3">
+                <span className="text-[28px] font-bold text-white leading-none">{stats.confirmed}</span>
+              </div>
+              <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 w-[60%] rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+              </div>
             </div>
+
             {/* In Progress */}
-            <div className="bg-background-light dark:bg-card-dark border border-slate-200 dark:border-slate-800 rounded-[20px] p-6 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-400 transition-colors">
-              <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">IN PROGRESS</span>
-                <Clock className="text-blue-500 text-2xl" />
+            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-400 transition-colors">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">IN PROGRESS</span>
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                  <Clock className="h-5 w-5" />
+                </div>
               </div>
-              <div className="text-[40px] font-bold text-slate-900 dark:text-white leading-none">{stats.inProgress}</div>
+              <div className="flex items-end gap-3">
+                <span className="text-[28px] font-bold text-white leading-none">{stats.inProgress}</span>
+              </div>
+              <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 w-[0%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+              </div>
             </div>
+
             {/* Total Value */}
-            <div className="bg-background-light dark:bg-card-dark border border-slate-200 dark:border-slate-800 rounded-[20px] p-6 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-400 transition-colors">
-              <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">TOTAL VALUE</span>
-                <IndianRupee className="text-purple-500 text-2xl" />
+            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-400 transition-colors">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">TOTAL VALUE</span>
+                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                  <IndianRupee className="h-5 w-5" />
+                </div>
               </div>
-              <div className="text-[40px] font-bold text-slate-900 dark:text-white leading-none">₹{stats.totalValue.toLocaleString()}</div>
+              <div className="flex items-end gap-3">
+                <span className="text-[28px] font-bold text-white leading-none">₹{stats.totalValue.toLocaleString()}</span>
+              </div>
+              <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-purple-500 w-[85%] rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+              </div>
             </div>
           </div>
 

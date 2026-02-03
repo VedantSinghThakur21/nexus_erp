@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Grid, List as ListIcon, ArrowRight, TrendingUp, DollarSign, Zap, CheckCircle, AlertCircle, PauseCircle } from "lucide-react"
+import { updateOpportunitySalesStage } from "@/app/actions/crm"
 
 interface Opportunity {
   name: string
@@ -106,6 +107,25 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
       return { icon: PauseCircle, text: "Stalled", color: "text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/20" }
     } else {
       return { icon: AlertCircle, text: "At Risk", color: "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20" }
+    }
+  }
+
+  // Handle stage change
+  const handleStageChange = async (opportunityId: string, newStage: string) => {
+    try {
+      // Estimate probability based on stage
+      const probabilityMap: Record<string, number> = {
+        "Prospecting": 10,
+        "Qualification": 30,
+        "Proposal/Price Quote": 60,
+        "Negotiation/Review": 80
+      }
+      const probability = probabilityMap[newStage] || 50
+
+      await updateOpportunitySalesStage(opportunityId, newStage, probability)
+      router.refresh() // Refresh to show updated data
+    } catch (error) {
+      console.error("Failed to update opportunity stage:", error)
     }
   }
 
@@ -289,11 +309,17 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                           <span className="text-[14px] font-medium text-slate-600 dark:text-slate-400">{ownerName}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-8 py-6" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center space-x-4">
-                          <span className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-extrabold uppercase tracking-wide rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
-                            {opp.sales_stage.split('/')[0]}
-                          </span>
+                          <select
+                            className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-extrabold uppercase tracking-wide rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                            value={opp.sales_stage}
+                            onChange={(e) => handleStageChange(opp.name, e.target.value)}
+                          >
+                            {SALES_STAGES.map(stage => (
+                              <option key={stage} value={stage}>{stage.split('/')[0]}</option>
+                            ))}
+                          </select>
                           <span className={`px-3 py-1 ${aiStatus.color} text-[10px] font-bold uppercase rounded border flex items-center tracking-widest`}>
                             <AIStatusIcon className="h-3.5 w-3.5 mr-1.5" />
                             {aiStatus.text}
