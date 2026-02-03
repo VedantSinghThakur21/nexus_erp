@@ -49,6 +49,22 @@ function calculateAIScore(lead: Lead): number {
     return Math.min(100, score + Math.floor(Math.random() * 10))
 }
 
+// Helper function to get stage badge color
+function getStageColor(stage: string): string {
+    const colors: Record<string, string> = {
+        'Lead': 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
+        'Open': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+        'Replied': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
+        'Interested': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+        'Opportunity': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+        'Quotation': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+        'Lost Quotation': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+        'Converted': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+        'Do Not Contact': 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300'
+    }
+    return colors[stage] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+}
+
 export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     const router = useRouter()
     const [viewMode, setViewMode] = useState<"list" | "grid">("list")
@@ -324,8 +340,8 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                             <div className="space-y-2.5">
                                                 <button
                                                     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "hot"
-                                                            ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 border border-orange-200 dark:border-orange-500/20"
-                                                            : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                        ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 border border-orange-200 dark:border-orange-500/20"
+                                                        : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                                                         }`}
                                                     onClick={() => setSelectedPriority(selectedPriority === "hot" ? null : "hot")}
                                                 >
@@ -333,8 +349,8 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                 </button>
                                                 <button
                                                     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "warm"
-                                                            ? "bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 border border-yellow-200 dark:border-yellow-500/20"
-                                                            : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                        ? "bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 border border-yellow-200 dark:border-yellow-500/20"
+                                                        : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                                                         }`}
                                                     onClick={() => setSelectedPriority(selectedPriority === "warm" ? null : "warm")}
                                                 >
@@ -342,8 +358,8 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                 </button>
                                                 <button
                                                     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "cold"
-                                                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 border border-blue-200 dark:border-blue-500/20"
-                                                            : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                        ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 border border-blue-200 dark:border-blue-500/20"
+                                                        : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                                                         }`}
                                                     onClick={() => setSelectedPriority(selectedPriority === "cold" ? null : "cold")}
                                                 >
@@ -396,6 +412,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                     <tr className="text-left text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                                                         <th className="px-6 py-4">Lead Name</th>
                                                         <th className="px-6 py-4 text-center">Company</th>
+                                                        <th className="px-6 py-4 text-center">Lead Stage</th>
                                                         <th className="px-6 py-4 text-right">AI Score</th>
                                                     </tr>
                                                 </thead>
@@ -403,10 +420,9 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                     {filteredLeads.slice(0, 10).map((lead) => (
                                                         <tr
                                                             key={lead.name}
-                                                            className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition group cursor-pointer"
-                                                            onClick={() => router.push(`/crm/${encodeURIComponent(lead.name)}`)}
+                                                            className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition group"
                                                         >
-                                                            <td className="px-6 py-4">
+                                                            <td className="px-6 py-4 cursor-pointer" onClick={() => router.push(`/crm/${encodeURIComponent(lead.name)}`)}>
                                                                 <div className="flex items-center gap-3">
                                                                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
                                                                         {lead.lead_name.charAt(0).toUpperCase()}
@@ -417,12 +433,25 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                                     </div>
                                                                 </div>
                                                             </td>
-                                                            <td className="px-6 py-4 text-center">
+                                                            <td className="px-6 py-4 text-center cursor-pointer" onClick={() => router.push(`/crm/${encodeURIComponent(lead.name)}`)}>
                                                                 <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
                                                                     {lead.company_name || "Individual"}
                                                                 </p>
                                                             </td>
-                                                            <td className="px-6 py-4">
+                                                            <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                                <div className="flex justify-center">
+                                                                    <select
+                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-0 cursor-pointer transition-colors ${getStageColor(lead.status)}`}
+                                                                        value={lead.status}
+                                                                        onChange={(e) => handleStatusChange(lead.name, e.target.value)}
+                                                                    >
+                                                                        {LEAD_STAGES.map(stage => (
+                                                                            <option key={stage} value={stage}>{stage}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 cursor-pointer" onClick={() => router.push(`/crm/${encodeURIComponent(lead.name)}`)}>
                                                                 <div className="flex justify-end items-center gap-3">
                                                                     <div className="w-24 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                                         <div
@@ -584,54 +613,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                             </div>
                         </div>
 
-                        {/* Recent Lead Activity */}
-                        <div className="space-y-4 pb-8">
-                            <div className="flex items-center gap-2 px-2">
-                                <span className="material-symbols-outlined text-slate-400 text-lg">history</span>
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Recent Lead Activity</h3>
-                            </div>
-                            <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-                                <div className="min-w-[320px] bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm hover:shadow-md transition">
-                                    <div className="w-11 h-11 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center">
-                                        <span className="material-symbols-outlined">check_circle</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                            Closed Deal - <span className="text-slate-500 font-normal">Sarah Jenkins</span>
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">
-                                            Cyberdyne Corp • 2M AGO
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="min-w-[320px] bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm hover:shadow-md transition">
-                                    <div className="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 flex items-center justify-center">
-                                        <span className="material-symbols-outlined">person_add</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                            New Lead - <span className="text-slate-500 font-normal">TechFlow Systems</span>
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">
-                                            Mike Rossi • 15M AGO
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="min-w-[320px] bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm hover:shadow-md transition">
-                                    <div className="w-11 h-11 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 flex items-center justify-center">
-                                        <span className="material-symbols-outlined">payments</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                            Payment Received - <span className="text-slate-500 font-normal">Acme Corp</span>
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">
-                                            $12,500 • 32M AGO
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 </main>
             </div>
