@@ -82,8 +82,14 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
         }))
     }, [leads])
 
-    // Filter leads based on search, stages, and priority
+    // Filter leads based on search, stages, and priority (only in table view)
     const filteredLeads = useMemo(() => {
+        // In Kanban view, show all leads without filters
+        if (viewMode === "grid") {
+            return leadsWithScores
+        }
+
+        // In table view, apply all filters
         return leadsWithScores.filter(lead => {
             // Search filter
             const matchesSearch = searchQuery === "" ||
@@ -106,7 +112,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
 
             return matchesSearch && matchesStage && matchesPriority
         })
-    }, [leadsWithScores, searchQuery, selectedStages, selectedPriority])
+    }, [leadsWithScores, searchQuery, selectedStages, selectedPriority, viewMode])
 
     // Calculate KPIs
     const kpis = useMemo(() => {
@@ -280,99 +286,101 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                         </div>
 
                         {/* Main Content Grid */}
-                        <div className="grid grid-cols-12 gap-6">
-                            {/* Filters Sidebar */}
-                            <div className="col-span-2 space-y-6">
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
-                                    <div className="flex justify-between items-center mb-8">
-                                        <h3 className="text-[12px] font-bold uppercase tracking-widest text-slate-900 dark:text-white">Filters</h3>
-                                        <button
-                                            className="text-[10px] font-bold text-primary uppercase hover:underline"
-                                            onClick={() => {
-                                                setSelectedStages([])
-                                                setSelectedPriority(null)
-                                            }}
-                                        >
-                                            Reset
-                                        </button>
-                                    </div>
-                                    <div className="space-y-8">
-                                        {/* Lead Status */}
-                                        <div>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Lead Status</p>
-                                            <div className="space-y-3">
-                                                {LEAD_STAGES.map(stage => (
-                                                    <label key={stage} className="flex items-center gap-3 cursor-pointer group">
-                                                        <input
-                                                            checked={selectedStages.includes(stage)}
-                                                            className="rounded text-primary focus:ring-primary w-4 h-4"
-                                                            type="checkbox"
-                                                            onChange={() => toggleStage(stage)}
-                                                        />
-                                                        <span className="text-[13px] font-medium group-hover:text-primary transition">
-                                                            {stage}
-                                                        </span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Lead Source */}
-                                        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Lead Source</p>
-                                            <select
-                                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs py-2.5 px-3 focus:ring-primary outline-none"
-                                                value={selectedSource}
-                                                onChange={(e) => setSelectedSource(e.target.value)}
+                        <div className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1" : "grid-cols-12"}`}>
+                            {/* Filters Sidebar - Hidden in Kanban view */}
+                            {viewMode === "list" && (
+                                <div className="col-span-2 space-y-6">
+                                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <h3 className="text-[12px] font-bold uppercase tracking-widest text-slate-900 dark:text-white">Filters</h3>
+                                            <button
+                                                className="text-[10px] font-bold text-primary uppercase hover:underline"
+                                                onClick={() => {
+                                                    setSelectedStages([])
+                                                    setSelectedPriority(null)
+                                                }}
                                             >
-                                                <option>All Sources</option>
-                                                <option>LinkedIn</option>
-                                                <option>Organic Search</option>
-                                                <option>Referral</option>
-                                                <option>Website</option>
-                                                <option>Cold Call</option>
-                                            </select>
+                                                Reset
+                                            </button>
                                         </div>
+                                        <div className="space-y-8">
+                                            {/* Lead Status */}
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Lead Status</p>
+                                                <div className="space-y-3">
+                                                    {LEAD_STAGES.map(stage => (
+                                                        <label key={stage} className="flex items-center gap-3 cursor-pointer group">
+                                                            <input
+                                                                checked={selectedStages.includes(stage)}
+                                                                className="rounded text-primary focus:ring-primary w-4 h-4"
+                                                                type="checkbox"
+                                                                onChange={() => toggleStage(stage)}
+                                                            />
+                                                            <span className="text-[13px] font-medium group-hover:text-primary transition">
+                                                                {stage}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
 
-                                        {/* AI Priority */}
-                                        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">AI Priority</p>
-                                            <div className="space-y-2.5">
-                                                <button
-                                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "hot"
-                                                        ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 border border-orange-200 dark:border-orange-500/20"
-                                                        : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                                        }`}
-                                                    onClick={() => setSelectedPriority(selectedPriority === "hot" ? null : "hot")}
+                                            {/* Lead Source */}
+                                            <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Lead Source</p>
+                                                <select
+                                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs py-2.5 px-3 focus:ring-primary outline-none"
+                                                    value={selectedSource}
+                                                    onChange={(e) => setSelectedSource(e.target.value)}
                                                 >
-                                                    <span className="material-symbols-outlined text-sm">local_fire_department</span> HOT LEADS
-                                                </button>
-                                                <button
-                                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "warm"
-                                                        ? "bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 border border-yellow-200 dark:border-yellow-500/20"
-                                                        : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                                        }`}
-                                                    onClick={() => setSelectedPriority(selectedPriority === "warm" ? null : "warm")}
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">wb_sunny</span> WARM
-                                                </button>
-                                                <button
-                                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "cold"
-                                                        ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 border border-blue-200 dark:border-blue-500/20"
-                                                        : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                                        }`}
-                                                    onClick={() => setSelectedPriority(selectedPriority === "cold" ? null : "cold")}
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">ac_unit</span> COLD
-                                                </button>
+                                                    <option>All Sources</option>
+                                                    <option>LinkedIn</option>
+                                                    <option>Organic Search</option>
+                                                    <option>Referral</option>
+                                                    <option>Website</option>
+                                                    <option>Cold Call</option>
+                                                </select>
+                                            </div>
+
+                                            {/* AI Priority */}
+                                            <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">AI Priority</p>
+                                                <div className="space-y-2.5">
+                                                    <button
+                                                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "hot"
+                                                            ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 border border-orange-200 dark:border-orange-500/20"
+                                                            : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            }`}
+                                                        onClick={() => setSelectedPriority(selectedPriority === "hot" ? null : "hot")}
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">local_fire_department</span> HOT LEADS
+                                                    </button>
+                                                    <button
+                                                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "warm"
+                                                            ? "bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 border border-yellow-200 dark:border-yellow-500/20"
+                                                            : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            }`}
+                                                        onClick={() => setSelectedPriority(selectedPriority === "warm" ? null : "warm")}
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">wb_sunny</span> WARM
+                                                    </button>
+                                                    <button
+                                                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-bold transition ${selectedPriority === "cold"
+                                                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 border border-blue-200 dark:border-blue-500/20"
+                                                            : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            }`}
+                                                        onClick={() => setSelectedPriority(selectedPriority === "cold" ? null : "cold")}
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">ac_unit</span> COLD
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Leads Table/Kanban */}
-                            <div className="col-span-7">
+                            <div className={viewMode === "grid" ? "col-span-1" : "col-span-7"}>
                                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden h-full">
                                     <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                                         <div className="flex items-center gap-4">
@@ -537,8 +545,8 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                                                     <div className="flex justify-between items-center mb-1">
                                                                                         <span className="text-[10px] font-bold text-slate-400 uppercase">AI Score</span>
                                                                                         <span className={`text-[10px] font-bold ${lead.aiScore >= 75 ? 'text-emerald-500' :
-                                                                                                lead.aiScore >= 50 ? 'text-orange-500' :
-                                                                                                    'text-red-500'
+                                                                                            lead.aiScore >= 50 ? 'text-orange-500' :
+                                                                                                'text-red-500'
                                                                                             }`}>
                                                                                             {lead.aiScore}%
                                                                                         </span>
@@ -546,8 +554,8 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                                                     <div className="h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                                                         <div
                                                                                             className={`h-full rounded-full ${lead.aiScore >= 75 ? 'bg-emerald-500' :
-                                                                                                    lead.aiScore >= 50 ? 'bg-orange-500' :
-                                                                                                        'bg-red-500'
+                                                                                                lead.aiScore >= 50 ? 'bg-orange-500' :
+                                                                                                    'bg-red-500'
                                                                                                 }`}
                                                                                             style={{ width: `${lead.aiScore}%` }}
                                                                                         ></div>
@@ -570,71 +578,73 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                 </div>
                             </div>
 
-                            {/* AI Insights Panel */}
-                            <div className="col-span-3">
-                                <div className="bg-[#111827] text-white rounded-xl shadow-xl overflow-hidden h-full flex flex-col border border-slate-800">
-                                    <div className="p-6 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
-                                        <div className="flex items-center gap-3">
-                                            <span className="material-symbols-outlined text-yellow-400">bolt</span>
-                                            <h3 className="text-[11px] font-bold uppercase tracking-widest">AI Insights</h3>
-                                        </div>
-                                        <span className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                                    </div>
-                                    <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-                                        {/* Deal at Risk */}
-                                        <div className="bg-white/5 border border-white/10 rounded-xl p-5 relative overflow-hidden group">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <span className="material-symbols-outlined text-yellow-400 text-sm">warning</span>
-                                                <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-tighter">Deal at Risk</span>
+                            {/* AI Insights Panel - Hidden in Kanban view */}
+                            {viewMode === "list" && (
+                                <div className="col-span-3">
+                                    <div className="bg-[#111827] text-white rounded-xl shadow-xl overflow-hidden h-full flex flex-col border border-slate-800">
+                                        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
+                                            <div className="flex items-center gap-3">
+                                                <span className="material-symbols-outlined text-yellow-400">bolt</span>
+                                                <h3 className="text-[11px] font-bold uppercase tracking-widest">AI Insights</h3>
                                             </div>
-                                            <h4 className="text-sm font-bold mb-2">Acme Corp HQ - Phase II</h4>
-                                            <p className="text-[12px] text-slate-400 mb-5 leading-relaxed">
-                                                Decision maker hasn't opened proposal for 5 days. Competitive threat detected.
-                                            </p>
-                                            <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded-lg text-xs transition uppercase tracking-wider">
-                                                Priority Outreach
-                                            </button>
+                                            <span className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                                         </div>
+                                        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                                            {/* Deal at Risk */}
+                                            <div className="bg-white/5 border border-white/10 rounded-xl p-5 relative overflow-hidden group">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <span className="material-symbols-outlined text-yellow-400 text-sm">warning</span>
+                                                    <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-tighter">Deal at Risk</span>
+                                                </div>
+                                                <h4 className="text-sm font-bold mb-2">Acme Corp HQ - Phase II</h4>
+                                                <p className="text-[12px] text-slate-400 mb-5 leading-relaxed">
+                                                    Decision maker hasn't opened proposal for 5 days. Competitive threat detected.
+                                                </p>
+                                                <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded-lg text-xs transition uppercase tracking-wider">
+                                                    Priority Outreach
+                                                </button>
+                                            </div>
 
-                                        {/* Recommended Actions */}
-                                        <div>
-                                            <div className="flex justify-between items-center mb-5">
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recommended Actions</p>
-                                                <button className="text-[10px] text-blue-400 font-bold hover:underline">VIEW ALL</button>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <div className="bg-white/5 p-4 rounded-xl flex items-center gap-4 group cursor-pointer hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">
-                                                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                                        <span className="material-symbols-outlined">alternate_email</span>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[13px] font-bold">Follow up - Globtel</p>
-                                                        <p className="text-[11px] text-slate-500 font-medium">High velocity activity.</p>
-                                                    </div>
+                                            {/* Recommended Actions */}
+                                            <div>
+                                                <div className="flex justify-between items-center mb-5">
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recommended Actions</p>
+                                                    <button className="text-[10px] text-blue-400 font-bold hover:underline">VIEW ALL</button>
                                                 </div>
-                                                <div className="bg-white/5 p-4 rounded-xl flex items-center gap-4 group cursor-pointer hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">
-                                                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                                        <span className="material-symbols-outlined text-lg">check_circle_outline</span>
+                                                <div className="space-y-3">
+                                                    <div className="bg-white/5 p-4 rounded-xl flex items-center gap-4 group cursor-pointer hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">
+                                                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                                            <span className="material-symbols-outlined">alternate_email</span>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[13px] font-bold">Follow up - Globtel</p>
+                                                            <p className="text-[11px] text-slate-500 font-medium">High velocity activity.</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-[13px] font-bold">Contract - Urban</p>
-                                                        <p className="text-[11px] text-slate-500 font-medium">Review is complete.</p>
+                                                    <div className="bg-white/5 p-4 rounded-xl flex items-center gap-4 group cursor-pointer hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">
+                                                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                                            <span className="material-symbols-outlined text-lg">check_circle_outline</span>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[13px] font-bold">Contract - Urban</p>
+                                                            <p className="text-[11px] text-slate-500 font-medium">Review is complete.</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="p-6 bg-white/[0.02] border-t border-white/10">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sales Velocity</span>
-                                            <span className="text-xs font-bold text-emerald-500">+14.2%</span>
+                                        <div className="p-6 bg-white/[0.02] border-t border-white/10">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sales Velocity</span>
+                                                <span className="text-xs font-bold text-emerald-500">+14.2%</span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-400 italic font-medium">
+                                                "Cycle time is accelerating by 2 days this month."
+                                            </p>
                                         </div>
-                                        <p className="text-[11px] text-slate-400 italic font-medium">
-                                            "Cycle time is accelerating by 2 days this month."
-                                        </p>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
 
