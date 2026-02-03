@@ -92,7 +92,7 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-slate-900">
       {/* Header - removed AVARIQ logo per requirements */}
       <header className="h-16 bg-white dark:bg-card-dark border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 w-full z-10 sticky top-0">
         <div className="flex-1 max-w-2xl">
@@ -117,7 +117,7 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
         </div>
       </header>
 
-      <main className="flex-1 w-full flex flex-col min-w-0 overflow-y-auto custom-scrollbar p-8 bg-slate-50 dark:bg-slate-900">
+      <main className="flex-1 w-full flex flex-col min-w-0 overflow-y-auto custom-scrollbar p-8 bg-white dark:bg-slate-900">
         <div className="max-w-[1600px] mx-auto w-full">
           {/* Page Title */}
           <div className="mb-8">
@@ -127,38 +127,38 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
             </p>
           </div>
 
-          {/* KPI Cards - matching exact HTML sizing */}
+          {/* KPI Cards - matching exact HTML with proper light/dark mode */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div className="bg-card-dark p-6 rounded-xl border border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-700 transition-colors">
+            <div className="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
               <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Draft</span>
-                <Package className="h-6 w-6 text-slate-600" />
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Draft</span>
+                <Package className="h-6 w-6 text-slate-400 dark:text-slate-600" />
               </div>
-              <div className="text-[28px] font-bold text-white">{stats.draft}</div>
+              <div className="text-[40px] font-bold text-slate-900 dark:text-white">{stats.draft}</div>
             </div>
 
-            <div className="bg-card-dark p-6 rounded-xl border border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-700 transition-colors">
+            <div className="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
               <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Confirmed</span>
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Confirmed</span>
                 <CheckCircle className="h-6 w-6 text-emerald-500" />
               </div>
-              <div className="text-[28px] font-bold text-white">{stats.confirmed}</div>
+              <div className="text-[40px] font-bold text-slate-900 dark:text-white">{stats.confirmed}</div>
             </div>
 
-            <div className="bg-card-dark p-6 rounded-xl border border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-700 transition-colors">
+            <div className="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
               <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">In Progress</span>
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">In Progress</span>
                 <Clock className="h-6 w-6 text-blue-500" />
               </div>
-              <div className="text-[28px] font-bold text-white">{stats.inProgress}</div>
+              <div className="text-[40px] font-bold text-slate-900 dark:text-white">{stats.inProgress}</div>
             </div>
 
-            <div className="bg-card-dark p-6 rounded-xl border border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-700 transition-colors">
+            <div className="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
               <div className="flex items-start justify-between">
-                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Total Value</span>
+                <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Value</span>
                 <IndianRupee className="h-6 w-6 text-purple-500" />
               </div>
-              <div className="text-[28px] font-bold text-white">₹{stats.totalValue.toLocaleString()}</div>
+              <div className="text-[40px] font-bold text-slate-900 dark:text-white">₹{stats.totalValue.toLocaleString()}</div>
             </div>
           </div>
 
