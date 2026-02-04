@@ -133,7 +133,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
     
     // Empty cells for days before first day of month
     for (let i = 0; i < firstDayOfMonth; i++) {
-      cells.push(<div key={`empty-${i}`} className="calendar-cell bg-white dark:bg-navy-900 p-3"></div>)
+      cells.push(<div key={`empty-${i}`} className="calendar-cell bg-white dark:bg-[#1a2332] p-3 border-l-2 border-transparent"></div>)
     }
     
     // Days of the month
@@ -145,7 +145,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
       cells.push(
         <div 
           key={day} 
-          className={`calendar-cell bg-white dark:bg-navy-900 p-3 text-sm ${isToday ? 'text-blue-500 font-bold border-l-4 border-primary' : ''}`}
+          className={`calendar-cell bg-white dark:bg-[#1a2332] p-3 text-sm border-l-2 ${isToday ? 'text-blue-500 font-semibold border-blue-500' : 'border-transparent'}`}
         >
           {day}
           <div className="mt-2 space-y-1">
@@ -281,28 +281,28 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
         </div>
 
         {/* Calendar Section */}
-        <section className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+        <section className="bg-white dark:bg-[#1a2332] rounded-xl border border-slate-200 dark:border-slate-800/50 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-200 dark:border-slate-800/50 flex justify-between items-center">
             <div className="flex items-center gap-6">
               <h3 className="text-xl font-bold">{monthNames[currentMonth]} {currentYear}</h3>
-              <div className="flex items-center bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-1">
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-lg p-1 gap-1">
                 <button 
                   onClick={goToPreviousMonth}
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-slate-600 dark:text-slate-300"
+                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all text-slate-600 dark:text-slate-300"
                 >
-                  <span className="material-icons-round text-lg leading-none">chevron_left</span>
+                  <span className="material-icons-round text-base leading-none">chevron_left</span>
                 </button>
                 <button 
                   onClick={goToToday}
-                  className="px-4 py-1 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all uppercase tracking-wide"
+                  className="px-3 py-1 text-[11px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all uppercase tracking-wide"
                 >
-                  Today
+                  TODAY
                 </button>
                 <button 
                   onClick={goToNextMonth}
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-slate-600 dark:text-slate-300"
+                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all text-slate-600 dark:text-slate-300"
                 >
-                  <span className="material-icons-round text-lg leading-none">chevron_right</span>
+                  <span className="material-icons-round text-base leading-none">chevron_right</span>
                 </button>
               </div>
             </div>
@@ -311,55 +311,55 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                 <select 
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="pl-10 pr-10 py-2 bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+                  className="pl-8 pr-9 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
                 >
                   <option>All Statuses</option>
                   <option>Draft</option>
                   <option>Active</option>
                   <option>Completed</option>
                 </select>
-                <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">filter_alt</span>
-                <span className="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">expand_more</span>
+                <span className="material-icons-round absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">filter_alt</span>
+                <span className="material-icons-round absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">expand_more</span>
               </div>
-              <button className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-500">
-                <span className="material-symbols-outlined text-xl">settings</span>
+              <button className="p-2 border border-slate-200 dark:border-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all text-slate-500">
+                <span className="material-symbols-outlined text-lg">settings</span>
               </button>
             </div>
           </div>
 
           {/* Calendar Header */}
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-800/80">
-            <div className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Sunday</div>
-            <div className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Monday</div>
-            <div className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Tuesday</div>
-            <div className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Wednesday</div>
-            <div className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Thursday</div>
-            <div className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Friday</div>
-            <div className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Saturday</div>
+          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800/50 bg-slate-50 dark:bg-slate-900/30">
+            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">SUNDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">MONDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">TUESDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">WEDNESDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">THURSDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">FRIDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">SATURDAY</div>
           </div>
 
           {/* Calendar Grid */}
-          <div className="calendar-grid bg-slate-200 dark:bg-slate-800 gap-[1px]">
+          <div className="calendar-grid bg-slate-100 dark:bg-slate-900/30 gap-[1px]">
             {renderCalendar()}
           </div>
 
           {/* Calendar Legend */}
-          <div className="p-4 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-center gap-10 border-t border-slate-200 dark:border-slate-800">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Calendar Legend:</span>
+          <div className="p-4 bg-slate-50 dark:bg-slate-900/30 flex items-center justify-center gap-8 border-t border-slate-200 dark:border-slate-800/50">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">CALENDAR LEGEND:</span>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
               <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Draft</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
               <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">To Deliver and Bill</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
               <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Completed</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+              <span className="w-2 h-2 rounded-full bg-rose-400"></span>
               <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Cancelled</span>
             </div>
           </div>
