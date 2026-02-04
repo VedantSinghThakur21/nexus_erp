@@ -449,7 +449,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
 
       {/* Floating Dark Mode Toggle */}
       <button 
-        className="fixed bottom-8 right-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform z-50 ring-4 ring-white/20 dark:ring-black/20"
+        className="fixed bottom-8 right-8 bg-gradient-to-tr from-blue-500 to-purple-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform z-50 ring-4 ring-white/20 dark:ring-black/20"
         onClick={() => document.documentElement.classList.toggle('dark')}
       >
         <span className="material-icons-round text-2xl">dark_mode</span>
