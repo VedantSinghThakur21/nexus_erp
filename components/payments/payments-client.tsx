@@ -141,69 +141,81 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
 
       <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
         <div className="mb-8">
-          <div className="flex items-center space-x-2 text-primary mb-2">
-            <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
-            <span className="text-xs font-bold uppercase tracking-widest">AI Intelligence Workspace</span>
-          </div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Payment Entries</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Enterprise-grade transaction management powered by real-time neural auditing.</p>
         </div>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-xl flex flex-col justify-between h-32">
-            <div className="flex justify-between items-start">
-              <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Total Payments</p>
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <span className="material-symbols-outlined text-blue-400 text-[20px]">receipt_long</span>
+          {/* Total Payments */}
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Total Payments</span>
+              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                <span className="material-symbols-outlined text-xl">receipt_long</span>
               </div>
             </div>
-            <div className="flex items-baseline space-x-3">
-              <h3 className="text-3xl font-bold text-white">{totalPayments}</h3>
-              <span className="text-green-400 text-[11px] flex items-center font-bold bg-green-400/10 px-1.5 py-0.5 rounded">
-                <span className="material-symbols-outlined text-[12px] mr-1">trending_up</span>+5.2%
+            <div className="flex items-end gap-3">
+              <span className="text-[28px] font-bold text-white leading-none">{totalPayments}</span>
+              <span className="text-sm font-semibold text-green-400 mb-1 flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-xs">trending_up</span>+5.2%
               </span>
             </div>
-          </div>
-
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-xl flex flex-col justify-between h-32">
-            <div className="flex justify-between items-start">
-              <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Total Amount</p>
-              <div className="p-2 bg-emerald-500/10 rounded-lg">
-                <span className="material-symbols-outlined text-emerald-400 text-[20px]">payments</span>
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <h3 className="text-3xl font-bold text-white">{formatCurrency(totalAmount)}</h3>
-              <p className="text-slate-500 text-[10px] mt-1 uppercase font-bold tracking-tighter">Settled Oct 2025</p>
+            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 w-[72%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
             </div>
           </div>
 
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-xl flex flex-col justify-between h-32">
-            <div className="flex justify-between items-start">
-              <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Received</p>
-              <div className="p-2 bg-indigo-500/10 rounded-lg">
-                <span className="material-symbols-outlined text-indigo-400 text-[20px]">input</span>
+          {/* Total Amount */}
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Total Amount</span>
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                <span className="material-symbols-outlined text-xl">payments</span>
               </div>
             </div>
-            <div className="flex items-baseline space-x-3">
-              <h3 className="text-3xl font-bold text-white">{receivePayments.length}</h3>
-              <p className="text-slate-500 text-[11px] font-medium">Net Inflow</p>
+            <div className="flex items-end gap-3">
+              <span className="text-[28px] font-bold text-white leading-none">{formatCurrency(totalAmount)}</span>
+              <span className="text-sm font-semibold text-slate-400 mb-1">Settled Oct 2025</span>
+            </div>
+            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 w-[45%] rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
             </div>
           </div>
 
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-xl flex flex-col justify-between h-32">
-            <div className="flex justify-between items-start">
-              <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Paid Out</p>
-              <div className="p-2 bg-orange-500/10 rounded-lg">
-                <span className="material-symbols-outlined text-orange-400 text-[20px]">outbox</span>
+          {/* Received */}
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Received</span>
+              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                <span className="material-symbols-outlined text-xl">input</span>
               </div>
             </div>
-            <div className="flex items-baseline space-x-3">
-              <h3 className="text-3xl font-bold text-white">{payPayments.length}</h3>
-              <span className="text-red-400 text-[11px] flex items-center font-bold bg-red-400/10 px-1.5 py-0.5 rounded">
-                <span className="material-symbols-outlined text-[12px] mr-1">trending_down</span>2.1%
+            <div className="flex items-end gap-3">
+              <span className="text-[28px] font-bold text-white leading-none">{receivePayments.length}</span>
+              <span className="text-sm font-semibold text-slate-400 mb-1">Net Inflow</span>
+            </div>
+            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-500 w-[85%] rounded-full shadow-[0_0_8px_rgba(99,102,241,0.5)]"></div>
+            </div>
+          </div>
+
+          {/* Paid Out */}
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Paid Out</span>
+              <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
+                <span className="material-symbols-outlined text-xl">outbox</span>
+              </div>
+            </div>
+            <div className="flex items-end gap-3">
+              <span className="text-[28px] font-bold text-white leading-none">{payPayments.length}</span>
+              <span className="text-sm font-semibold text-red-400 mb-1 flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-xs">trending_down</span>2.1%
               </span>
+            </div>
+            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-orange-500 w-[20%] rounded-full shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
             </div>
           </div>
         </div>
