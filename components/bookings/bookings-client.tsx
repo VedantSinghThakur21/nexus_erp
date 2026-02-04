@@ -183,8 +183,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
             </div>
           </div>
           <div className="flex items-center gap-6">
-            <button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-              <span className="material-icons-round text-lg">add</span>
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-sm transition-all">
+              <span className="material-icons-round text-base">add</span>
               New Booking
             </button>
             <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-800 pl-6">
@@ -215,41 +215,49 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
         </div>
 
         {/* KPI Cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <span className="material-icons-round text-blue-400 bg-blue-400/10 p-2 rounded-lg">event_note</span>
-              <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">+12% vs LY</span>
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50">
+            <div className="flex items-start justify-between mb-3">
+              <div className="bg-blue-500/10 p-2 rounded-lg">
+                <span className="material-icons-round text-blue-400 text-xl">description</span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">+12% vs LY</span>
             </div>
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Total Bookings</p>
-            <h3 className="text-3xl font-bold text-white mt-1">{totalBookings}</h3>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">TOTAL BOOKINGS</div>
+            <div className="text-3xl font-bold text-white">{totalBookings}</div>
           </div>
 
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <span className="material-icons-round text-emerald-400 bg-emerald-400/10 p-2 rounded-lg">history_toggle_off</span>
-              <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">Live</span>
+          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50">
+            <div className="flex items-start justify-between mb-3">
+              <div className="bg-teal-500/10 p-2 rounded-lg">
+                <span className="material-icons-round text-teal-400 text-xl">schedule</span>
+              </div>
+              <span className="text-[10px] font-bold text-teal-400 bg-teal-500/10 px-2 py-1 rounded">Live</span>
             </div>
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Active Rentals</p>
-            <h3 className="text-3xl font-bold text-white mt-1">{activeRentals}</h3>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ACTIVE RENTALS</div>
+            <div className="text-3xl font-bold text-white">{activeRentals}</div>
           </div>
 
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <span className="material-icons-round text-purple-400 bg-purple-400/10 p-2 rounded-lg">payments</span>
-              <span className="text-xs font-medium text-purple-400 bg-purple-400/10 px-2 py-1 rounded-md">Monthly</span>
+          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50">
+            <div className="flex items-start justify-between mb-3">
+              <div className="bg-purple-500/10 p-2 rounded-lg">
+                <span className="material-icons-round text-purple-400 text-xl">account_balance_wallet</span>
+              </div>
+              <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-1 rounded">Monthly</span>
             </div>
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Revenue MTD</p>
-            <h3 className="text-3xl font-bold text-white mt-1">₹{(revenueMTD / 100000).toFixed(1)}L</h3>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">REVENUE MTD</div>
+            <div className="text-3xl font-bold text-white">₹{(revenueMTD / 100000).toFixed(1)}L</div>
           </div>
 
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <span className="material-icons-round text-amber-400 bg-amber-400/10 p-2 rounded-lg">trending_up</span>
-              <span className="text-xs font-medium text-amber-400 bg-amber-400/10 px-2 py-1 rounded-md">AI Predicted</span>
+          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50">
+            <div className="flex items-start justify-between mb-3">
+              <div className="bg-amber-500/10 p-2 rounded-lg">
+                <span className="material-icons-round text-amber-400 text-xl">trending_up</span>
+              </div>
+              <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded">AI Predicted</span>
             </div>
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">AI Occupancy Forecast</p>
-            <h3 className="text-3xl font-bold text-white mt-1">{aiOccupancyForecast}%</h3>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">AI OCCUPANCY FORECAST</div>
+            <div className="text-3xl font-bold text-white">{aiOccupancyForecast}%</div>
           </div>
         </section>
 
@@ -380,59 +388,58 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                 const sentiment = getSentiment(booking)
                 const itemCount = booking.items?.length || 0
 
+                const formatDate = (dateStr: string) => {
+                  const date = new Date(dateStr)
+                  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                }
+
                 return (
-                  <Link key={booking.name} href={`/bookings/${booking.name}`}>
-                    <div className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 flex items-center justify-between gap-6 hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-900/50 transition-all group cursor-pointer">
-                      <div className="flex-1 flex flex-col gap-3">
-                        <div className="flex items-center gap-4">
-                          <h4 className="text-lg font-bold text-slate-900 dark:text-white">{booking.customer_name}</h4>
-                          <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusColor(booking.status)}`}>
-                            {booking.status}
+                  <div key={booking.name} className="bg-white dark:bg-[#1a2332] rounded-lg border border-slate-200 dark:border-slate-800/50 p-4 hover:border-blue-400 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="text-base font-semibold text-slate-900 dark:text-white">{booking.customer_name}</h4>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusColor(booking.status)}`}>
+                            {booking.status === 'Draft' ? 'DRAFT' : booking.status === 'To Deliver and Bill' ? 'TO DELIVER' : booking.status}
                           </span>
-                          <div className={`flex items-center gap-2 px-3 py-1 bg-${sentiment.color}-50 dark:bg-${sentiment.color}-900/20 text-${sentiment.color}-600 dark:text-${sentiment.color}-400 rounded-full text-xs font-semibold border border-${sentiment.color}-100 dark:border-${sentiment.color}-800/50`}>
-                            <span className="material-icons-round text-sm">{sentiment.icon}</span>
-                            {sentiment.text}
-                          </div>
+                          {sentiment.text && (
+                            <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sentiment.color === 'emerald' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : sentiment.color === 'amber' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'}`}>
+                              <span className="material-icons-round text-xs">{sentiment.icon}</span>
+                              {sentiment.text}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-8 text-sm text-slate-500 dark:text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <span className="material-icons-round text-base text-slate-400">qr_code</span>
+                        <div className="flex items-center gap-6 text-xs text-slate-500 dark:text-slate-400">
+                          <div className="flex items-center gap-1.5">
+                            <span className="material-icons-round text-sm">badge</span>
                             <span className="font-mono">{booking.name}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="material-icons-round text-base text-slate-400">calendar_today</span>
-                            {booking.transaction_date} → {booking.delivery_date}
+                          <div className="flex items-center gap-1.5">
+                            <span className="material-icons-round text-sm">calendar_today</span>
+                            <span>{formatDate(booking.transaction_date)} → {formatDate(booking.delivery_date)}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="material-icons-round text-base text-slate-400">home_repair_service</span>
-                            {itemCount} Items Scheduled
+                          <div className="flex items-center gap-1.5">
+                            <span className="material-icons-round text-sm">inventory_2</span>
+                            <span>{itemCount} Items Scheduled</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-10">
+                      <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                            ₹{booking.grand_total.toLocaleString('en-IN')}
-                          </p>
-                          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Grand Total</p>
+                          <div className="text-xl font-bold text-slate-900 dark:text-white">₹{booking.grand_total.toLocaleString('en-IN')}</div>
+                          <div className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">GRAND TOTAL</div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button 
-                            onClick={(e) => { e.preventDefault(); /* Edit logic */ }}
-                            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                          >
+                          <button className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 rounded text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                             Edit
                           </button>
-                          <button 
-                            onClick={(e) => { e.preventDefault(); /* More options */ }}
-                            className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary transition-all"
-                          >
-                            <span className="material-icons-round">more_vert</span>
+                          <button className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <span className="material-icons-round text-lg">more_vert</span>
                           </button>
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 )
               })
             )}
