@@ -116,41 +116,41 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
         <div className="px-8 space-y-6 pb-12">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-sidebar-dark p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group">
+            <div className="bg-[#111827] p-6 rounded-lg border border-slate-700 shadow-sm relative overflow-hidden group">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Active Rules</p>
-                  <h3 className="text-3xl font-bold text-white">{activeRulesCount}</h3>
-                  <p className="text-xs text-slate-500 mt-1">{rules.length - activeRulesCount} inactive</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Active Rules</p>
+                  <h3 className="text-[28px] font-bold text-white">{activeRulesCount}</h3>
+                  <p className="text-xs text-slate-400 mt-1">{rules.length - activeRulesCount} inactive</p>
                 </div>
-                <div className="bg-green-500/10 p-2.5 rounded-lg">
-                  <span className="material-symbols-outlined text-green-500">check_circle</span>
+                <div className="bg-green-500/10 p-3 rounded-lg">
+                  <span className="material-symbols-outlined text-green-500 text-2xl">check_circle</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-sidebar-dark p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group">
+            <div className="bg-[#111827] p-6 rounded-lg border border-slate-700 shadow-sm relative overflow-hidden group">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Discount Rules</p>
-                  <h3 className="text-3xl font-bold text-white">{totalDiscountRules}</h3>
-                  <p className="text-xs text-slate-500 mt-1">{rules.length - totalDiscountRules} rate override</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Discount Rules</p>
+                  <h3 className="text-[28px] font-bold text-white">{totalDiscountRules}</h3>
+                  <p className="text-xs text-slate-400 mt-1">{rules.length - totalDiscountRules} rate override</p>
                 </div>
-                <div className="bg-primary/10 p-2.5 rounded-lg">
-                  <span className="material-symbols-outlined text-primary">trending_up</span>
+                <div className="bg-blue-500/10 p-3 rounded-lg">
+                  <span className="material-symbols-outlined text-blue-500 text-2xl">trending_up</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-sidebar-dark p-6 rounded-xl border border-slate-800 shadow-lg relative overflow-hidden group">
+            <div className="bg-[#111827] p-6 rounded-lg border border-slate-700 shadow-sm relative overflow-hidden group">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Total Rules</p>
-                  <h3 className="text-3xl font-bold text-white">{rules.length}</h3>
-                  <p className="text-xs text-slate-500 mt-1">Across all business types</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Total Rules</p>
+                  <h3 className="text-[28px] font-bold text-white">{rules.length}</h3>
+                  <p className="text-xs text-slate-400 mt-1">Across all business types</p>
                 </div>
-                <div className="bg-purple-500/10 p-2.5 rounded-lg">
-                  <span className="material-symbols-outlined text-purple-500">settings</span>
+                <div className="bg-purple-500/10 p-3 rounded-lg">
+                  <span className="material-symbols-outlined text-purple-500 text-2xl">settings</span>
                 </div>
               </div>
             </div>
