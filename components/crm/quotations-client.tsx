@@ -258,7 +258,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                       : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium'
                   }`}
                 >
-                  {tab.name} ({tab.filter === "all" ? filteredQuotations.length : draftQuotations.length + proposalOpportunities.length})
+                  {tab.name} ({tab.filter === "all" ? quotations.length : draftQuotations.length + proposalOpportunities.length})
                 </button>
               ))}
             </div>
