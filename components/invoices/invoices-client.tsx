@@ -139,12 +139,7 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
             />
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/invoices/new">
-              <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold text-sm shadow-lg shadow-blue-500/20 hover:opacity-90 active:scale-95 transition-all">
-                <span className="text-lg">+</span>
-                New Invoice
-              </button>
-            </Link>
+            {/* Removed New Invoice button as per request */}
             <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
             <div className="flex items-center gap-3 pl-2">
               <div className="text-right hidden sm:block">

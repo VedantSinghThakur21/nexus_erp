@@ -6,7 +6,7 @@
 - `components/invoices/invoices-grid.tsx` - DEPRECATED (old grid layout component)
 - `components/invoices/invoices-list.tsx` - DEPRECATED (old list layout component)
 - `components/invoices/invoices-search-bar.tsx` - DEPRECATED (standalone search bar component)
-- Previous page.tsx implementation with Card/Badge/AnimatedButton - REPLACED
+- Previous page.tsx implementation with Card/Badge/AnimatedButton - REPLACED    
 
 ## New Implementation Created
 

@@ -107,14 +107,7 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
             />
           </div>
         </div>
-        <div className="flex items-center space-x-6">
-          <Link href="/sales-orders/new">
-            <button className="bg-primary hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center shadow-sm transition-all">
-              <Package className="h-5 w-5 mr-2" />
-              New Sales Order
-            </button>
-          </Link>
-        </div>
+        {/* Removed New Sales Order button as per request */}
       </header>
 
       <main className="flex-1 w-full flex flex-col min-w-0 overflow-y-auto custom-scrollbar p-8 bg-white dark:bg-slate-900">
