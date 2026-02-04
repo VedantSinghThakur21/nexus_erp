@@ -184,12 +184,10 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
             </div>
           </div>
           <div className="flex items-center gap-6">
-            <Link href="/catalogue">
-              <button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                <span className="material-icons-round text-lg">add</span>
-                New Booking
-              </button>
-            </Link>
+            <button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-7 py-3 rounded-xl font-bold text-base flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95 focus:outline-none" type="button">
+              <span className="material-icons-round text-lg align-middle">add</span>
+              <span className="align-middle">New Booking</span>
+            </button>
             <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-800 pl-6">
               <button className="text-slate-500 hover:text-primary relative transition-colors">
                 <span className="material-symbols-outlined">notifications</span>
@@ -219,40 +217,40 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
 
         {/* KPI Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-sm">
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg flex flex-col">
             <div className="flex justify-between items-start mb-4">
-              <span className="material-icons-round text-blue-400 bg-blue-400/10 p-2 rounded-lg">event_note</span>
+              <span className="material-icons-round text-blue-400 bg-blue-400/10 p-3 rounded-lg text-3xl">event_note</span>
               <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">+12% vs LY</span>
             </div>
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Total Bookings</p>
-            <h3 className="text-3xl font-bold text-white mt-1">{totalBookings}</h3>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em]">Total Bookings</span>
+            <div className="text-[28px] font-bold text-white mt-1">{totalBookings}</div>
           </div>
 
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-sm">
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg flex flex-col">
             <div className="flex justify-between items-start mb-4">
-              <span className="material-icons-round text-emerald-400 bg-emerald-400/10 p-2 rounded-lg">history_toggle_off</span>
+              <span className="material-icons-round text-emerald-400 bg-emerald-400/10 p-3 rounded-lg text-3xl">history_toggle_off</span>
               <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">Live</span>
             </div>
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Active Rentals</p>
-            <h3 className="text-3xl font-bold text-white mt-1">{activeRentals}</h3>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em]">Active Rentals</span>
+            <div className="text-[28px] font-bold text-white mt-1">{activeRentals}</div>
           </div>
 
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-sm">
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg flex flex-col">
             <div className="flex justify-between items-start mb-4">
-              <span className="material-icons-round text-purple-400 bg-purple-400/10 p-2 rounded-lg">payments</span>
+              <span className="material-icons-round text-purple-400 bg-purple-400/10 p-3 rounded-lg text-3xl">payments</span>
               <span className="text-xs font-medium text-purple-400 bg-purple-400/10 px-2 py-1 rounded-md">Monthly</span>
             </div>
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Revenue MTD</p>
-            <h3 className="text-3xl font-bold text-white mt-1">₹{(revenueMTD / 100000).toFixed(1)}L</h3>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em]">Revenue MTD</span>
+            <div className="text-[28px] font-bold text-white mt-1">₹{(revenueMTD / 100000).toFixed(1)}L</div>
           </div>
 
-          <div className="bg-navy-900 p-6 rounded-xl border border-slate-800 shadow-sm">
+          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg flex flex-col">
             <div className="flex justify-between items-start mb-4">
-              <span className="material-icons-round text-amber-400 bg-amber-400/10 p-2 rounded-lg">trending_up</span>
+              <span className="material-icons-round text-amber-400 bg-amber-400/10 p-3 rounded-lg text-3xl">trending_up</span>
               <span className="text-xs font-medium text-amber-400 bg-amber-400/10 px-2 py-1 rounded-md">AI Predicted</span>
             </div>
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">AI Occupancy Forecast</p>
-            <h3 className="text-3xl font-bold text-white mt-1">{aiOccupancyForecast}%</h3>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em]">AI Occupancy Forecast</span>
+            <div className="text-[28px] font-bold text-white mt-1">{aiOccupancyForecast}%</div>
           </div>
         </section>
 
@@ -283,19 +281,23 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
               <div className="flex items-center bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-1">
                 <button 
                   onClick={goToPreviousMonth}
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-slate-600 dark:text-slate-300"
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-slate-600 dark:text-slate-300 flex items-center justify-center"
+                  aria-label="Previous Month"
                 >
                   <span className="material-icons-round text-lg leading-none">chevron_left</span>
                 </button>
                 <button 
                   onClick={goToToday}
                   className="px-4 py-1 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all uppercase tracking-wide"
+                  aria-label="Today"
                 >
-                  Today
+                  <span className="sr-only">Today</span>
+                  TODAY
                 </button>
                 <button 
                   onClick={goToNextMonth}
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-slate-600 dark:text-slate-300"
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-slate-600 dark:text-slate-300 flex items-center justify-center"
+                  aria-label="Next Month"
                 >
                   <span className="material-icons-round text-lg leading-none">chevron_right</span>
                 </button>
@@ -306,7 +308,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                 <select 
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="pl-10 pr-10 py-2 bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary appearance-none cursor-pointer outline-none"
+                  className="pl-10 pr-10 py-2 bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary appearance-none cursor-pointer outline-none relative z-10"
                 >
                   <option>All Statuses</option>
                   <option>Draft</option>
@@ -314,7 +316,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                   <option>Completed</option>
                 </select>
                 <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">filter_alt</span>
-                <span className="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">expand_more</span>
+                <span className="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none z-20">expand_more</span>
               </div>
               <button className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-500">
                 <span className="material-symbols-outlined text-xl">settings</span>
@@ -400,7 +402,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                         <div className="flex items-center gap-8 text-sm text-slate-500 dark:text-slate-400">
                           <div className="flex items-center gap-2">
                             <span className="material-icons-round text-base text-slate-400">qr_code</span>
-                            <span className="font-mono">{booking.name}</span>
+                            <span className="font-mono text-slate-500">{booking.name.split('-').slice(0, -1).join('-')}-</span>
+                            <span className="font-mono bg-blue-900 text-white px-2 py-0.5 rounded-md text-xs max-w-[90px] truncate inline-block align-middle" title={booking.name}>{booking.name.split('-').slice(-1)[0]}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="material-icons-round text-base text-slate-400">calendar_today</span>
@@ -445,7 +448,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
 
       {/* Floating Dark Mode Toggle */}
       <button 
-        className="fixed bottom-8 right-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform z-50 ring-4 ring-white/20 dark:ring-black/20"
+        className="fixed bottom-12 right-12 bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform z-[100] ring-4 ring-white/20 dark:ring-black/20"
         onClick={() => document.documentElement.classList.toggle('dark')}
       >
         <span className="material-icons-round text-2xl">dark_mode</span>
