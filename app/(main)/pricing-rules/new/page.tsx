@@ -15,6 +15,7 @@ import { createPricingRule, getCustomerGroups, getTerritories, getItemGroups } f
 export default function CreatePricingRulePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [itemGroups, setItemGroups] = useState<string[]>([]);
   const [customerGroups, setCustomerGroups] = useState<string[]>([]);
   const [territories, setTerritories] = useState<string[]>([]);
@@ -41,11 +42,13 @@ export default function CreatePricingRulePage() {
 
   async function loadData() {
     try {
+      console.log('[Pricing Rule Form] Loading data...');
       const [groups, custGroups, terr] = await Promise.all([
         getItemGroups(),
         getCustomerGroups(),
         getTerritories(),
       ]);
+      console.log('[Pricing Rule Form] Item Groups loaded:', groups.length);
       setItemGroups(groups);
       setCustomerGroups(custGroups);
       setTerritories(terr);
@@ -56,6 +59,19 @@ export default function CreatePricingRulePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(""); // Clear previous errors
+    
+    console.log('[Pricing Rule Form] Submit initiated');
+    console.log('[Pricing Rule Form] Apply On:', applyOn);
+    console.log('[Pricing Rule Form] Item Group:', itemGroup);
+    
+    // Client-side validation
+    if (applyOn === "Item Group" && !itemGroup) {
+      setError("Please select an Item Group");
+      console.warn('[Pricing Rule Form] Validation failed: Item Group required');
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -77,9 +93,9 @@ export default function CreatePricingRulePage() {
 
       await createPricingRule(formData);
       router.push("/pricing-rules");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create pricing rule:", error);
-      alert("Failed to create pricing rule. Please try again.");
+      setError(error?.message || "Failed to create pricing rule. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -102,6 +118,13 @@ export default function CreatePricingRulePage() {
             Set up automated conditional pricing for your business
           </p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
@@ -143,19 +166,24 @@ export default function CreatePricingRulePage() {
 
                 {applyOn === "Item Group" && (
                   <div className="space-y-2">
-                    <Label htmlFor="item_group">Item Group</Label>
-                    <Select value={itemGroup} onValueChange={setItemGroup}>
-                      <SelectTrigger id="item_group">
-                        <SelectValue placeholder="All Groups" />
+                    <Label htmlFor="item_group">Item Group *</Label>
+                    <Select value={itemGroup} onValueChange={setItemGroup} required>
+                      <SelectTrigger id="item_group" className={!itemGroup ? "border-red-300" : ""}>
+                        <SelectValue placeholder={itemGroups.length === 0 ? "Loading..." : "Select an Item Group"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {itemGroups.map((group) => (
-                          <SelectItem key={group} value={group}>
-                            {group}
-                          </SelectItem>
-                        ))}
+                        {itemGroups.length === 0 ? (
+                          <div className="px-2 py-1 text-sm text-slate-500">Loading item groups...</div>
+                        ) : (
+                          itemGroups.map((group) => (
+                            <SelectItem key={group} value={group}>
+                              {group}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-slate-500">Required when applying rule to Item Group</p>
                   </div>
                 )}
               </div>
@@ -378,7 +406,11 @@ export default function CreatePricingRulePage() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" disabled={loading} className="gap-2">
+            <Button 
+              type="submit" 
+              disabled={loading || !title || (applyOn === "Item Group" && !itemGroup)} 
+              className="gap-2"
+            >
               {loading ? (
                 "Creating..."
               ) : (
