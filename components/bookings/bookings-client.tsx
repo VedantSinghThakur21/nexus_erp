@@ -447,13 +447,14 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
         </section>
       </div>
 
-      {/* Floating Dark Mode Toggle */}
+      {/* Floating Dark Mode Toggle - NO background circle/div */}
       <button 
         className="fixed bottom-8 right-8 bg-gradient-to-tr from-blue-500 to-purple-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform z-50 ring-4 ring-white/20 dark:ring-black/20"
         onClick={() => document.documentElement.classList.toggle('dark')}
       >
         <span className="material-icons-round text-2xl">dark_mode</span>
       </button>
+      {/* Ensure no absolutely positioned or background circle/div exists here */}
     </div>
   )
 }

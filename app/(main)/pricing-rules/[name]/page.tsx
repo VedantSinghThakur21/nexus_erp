@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Percent, DollarSign, Calculator, Trash2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { getPricingRule, updatePricingRule, deletePricingRule, getCustomerGroups, getTerritories } from "@/app/actions/pricing-rules";
-import { getItemGroups } from "@/app/actions/invoices";
+import { getPricingRule, updatePricingRule, deletePricingRule, getCustomerGroups, getTerritories, getItemGroups } from "@/app/actions/pricing-rules";
 
 export default function EditPricingRulePage({ params }: { params: Promise<{ name: string }> }) {
   const router = useRouter();
@@ -54,7 +53,8 @@ export default function EditPricingRulePage({ params }: { params: Promise<{ name
         if (rule) {
           setTitle(rule.title);
           setApplyOn(rule.apply_on);
-          setItemGroup(rule.item_group || "");
+          // Extract item group from child table if exists
+          setItemGroup(rule.item_groups && rule.item_groups.length > 0 ? rule.item_groups[0].item_group : "");
           setRateOrDiscount(rule.rate_or_discount);
           setDiscountPercentage(rule.discount_percentage?.toString() || "");
           setDiscountAmount(rule.discount_amount?.toString() || "");

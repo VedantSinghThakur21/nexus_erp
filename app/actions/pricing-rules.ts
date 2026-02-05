@@ -8,7 +8,8 @@ interface PricingRule {
   title: string;
   apply_on: string;
   items?: { item_code: string }[];
-  item_group?: string;
+  item_groups?: { item_group: string }[];
+  brands?: { brand: string }[];
   selling?: number;
   buying?: number;
   rate_or_discount: string;
@@ -18,6 +19,8 @@ interface PricingRule {
   price_or_product_discount: string;
   customer?: string;
   customer_group?: string;
+  customers?: { customer: string }[];
+  customer_groups?: { customer_group: string }[];
   territory?: string;
   valid_from?: string;
   valid_upto?: string;
@@ -35,7 +38,7 @@ export async function getPricingRules(): Promise<PricingRule[]> {
       'GET',
       {
         doctype: 'Pricing Rule',
-        fields: '["name","title","apply_on","item_group","selling","buying","rate_or_discount","discount_percentage","discount_amount","rate","price_or_product_discount","customer","customer_group","territory","valid_from","valid_upto","min_qty","max_qty","disable","priority"]',
+        fields: '["name","title","apply_on","selling","buying","rate_or_discount","discount_percentage","discount_amount","rate","price_or_product_discount","customer","customer_group","territory","valid_from","valid_upto","min_qty","max_qty","disable","priority"]',
         limit_page_length: 999
       }
     ) as { data?: any[] }
@@ -83,6 +86,14 @@ export async function createPricingRule(formData: FormData) {
     const maxQty = formData.get("max_qty") as string;
     const priority = formData.get("priority") as string;
 
+    // Validate required fields
+    if (!title) {
+      throw new Error("Title is required");
+    }
+    if (!applyOn) {
+      throw new Error("Apply On field is required");
+    }
+
     const ruleData: any = {
       doctype: "Pricing Rule",
       title,
@@ -92,9 +103,26 @@ export async function createPricingRule(formData: FormData) {
       price_or_product_discount: "Price",
     };
 
-    // Add item group if specified
-    if (itemGroup) {
-      ruleData.item_group = itemGroup;
+    // Add item group to child table if specified (ERPNext requirement)
+    // ERPNext validates that when apply_on is "Item Group", the item_groups child table must have at least one entry
+    if (applyOn === "Item Group") {
+      if (!itemGroup) {
+        throw new Error("Item Group is required when Apply On is set to Item Group");
+      }
+      ruleData.item_groups = [
+        {
+          item_group: itemGroup
+        }
+      ];
+    }
+    
+    // For other apply_on types (Item Code, Brand), use their respective child tables
+    // These should be populated when items/brands are selected in the UI
+    if (applyOn === "Item Code") {
+      // Item codes should be added to items child table
+      ruleData.items = [];
+    } else if (applyOn === "Brand") {
+      ruleData.brands = [];
     }
 
     // Add discount/rate based on type
@@ -115,10 +143,13 @@ export async function createPricingRule(formData: FormData) {
     if (maxQty) ruleData.max_qty = parseFloat(maxQty);
     if (priority) ruleData.priority = parseInt(priority);
 
+    console.log('[Pricing Rule] Creating with data:', JSON.stringify(ruleData, null, 2));
+
     await frappeRequest('frappe.client.insert', 'POST', {
       doc: ruleData
     });
 
+    console.log('[Pricing Rule] Successfully created:', title);
     revalidatePath("/pricing-rules");
     return { success: true };
   } catch (error) {
@@ -258,6 +289,26 @@ export async function getTerritories(): Promise<string[]> {
     return response.data?.map((territory: { name: string }) => territory.name) || [];
   } catch (error) {
     console.error("Error fetching territories:", error);
+    return [];
+  }
+}
+
+// Get item groups for filtering
+export async function getItemGroups(): Promise<string[]> {
+  try {
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Item Group',
+        fields: JSON.stringify(["name"]),
+        limit_page_length: 999,
+      }
+    ) as { data?: { name: string }[] };
+
+    return response.data?.map((group: { name: string }) => group.name) || [];
+  } catch (error) {
+    console.error("Error fetching item groups:", error);
     return [];
   }
 }

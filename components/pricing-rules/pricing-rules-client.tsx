@@ -9,7 +9,8 @@ interface PricingRule {
   title: string
   apply_on: string
   items?: { item_code: string }[]
-  item_group?: string
+  item_groups?: { item_group: string }[]
+  brands?: { brand: string }[]
   selling?: number
   buying?: number
   rate_or_discount: string
@@ -21,6 +22,8 @@ interface PricingRule {
   other_item_code?: string
   customer?: string
   customer_group?: string
+  customers?: { customer: string }[]
+  customer_groups?: { customer_group: string }[]
   territory?: string
   valid_from?: string
   valid_upto?: string
@@ -245,7 +248,9 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                       <div className="flex flex-wrap gap-4 text-xs text-slate-600 dark:text-slate-400">
                         <span className="flex items-center gap-1">
                           <strong>Apply On:</strong> {rule.apply_on}
-                          {rule.item_group && ` (${rule.item_group})`}
+                          {rule.item_groups && rule.item_groups.length > 0 && ` (${rule.item_groups.map(ig => ig.item_group).join(', ')})`}
+                          {rule.brands && rule.brands.length > 0 && ` (${rule.brands.map(b => b.brand).join(', ')})`}
+                          {rule.items && rule.items.length > 0 && ` (${rule.items.length} items)`}
                         </span>
                         
                         {rule.rate_or_discount === "Discount Percentage" && rule.discount_percentage && (

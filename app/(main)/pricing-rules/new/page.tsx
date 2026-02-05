@@ -10,8 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Percent, DollarSign, Calculator, Users, MapPin, Calendar, Package } from "lucide-react";
 import Link from "next/link";
-import { createPricingRule, getCustomerGroups, getTerritories } from "@/app/actions/pricing-rules";
-import { getItemGroups } from "@/app/actions/invoices";
+import { createPricingRule, getCustomerGroups, getTerritories, getItemGroups } from "@/app/actions/pricing-rules";
 
 export default function CreatePricingRulePage() {
   const router = useRouter();
