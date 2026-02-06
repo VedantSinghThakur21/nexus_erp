@@ -186,14 +186,14 @@ export default function DashboardPage() {
     .sort((a: Opportunity, b: Opportunity) => b.probability - a.probability)
     .slice(0, 3);
 
-  // Calculate Sales Funnel data from opportunities
+  // Calculate Sales Funnel data from opportunities using actual stages
   const funnelData = (() => {
     const stageGroups: Record<string, { count: number; value: number }> = {};
 
     opportunities
       .filter((opp: Opportunity) => opp.status === "Open")
       .forEach((opp: Opportunity) => {
-        const stage = opp.sales_stage;
+        const stage = opp.sales_stage || "Other";
         if (!stageGroups[stage]) {
           stageGroups[stage] = { count: 0, value: 0 };
         }
@@ -201,42 +201,36 @@ export default function DashboardPage() {
         stageGroups[stage].value += opp.opportunity_amount || 0;
       });
 
-    const funnelStages = [
-      {
-        name: "Discovery",
-        erpStages: ["Prospecting", "Lead"],
-        value: "$4.2M",
-      },
-      {
-        name: "Proposal",
-        erpStages: ["Qualification", "Qualified", "Proposal/Price Quote"],
-        value: "$3.1M",
-      },
-      {
-        name: "Negotiation",
-        erpStages: ["Negotiation/Review", "Negotiation"],
-        value: "$2.8M",
-      },
+    // Define stage order and display names
+    const stageOrder = [
+      "Prospecting",
+      "Qualification",
+      "Qualified",
+      "Proposal/Price Quote",
+      "Negotiation/Review",
+      "Negotiation",
+      "Other"
     ];
 
-    const result = funnelStages.map((stage) => {
-      let count = 0;
-      stage.erpStages.forEach((erpStage) => {
-        if (stageGroups[erpStage]) {
-          count += stageGroups[erpStage].count;
-        }
+    const result = stageOrder
+      .filter((stageName) => stageGroups[stageName])
+      .map((stageName) => {
+        const stageData = stageGroups[stageName];
+        return {
+          stage: stageName,
+          value: formatIndianCurrency(stageData.value),
+          count: stageData.count,
+        };
       });
-      return {
-        stage: stage.name,
-        value: stage.value,
-        count,
-      };
-    });
+
+    if (result.length === 0) {
+      return [];
+    }
 
     const maxCount = Math.max(...result.map((s) => s.count), 1);
     return result.map((item, index) => ({
       ...item,
-      width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - index * 20)),
+      width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - index * 15)),
     }));
   })();
 
@@ -252,9 +246,9 @@ export default function DashboardPage() {
       };
     }
 
-    // Take top 2 sources and group rest as "Other"
-    const topSources = leadSources.slice(0, 2);
-    const othersCount = leadSources.slice(2).reduce((sum, s) => sum + (s.count || 0), 0);
+    // Take top 3 sources and group rest as "Other"
+    const topSources = leadSources.slice(0, 3);
+    const othersCount = leadSources.slice(3).reduce((sum, s) => sum + (s.count || 0), 0);
     
     const sources = topSources.map(s => ({
       name: s.source,
@@ -271,7 +265,7 @@ export default function DashboardPage() {
     }
 
     // Assign colors
-    const colorPalette = ['#3f51b5', '#10b981', '#e2e8f0'];
+    const colorPalette = ['#3f51b5', '#10b981', '#f59e0b', '#e2e8f0'];
     
     return {
       total,
@@ -628,62 +622,62 @@ export default function DashboardPage() {
 
             {/* Right Column - AI Insights */}
             <div className="col-span-12 xl:col-span-4">
-              <div className="bg-[#111827] rounded-2xl border border-slate-800 shadow-xl p-8 relative h-full flex flex-col">
-                <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-800">
-                  <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-brand-yellow text-3xl">
+              <div className="bg-[#111827] rounded-2xl border border-slate-800 shadow-xl p-6 relative h-full flex flex-col">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-brand-yellow text-2xl">
                       bolt
                     </span>
-                    <h4 className="font-bold text-lg text-white tracking-wider uppercase">
+                    <h4 className="font-bold text-base text-white tracking-wider uppercase">
                       AI INSIGHTS
                     </h4>
                   </div>
-                  <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                 </div>
                 {atRiskDeal ? (
-                  <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-6 mb-8">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="material-symbols-outlined text-brand-yellow text-xl">
+                  <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-symbols-outlined text-brand-yellow text-lg">
                         warning
                       </span>
-                      <span className="text-[12px] font-bold text-brand-yellow uppercase tracking-widest">
+                      <span className="text-[11px] font-bold text-brand-yellow uppercase tracking-widest">
                         DEAL AT RISK
                       </span>
                     </div>
-                    <h5 className="font-bold text-xl text-white mb-2">
+                    <h5 className="font-bold text-lg text-white mb-2">
                       {atRiskDeal.customer_name}
                     </h5>
-                    <p className="text-[14px] text-slate-400 mb-6 leading-relaxed">
+                    <p className="text-[13px] text-slate-400 mb-5 leading-relaxed">
                       {atRiskDeal.reason || `No activity for ${atRiskDeal.days_since_activity} days. Competitive threat detected.`}
                     </p>
                     <Link href={`/crm/opportunities/${atRiskDeal.name}`}>
-                      <button className="w-full py-4 bg-brand-yellow hover:bg-amber-400 text-slate-900 text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/10 uppercase tracking-widest">
+                      <button className="w-full py-3 bg-brand-yellow hover:bg-amber-400 text-slate-900 text-xs font-black rounded-xl transition-all shadow-lg shadow-amber-500/10 uppercase tracking-widest">
                         PRIORITY OUTREACH
                       </button>
                     </Link>
                   </div>
                 ) : (
-                  <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-6 mb-8">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="material-symbols-outlined text-emerald-500 text-xl">
+                  <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-5 mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-symbols-outlined text-emerald-500 text-lg">
                         check_circle
                       </span>
-                      <span className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest">
+                      <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest">
                         ALL DEALS ON TRACK
                       </span>
                     </div>
-                    <p className="text-[14px] text-slate-400 leading-relaxed">
+                    <p className="text-[13px] text-slate-400 leading-relaxed">
                       No at-risk deals detected. All opportunities are progressing well.
                     </p>
                   </div>
                 )}
-                <div className="space-y-4 flex-1">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                <div className="space-y-3 flex-1">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
                       RECOMMENDED ACTIONS
                     </p>
                     <Link href="/crm">
-                      <button className="text-[11px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300">
+                      <button className="text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300">
                         VIEW ALL
                       </button>
                     </Link>
@@ -694,22 +688,22 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={opp.name}
-                        className="group flex items-center gap-5 p-5 bg-slate-800/40 rounded-2xl hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
+                        className="group flex items-center gap-4 p-4 bg-slate-800/40 rounded-xl hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
                         onClick={() => router.push(`/crm/opportunities/${opp.name}`)}
                       >
                         <div
-                          className={`w-12 h-12 bg-${actionColor}-500/10 text-${actionColor}-400 flex items-center justify-center rounded-full ring-1 ring-${actionColor}-500/30 group-hover:scale-105 transition-transform`}
+                          className={`w-10 h-10 bg-${actionColor}-500/10 text-${actionColor}-400 flex items-center justify-center rounded-full ring-1 ring-${actionColor}-500/30 group-hover:scale-105 transition-transform`}
                         >
-                          <span className="material-symbols-outlined text-2xl font-bold">
+                          <span className="material-symbols-outlined text-xl font-bold">
                             {actionType}
                           </span>
                         </div>
                         <div>
-                          <p className="text-[15px] font-bold text-white">
+                          <p className="text-[14px] font-bold text-white">
                             {index === 0 ? "Follow up - " : "Review - "}
                             {((opp.customer_name || opp.party_name) || "Unknown").split(" ")[0]}
                           </p>
-                          <p className="text-[12px] text-slate-500">
+                          <p className="text-[11px] text-slate-500">
                             {index === 0
                               ? "High velocity activity."
                               : "Contract review complete."}
