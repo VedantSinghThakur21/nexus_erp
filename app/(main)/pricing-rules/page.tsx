@@ -41,10 +41,13 @@ export default function PricingRulesPage() {
   async function loadRules() {
     setLoading(true);
     try {
+      console.log('[Pricing Rules Page] Loading rules...');
       const data = await getPricingRules();
+      console.log('[Pricing Rules Page] Loaded rules:', data.length, 'rules');
+      console.log('[Pricing Rules Page] Rules data:', data);
       setRules(data);
     } catch (error) {
-      console.error("Failed to load pricing rules:", error);
+      console.error("[Pricing Rules Page] Failed to load pricing rules:", error);
     } finally {
       setLoading(false);
     }

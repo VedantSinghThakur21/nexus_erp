@@ -33,6 +33,7 @@ interface PricingRule {
 // Get all pricing rules
 export async function getPricingRules(): Promise<PricingRule[]> {
   try {
+    console.log('[Pricing Rule] Fetching all pricing rules...');
     const response = await frappeRequest(
       'frappe.client.get_list',
       'GET',
@@ -41,17 +42,24 @@ export async function getPricingRules(): Promise<PricingRule[]> {
         fields: '["name","title","apply_on","selling","buying","rate_or_discount","discount_percentage","discount_amount","rate","price_or_product_discount","customer","customer_group","territory","valid_from","valid_upto","min_qty","max_qty","disable","priority"]',
         limit_page_length: 999
       }
-    ) as { data?: any[] }
-    return response.data || []
+    );
+    
+    console.log('[Pricing Rule] Raw response from API:', JSON.stringify(response));
+    
+    // Handle response as array directly or as { data: [] }
+    const dataArray = Array.isArray(response) ? response : (response as any)?.data || [];
+    console.log('[Pricing Rule] Parsed pricing rules:', dataArray.length, 'rules found');
+    return dataArray;
   } catch (error) {
-    console.error("Error fetching pricing rules:", error)
-    return []
+    console.error("[Pricing Rule] Error fetching pricing rules:", error);
+    return [];
   }
 }
 
 // Get single pricing rule with full details
 export async function getPricingRule(name: string): Promise<PricingRule | null> {
   try {
+    console.log('[Pricing Rule] Fetching pricing rule:', name);
     const response = await frappeRequest(
       'frappe.client.get',
       'GET',
@@ -59,11 +67,16 @@ export async function getPricingRule(name: string): Promise<PricingRule | null> 
         doctype: 'Pricing Rule',
         name: name,
       }
-    ) as { data?: any };
+    );
 
-    return response.data || null;
+    console.log('[Pricing Rule] Fetched rule response:', JSON.stringify(response));
+    
+    // Handle response as object directly or as { data: {} }
+    const rule = (response as any)?.data || response;
+    console.log('[Pricing Rule] Parsed rule:', rule?.name || 'not found');
+    return rule || null;
   } catch (error) {
-    console.error("Error fetching pricing rule:", error);
+    console.error("[Pricing Rule] Error fetching pricing rule:", error);
     return null;
   }
 }
