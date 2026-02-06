@@ -122,70 +122,90 @@ export default function OperatorsPage() {
               </div>
 
               {/* KPI Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-navy-deep dark:bg-slate-900 p-6 rounded-xl border border-slate-800 flex flex-col gap-4 shadow-xl">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="grid grid-cols-4 gap-6">
+                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       Total Staff
                     </span>
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-blue-500">group</span>
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                      <span className="material-symbols-outlined text-xl">group</span>
                     </div>
                   </div>
-                  <div className="text-4xl font-bold text-white">{kpis.total}</div>
-                  <div className="text-[11px] text-slate-500">
-                    {kpis.total === 0 ? "No active records" : "Active operators"}
+                  <div className="flex items-end gap-3">
+                    <span className="text-[28px] font-bold text-white leading-none">{kpis.total}</span>
+                    <span className="text-sm font-semibold text-blue-400 mb-1">Active crew</span>
+                  </div>
+                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                      style={{ width: `${Math.min(kpis.total * 12, 100)}%` }}
+                    ></div>
                   </div>
                 </div>
 
-                <div className="bg-navy-deep dark:bg-slate-900 p-6 rounded-xl border border-slate-800 flex flex-col gap-4 shadow-xl">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       On-Field
                     </span>
-                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-emerald-500">
-                        location_on
-                      </span>
+                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                      <span className="material-symbols-outlined text-xl">location_on</span>
                     </div>
                   </div>
-                  <div className="text-4xl font-bold text-white">{kpis.onField}</div>
-                  <div className="text-[11px] text-emerald-500 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">bolt</span> Live
-                    Tracking Active
+                  <div className="flex items-end gap-3">
+                    <span className="text-[28px] font-bold text-white leading-none">{kpis.onField}</span>
+                    <span className="text-sm font-semibold text-emerald-400 mb-1 flex items-center gap-0.5">
+                      <span className="material-symbols-outlined text-xs">bolt</span>Live
+                    </span>
+                  </div>
+                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                      style={{ width: `${Math.min(kpis.onField * 25, 100)}%` }}
+                    ></div>
                   </div>
                 </div>
 
-                <div className="bg-navy-deep dark:bg-slate-900 p-6 rounded-xl border border-slate-800 flex flex-col gap-4 shadow-xl">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       Avg. Utilization
                     </span>
-                    <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-purple-500">
-                        trending_up
-                      </span>
+                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                      <span className="material-symbols-outlined text-xl">trending_up</span>
                     </div>
                   </div>
-                  <div className="text-4xl font-bold text-white">{kpis.utilization}</div>
-                  <div className="text-[11px] text-slate-500">
-                    {kpis.total === 0 ? "Baseline calculation..." : "Based on active staff"}
+                  <div className="flex items-end gap-3">
+                    <span className="text-[28px] font-bold text-white leading-none">
+                      {kpis.utilization}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-400 mb-1">Baseline</span>
+                  </div>
+                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"
+                      style={{ width: `${parseInt(kpis.utilization)}%` }}
+                    ></div>
                   </div>
                 </div>
 
-                <div className="bg-navy-deep dark:bg-slate-900 p-6 rounded-xl border border-slate-800 flex flex-col gap-4 shadow-xl">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       AI Efficiency Score
                     </span>
-                    <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-amber-500">
-                        electric_bolt
-                      </span>
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+                      <span className="material-symbols-outlined text-xl">electric_bolt</span>
                     </div>
                   </div>
-                  <div className="text-4xl font-bold text-white">N/A</div>
-                  <div className="text-[11px] text-slate-500">Awaiting data input</div>
+                  <div className="flex items-end gap-3">
+                    <span className="text-[28px] font-bold text-white leading-none">N/A</span>
+                    <span className="text-sm font-semibold text-slate-400 mb-1">Pending</span>
+                  </div>
+                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-slate-700 w-0 rounded-full"></div>
+                  </div>
                 </div>
               </div>
 
