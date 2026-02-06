@@ -280,12 +280,3 @@ export default function OperatorsPage() {
     </div>
   );
 }
-                </CardContent>
-            </Card>
-           ))
-        )}
-      </div>
-    </div>
-  )
-}
-
