@@ -240,17 +240,59 @@ export default function DashboardPage() {
     }));
   })();
 
-  // Lead source data
+  // Lead source data - calculate from actual API data
   const leadSourceData = (() => {
     const total = leadSources.reduce((sum, src) => sum + (src.count || 0), 0);
-    const direct = leadSources.find((s) => s.source === "Direct")?.count || Math.round(total * 0.65);
-    const referral = leadSources.find((s) => s.source === "Referral")?.count || Math.round(total * 0.2);
+    
+    if (total === 0 || leadSources.length === 0) {
+      return {
+        total: 0,
+        sources: [],
+        colors: []
+      };
+    }
 
+    // Take top 2 sources and group rest as "Other"
+    const topSources = leadSources.slice(0, 2);
+    const othersCount = leadSources.slice(2).reduce((sum, s) => sum + (s.count || 0), 0);
+    
+    const sources = topSources.map(s => ({
+      name: s.source,
+      count: s.count,
+      percent: Math.round((s.count / total) * 100)
+    }));
+
+    if (othersCount > 0) {
+      sources.push({
+        name: 'Other',
+        count: othersCount,
+        percent: Math.round((othersCount / total) * 100)
+      });
+    }
+
+    // Assign colors
+    const colorPalette = ['#3f51b5', '#10b981', '#e2e8f0'];
+    
     return {
-      total: total || stats.openOpportunities,
-      direct: { count: direct, percent: 65 },
-      referral: { count: referral, percent: 20 },
+      total,
+      sources,
+      colors: colorPalette.slice(0, sources.length)
     };
+  })();
+
+  // Generate conic gradient for donut chart
+  const donutGradient = (() => {
+    if (leadSourceData.sources.length === 0) return 'conic-gradient(#e2e8f0 0% 100%)';
+    
+    let currentPercent = 0;
+    const gradientStops = leadSourceData.sources.map((source, idx) => {
+      const startPercent = currentPercent;
+      currentPercent += source.percent;
+      const color = leadSourceData.colors[idx];
+      return `${color} ${startPercent}% ${currentPercent}%`;
+    });
+
+    return `conic-gradient(${gradientStops.join(', ')})`;
   })();
 
   if (loading) {
@@ -545,13 +587,12 @@ export default function DashboardPage() {
                       <div
                         className="w-full h-full rounded-full"
                         style={{
-                          background:
-                            "conic-gradient(#3f51b5 0% 65%, #10b981 65% 85%, #e2e8f0 85% 100%)",
+                          background: donutGradient,
                         }}
                       ></div>
                       <div className="absolute inset-5 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center">
                         <span className="text-2xl font-bold">
-                          {leadSourceData.total}
+                          {leadSourceData.total || 0}
                         </span>
                         <span className="text-[9px] text-slate-400 font-bold uppercase">
                           Total
@@ -560,30 +601,25 @@ export default function DashboardPage() {
                     </div>
                     {/* Legend */}
                     <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-3">
-                        <span className="w-3 h-3 rounded-full bg-primary"></span>
-                        <div className="flex flex-col">
-                          <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
-                            Direct
-                          </span>
-                          <span className="text-[10px] font-semibold text-slate-400">
-                            {leadSourceData.direct.percent}% (
-                            {leadSourceData.direct.count})
-                          </span>
+                      {leadSourceData.sources.map((source, idx) => (
+                        <div key={source.name} className="flex items-center gap-3">
+                          <span 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: leadSourceData.colors[idx] }}
+                          ></span>
+                          <div className="flex flex-col">
+                            <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
+                              {source.name}
+                            </span>
+                            <span className="text-[10px] font-semibold text-slate-400">
+                              {source.percent}% ({source.count})
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                        <div className="flex flex-col">
-                          <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
-                            Referral
-                          </span>
-                          <span className="text-[10px] font-semibold text-slate-400">
-                            {leadSourceData.referral.percent}% (
-                            {leadSourceData.referral.count})
-                          </span>
-                        </div>
-                      </div>
+                      ))}
+                      {leadSourceData.sources.length === 0 && (
+                        <p className="text-xs text-slate-400">No data available</p>
+                      )}
                     </div>
                   </div>
                 </div>
