@@ -48,12 +48,15 @@ export default function CreatePricingRulePage() {
         getCustomerGroups(),
         getTerritories(),
       ]);
-      console.log('[Pricing Rule Form] Item Groups loaded:', groups.length);
+      console.log('[Pricing Rule Form] Item Groups loaded:', groups);
+      console.log('[Pricing Rule Form] Customer Groups loaded:', custGroups);
+      console.log('[Pricing Rule Form] Territories loaded:', terr);
       setItemGroups(groups);
       setCustomerGroups(custGroups);
       setTerritories(terr);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      console.error("[Pricing Rule Form] Failed to load data:", error);
+      setError("Failed to load form data. Please refresh the page.");
     }
   }
 
