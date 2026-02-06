@@ -38,27 +38,52 @@ export async function getOperators() {
 
 // 2. CREATE: New Operator with License Info
 export async function createOperator(formData: FormData) {
-  const operatorData = {
-    doctype: 'Employee',
-    first_name: formData.get('first_name'),
-    last_name: formData.get('last_name'),
-    designation: formData.get('designation') || 'Operator',
-    gender: 'Male',
-    date_of_joining: new Date().toISOString().split('T')[0],
-    status: 'Active',
-    cell_number: formData.get('phone'),
-    
-    // Mapping License Data to standard fields for MVP
-    // Ideally, create Custom Fields: 'license_number', 'license_expiry' in ERPNext
-    bio: `License: ${formData.get('license_number')}`, 
-    date_of_birth: formData.get('license_expiry') // Using DOB field for Expiry date placeholder
-  }
-
   try {
-    await frappeRequest('frappe.client.insert', 'POST', { doc: operatorData })
+    // Extract form data
+    const firstName = formData.get('first_name')?.toString() || ''
+    const lastName = formData.get('last_name')?.toString() || ''
+    const email = formData.get('email')?.toString() || ''
+    const phone = formData.get('phone')?.toString() || ''
+    const designation = formData.get('designation')?.toString() || 'Operator'
+    const licenseNumber = formData.get('license_number')?.toString() || ''
+    const licenseExpiry = formData.get('license_expiry')?.toString() || ''
+    const dateOfJoining = formData.get('date_of_joining')?.toString() || new Date().toISOString().split('T')[0]
+
+    // Validate required fields
+    if (!firstName.trim()) {
+      throw new Error('First name is required')
+    }
+
+    // Build operator data for ERPNext Employee doctype
+    const operatorData = {
+      doctype: 'Employee',
+      first_name: firstName,
+      last_name: lastName,
+      employee_name: `${firstName} ${lastName}`.trim(),
+      designation: designation,
+      gender: 'Male', // Can be extended to form input
+      date_of_joining: dateOfJoining,
+      status: 'Active',
+      cell_number: phone,
+      email: email,
+      
+      // Mapping License Data to standard fields (MVP approach)
+      // Note: Custom fields 'license_number', 'license_expiry' should be added to Employee doctype in ERPNext
+      bio: licenseNumber ? `License: ${licenseNumber}` : '', 
+      date_of_birth: licenseExpiry || null // Using DOB field as placeholder for Expiry date
+    }
+
+    console.log('Creating operator with data:', operatorData)
+
+    const response = await frappeRequest('frappe.client.insert', 'POST', { doc: operatorData })
+    
+    console.log('Operator created successfully:', response)
+
     revalidatePath('/operators')
-    return { success: true }
+    return { success: true, data: response }
   } catch (error: any) {
-    return { error: error.message || 'Failed to create operator' }
+    console.error('Error creating operator:', error)
+    const errorMessage = error.message || 'Failed to create operator'
+    return { error: errorMessage, success: false }
   }
 }

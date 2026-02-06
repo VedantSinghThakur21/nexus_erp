@@ -67,8 +67,8 @@ export default function OperatorsPage() {
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white dark:bg-navy-deep border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex-1 max-w-2xl">
+      <header className="bg-white dark:bg-navy-deep border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50 gap-6">
+        <div className="flex-1 min-w-0 max-w-2xl">
           <div className="relative group">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] group-focus-within:text-primary transition-colors">
               search
@@ -80,27 +80,25 @@ export default function OperatorsPage() {
             />
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 flex-shrink-0">
           <Link href="/operators/new">
-            <button className="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 font-medium transition-all shadow-sm whitespace-nowrap">
-              <span className="material-symbols-outlined text-[20px]">add</span>
+            <button className="bg-primary hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-sm hover:shadow-md whitespace-nowrap text-sm">
+              <span className="material-symbols-outlined text-[18px]">add</span>
               Add Operator
             </button>
           </Link>
-          <div className="relative">
-            <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
-              <span className="material-symbols-outlined text-[24px]">notifications</span>
-            </button>
+          <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 relative">
+            <span className="material-symbols-outlined text-[24px]">notifications</span>
             <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white dark:border-navy-deep rounded-full"></span>
-          </div>
+          </button>
           <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
-            <div className="text-right">
+            <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                 Alex Thompson
               </p>
               <p className="text-[11px] text-slate-500 font-medium">Sales Admin</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
               AT
             </div>
           </div>
