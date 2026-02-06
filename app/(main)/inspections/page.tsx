@@ -99,7 +99,7 @@ export default function InspectionsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto"
+      <main className="flex-1 overflow-y-auto">
         <div className="max-w-[1600px] mx-auto p-8 space-y-8">
           {!loading ? (
             <>
@@ -347,6 +347,7 @@ export default function InspectionsPage() {
               <div className="text-slate-500">Loading inspections...</div>
             </div>
           )}
+        </div>
       </main>
 
       <style jsx>{`
