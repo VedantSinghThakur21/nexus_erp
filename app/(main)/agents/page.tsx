@@ -99,10 +99,10 @@ export default function AgentsPage() {
       )}
 
       {/* Header */}
-      <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 bg-white dark:bg-midnight-blue z-20 shrink-0">
-        <div className="flex items-center gap-8 flex-1">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-midnight-blue rounded-lg flex items-center justify-center shadow-sm">
+      <header className="h-14 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white dark:bg-midnight-blue z-20 shrink-0">
+        <div className="flex items-center gap-6 flex-1">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-midnight-blue rounded-lg flex items-center justify-center shadow-sm">
               <svg
                 className="w-6 h-6"
                 fill="none"
@@ -123,32 +123,32 @@ export default function AgentsPage() {
                 <rect fill="white" height="10" rx="2" width="4" x="48" y="20"></rect>
               </svg>
             </div>
-            <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white uppercase">
+            <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white uppercase">
               AvarIQ Agent
             </span>
           </div>
-          <div className="flex-1 max-w-xl relative group">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+          <div className="flex-1 max-w-lg relative group">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
               search
             </span>
             <input
-              className="w-full h-10 pl-11 pr-4 rounded-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-accent/20 text-sm font-medium text-slate-700 dark:text-slate-200 placeholder-slate-400 transition-all"
+              className="w-full h-9 pl-10 pr-3 rounded-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-accent/20 text-xs font-medium text-slate-700 dark:text-slate-200 placeholder-slate-400 transition-all"
               placeholder="Ask AI anything..."
               type="text"
             />
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 pl-6">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 pl-4">
             <div className="text-right">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none">
+              <p className="text-xs font-semibold text-slate-900 dark:text-white leading-tight">
                 Alex Thompson
               </p>
-              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
+              <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 uppercase tracking-wider">
                 Sales Admin
               </p>
             </div>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-md ring-2 ring-white dark:ring-slate-800">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shadow-md ring-2 ring-white dark:ring-slate-800">
               AT
             </div>
           </div>
@@ -158,38 +158,38 @@ export default function AgentsPage() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* KPI Cards - Matching Leads Page Styling */}
-        <section className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-          <div className="bg-[#111827] p-6 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl">
+        <section className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+          <div className="bg-[#111827] p-4 rounded-xl border border-slate-800 shadow-lg flex items-center justify-between transition-all hover:shadow-xl">
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
                 Total Queries
               </p>
-              <h3 className="text-2xl font-bold text-white mt-1">{kpis.totalQueries}</h3>
+              <h3 className="text-xl font-bold text-white mt-0.5">{kpis.totalQueries}</h3>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-xl text-slate-300">
-              <span className="material-symbols-outlined text-2xl">query_stats</span>
+            <div className="p-2 bg-slate-700/50 rounded-lg text-slate-300">
+              <span className="material-symbols-outlined text-xl">query_stats</span>
             </div>
           </div>
-          <div className="bg-[#111827] p-6 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl">
+          <div className="bg-[#111827] p-4 rounded-xl border border-slate-800 shadow-lg flex items-center justify-between transition-all hover:shadow-xl">
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
                 Accuracy
               </p>
-              <h3 className="text-2xl font-bold text-white mt-1">{kpis.accuracy}</h3>
+              <h3 className="text-xl font-bold text-white mt-0.5">{kpis.accuracy}</h3>
             </div>
-            <div className="p-3 bg-green-500/10 rounded-xl text-green-400">
-              <span className="material-symbols-outlined text-2xl">verified</span>
+            <div className="p-2 bg-green-500/10 rounded-lg text-green-400">
+              <span className="material-symbols-outlined text-xl">verified</span>
             </div>
           </div>
-          <div className="bg-[#111827] p-6 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl">
+          <div className="bg-[#111827] p-4 rounded-xl border border-slate-800 shadow-lg flex items-center justify-between transition-all hover:shadow-xl">
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
                 Efficiency Boost
               </p>
-              <h3 className="text-2xl font-bold text-white mt-1">{kpis.efficiencyBoost}</h3>
+              <h3 className="text-xl font-bold text-white mt-0.5">{kpis.efficiencyBoost}</h3>
             </div>
-            <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
-              <span className="material-symbols-outlined text-2xl">trending_up</span>
+            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+              <span className="material-symbols-outlined text-xl">trending_up</span>
             </div>
           </div>
         </section>
@@ -197,8 +197,8 @@ export default function AgentsPage() {
         {/* Chat Area with Sidebar */}
         <div className="flex-1 flex overflow-hidden">
           {/* Main Chat Area */}
-          <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8 flex flex-col items-center">
-            <div className="w-full max-w-5xl space-y-8">
+          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar space-y-5 flex flex-col items-center">
+            <div className="w-full max-w-5xl space-y-4">
               {messages.map((m, index) => {
                 const isUser = m.role === "user";
                 const isFirstMessage = index === 0;
@@ -206,12 +206,12 @@ export default function AgentsPage() {
                 if (isUser) {
                   return (
                     <div key={m.id} className="flex gap-5 justify-end">
-                      <div className="space-y-2 max-w-[70%] text-right">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <div className="space-y-1 max-w-[70%] text-right">
+                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">
                           Alex Thompson
                         </p>
-                        <div className="bg-accent text-white px-5 py-3 rounded-2xl rounded-tr-none shadow-md inline-block">
-                          <p className="text-sm font-medium">{m.content}</p>
+                        <div className="bg-accent text-white px-4 py-2 rounded-xl rounded-tr-none shadow-md inline-block">
+                          <p className="text-xs font-medium">{m.content}</p>
                         </div>
                       </div>
                     </div>
@@ -244,25 +244,25 @@ export default function AgentsPage() {
                     <div className="space-y-4 flex-1">
                       {isFirstMessage && (
                         <div>
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white mb-0.5">
                             AvarIQ Agent{" "}
-                            <span className="text-[10px] text-slate-400 font-normal ml-2">
+                            <span className="text-[7px] text-slate-400 font-normal ml-1">
                               Just now
                             </span>
                           </h4>
                         </div>
                       )}
-                      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-2xl rounded-tl-none shadow-sm">
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-[15px]">
+                      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl rounded-tl-none shadow-sm">
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-xs">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                         </div>
                       </div>
                       {isFirstMessage && (
-                        <div className="space-y-3">
-                          <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-1 tracking-wider">
+                        <div className="space-y-2">
+                          <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-0.5 tracking-wider">
                             Try asking:
                           </p>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5">
                             <button
                               onClick={() => {
                                 const event = {
@@ -270,7 +270,7 @@ export default function AgentsPage() {
                                 } as any;
                                 handleInputChange(event);
                               }}
-                              className="px-5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-sm text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                              className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
                             >
                               'Show me all leads'
                             </button>
@@ -281,7 +281,7 @@ export default function AgentsPage() {
                                 } as any;
                                 handleInputChange(event);
                               }}
-                              className="px-5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-sm text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                              className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
                             >
                               'Find available 50T Cranes'
                             </button>
@@ -292,7 +292,7 @@ export default function AgentsPage() {
                                 } as any;
                                 handleInputChange(event);
                               }}
-                              className="px-5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-sm text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                              className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
                             >
                               'Create a lead for Acme Corp'
                             </button>
@@ -307,7 +307,7 @@ export default function AgentsPage() {
               {/* Loading Indicator */}
               {isLoading && messages[messages.length - 1]?.role === "user" && (
                 <div className="flex gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-midnight-blue flex-shrink-0 flex items-center justify-center p-2 shadow-lg border border-slate-700">
+                  <div className="w-10 h-10 rounded-xl bg-midnight-blue flex-shrink-0 flex items-center justify-center p-1.5 shadow-md border border-slate-700">
                     <svg
                       className="w-full h-full"
                       fill="none"
@@ -341,58 +341,58 @@ export default function AgentsPage() {
           </div>
 
           {/* Sidebar */}
-          <aside className="w-80 border-l border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-midnight-blue/20 p-8 hidden xl:block overflow-y-auto">
-            <div className="flex items-center justify-between mb-8">
-              <h4 className="font-bold text-[10px] dark:text-slate-300 uppercase tracking-[0.2em] text-slate-500">
+          <aside className="w-72 border-l border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-midnight-blue/20 p-5 hidden xl:block overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h4 className="font-bold text-[8px] dark:text-slate-300 uppercase tracking-[0.15em] text-slate-500">
                 Action Preview
               </h4>
-              <span className="material-symbols-outlined text-slate-400 text-lg">info</span>
+              <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
             </div>
-            <div className="space-y-6">
-              <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 tracking-wider">
+            <div className="space-y-4">
+              <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
+                <p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">
                   Source Module
                 </p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                <p className="text-xs font-semibold text-slate-900 dark:text-white">
                   CRM / Leads
                 </p>
               </div>
-              <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 tracking-wider">
+              <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
+                <p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">
                   Last Sync
                 </p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                <p className="text-xs font-semibold text-slate-900 dark:text-white">
                   2 minutes ago
                 </p>
               </div>
-              <div className="pt-8 mt-4 border-t border-slate-100 dark:border-slate-800">
-                <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-4 tracking-[0.1em]">
+              <div className="pt-5 mt-3 border-t border-slate-100 dark:border-slate-800">
+                <h5 className="text-[7px] font-bold text-slate-400 uppercase mb-3 tracking-[0.08em]">
                   Quick Shortcuts
                 </h5>
-                <div className="space-y-2">
-                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-sm group">
-                    <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-accent">
+                <div className="space-y-1.5">
+                  <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group">
+                    <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-accent text-xs">
                       Export as CSV
                     </span>
-                    <span className="material-symbols-outlined text-slate-400 text-xl group-hover:text-accent">
+                    <span className="material-symbols-outlined text-slate-400 text-base group-hover:text-accent">
                       download
                     </span>
                   </button>
-                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-sm group">
-                    <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-accent">
+                  <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group">
+                    <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-accent text-xs">
                       Open in ERPNext
                     </span>
-                    <span className="material-symbols-outlined text-slate-400 text-xl group-hover:text-accent">
+                    <span className="material-symbols-outlined text-slate-400 text-base group-hover:text-accent">
                       open_in_new
                     </span>
                   </button>
                 </div>
               </div>
-              <div className="p-5 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/30">
-                <h5 className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-2 tracking-wider">
+              <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30">
+                <h5 className="text-[7px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-1.5 tracking-wider">
                   Agent Intelligence
                 </h5>
-                <p className="text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">
                   Based on current leads, I suggest prioritizing{" "}
                   <strong>Global Tech Corp</strong> due to high interest score (8.9/10).
                 </p>
@@ -402,20 +402,20 @@ export default function AgentsPage() {
         </div>
 
         {/* Footer */}
-        <footer className="p-6 bg-white dark:bg-midnight-blue border-t border-slate-200 dark:border-slate-800">
+        <footer className="p-4 bg-white dark:bg-midnight-blue border-t border-slate-200 dark:border-slate-800">
           <div className="max-w-5xl mx-auto">
             <form onSubmit={handleCustomSubmit}>
-              <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-2 pr-2.5 shadow-inner focus-within:ring-2 focus-within:ring-accent/20 transition-all">
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 pr-1.5 shadow-inner focus-within:ring-2 focus-within:ring-accent/20 transition-all">
                 <button
                   type="button"
-                  className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                 >
-                  <span className="material-symbols-outlined text-2xl">attach_file</span>
+                  <span className="material-symbols-outlined text-lg">attach_file</span>
                 </button>
                 <input
                   value={input}
                   onChange={handleInputChange}
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 py-3 outline-none"
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-xs text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 py-2 outline-none"
                   placeholder="Type your request (e.g., 'Draft invoice for ACME corp')..."
                   type="text"
                   disabled={isLoading}
@@ -423,21 +423,21 @@ export default function AgentsPage() {
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim()}
-                  className="w-11 h-11 bg-accent hover:bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-9 h-9 bg-accent hover:bg-blue-600 text-white rounded-lg flex items-center justify-center shadow-md transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="material-symbols-outlined text-2xl transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                  <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                     send
                   </span>
                 </button>
               </div>
             </form>
-            <div className="flex items-center justify-between mt-5">
-              <p className="text-[9px] text-slate-400 uppercase tracking-[0.3em] font-bold">
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-[7px] text-slate-400 uppercase tracking-[0.25em] font-bold">
                 AvarIQ v2.4 • Enterprise Suite
               </p>
               <button
                 onClick={() => setShowDebug(!showDebug)}
-                className="text-[9px] text-slate-400 uppercase tracking-[0.1em] font-bold flex items-center gap-1.5 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-[7px] text-slate-400 uppercase tracking-[0.08em] font-bold flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <span className="material-symbols-outlined text-xs">bug_report</span> Debug Mode
               </button>
