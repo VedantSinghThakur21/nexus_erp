@@ -636,24 +636,18 @@ export default function DashboardPage() {
                 </div>
 
                 {atRiskDeal ? (
-                  <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-4 mb-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="material-symbols-outlined text-brand-yellow text-base">
-                        warning
-                      </span>
-                      <span className="text-[11px] font-bold text-brand-yellow uppercase tracking-widest">
-                        DEAL AT RISK
-                      </span>
+                  <div className="bg-white/5 border border-yellow-400/30 rounded-xl p-5 mb-5 relative overflow-hidden group">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-symbols-outlined text-yellow-400 text-base">warning</span>
+                      <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-tighter">Deal at Risk</span>
                     </div>
-                    <h5 className="font-bold text-base text-white mb-1">
-                      {atRiskDeal.customer_name}
-                    </h5>
-                    <p className="text-[12px] text-slate-400 mb-4 leading-relaxed">
+                    <h4 className="text-sm font-bold mb-2 text-white">{atRiskDeal.customer_name}</h4>
+                    <p className="text-[12px] text-slate-400 mb-5 leading-relaxed">
                       {atRiskDeal.reason || `No activity for ${atRiskDeal.days_since_activity} days. Competitive threat detected.`}
                     </p>
                     <Link href={`/crm/opportunities/${atRiskDeal.name}`}>
-                      <button className="w-full py-2 bg-brand-yellow hover:bg-amber-400 text-slate-900 text-xs font-black rounded-lg transition-all shadow-lg shadow-amber-500/10 uppercase tracking-widest">
-                        PRIORITY OUTREACH
+                      <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded-lg text-xs transition uppercase tracking-wider">
+                        Priority Outreach
                       </button>
                     </Link>
                   </div>
