@@ -277,11 +277,26 @@ export async function getAtRiskDeals() {
       return []
     }
 
-    return opportunities.map((opp: any) => ({
-      name: opp.customer_name || opp.party_name || 'Unknown',
-      healthScore: opp.probability || 42,
-      modified: opp.modified,
-    }))
+    return opportunities.map((opp: any) => {
+      const modifiedDate = new Date(opp.modified);
+      const daysSinceActivity = Math.floor((Date.now() - modifiedDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let reason = '';
+      if (daysSinceActivity > 7) {
+        reason = `No activity for ${daysSinceActivity} days. Requires immediate attention.`;
+      } else if (opp.probability < 30) {
+        reason = 'Low confidence score. Competitive threat detected.';
+      } else {
+        reason = `Deal stagnating with ${opp.probability}% probability.`;
+      }
+
+      return {
+        name: opp.name,
+        customer_name: opp.customer_name || opp.party_name || 'Unknown',
+        days_since_activity: daysSinceActivity,
+        reason: reason,
+      };
+    });
   } catch (error) {
     console.error("Get At Risk Deals Error:", error)
     return []
