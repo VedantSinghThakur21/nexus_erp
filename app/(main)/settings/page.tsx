@@ -282,7 +282,12 @@ export default function SettingsPage() {
               <span className="material-symbols-outlined text-slate-400">business</span>
               <h2 className="font-semibold text-base">Company Settings</h2>
             </div>
-            {company && <EditCompanyDialog company={company} />}
+            {company && (
+              <EditCompanyDialog company={{
+                ...company,
+                company_name: company.company_name ?? ""
+              }} />
+            )}
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
             {company ? (
@@ -293,7 +298,7 @@ export default function SettingsPage() {
                       Company Name
                     </p>
                     <p className="text-sm font-bold text-slate-900 dark:text-white">
-                      {company.company_name || company.name}
+                      {(company.company_name ?? company.name) ?? ""}
                     </p>
                   </div>
                   <div>
