@@ -625,8 +625,8 @@ export default function DashboardPage() {
               <div className="bg-[#111827] rounded-2xl border border-slate-800 shadow-xl p-5 relative h-full flex flex-col max-w-sm mx-auto">
                 <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-800">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-brand-yellow text-2xl">
-                      bolt
+                    <span className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-400/10">
+                      <span className="material-symbols-outlined text-yellow-400 text-xl">bolt</span>
                     </span>
                     <h4 className="font-bold text-base text-white tracking-wider uppercase">
                       AI INSIGHTS
@@ -638,10 +638,12 @@ export default function DashboardPage() {
                 {atRiskDeal ? (
                   <div className="bg-white/5 border border-yellow-400/30 rounded-xl p-5 mb-5 relative overflow-hidden group">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="material-symbols-outlined text-yellow-400 text-base">warning</span>
-                      <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-tighter">Deal at Risk</span>
+                      <span className="w-7 h-7 flex items-center justify-center rounded-full bg-yellow-400/10">
+                        <span className="material-symbols-outlined text-yellow-400 text-lg">warning</span>
+                      </span>
+                      <span className="text-[11px] font-bold uppercase text-yellow-400 tracking-tighter">Deal at Risk</span>
                     </div>
-                    <h4 className="text-sm font-bold mb-2 text-white">{atRiskDeal.customer_name}</h4>
+                    <h4 className="text-base font-bold mb-2 text-white">{atRiskDeal.customer_name}</h4>
                     <p className="text-[12px] text-slate-400 mb-5 leading-relaxed">
                       {atRiskDeal.reason || `No activity for ${atRiskDeal.days_since_activity} days. Competitive threat detected.`}
                     </p>
