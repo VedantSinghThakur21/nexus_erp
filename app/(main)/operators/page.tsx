@@ -317,7 +317,7 @@ export default function OperatorsPage() {
                       their efficiency with our AI-driven workforce intelligence engine.
                     </p>
                     <Link href="/operators/new">
-                      <button className="bg-navy-deep dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-bold flex items-center gap-3 transition-all transform hover:scale-[1.02] shadow-lg">
+                      <button className="bg-primary hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-bold flex items-center gap-3 transition-all shadow-lg border border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400">
                         <span className="material-symbols-outlined">person_add</span>
                         Add First Operator
                       </button>
