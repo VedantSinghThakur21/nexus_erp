@@ -1,193 +1,450 @@
-'use client'
+"use client";
 
-import { useChat } from 'ai/react'
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Bot, Send, User, Sparkles, Loader2, Bug } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { useEffect, useRef, useState } from "react"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { useChat } from "ai/react";
+import { useEffect, useRef, useState, useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function AgentsPage() {
-  const [showDebug, setShowDebug] = useState(false)
-  const [debugLogs, setDebugLogs] = useState<string[]>([])
-  
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString()
-    setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`])
-    console.log(`[DEBUG] ${message}`)
-  }
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
-    api: '/api/chat',
-    streamProtocol: 'text',
-    
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
+    console.log(`[DEBUG] ${message}`);
+  };
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+    api: "/api/chat",
+    streamProtocol: "text",
+
     body: {
-      tenant_id: 'master', // Match your ERPNext tenant
+      tenant_id: "master",
     },
-    
+
     initialMessages: [
       {
-        id: '1',
-        role: 'assistant',
-        content: "Hello! I'm **Nexus AI**, your ERPNext assistant. I can help you manage Leads, Fleet, Customers, and Invoices.\n\n**Try asking:**\n- 'Show me all leads'\n- 'Find available 50T Cranes'\n- 'Create a lead for Acme Corp'\n- 'Show me overdue invoices'"
-      }
+        id: "1",
+        role: "assistant",
+        content:
+          "Hello! I'm **AvarIQ**, your autonomous agent. I can help you manage Leads, Fleet, Customers, and Invoices.",
+      },
     ],
-    
+
     onResponse: (response) => {
-      addDebugLog(`✅ Response received: ${response.status} ${response.statusText}`)
-      addDebugLog(`Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`)
+      addDebugLog(`✅ Response received: ${response.status} ${response.statusText}`);
     },
-    
+
     onFinish: (message) => {
-      addDebugLog(`✅ Message finished: ${message.content.substring(0, 100)}...`)
+      addDebugLog(`✅ Message finished: ${message.content.substring(0, 100)}...`);
     },
-    
+
     onError: (error) => {
-      addDebugLog(`❌ Error: ${error.message}`)
-      console.error("Chat Error:", error)
-    }
-  })
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+      addDebugLog(`❌ Error: ${error.message}`);
+      console.error("Chat Error:", error);
+    },
+  });
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleCustomSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
-    
-    addDebugLog(`📤 Sending message: "${input}"`)
-    handleSubmit(e)
-  }
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    addDebugLog(`📤 Sending message: "${input}"`);
+    handleSubmit(e);
+  };
+
+  // Calculate KPIs from messages
+  const kpis = useMemo(() => {
+    const totalQueries = messages.filter((m) => m.role === "user").length;
+    const accuracy = 98; // Mock - would need real calculation
+    const efficiencyBoost = totalQueries * 3.5; // Mock calculation
+
+    return {
+      totalQueries: totalQueries > 1000 ? `${(totalQueries / 1000).toFixed(1)}k` : totalQueries,
+      accuracy: `${accuracy}%`,
+      efficiencyBoost: `${Math.round(efficiencyBoost)}h`,
+    };
+  }, [messages]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-60px)] max-w-4xl mx-auto w-full p-4" suppressHydrationWarning>
+    <div className="bg-slate-50 dark:bg-midnight-blue text-slate-900 dark:text-slate-100 flex flex-col h-screen overflow-hidden">
       {/* Debug Toggle Button */}
-      <button
-        onClick={() => setShowDebug(!showDebug)}
-        className="fixed top-4 right-4 z-50 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600"
-        title="Toggle Debug Mode"
-      >
-        <Bug className="h-4 w-4" />
-      </button>
-
-      {/* Debug Panel */}
       {showDebug && (
         <div className="fixed bottom-20 right-4 w-96 max-h-96 bg-black text-green-400 p-4 rounded-lg shadow-2xl overflow-y-auto font-mono text-xs z-50">
           <div className="flex justify-between items-center mb-2">
             <span className="font-bold">🐛 DEBUG LOGS</span>
-            <button onClick={() => setDebugLogs([])} className="text-red-400 hover:text-red-300">Clear</button>
+            <button
+              onClick={() => setDebugLogs([])}
+              className="text-red-400 hover:text-red-300"
+            >
+              Clear
+            </button>
           </div>
           {debugLogs.map((log, i) => (
-            <div key={i} className="mb-1 border-b border-green-900 pb-1">{log}</div>
+            <div key={i} className="mb-1 border-b border-green-900 pb-1">
+              {log}
+            </div>
           ))}
           {error && (
-            <div className="mt-2 p-2 bg-red-900 text-red-200 rounded">
-              ERROR: {error.message}
-            </div>
+            <div className="mt-2 p-2 bg-red-900 text-red-200 rounded">ERROR: {error.message}</div>
           )}
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-3 pb-6 border-b border-slate-100 dark:border-slate-800 mb-4">
-        <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
-          <Bot className="h-6 w-6" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Nexus AI Agent</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Your autonomous ERPNext assistant {isLoading && <span className="text-indigo-500">(Processing...)</span>}
-          </p>
-        </div>
-      </div>
-
-      {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto space-y-6 pr-4 pb-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-        {messages.map((m, index) => (
-          <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            {/* Avatar */}
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-              m.role === 'user' 
-                ? 'bg-slate-900 dark:bg-slate-700 text-white' 
-                : 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg'
-            }`}>
-              {m.role === 'user' ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+      <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 bg-white dark:bg-midnight-blue z-20 shrink-0">
+        <div className="flex items-center gap-8 flex-1">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-midnight-blue rounded-lg flex items-center justify-center shadow-sm">
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 100 100"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="50" cy="55" fill="white" r="35"></circle>
+                <circle cx="50" cy="55" fill="#0F172A" r="30"></circle>
+                <circle cx="40" cy="55" fill="white" r="5"></circle>
+                <circle cx="60" cy="55" fill="white" r="5"></circle>
+                <path
+                  d="M45 65 Q50 68 55 65"
+                  stroke="white"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                ></path>
+                <circle cx="50" cy="15" fill="white" r="6"></circle>
+                <rect fill="white" height="10" rx="2" width="4" x="48" y="20"></rect>
+              </svg>
             </div>
+            <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white uppercase">
+              AvarIQ Agent
+            </span>
+          </div>
+          <div className="flex-1 max-w-xl relative group">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+              search
+            </span>
+            <input
+              className="w-full h-10 pl-11 pr-4 rounded-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-accent/20 text-sm font-medium text-slate-700 dark:text-slate-200 placeholder-slate-400 transition-all"
+              placeholder="Ask AI anything..."
+              type="text"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 pl-6">
+            <div className="text-right">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none">
+                Alex Thompson
+              </p>
+              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
+                Sales Admin
+              </p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-md ring-2 ring-white dark:ring-slate-800">
+              AT
+            </div>
+          </div>
+        </div>
+      </header>
 
-            {/* Message Bubble */}
-            <Card className={`p-4 max-w-[85%] ${
-              m.role === 'user' 
-                ? 'bg-slate-900 dark:bg-slate-800 text-white border-slate-900 dark:border-slate-700' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-            }`}>
-              <div className={`prose prose-sm ${
-                m.role === 'user' ? 'prose-invert' : 'dark:prose-invert'
-              } max-w-none prose-table:text-xs prose-th:bg-slate-100 dark:prose-th:bg-slate-800`}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {m.content}
-                </ReactMarkdown>
-              </div>
-              {showDebug && (
-                <div className="mt-2 text-xs text-slate-400 border-t pt-2">
-                  ID: {m.id} | Role: {m.role} | Length: {m.content.length} chars
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* KPI Cards - Matching Leads Page Styling */}
+        <section className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+          <div className="bg-[#111827] p-6 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+                Total Queries
+              </p>
+              <h3 className="text-2xl font-bold text-white mt-1">{kpis.totalQueries}</h3>
+            </div>
+            <div className="p-3 bg-slate-700/50 rounded-xl text-slate-300">
+              <span className="material-symbols-outlined text-2xl">query_stats</span>
+            </div>
+          </div>
+          <div className="bg-[#111827] p-6 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+                Accuracy
+              </p>
+              <h3 className="text-2xl font-bold text-white mt-1">{kpis.accuracy}</h3>
+            </div>
+            <div className="p-3 bg-green-500/10 rounded-xl text-green-400">
+              <span className="material-symbols-outlined text-2xl">verified</span>
+            </div>
+          </div>
+          <div className="bg-[#111827] p-6 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+                Efficiency Boost
+              </p>
+              <h3 className="text-2xl font-bold text-white mt-1">{kpis.efficiencyBoost}</h3>
+            </div>
+            <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
+              <span className="material-symbols-outlined text-2xl">trending_up</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Chat Area with Sidebar */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Main Chat Area */}
+          <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8 flex flex-col items-center">
+            <div className="w-full max-w-5xl space-y-8">
+              {messages.map((m, index) => {
+                const isUser = m.role === "user";
+                const isFirstMessage = index === 0;
+
+                if (isUser) {
+                  return (
+                    <div key={m.id} className="flex gap-5 justify-end">
+                      <div className="space-y-2 max-w-[70%] text-right">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                          Alex Thompson
+                        </p>
+                        <div className="bg-accent text-white px-5 py-3 rounded-2xl rounded-tr-none shadow-md inline-block">
+                          <p className="text-sm font-medium">{m.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={m.id} className="flex gap-5">
+                    <div className="w-12 h-12 rounded-2xl bg-midnight-blue flex-shrink-0 flex items-center justify-center p-2 shadow-lg border border-slate-700">
+                      <svg
+                        className="w-full h-full"
+                        fill="none"
+                        viewBox="0 0 100 100"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle cx="50" cy="55" fill="white" r="35"></circle>
+                        <circle cx="50" cy="55" fill="#0F172A" r="30"></circle>
+                        <circle cx="40" cy="55" fill="white" r="5"></circle>
+                        <circle cx="60" cy="55" fill="white" r="5"></circle>
+                        <path
+                          d="M45 65 Q50 68 55 65"
+                          stroke="white"
+                          strokeLinecap="round"
+                          strokeWidth="2"
+                        ></path>
+                        <circle cx="50" cy="15" fill="white" r="6"></circle>
+                        <rect fill="white" height="10" rx="2" width="4" x="48" y="20"></rect>
+                      </svg>
+                    </div>
+                    <div className="space-y-4 flex-1">
+                      {isFirstMessage && (
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+                            AvarIQ Agent{" "}
+                            <span className="text-[10px] text-slate-400 font-normal ml-2">
+                              Just now
+                            </span>
+                          </h4>
+                        </div>
+                      )}
+                      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-2xl rounded-tl-none shadow-sm">
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-[15px]">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                        </div>
+                      </div>
+                      {isFirstMessage && (
+                        <div className="space-y-3">
+                          <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-1 tracking-wider">
+                            Try asking:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => {
+                                const event = {
+                                  target: { value: "Show me all leads" },
+                                } as any;
+                                handleInputChange(event);
+                              }}
+                              className="px-5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-sm text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                            >
+                              'Show me all leads'
+                            </button>
+                            <button
+                              onClick={() => {
+                                const event = {
+                                  target: { value: "Find available 50T Cranes" },
+                                } as any;
+                                handleInputChange(event);
+                              }}
+                              className="px-5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-sm text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                            >
+                              'Find available 50T Cranes'
+                            </button>
+                            <button
+                              onClick={() => {
+                                const event = {
+                                  target: { value: "Create a lead for Acme Corp" },
+                                } as any;
+                                handleInputChange(event);
+                              }}
+                              className="px-5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-sm text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                            >
+                              'Create a lead for Acme Corp'
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Loading Indicator */}
+              {isLoading && messages[messages.length - 1]?.role === "user" && (
+                <div className="flex gap-5">
+                  <div className="w-12 h-12 rounded-2xl bg-midnight-blue flex-shrink-0 flex items-center justify-center p-2 shadow-lg border border-slate-700">
+                    <svg
+                      className="w-full h-full"
+                      fill="none"
+                      viewBox="0 0 100 100"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle cx="50" cy="55" fill="white" r="35"></circle>
+                      <circle cx="50" cy="55" fill="#0F172A" r="30"></circle>
+                      <circle cx="40" cy="55" fill="white" r="5"></circle>
+                      <circle cx="60" cy="55" fill="white" r="5"></circle>
+                      <path
+                        d="M45 65 Q50 68 55 65"
+                        stroke="white"
+                        strokeLinecap="round"
+                        strokeWidth="2"
+                      ></path>
+                      <circle cx="50" cy="15" fill="white" r="6"></circle>
+                      <rect fill="white" height="10" rx="2" width="4" x="48" y="20"></rect>
+                    </svg>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-2xl rounded-tl-none shadow-sm flex-1">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Fetching data from ERPNext Database...
+                    </p>
+                  </div>
                 </div>
               )}
-            </Card>
-          </div>
-        ))}
-        
-        {/* Loading Indicator */}
-        {isLoading && messages[messages.length - 1]?.role === 'user' && (
-          <div className="flex gap-4 animate-pulse">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600/50 to-purple-600/50 text-white flex items-center justify-center shrink-0">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <Card className="p-4 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <Loader2 className="h-4 w-4 animate-spin" /> Nexus is thinking...
-              </div>
-            </Card>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
 
-      {/* Input Area */}
-      <div className="pt-4">
-        <form onSubmit={handleCustomSubmit} className="flex gap-2 relative">
-          <Input
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Ask Nexus to manage leads, fleet, or invoices..."
-            className="pr-12 h-12 text-base shadow-sm border-slate-200 dark:border-slate-700 focus:border-indigo-500"
-            disabled={isLoading}
-          />
-          <Button 
-            type="submit" 
-            size="icon" 
-            disabled={isLoading || !input.trim()} 
-            className="absolute right-1 top-1 h-10 w-10 bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg disabled:opacity-50"
-          >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </Button>
-        </form>
-        <div className="flex justify-between items-center mt-2">
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            Nexus can execute real ERP actions. Always review created records.
-          </p>
-          {showDebug && (
-            <p className="text-xs text-green-500">
-              Debug Mode: ON | Messages: {messages.length} | Tenant: master
-            </p>
-          )}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <aside className="w-80 border-l border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-midnight-blue/20 p-8 hidden xl:block overflow-y-auto">
+            <div className="flex items-center justify-between mb-8">
+              <h4 className="font-bold text-[10px] dark:text-slate-300 uppercase tracking-[0.2em] text-slate-500">
+                Action Preview
+              </h4>
+              <span className="material-symbols-outlined text-slate-400 text-lg">info</span>
+            </div>
+            <div className="space-y-6">
+              <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 tracking-wider">
+                  Source Module
+                </p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  CRM / Leads
+                </p>
+              </div>
+              <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 tracking-wider">
+                  Last Sync
+                </p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  2 minutes ago
+                </p>
+              </div>
+              <div className="pt-8 mt-4 border-t border-slate-100 dark:border-slate-800">
+                <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-4 tracking-[0.1em]">
+                  Quick Shortcuts
+                </h5>
+                <div className="space-y-2">
+                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-sm group">
+                    <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-accent">
+                      Export as CSV
+                    </span>
+                    <span className="material-symbols-outlined text-slate-400 text-xl group-hover:text-accent">
+                      download
+                    </span>
+                  </button>
+                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-sm group">
+                    <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-accent">
+                      Open in ERPNext
+                    </span>
+                    <span className="material-symbols-outlined text-slate-400 text-xl group-hover:text-accent">
+                      open_in_new
+                    </span>
+                  </button>
+                </div>
+              </div>
+              <div className="p-5 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+                <h5 className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-2 tracking-wider">
+                  Agent Intelligence
+                </h5>
+                <p className="text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Based on current leads, I suggest prioritizing{" "}
+                  <strong>Global Tech Corp</strong> due to high interest score (8.9/10).
+                </p>
+              </div>
+            </div>
+          </aside>
         </div>
-      </div>
+
+        {/* Footer */}
+        <footer className="p-6 bg-white dark:bg-midnight-blue border-t border-slate-200 dark:border-slate-800">
+          <div className="max-w-5xl mx-auto">
+            <form onSubmit={handleCustomSubmit}>
+              <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-2 pr-2.5 shadow-inner focus-within:ring-2 focus-within:ring-accent/20 transition-all">
+                <button
+                  type="button"
+                  className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-2xl">attach_file</span>
+                </button>
+                <input
+                  value={input}
+                  onChange={handleInputChange}
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 py-3 outline-none"
+                  placeholder="Type your request (e.g., 'Draft invoice for ACME corp')..."
+                  type="text"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !input.trim()}
+                  className="w-11 h-11 bg-accent hover:bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-2xl transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                    send
+                  </span>
+                </button>
+              </div>
+            </form>
+            <div className="flex items-center justify-between mt-5">
+              <p className="text-[9px] text-slate-400 uppercase tracking-[0.3em] font-bold">
+                AvarIQ v2.4 • Enterprise Suite
+              </p>
+              <button
+                onClick={() => setShowDebug(!showDebug)}
+                className="text-[9px] text-slate-400 uppercase tracking-[0.1em] font-bold flex items-center gap-1.5 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <span className="material-symbols-outlined text-xs">bug_report</span> Debug Mode
+              </button>
+            </div>
+          </div>
+        </footer>
+      </main>
     </div>
-  )
+  );
 }
