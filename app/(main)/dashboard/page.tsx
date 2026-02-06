@@ -622,64 +622,64 @@ export default function DashboardPage() {
 
             {/* Right Column - AI Insights */}
             <div className="col-span-12 xl:col-span-4">
-              <div className="bg-[#111827] rounded-2xl border border-slate-800 shadow-xl p-8 relative h-full flex flex-col">
-                <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-800">
-                  <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-brand-yellow text-3xl">
+              <div className="bg-[#111827] rounded-2xl border border-slate-800 shadow-xl p-5 relative h-full flex flex-col max-w-sm mx-auto">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-brand-yellow text-2xl">
                       bolt
                     </span>
-                    <h4 className="font-bold text-lg text-white tracking-wider uppercase">
+                    <h4 className="font-bold text-base text-white tracking-wider uppercase">
                       AI INSIGHTS
                     </h4>
                   </div>
-                  <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                 </div>
 
                 {atRiskDeal ? (
-                  <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-6 mb-8">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="material-symbols-outlined text-brand-yellow text-xl">
+                  <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-4 mb-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="material-symbols-outlined text-brand-yellow text-base">
                         warning
                       </span>
-                      <span className="text-[12px] font-bold text-brand-yellow uppercase tracking-widest">
+                      <span className="text-[11px] font-bold text-brand-yellow uppercase tracking-widest">
                         DEAL AT RISK
                       </span>
                     </div>
-                    <h5 className="font-bold text-xl text-white mb-2">
+                    <h5 className="font-bold text-base text-white mb-1">
                       {atRiskDeal.customer_name}
                     </h5>
-                    <p className="text-[14px] text-slate-400 mb-6 leading-relaxed">
+                    <p className="text-[12px] text-slate-400 mb-4 leading-relaxed">
                       {atRiskDeal.reason || `No activity for ${atRiskDeal.days_since_activity} days. Competitive threat detected.`}
                     </p>
                     <Link href={`/crm/opportunities/${atRiskDeal.name}`}>
-                      <button className="w-full py-4 bg-brand-yellow hover:bg-amber-400 text-slate-900 text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/10 uppercase tracking-widest">
+                      <button className="w-full py-2 bg-brand-yellow hover:bg-amber-400 text-slate-900 text-xs font-black rounded-lg transition-all shadow-lg shadow-amber-500/10 uppercase tracking-widest">
                         PRIORITY OUTREACH
                       </button>
                     </Link>
                   </div>
                 ) : (
-                  <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-6 mb-8">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="material-symbols-outlined text-emerald-500 text-xl">
+                  <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-4 mb-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="material-symbols-outlined text-emerald-500 text-base">
                         check_circle
                       </span>
-                      <span className="text-[12px] font-bold text-emerald-500 uppercase tracking-widest">
+                      <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest">
                         ALL DEALS ON TRACK
                       </span>
                     </div>
-                    <p className="text-[14px] text-slate-400 leading-relaxed">
+                    <p className="text-[12px] text-slate-400 leading-relaxed">
                       No at-risk deals detected. All opportunities are progressing well.
                     </p>
                   </div>
                 )}
 
-                <div className="space-y-4 flex-1">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                <div className="space-y-3 flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
                       RECOMMENDED ACTIONS
                     </p>
                     <Link href="/crm">
-                      <button className="text-[11px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300">
+                      <button className="text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300">
                         VIEW ALL
                       </button>
                     </Link>
@@ -690,22 +690,22 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={opp.name}
-                        className="group flex items-center gap-5 p-5 bg-slate-800/40 rounded-2xl hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
+                        className="group flex items-center gap-3 p-3 bg-slate-800/40 rounded-lg hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
                         onClick={() => router.push(`/crm/opportunities/${opp.name}`)}
                       >
                         <div
-                          className={`w-12 h-12 bg-${actionColor}-500/10 text-${actionColor}-400 flex items-center justify-center rounded-full ring-1 ring-${actionColor}-500/30 group-hover:scale-105 transition-transform`}
+                          className={`w-8 h-8 bg-${actionColor}-500/10 text-${actionColor}-400 flex items-center justify-center rounded-full ring-1 ring-${actionColor}-500/30 group-hover:scale-105 transition-transform`}
                         >
-                          <span className="material-symbols-outlined text-2xl font-bold">
+                          <span className="material-symbols-outlined text-lg font-bold">
                             {actionType}
                           </span>
                         </div>
                         <div>
-                          <p className="text-[15px] font-bold text-white">
+                          <p className="text-[12px] font-bold text-white">
                             {index === 0 ? "Follow up - " : "Contract - "}
                             {((opp.customer_name || opp.party_name) || "Unknown").split(" ")[0]}
                           </p>
-                          <p className="text-[12px] text-slate-500">
+                          <p className="text-[10px] text-slate-500">
                             {index === 0
                               ? "High velocity activity."
                               : "Review is complete."}
