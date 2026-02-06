@@ -384,20 +384,6 @@ export default function OperatorsPage() {
           )}
         </div>
 
-        {/* Footer */}
-        <footer className="bg-white dark:bg-navy-deep border-t border-slate-200 dark:border-slate-800 px-8 py-4 flex justify-between items-center mt-auto">
-          <div className="flex items-center gap-6">
-            <span className="flex items-center gap-2 text-[12px] text-emerald-500 font-semibold">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              AI Engine Online
-            </span>
-            <span className="text-[12px] text-slate-400 border-l border-slate-200 dark:border-slate-800 pl-6">
-              Global Sync Interval: 120s
-            </span>
-            <span className="text-[12px] text-slate-400">Last sync: 2 minutes ago</span>
-          </div>
-          <div className="text-[12px] text-slate-400 font-medium">AVARIQ v2.4.0-intelligence</div>
-        </footer>
       </main>
     </div>
   );
