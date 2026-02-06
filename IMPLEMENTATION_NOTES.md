@@ -1,29 +1,3 @@
-## Operators Dashboard Migration
-
-### Overview
-Migrated the Operators dashboard from static HTML to a fully integrated Next.js TSX implementation. The new dashboard uses real data from ERPNext via `getOperators()` and supports live search, filtering, KPI cards, and modern UI/UX matching the provided HTML reference.
-
-### Files Modified
-- **`app/(main)/operators/page.tsx`**
-  - Replaced legacy Card grid implementation with a new client-side dashboard (TSX) using React hooks and Tailwind CSS.
-  - Integrated real data fetching, search, filters, and KPI cards.
-  - All UI controls and actions (add operator, search, filter) are wired to real backend actions.
-
-### Files Created/Removed
-- **No new components created**; reused `components/operators/create-operator-dialog.tsx` for operator creation dialog.
-- **No legacy operator components found** in `components/operators/` (only the dialog remains and is in use).
-
-### Key Features Implemented
-- Modern dashboard UI with KPI cards, header/profile bar, and AI banner.
-- Live search, role/status filters, and responsive crew grid.
-- Real data integration with backend actions for fetching and creating operators.
-- Full dark mode and responsive design support.
-
-### Cleanup
-- Removed all legacy code from the old Operators page implementation.
-- Verified no unused operator components remain.
-
----
 # CRM Implementation Notes
 
 ## Opportunities Page
