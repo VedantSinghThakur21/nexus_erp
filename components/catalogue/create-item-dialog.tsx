@@ -62,9 +62,10 @@ export function CreateItemDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" /> Add New Item
-        </Button>
+        <button className="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center font-semibold text-sm transition shadow-sm">
+          <span className="material-symbols-outlined text-xl mr-2">add</span>
+          Add New Item
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
