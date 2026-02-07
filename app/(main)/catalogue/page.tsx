@@ -52,6 +52,11 @@ export default function CataloguePage() {
       try {
         await ensureItemGroups()
         const items = await searchItems('')
+        console.log('Loaded items:', items)
+        console.log('Items count:', items.length)
+        items.forEach(item => {
+          console.log(`Item: ${item.item_code}, Group: ${item.item_group}`)
+        })
         setAllItems(items)
       } finally {
         setIsLoading(false)
@@ -62,12 +67,21 @@ export default function CataloguePage() {
   
   // Filter items based on search, categories, and price
   const filteredItems = useMemo(() => {
+    console.log('Filtering - allItems:', allItems.length)
+    console.log('Selected categories:', Array.from(selectedCategories))
+    
     let items = allItems
     
     // Filter by category
     if (!selectedCategories.has('All')) {
-      items = items.filter(item => selectedCategories.has(item.item_group))
+      items = items.filter(item => {
+        const match = selectedCategories.has(item.item_group)
+        console.log(`Item ${item.item_code} (${item.item_group}) matches: ${match}`)
+        return match
+      })
     }
+    
+    console.log('After category filter:', items.length)
     
     // Filter by search query
     if (searchQuery) {
@@ -84,6 +98,8 @@ export default function CataloguePage() {
       const price = item.standard_rate || 0
       return price >= minPrice && price <= maxPrice
     })
+    
+    console.log('Final filtered items:', items.length)
     
     return items
   }, [allItems, searchQuery, selectedCategories, minPrice, maxPrice])
