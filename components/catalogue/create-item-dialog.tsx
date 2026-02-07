@@ -92,10 +92,6 @@ export function CreateItemDialog() {
       setSelectedBrand('')
       // Refresh the page to show the new item
       router.refresh()
-      // Also reload the page after a short delay to ensure the item is visible
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
     } else {
       alert("Error: " + res.error)
     }

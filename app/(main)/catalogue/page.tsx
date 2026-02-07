@@ -153,43 +153,46 @@ export default function CataloguePage() {
   }
   
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
-      <main className="w-full overflow-y-auto">
-        <div className="max-w-[1600px] mx-auto p-8">
-          {/* Header */}
-          <div className="mb-8 flex items-start justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Product & Service Catalogue</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage offerings, pricing, and inventory across all channels</p>
+    <div className="min-h-screen bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden">
+      {/* Header */}
+      <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 w-full z-10">
+        <div className="relative w-[480px]">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+            search
+          </span>
+          <input
+            className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2.5 pl-11 pr-5 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-500"
+            placeholder="Ask AI anything..."
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-6">
+          <CreateItemDialog />
+          <button className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+            <span className="material-symbols-outlined">notifications</span>
+          </button>
+          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
+          <div className="flex items-center gap-3 pl-2">
+            <div className="text-right">
+              <p className="text-sm font-semibold leading-tight">Admin User</p>
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+                Catalogue Manager
+              </p>
             </div>
-            <CreateItemDialog />
+            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-slate-100 dark:ring-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-sm">
+              AU
+            </div>
           </div>
+        </div>
+      </header>
 
-          {/* AI Insight Card */}
-          <section className="mb-8">
-            <div className="bg-white dark:bg-slate-900 border border-blue-100 dark:border-slate-800 rounded-xl p-5 flex items-start space-x-4 shadow-sm">
-              <div className="bg-blue-100 dark:bg-blue-900/40 p-2 rounded-lg text-primary">
-                <span className="material-symbols-outlined">insights</span>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-primary">AI Insight</span>
-                  <span className="text-xs text-slate-400">• Generated 2 mins ago</span>
-                </div>
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-1">Stock Warning: High Velocity Items</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
-                  Based on current sales trends, 3 high-velocity products are predicted to go out of stock next month. Restocking now can prevent an estimated ₹12k in lost revenue.
-                </p>
-                <div className="flex space-x-3 mt-4">
-                  <button className="text-sm font-semibold px-4 py-2 bg-blue-50 dark:bg-slate-800 text-primary hover:bg-blue-100 dark:hover:bg-slate-700 rounded-md transition">View Recommendations</button>
-                  <button className="text-sm font-semibold px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition">Dismiss</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-background-dark custom-scrollbar">
+        <div className="max-w-full mx-auto space-y-8">
           {/* KPI Cards - Matching Leads Dashboard Style */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
               <div className="relative z-10">
@@ -329,7 +332,21 @@ export default function CataloguePage() {
 
               {/* Items Grid */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {filteredItems.map(item => (
+                {filteredItems.length === 0 ? (
+                  <div className="col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="material-symbols-outlined text-3xl text-slate-400">inventory_2</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No items found</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                      {allItems.length === 0 
+                        ? "Get started by adding your first item to the catalogue."
+                        : "Try adjusting your filters or search query."}
+                    </p>
+                    {allItems.length === 0 && <CreateItemDialog />}
+                  </div>
+                ) : (
+                  filteredItems.map(item => (
                   <div key={item.item_code} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm group hover:shadow-md transition">
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-2">
@@ -383,7 +400,8 @@ export default function CataloguePage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
