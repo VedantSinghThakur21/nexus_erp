@@ -75,15 +75,8 @@ export default function CataloguePage() {
       console.log('Selected categories:', Array.from(selectedCategories))
     }
     
-    // Filter by category - ONLY if not "All"
-    if (!selectedCategories.has('All') && selectedCategories.size > 0) {
-      items = items.filter(item => {
-        const shouldInclude = selectedCategories.has(item.item_group)
-        console.log(`Item "${item.item_code}" (group: "${item.item_group}") - Include: ${shouldInclude}`)
-        return shouldInclude
-      })
-      console.log('After category filter:', items.length)
-    }
+    // Show all items for debugging
+    const filteredItems = items;
     
     // Filter by search query
     if (searchQuery) {
