@@ -44,7 +44,13 @@ export default function CataloguePage() {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false)
   const [editingItem, setEditingItem] = useState<Item | null>(null)
   
-  const categories = ['All', 'Heavy Equipment Rental', 'Construction Services', 'Consulting']
+  // Dynamically build categories from actual item groups
+  const uniqueItemGroups = useMemo(() => {
+    const groups = new Set(allItems.map(item => item.item_group))
+    return ['All', ...Array.from(groups).sort()]
+  }, [allItems])
+  
+  const categories = uniqueItemGroups
   
   // Load initial data
   useEffect(() => {
@@ -65,41 +71,27 @@ export default function CataloguePage() {
   
   // Filter items based on search, categories, and price
   const filteredItems = useMemo(() => {
-    let items = allItems
-    
-    // Debug logging
-    if (allItems.length > 0) {
-      console.log('==== FILTERING DEBUG ====')
-      console.log('Total items:', allItems.length)
-      console.log('Item groups in data:', [...new Set(allItems.map(i => i.item_group))])
-      console.log('Selected categories:', Array.from(selectedCategories))
+    let items = allItems;
+    // Filter by category - ONLY if not "All"
+    if (!selectedCategories.has('All') && selectedCategories.size > 0) {
+      items = items.filter((item: Item) => selectedCategories.has(item.item_group));
     }
-    
-    // Show all items for debugging
-    const filteredItems = items;
-    
     // Filter by search query
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      items = items.filter(item => 
+      const query = searchQuery.toLowerCase();
+      items = items.filter((item: Item) =>
         item.item_name.toLowerCase().includes(query) ||
         item.item_code.toLowerCase().includes(query) ||
         item.description?.toLowerCase().includes(query)
-      )
+      );
     }
-    
     // Filter by price
-    items = items.filter(item => {
-      const price = item.standard_rate || 0
-      return price >= minPrice && price <= maxPrice
-    })
-    
-    console.log('Final filtered items:', items.length)
-    console.log('==== END DEBUG ====')
-    
-    return items
-  }, [allItems, searchQuery, selectedCategories, minPrice, maxPrice])
-  
+    items = items.filter((item: Item) => {
+      const price = item.standard_rate || 0;
+      return price >= minPrice && price <= maxPrice;
+    });
+    return items;
+  }, [allItems, searchQuery, selectedCategories, minPrice, maxPrice]);
   // Calculate summary stats
   const totalItems = allItems.length
   const availableItems = allItems.filter(item => item.available).length
@@ -344,17 +336,6 @@ export default function CataloguePage() {
 
               {/* Items Grid */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                      {/* Debug section: show all item names and groups */}
-                      <div style={{background:'#f9fafb',padding:'8px',margin:'8px 0',borderRadius:'6px',fontSize:'14px'}}>
-                        <strong>DEBUG: All Items Loaded ({allItems.length})</strong>
-                        <ul style={{margin:'4px 0'}}>
-                          {allItems.map(item => (
-                            <li key={item.item_code}>
-                              <span style={{fontWeight:'bold'}}>{item.item_name}</span> | Group: <span>{item.item_group}</span> | Code: <span>{item.item_code}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
                 {filteredItems.length === 0 ? (
                   <div className="col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
                     <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
