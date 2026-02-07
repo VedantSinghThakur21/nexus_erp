@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { getTeamMembers, removeTeamMember } from "@/app/actions/team";
+import { InviteTeamMemberDialog } from "@/components/team/invite-team-member-dialog";
 import Link from "next/link";
 
 interface TeamMember {
@@ -164,12 +165,7 @@ export default function TeamPage() {
           </div>
         </div>
         <div className="flex items-center gap-4 flex-shrink-0">
-          <Link href="/team/invite">
-            <button className="bg-primary hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-sm hover:shadow-md whitespace-nowrap text-sm">
-              <span className="material-symbols-outlined text-[18px]">person_add</span>
-              Invite Team Member
-            </button>
-          </Link>
+          <InviteTeamMemberDialog />
           <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 relative">
             <span className="material-symbols-outlined text-[24px]">notifications</span>
             <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white dark:border-navy-deep rounded-full"></span>

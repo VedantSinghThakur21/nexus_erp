@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -20,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { UserPlus } from 'lucide-react'
 import { inviteTeamMember } from '@/app/actions/team'
 
 export function InviteTeamMemberDialog() {
@@ -59,7 +57,7 @@ export function InviteTeamMemberDialog() {
         // Reset form
         const form = document.getElementById('invite-form') as HTMLFormElement
         form?.reset()
-        alert('Team member invited successfully!')
+        // Reload team members list
         window.location.reload()
       } else {
         setError(result.error || 'Failed to invite team member')
@@ -82,10 +80,10 @@ export function InviteTeamMemberDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Invite Team Member
-        </Button>
+        <button className="bg-primary hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-sm hover:shadow-md whitespace-nowrap text-sm">
+          <span className="material-symbols-outlined text-[18px]">person_add</span>
+          Invite Member
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <form id="invite-form" action={handleInvite}>
@@ -143,12 +141,20 @@ export function InviteTeamMemberDialog() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <button 
+              type="button" 
+              onClick={() => setOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
               Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
               {loading ? 'Sending...' : 'Send Invitation'}
-            </Button>
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -43,6 +43,8 @@ export default function CataloguePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingDetails, setIsLoadingDetails] = useState(false)
   const [editingItem, setEditingItem] = useState<Item | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 4
   
   // Dynamically build categories from actual item groups
   const uniqueItemGroups = useMemo(() => {
@@ -89,6 +91,20 @@ export default function CataloguePage() {
     }
     return items;
   }, [allItems, searchQuery, selectedCategories]);
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredItems.slice(startIndex, endIndex)
+  }, [filteredItems, currentPage])
+  
+  // Reset to page 1 when filtered items change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filteredItems])
+  
   // Calculate summary stats
   const totalItems = allItems.length
   const availableItems = allItems.filter(item => item.available).length
@@ -332,7 +348,7 @@ export default function CataloguePage() {
               </div>
 
               {/* Items Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {filteredItems.length === 0 ? (
                   <div className="col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
                     <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -347,7 +363,7 @@ export default function CataloguePage() {
                     {allItems.length === 0 && <CreateItemDialog />}
                   </div>
                 ) : (
-                  filteredItems.map(item => (
+                  paginatedItems.map(item => (
                   <div key={item.item_code} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm group hover:shadow-md transition">
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-2">
@@ -404,6 +420,46 @@ export default function CataloguePage() {
                   ))
                 )}
               </div>
+              
+              {/* Pagination Controls */}
+              {filteredItems.length > itemsPerPage && (
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredItems.length)} of {filteredItems.length} items
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      <span className="material-symbols-outlined text-sm">chevron_left</span>
+                    </button>
+                    <div className="flex gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition ${
+                            currentPage === page
+                              ? 'bg-primary text-white'
+                              : 'border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      <span className="material-symbols-outlined text-sm">chevron_right</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right Sidebar - AI Intelligence */}
