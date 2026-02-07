@@ -70,10 +70,12 @@ export default function CataloguePage() {
   }, [])
   
   // Filter items based on search, categories, and price
-  const filteredItems = useMemo(() => {
+  const filteredItems: Item[] = useMemo(() => {
     let items = allItems;
-    // Filter by category - ONLY if not "All"
-    if (!selectedCategories.has('All') && selectedCategories.size > 0) {
+    // If 'All' is selected, show all items
+    if (selectedCategories.has('All')) {
+      // No filtering by group
+    } else if (selectedCategories.size > 0) {
       items = items.filter((item: Item) => selectedCategories.has(item.item_group));
     }
     // Filter by search query
@@ -85,13 +87,8 @@ export default function CataloguePage() {
         item.description?.toLowerCase().includes(query)
       );
     }
-    // Filter by price
-    items = items.filter((item: Item) => {
-      const price = item.standard_rate || 0;
-      return price >= minPrice && price <= maxPrice;
-    });
     return items;
-  }, [allItems, searchQuery, selectedCategories, minPrice, maxPrice]);
+  }, [allItems, searchQuery, selectedCategories]);
   // Calculate summary stats
   const totalItems = allItems.length
   const availableItems = allItems.filter(item => item.available).length
