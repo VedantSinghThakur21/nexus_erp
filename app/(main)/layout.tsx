@@ -6,13 +6,11 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div 
-      suppressHydrationWarning
-      className="flex min-h-screen overflow-hidden bg-gray-50"
-    >
+    <div className="flex min-h-screen overflow-hidden bg-[#F3F4F6]">
       <AppSidebar />
       
-      <main className="flex-1 max-h-screen overflow-y-auto">
+      {/* Main content area with left margin for fixed sidebar */}
+      <main className="ml-64 flex-1 min-h-screen">
         {children}
       </main>
     </div>
