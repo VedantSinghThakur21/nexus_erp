@@ -5,6 +5,7 @@ import { searchItems, ensureItemGroups, getItemDetails } from "@/app/actions/inv
 import { getItemRentalAnalytics } from "@/app/actions/bookings"
 import { CreateItemDialog } from "@/components/catalogue/create-item-dialog"
 import { EditItemDialog } from "@/components/catalogue/edit-item-dialog"
+import { CreateBookingDialog } from "@/components/bookings/create-booking-dialog"
 
 interface Item {
   item_code: string
@@ -187,36 +188,45 @@ export default function CataloguePage() {
             </div>
           </section>
 
-          {/* KPI Cards */}
+          {/* KPI Cards - Matching Leads Dashboard Style */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-[11px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 mb-1">Total Items</p>
-                <h3 className="text-3xl font-bold">{totalItems}</h3>
-                <p className="text-xs text-slate-400 mt-1">{categories.length - 1} categories</p>
-              </div>
-              <div className="text-slate-300 dark:text-slate-700">
-                <span className="material-symbols-outlined text-4xl">inventory_2</span>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-[11px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 mb-1">Available Now</p>
-                <h3 className="text-3xl font-bold text-green-600">{availableItems}</h3>
-                <p className="text-xs text-slate-400 mt-1">Ready to book</p>
-              </div>
-              <div className="text-green-200 dark:text-green-900/30">
-                <span className="material-symbols-outlined text-4xl">check_circle</span>
+            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">Total Items</p>
+                  <div className="w-10 h-10 bg-blue-500/10 text-blue-400 flex items-center justify-center rounded-full ring-1 ring-blue-500/30">
+                    <span className="material-symbols-outlined text-xl">inventory_2</span>
+                  </div>
+                </div>
+                <h3 className="text-4xl font-bold text-white mb-1">{totalItems}</h3>
+                <p className="text-sm text-slate-400">{categories.length - 1} categories</p>
               </div>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-[11px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 mb-1">Filtered Results</p>
-                <h3 className="text-3xl font-bold">{filteredItems.length}</h3>
-                <p className="text-xs text-slate-400 mt-1">Showing {selectedCategories.has('All') ? 'All' : Array.from(selectedCategories).join(', ')}</p>
+            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">Available Now</p>
+                  <div className="w-10 h-10 bg-emerald-500/10 text-emerald-400 flex items-center justify-center rounded-full ring-1 ring-emerald-500/30">
+                    <span className="material-symbols-outlined text-xl">check_circle</span>
+                  </div>
+                </div>
+                <h3 className="text-4xl font-bold text-white mb-1">{availableItems}</h3>
+                <p className="text-sm text-slate-400">Ready to book</p>
               </div>
-              <div className="text-slate-300 dark:text-slate-700">
-                <span className="material-symbols-outlined text-4xl">filter_alt</span>
+            </div>
+            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">Filtered Results</p>
+                  <div className="w-10 h-10 bg-purple-500/10 text-purple-400 flex items-center justify-center rounded-full ring-1 ring-purple-500/30">
+                    <span className="material-symbols-outlined text-xl">filter_alt</span>
+                  </div>
+                </div>
+                <h3 className="text-4xl font-bold text-white mb-1">{filteredItems.length}</h3>
+                <p className="text-sm text-slate-400">Showing {selectedCategories.has('All') ? 'All' : Array.from(selectedCategories).join(', ')}</p>
               </div>
             </div>
           </div>
@@ -348,12 +358,14 @@ export default function CataloguePage() {
                         <span className="text-xl font-bold">₹{Math.round(item.standard_rate || 0).toLocaleString('en-IN')}</span>
                         <span className="text-slate-400 text-xs">{item.is_stock_item ? '/day' : '/session'}</span>
                       </div>
-                      <button 
-                        className="w-full mt-6 bg-midnight-blue hover:bg-slate-800 text-white font-semibold py-3 rounded-lg flex items-center justify-center transition"
-                        disabled={!item.available && item.stock_qty !== null}
-                      >
-                        <span className="material-symbols-outlined mr-2">add</span> Book Now
-                      </button>
+                      <div className="mt-6">
+                        <CreateBookingDialog
+                          itemCode={item.item_code}
+                          itemName={item.item_name}
+                          defaultRate={item.standard_rate || 1000}
+                          available={item.available}
+                        />
+                      </div>
                     </div>
                     <div className="flex border-t border-slate-100 dark:border-slate-800">
                       <button 

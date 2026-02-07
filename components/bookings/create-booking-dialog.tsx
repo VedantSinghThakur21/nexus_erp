@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { createBooking } from "@/app/actions/bookings"
 import { searchCustomers } from "@/app/actions/invoices"
 import { getProjects } from "@/app/actions/projects"
@@ -73,7 +73,7 @@ export function CreateBookingDialog({
     
     if (res.success) {
       setOpen(false)
-      alert("Booking Created Successfully!")
+      router.push('/bookings')
       router.refresh()
     } else {
       alert("Error: " + res.error)
@@ -84,9 +84,13 @@ export function CreateBookingDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 w-full" disabled={!available}>
-          <Plus className="h-4 w-4" /> {available ? 'Book Now' : 'Out of Stock'}
-        </Button>
+        <button 
+          className="w-full bg-midnight-blue hover:bg-slate-800 text-white font-semibold py-3 rounded-lg flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!available}
+        >
+          <span className="material-symbols-outlined mr-2">add</span> 
+          {available ? 'Book Now' : 'Out of Stock'}
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
