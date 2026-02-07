@@ -635,26 +635,30 @@ export async function searchItems(query: string, itemGroup?: string) {
     // If no query, get all items
     if (!query || query.trim() === '') {
       if (itemGroup && itemGroup !== 'All') {
-        filters = `[["item_group", "=", "${itemGroup}"]]`
+        filters = `[{"fieldname": "item_group", "operator": "=", "value": "${itemGroup}"}]`
       } else {
         filters = '[]' // Get all items
       }
     } else {
       // Add item group filter if specified
       if (itemGroup && itemGroup !== 'All') {
-        filters = `[["item_code", "like", "%${query}%"], ["item_group", "=", "${itemGroup}"]]`
+        filters = `[{"fieldname": "item_code", "operator": "like", "value": "%${query}%"}, {"fieldname": "item_group", "operator": "=", "value": "${itemGroup}"}]`
       } else {
-        filters = `[["item_code", "like", "%${query}%"]]`
+        filters = `[{"fieldname": "item_code", "operator": "like", "value": "%${query}%"}]`
       }
     }
+    
+    console.log('[searchItems] Fetching with filters:', filters)
     
     const items = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Item',
         filters: filters,
         fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item"]',
-        limit_page_length: 100, // Increased from 50 to show more items
+        limit_page_length: 500,
         order_by: 'item_group asc, item_code asc'
     }) as any[]
+    
+    console.log('[searchItems] Found items:', items.length, items)
     
     // Enhance items with stock info for stock items
     const enhancedItems = await Promise.all(items.map(async (item: any) => {
@@ -662,19 +666,21 @@ export async function searchItems(query: string, itemGroup?: string) {
         try {
           const stockData = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Bin',
-            filters: `[["item_code", "=", "${item.item_code}"]]`,
+            filters: `[{"fieldname": "item_code", "operator": "=", "value": "${item.item_code}"}]`,
             fields: '["actual_qty"]',
             limit_page_length: 0
           }) as any[]
           const stockQty = stockData.reduce((sum: number, bin: any) => sum + (bin.actual_qty || 0), 0)
           return { ...item, stock_qty: stockQty, available: stockQty > 0 }
         } catch (e) {
+          console.error(`Failed to fetch stock for ${item.item_code}:`, e)
           return { ...item, stock_qty: 0, available: false }
         }
       }
       return { ...item, stock_qty: null, available: true } // Services always available
     }))
     
+    console.log('[searchItems] Returning enhanced items:', enhancedItems.length)
     return enhancedItems as ({
       item_code: string
       item_name: string
@@ -685,6 +691,7 @@ export async function searchItems(query: string, itemGroup?: string) {
       available: boolean
     })[]
   } catch (error) {
+    console.error('[searchItems] Error:', error)
     return []
   }
 }
