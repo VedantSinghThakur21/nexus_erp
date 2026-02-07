@@ -6,6 +6,12 @@ import { canCreateInvoice, incrementUsage } from "./usage-limits"
 import { headers } from "next/headers"
 import { checkSalesOrderInvoiceEligibility, refreshSalesOrderStatus } from "./sales-orders"
 
+export interface Brand {
+  name: string
+  brand: string
+  description?: string
+}
+
 export interface Invoice {
   name: string
   customer_name: string
@@ -44,6 +50,43 @@ export interface PaymentEntry {
   creation?: string
   modified?: string
   owner?: string
+}
+
+// GET BRANDS
+export async function getBrands() {
+  try {
+    const response = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Brand',
+        fields: '["name", "brand", "description"]',
+        order_by: 'brand asc',
+        limit_page_length: 100
+      }
+    )
+    return response as Brand[]
+  } catch (error) {
+    console.error("Failed to fetch brands:", error)
+    return []
+  }
+}
+
+// CREATE BRAND
+export async function createBrand(brandName: string) {
+  try {
+    const brandData = {
+      doctype: 'Brand',
+      brand: brandName,
+      description: `Brand created from catalogue: ${brandName}`
+    }
+
+    const result = await frappeRequest('frappe.client.insert', 'POST', { doc: brandData })
+    return { success: true, brand: result }
+  } catch (error: any) {
+    console.error("Failed to create brand:", error)
+    return { success: false, error: error.message || 'Failed to create brand' }
+  }
 }
 
 // CREATE/UPDATE ITEM
@@ -587,18 +630,29 @@ export async function searchCustomers(query: string) {
 // 6. SEARCH ITEMS
 export async function searchItems(query: string, itemGroup?: string) {
   try {
-    let filters = `[["item_code", "like", "%${query}%"]]`
+    let filters: string
     
-    // Add item group filter if specified
-    if (itemGroup && itemGroup !== 'All') {
-      filters = `[["item_code", "like", "%${query}%"], ["item_group", "=", "${itemGroup}"]]`
+    // If no query, get all items
+    if (!query || query.trim() === '') {
+      if (itemGroup && itemGroup !== 'All') {
+        filters = `[["item_group", "=", "${itemGroup}"]]`
+      } else {
+        filters = '[]' // Get all items
+      }
+    } else {
+      // Add item group filter if specified
+      if (itemGroup && itemGroup !== 'All') {
+        filters = `[["item_code", "like", "%${query}%"], ["item_group", "=", "${itemGroup}"]]`
+      } else {
+        filters = `[["item_code", "like", "%${query}%"]]`
+      }
     }
     
     const items = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Item',
         filters: filters,
         fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item"]',
-        limit_page_length: 50,
+        limit_page_length: 100, // Increased from 50 to show more items
         order_by: 'item_group asc, item_code asc'
     }) as any[]
     

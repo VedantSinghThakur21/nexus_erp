@@ -183,11 +183,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
             </div>
           </div>
           <div className="flex items-center gap-6">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-sm transition-all">
-              <span className="material-icons-round text-base">add</span>
-              New Booking
-            </button>
-            <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-800 pl-6">
+            <div className="flex items-center gap-4">
               <button className="text-slate-500 hover:text-primary relative transition-colors">
                 <span className="material-symbols-outlined">notifications</span>
                 <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border-2 border-white dark:border-navy-900"></span>

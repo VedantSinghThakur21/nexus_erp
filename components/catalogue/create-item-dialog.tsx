@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Plus } from "lucide-react"
-import { createItem } from "@/app/actions/invoices"
+import { createItem, getBrands, createBrand, type Brand } from "@/app/actions/invoices"
 import { useRouter } from "next/navigation"
 
 const ITEM_GROUPS = [
@@ -35,7 +35,41 @@ export function CreateItemDialog() {
   const [loading, setLoading] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState('')
   const [isStockItem, setIsStockItem] = useState('1')
+  const [brands, setBrands] = useState<Brand[]>([])
+  const [selectedBrand, setSelectedBrand] = useState('')
+  const [showNewBrandDialog, setShowNewBrandDialog] = useState(false)
+  const [newBrandName, setNewBrandName] = useState('')
+  const [creatingBrand, setCreatingBrand] = useState(false)
   const router = useRouter()
+
+  // Load brands when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadBrands()
+    }
+  }, [open])
+
+  async function loadBrands() {
+    const brandsList = await getBrands()
+    setBrands(brandsList)
+  }
+
+  async function handleCreateBrand() {
+    if (!newBrandName.trim()) return
+    
+    setCreatingBrand(true)
+    const result = await createBrand(newBrandName.trim())
+    
+    if (result.success) {
+      await loadBrands()
+      setSelectedBrand(newBrandName.trim())
+      setNewBrandName('')
+      setShowNewBrandDialog(false)
+    } else {
+      alert("Error creating brand: " + result.error)
+    }
+    setCreatingBrand(false)
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -44,6 +78,9 @@ export function CreateItemDialog() {
     const formData = new FormData(e.currentTarget)
     formData.append('item_group', selectedGroup)
     formData.append('is_stock_item', isStockItem)
+    if (selectedBrand) {
+      formData.append('brand', selectedBrand)
+    }
     
     const res = await createItem(formData)
     
@@ -52,7 +89,13 @@ export function CreateItemDialog() {
       e.currentTarget.reset()
       setSelectedGroup('')
       setIsStockItem('1')
+      setSelectedBrand('')
+      // Refresh the page to show the new item
       router.refresh()
+      // Also reload the page after a short delay to ensure the item is visible
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
     } else {
       alert("Error: " + res.error)
     }
@@ -210,11 +253,32 @@ export function CreateItemDialog() {
               {/* Brand */}
               <div className="grid gap-2">
                 <Label htmlFor="brand">Brand</Label>
-                <Input
-                  id="brand"
-                  name="brand"
-                  placeholder="e.g., Caterpillar"
-                />
+                <div className="flex gap-2">
+                  <Select value={selectedBrand} onValueChange={(value) => {
+                    if (value === '__add_new__') {
+                      setShowNewBrandDialog(true)
+                    } else {
+                      setSelectedBrand(value)
+                    }
+                  }}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select brand (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {brands.map(brand => (
+                        <SelectItem key={brand.name} value={brand.brand}>
+                          {brand.brand}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__add_new__" className="text-primary font-semibold">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-sm">add</span>
+                          Add New Brand
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Manufacturer */}
@@ -249,6 +313,52 @@ export function CreateItemDialog() {
             </Button>
           </div>
         </form>
+
+        {/* New Brand Dialog */}
+        {showNewBrandDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-900 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+              <h3 className="text-lg font-semibold mb-4">Add New Brand</h3>
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="new_brand">Brand Name *</Label>
+                  <Input
+                    id="new_brand"
+                    value={newBrandName}
+                    onChange={(e) => setNewBrandName(e.target.value)}
+                    placeholder="e.g., Caterpillar"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleCreateBrand()
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowNewBrandDialog(false)
+                      setNewBrandName('')
+                    }}
+                    disabled={creatingBrand}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleCreateBrand}
+                    disabled={creatingBrand || !newBrandName.trim()}
+                  >
+                    {creatingBrand ? "Creating..." : "Create Brand"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
