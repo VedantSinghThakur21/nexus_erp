@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import { Mail, Eye, EyeOff, TrendingUp, Users, DollarSign, BarChart3, Building2, User } from 'lucide-react'
 
 export default function LoginPage() {
@@ -26,13 +27,13 @@ export default function LoginPage() {
   async function handleLogin(formData: FormData) {
     setLoginError(null)
     setLoginLoading(true)
-    
+
     try {
       const usernameOrEmail = formData.get('email') as string
       const password = formData.get('password') as string
-      
+
       const result = await loginUser(usernameOrEmail, password)
-      
+
       if (result.success) {
         // Redirect to tenant subdomain (full URL) or dashboard (relative URL)
         if (result.userType === 'tenant') {
@@ -55,47 +56,47 @@ export default function LoginPage() {
   async function handleSignup(formData: FormData) {
     setSignupError(null)
     setSignupLoading(true)
-    
+
     try {
       const email = formData.get('email') as string
       const password = formData.get('password') as string
       const confirmPassword = formData.get('confirmPassword') as string
       const fullName = formData.get('fullName') as string
       const organizationName = formData.get('organizationName') as string
-      
+
       // Validate password match
       if (password !== confirmPassword) {
         setSignupError('Passwords do not match')
         setSignupLoading(false)
         return
       }
-      
+
       // Validate password length
       if (password.length < 8) {
         setSignupError('Password must be at least 8 characters long')
         setSignupLoading(false)
         return
       }
-      
+
       // Validate password strength (ERPNext requirements)
       const hasUppercase = /[A-Z]/.test(password)
       const hasLowercase = /[a-z]/.test(password)
       const hasNumber = /[0-9]/.test(password)
       const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-      
+
       if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
         setSignupError('Password must include uppercase, lowercase, number, and special character (!@#$%^&*)')
         setSignupLoading(false)
         return
       }
-      
+
       // Validate required fields
       if (!email || !password || !fullName || !organizationName) {
         setSignupError('All fields are required')
         setSignupLoading(false)
         return
       }
-      
+
       // Validate email format (signup still requires email)
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(email)) {
@@ -108,18 +109,18 @@ export default function LoginPage() {
         setSignupLoading(false)
         return
       }
-      
+
       // Show provisioning status
       setProvisioningStatus('Creating your workspace...')
-      
+
       // Create FormData for the server action
       const signupFormData = new FormData()
       signupFormData.append('company_name', organizationName)
       signupFormData.append('email', email)
       signupFormData.append('password', password)
-      
+
       const result = await signupUser(signupFormData)
-      
+
       // If we get here, it means there was an error (successful signup redirects)
       if (result && !result.success) {
         setSignupError(result.error || 'Failed to create account')
@@ -131,7 +132,7 @@ export default function LoginPage() {
         setProvisioningStatus('Success! Redirecting...')
         return
       }
-      
+
       setSignupError(error.message || 'An error occurred during signup')
       setProvisioningStatus('')
     } finally {
@@ -186,9 +187,9 @@ export default function LoginPage() {
             {/* Testimonial */}
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
               <div className="flex items-start gap-4">
-                <img 
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" 
-                  alt="User" 
+                <img
+                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=John"
+                  alt="User"
                   className="w-12 h-12 rounded-full"
                 />
                 <div>
@@ -232,12 +233,12 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <Label htmlFor="login-email" className="text-sm font-medium text-slate-300">Email or Username</Label>
                   <div className="relative">
-                    <Input 
-                      id="login-email" 
-                      name="email" 
-                      type="text" 
-                      placeholder="name@company.com or username" 
-                      required 
+                    <Input
+                      id="login-email"
+                      name="email"
+                      type="text"
+                      placeholder="name@company.com or username"
+                      required
                       className="w-full pl-10 bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
@@ -248,11 +249,11 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <Label htmlFor="login-password" className="text-sm font-medium text-slate-300">Password</Label>
                   <div className="relative">
-                    <Input 
-                      id="login-password" 
-                      name="password" 
+                    <Input
+                      id="login-password"
+                      name="password"
                       type={showPassword ? "text" : "password"}
-                      required 
+                      required
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <button
@@ -268,8 +269,8 @@ export default function LoginPage() {
                 {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
                       className="w-4 h-4 rounded border-slate-700 bg-[#161b22] text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
@@ -280,19 +281,42 @@ export default function LoginPage() {
                     Forgot password?
                   </button>
                 </div>
-                
+
                 {loginError && (
                   <div className="text-sm text-red-400 font-medium bg-red-500/10 p-3 rounded-lg border border-red-500/20">
                     {loginError}
                   </div>
                 )}
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={loginLoading}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
                   {loginLoading ? 'Signing in...' : 'Sign in'}
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-slate-700" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-[#161616] px-2 text-slate-500">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => signIn('google')}
+                  className="w-full bg-[#161b22] border-slate-700 text-white py-6 rounded-lg font-medium hover:bg-slate-800 transition-colors"
+                >
+                  <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                    <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                  </svg>
+                  Google
                 </Button>
               </form>
             </TabsContent>
@@ -312,12 +336,12 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-sm font-medium text-slate-300">Full Name</Label>
                   <div className="relative">
-                    <Input 
-                      id="fullName" 
-                      name="fullName" 
-                      type="text" 
-                      placeholder="John Doe" 
-                      required 
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      type="text"
+                      placeholder="John Doe"
+                      required
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <User className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
@@ -328,12 +352,12 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-sm font-medium text-slate-300">Email address</Label>
                   <div className="relative">
-                    <Input 
-                      id="signup-email" 
-                      name="email" 
-                      type="email" 
-                      placeholder="name@company.com" 
-                      required 
+                    <Input
+                      id="signup-email"
+                      name="email"
+                      type="email"
+                      placeholder="name@company.com"
+                      required
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
@@ -344,12 +368,12 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <Label htmlFor="organizationName" className="text-sm font-medium text-slate-300">Organization Name</Label>
                   <div className="relative">
-                    <Input 
-                      id="organizationName" 
-                      name="organizationName" 
-                      type="text" 
-                      placeholder="Acme Corp" 
-                      required 
+                    <Input
+                      id="organizationName"
+                      name="organizationName"
+                      type="text"
+                      placeholder="Acme Corp"
+                      required
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
                     <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
@@ -399,11 +423,11 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <Label htmlFor="signup-password" className="text-sm font-medium text-slate-300">Password</Label>
                   <div className="relative">
-                    <Input 
-                      id="signup-password" 
-                      name="password" 
+                    <Input
+                      id="signup-password"
+                      name="password"
                       type={showPassword ? "text" : "password"}
-                      required 
+                      required
                       minLength={8}
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
@@ -424,11 +448,11 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">Confirm Password</Label>
                   <div className="relative">
-                    <Input 
-                      id="confirmPassword" 
-                      name="confirmPassword" 
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      required 
+                      required
                       minLength={8}
                       className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
                     />
@@ -441,7 +465,7 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-                
+
                 {signupError && (
                   <div className="text-sm text-red-400 font-medium bg-red-500/10 p-3 rounded-lg border border-red-500/20">
                     {signupError}
@@ -455,8 +479,8 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={signupLoading}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
@@ -486,7 +510,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   )
 }
 

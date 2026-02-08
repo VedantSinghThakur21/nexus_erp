@@ -38,31 +38,37 @@ interface ApiRequestOptions {
  * Read tenant context from cookies and headers
  * Returns comprehensive tenant information for API routing
  */
+/**
+ * Read tenant context from headers (injected by middleware)
+ * Returns comprehensive tenant information for API routing
+ */
 async function getTenantContext(): Promise<TenantContext> {
   try {
-    const cookieStore = await cookies()
     const headersList = await headers()
+    const cookieStore = await cookies()
 
-    // Read all tenant-related cookies
-    const userType = cookieStore.get('user_type')?.value
-    const tenantSubdomain = cookieStore.get('tenant_subdomain')?.value
-    const tenantApiKey = cookieStore.get('tenant_api_key')?.value
-    const tenantApiSecret = cookieStore.get('tenant_api_secret')?.value
-
-    // Also check x-tenant-id header (set by middleware)
+    // 1. Get Tenant ID from Middleware Header (Source of Truth)
     const headerTenantId = headersList.get('x-tenant-id')
+    const iframeContext = headersList.get('x-iframe-context') // Future proofing
 
-    // Determine if this is a tenant user
-    const subdomain = tenantSubdomain || headerTenantId || null
-    const isTenant = userType === 'tenant' && !!subdomain
+    // 2. Determine Subdomain
+    // logic: if header is 'master' or missing -> null (root domain)
+    // else -> subdomain string
+    const subdomain = (headerTenantId && headerTenantId !== 'master') ? headerTenantId : null
+    const isTenant = !!subdomain
 
-    // Compute site name
+    // 3. Compute Site Name
     let siteName = MASTER_SITE_NAME
     if (isTenant && subdomain) {
       siteName = IS_PRODUCTION
         ? `${subdomain}.${ROOT_DOMAIN}`
         : `${subdomain}.localhost`
     }
+
+    // 4. Get User/Tenant Credentials (still from cookies/db)
+    // These are for AUTHORIZATION, not IDENTIFICATION
+    const tenantApiKey = cookieStore.get('tenant_api_key')?.value
+    const tenantApiSecret = cookieStore.get('tenant_api_secret')?.value
 
     return {
       isTenant,
@@ -181,7 +187,7 @@ function logApiError(
   console.error(`[API] Site: ${siteName}`)
   console.error(`[API] Auth Source: ${authSource}`)
   console.error(`[API] Response:`, JSON.stringify(errorData, null, 2))
-  
+
   if (status === 401) {
     console.error(`[API] `)
     console.error(`[API] 401 Unauthorized - Possible causes:`)
@@ -205,7 +211,7 @@ function parseErrorMessage(data: Record<string, unknown>): string {
   if (typeof data.message === 'string') {
     return data.message
   }
-  
+
   if (data.message && typeof data.message === 'object') {
     const msg = data.message as Record<string, unknown>
     return (msg.message as string) || JSON.stringify(data.message)
@@ -280,7 +286,7 @@ export async function frappeRequest(
 
   // Build URL with query params for GET requests
   let url = `${BASE_URL}/api/method/${endpoint}`
-  
+
   if (method === 'GET' && body) {
     const params = new URLSearchParams()
     Object.entries(body).forEach(([key, value]) => {
