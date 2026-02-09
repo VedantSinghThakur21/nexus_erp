@@ -12,12 +12,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Building2 } from 'lucide-react'
 
 export default function OnboardingPage() {
-    const { data: session, status } = useSession()
+    const sessionResult = useSession()
+    const { data: session, status } = sessionResult || {}
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    if (status === 'loading') {
+    if (!sessionResult || status === 'loading') {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>
     }
 
