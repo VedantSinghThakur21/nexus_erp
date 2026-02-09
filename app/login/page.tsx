@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { loginUser } from '@/app/actions/user-auth'
-import { signupUser } from '@/app/actions/signup'
+import { initiateSignup } from '@/app/actions/signup'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,9 +21,9 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [signupLoading, setSignupLoading] = useState(false)
-  const [provisioningStatus, setProvisioningStatus] = useState<string>('')
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro' | 'enterprise'>('free')
   const router = useRouter()
+  const [provisioningStatus, setProvisioningStatus] = useState<string>('')
 
   async function handleLogin(formData: FormData) {
     setLoginError(null)
@@ -58,11 +59,8 @@ export default function LoginPage() {
     setSignupLoading(true)
 
     try {
-      const email = formData.get('email') as string
       const password = formData.get('password') as string
       const confirmPassword = formData.get('confirmPassword') as string
-      const fullName = formData.get('fullName') as string
-      const organizationName = formData.get('organizationName') as string
 
       // Validate password match
       if (password !== confirmPassword) {
@@ -71,71 +69,25 @@ export default function LoginPage() {
         return
       }
 
-      // Validate password length
-      if (password.length < 8) {
-        setSignupError('Password must be at least 8 characters long')
-        setSignupLoading(false)
-        return
-      }
-
-      // Validate password strength (ERPNext requirements)
-      const hasUppercase = /[A-Z]/.test(password)
-      const hasLowercase = /[a-z]/.test(password)
-      const hasNumber = /[0-9]/.test(password)
-      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-
-      if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
-        setSignupError('Password must include uppercase, lowercase, number, and special character (!@#$%^&*)')
-        setSignupLoading(false)
-        return
-      }
-
-      // Validate required fields
-      if (!email || !password || !fullName || !organizationName) {
-        setSignupError('All fields are required')
-        setSignupLoading(false)
-        return
-      }
-
-      // Validate email format (signup still requires email)
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(email)) {
-        setSignupError('Please enter a valid email address (must include @)')
-        setSignupLoading(false)
-        return
-      }
-      if (!emailRegex.test(email)) {
-        setSignupError('Please enter a valid email address')
-        setSignupLoading(false)
-        return
-      }
-
       // Show provisioning status
-      setProvisioningStatus('Creating your workspace...')
+      setProvisioningStatus('Initiating account setup...')
 
-      // Create FormData for the server action
-      const signupFormData = new FormData()
-      signupFormData.append('company_name', organizationName)
-      signupFormData.append('email', email)
-      signupFormData.append('password', password)
+      // Call server action
+      // initiateSignup will redirect on success, or return an error object
+      const result = await initiateSignup(formData)
 
-      const result = await signupUser(signupFormData)
-
-      // If we get here, it means there was an error (successful signup redirects)
       if (result && !result.success) {
-        setSignupError(result.error || 'Failed to create account')
+        setSignupError(result.error || 'Failed to initiate signup')
         setProvisioningStatus('')
+        setSignupLoading(false)
       }
     } catch (error: any) {
-      // Handle redirect (this is actually a success case)
-      if (error.message?.includes('NEXT_REDIRECT')) {
-        setProvisioningStatus('Success! Redirecting...')
-        return
+      // Next.js Redirects throw an error, so we need to catch it
+      if (error.message === 'NEXT_REDIRECT') {
+        throw error
       }
-
       setSignupError(error.message || 'An error occurred during signup')
       setProvisioningStatus('')
-    } finally {
       setSignupLoading(false)
     }
   }
