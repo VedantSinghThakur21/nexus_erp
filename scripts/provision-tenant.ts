@@ -89,6 +89,43 @@ frappe.db.commit()
 
         console.log(`[Provisioning] SaaS Settings seeded.`)
 
+        // 4. Register Tenant in Master DB (CRITICAL STEP)
+        // We use curl or fetch to the Master Site API to register this new tenant
+        // This ensures auth.ts can find it later.
+        console.log(`[Provisioning] Registering tenant in Master DB...`)
+
+        try {
+            // We need a way to talk to the Master Site. 
+            // Since we are running this script potentially inside/outside docker, let's use the public URL or internal docker network.
+            // Ideally, use the python script approach to insert directly if we are on the same machine.
+
+            const registerScript = `
+import frappe
+# Create or Update Tenant Record
+if not frappe.db.exists('SaaS Tenant', '${subdomain}'):
+    doc = frappe.new_doc('SaaS Tenant')
+    doc.subdomain = '${subdomain}'
+    doc.owner_email = '${adminEmail}'
+    doc.site_url = 'http://${siteName}' # or https
+    doc.status = 'Active'
+    doc.organization_name = '${organizationName}'
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
+    print("Tenant Registered")
+else:
+    print("Tenant already exists")
+`
+            await runCommand(
+                `docker exec ${FRA_DOCKER_CONTAINER} bench --site ${PARENT_DOMAIN} shell --command "${registerScript.replace(/\n/g, ';')}"`
+            )
+            console.log(`[Provisioning] Tenant registered in Master DB (${PARENT_DOMAIN}).`)
+
+        } catch (regError) {
+            console.error(`[Provisioning] Failed to register tenant in Master DB:`, regError)
+            // We don't throw here because the site IS created, just the record is missing.
+            // Admin might need to manually fix.
+        }
+
         return {
             success: true,
             siteName,

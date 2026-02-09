@@ -22,20 +22,21 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 const callbacks = {
     async signIn({ user, account, profile }: any) {
         if (!user.email) return false
-        // Just return true here - Frappe validation happens in server actions
+        // 1. Check if user exists in Master DB (Optional but good practice)
+        // For now, we allow Google Sign-in to pass, but the logic in user-auth.ts 
+        // or the client-side will handle "New User" vs "Existing User" redirection.
         return true
     },
     async jwt({ token, user, trigger, session }: any) {
         if (user) {
             token.email = user.email
-            token.hasTenant = false  // Default - will be set by session callback or server actions
+            token.hasTenant = false
         }
 
         if (trigger === "update" && session?.hasTenant) {
             token.hasTenant = true
             token.tenantSubdomain = session.tenantSubdomain
         }
-
         return token
     },
     async session({ session, token }: any) {
@@ -49,9 +50,17 @@ const callbacks = {
         return session
     },
     async redirect({ url, baseUrl }: any) {
-        return baseUrl + "/dashboard"
+        // Allow redirects to subdomains
+        if (url.startsWith("/")) return `${baseUrl}${url}`
+        else if (new URL(url).hostname.endsWith(process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in')) return url
+        return baseUrl
     }
 }
+
+// CRITICAL: Set Cookie Domain for Cross-Subdomain Auth
+const useSecureCookies = process.env.NODE_ENV === 'production'
+const cookiePrefix = useSecureCookies ? '__Secure-' : ''
+const hostName = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers,
@@ -59,5 +68,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     pages: {
         signIn: '/login',
         error: '/login'
+    },
+    cookies: {
+        sessionToken: {
+            name: `${cookiePrefix}next-auth.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: useSecureCookies,
+                domain: useSecureCookies ? `.${hostName}` : undefined // localhost doesn't support dot prefix well usually
+            }
+        }
     }
 } as any)
