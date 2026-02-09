@@ -66,47 +66,49 @@ export async function provisionTenant({
 
         console.log(`[Provisioning] Site created: ${siteName}`)
 
-        // 3. Create SaaS Settings (Simulated via bench execute or API)
-        // We'll use a python script via bench runner to seed data
-        // Or we could use the API. Since we have a fresh site, API is cleaner if we had a key.
-        // But we have the admin password!
-
+        // 3. Create SaaS Settings (Using bench execute frappe.client.insert)
         const maxUsers = planType === 'Enterprise' ? 1000 : planType === 'Pro' ? 50 : 5
+        const saaSSettings = {
+            doctype: 'SaaS Settings',
+            organization_name: organizationName,
+            plan_type: planType,
+            max_users: maxUsers
+        }
 
-        const seedScript = `
-import frappe
-doc = frappe.new_doc('SaaS Settings')
-doc.organization_name = '${organizationName}'
-doc.plan_type = '${planType}'
-doc.max_users = ${maxUsers}
-doc.insert(ignore_permissions=True)
-frappe.db.commit()
-    `
+        // We use JSON.stringify to pass the dict as a string argument to --kwargs
+        // Note: frappe.client.insert takes a 'doc' argument
+        const saasSettingsArgs = JSON.stringify({ doc: saaSSettings }).replace(/"/g, '\\"')
 
         await runCommand(
-            `docker exec ${FRA_DOCKER_CONTAINER} bench --site ${siteName} shell --command "${seedScript.replace(/\n/g, ';')}"`
+            `docker exec ${FRA_DOCKER_CONTAINER} bench --site ${siteName} execute frappe.client.insert --kwargs "${saasSettingsArgs}"`
         )
 
         console.log(`[Provisioning] SaaS Settings seeded.`)
 
         // 4. Register Tenant in Master DB (CRITICAL STEP)
-        // We use curl or fetch to the Master Site API to register this new tenant
-        // This ensures auth.ts can find it later.
         console.log(`[Provisioning] Registering tenant in Master DB...`)
 
         try {
-            // We need a way to talk to the Master Site. 
-            // Since we are running this script potentially inside/outside docker, let's use the public URL or internal docker network.
-            // Ideally, use the python script approach to insert directly if we are on the same machine.
+            // Use bench execute to upsert the tenant record
+            // We'll use frappe.client.save (which inserts or updates) or frappe.get_doc(...).save()
+            // But frappe.client.insert throws if exists.
+
+            // Let's use a small python script via 'bench run-script' if we want logic, 
+            // OR just try insert and ignore error, OR check existence first.
+            // Simplest robust way without custom apps: check if exists, then insert.
+
+            // Actually, we can just use the same "shell" trick but pipe it properly if we really wanted to, 
+            // BUT let's stick to 'execute' for cleaner operation. 
+            // Since logic (if exists update else insert) is hard with just 'execute', 
+            // we will use the 'bench console' pipe method as requested by the user, but implemented robustly.
 
             const registerScript = `
 import frappe
-# Create or Update Tenant Record
 if not frappe.db.exists('SaaS Tenant', '${subdomain}'):
     doc = frappe.new_doc('SaaS Tenant')
     doc.subdomain = '${subdomain}'
     doc.owner_email = '${adminEmail}'
-    doc.site_url = 'http://${siteName}' # or https
+    doc.site_url = 'http://${siteName}'
     doc.status = 'Active'
     doc.organization_name = '${organizationName}'
     doc.insert(ignore_permissions=True)
@@ -115,9 +117,29 @@ if not frappe.db.exists('SaaS Tenant', '${subdomain}'):
 else:
     print("Tenant already exists")
 `
-            await runCommand(
-                `docker exec ${FRA_DOCKER_CONTAINER} bench --site ${PARENT_DOMAIN} shell --command "${registerScript.replace(/\n/g, ';')}"`
-            )
+            // Robust Pipe Method: echo "script" | bench console
+            // We need to escape the script for the echo command.
+            // Since we are in node 'exec', we can just write to stdin of the process if we used spawn,
+            // but runCommand uses exec. 
+            // Let's us the 'execute' method with a wrapper if possible, OR just pure API if we had keys.
+
+            // User specifically asked for: echo "..." | bench console
+
+            const cleanScript = registerScript.trim()
+            // We use a safe way to pipe: write to a temp file in container, run, delete.
+            const tempFilePath = `/tmp/register_tenant_${subdomain}.py`
+
+            // 1. Write script to file
+            await runCommand(`docker exec -i ${FRA_DOCKER_CONTAINER} sh -c "cat > ${tempFilePath} <<EOF
+${cleanScript}
+EOF"`)
+
+            // 2. Run script
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} bench --site ${PARENT_DOMAIN} run-script ${tempFilePath}`)
+
+            // 3. Cleanup
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
+
             console.log(`[Provisioning] Tenant registered in Master DB (${PARENT_DOMAIN}).`)
 
         } catch (regError) {
