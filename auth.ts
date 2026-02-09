@@ -53,7 +53,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         async redirect({ url, baseUrl }) {
             return baseUrl + "/dashboard"
         }
-    },
+    }
+})
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+    providers,
+    callbacks,
     pages: {
         signIn: '/login',
         error: '/login'
