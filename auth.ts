@@ -2,11 +2,13 @@ import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import { frappeRequest } from "@/app/lib/api"
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-    providers: [
+// Only include Google provider if credentials are available
+const providers = []
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    providers.push(
         Google({
-            clientId: process.env.GOOGLE_CLIENT_ID || "",
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             authorization: {
                 params: {
                     prompt: "consent",
@@ -15,7 +17,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
             }
         })
-    ],
+    )
+}
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+    providers,
     callbacks: {
         async signIn({ user, account, profile }) {
             if (!user.email) return false
