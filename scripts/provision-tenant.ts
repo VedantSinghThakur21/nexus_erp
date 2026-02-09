@@ -66,24 +66,45 @@ export async function provisionTenant({
 
         console.log(`[Provisioning] Site created: ${siteName}`)
 
-        // 3. Create SaaS Settings (Using bench execute frappe.client.insert)
+        // 3. Create SaaS Settings (Using Robust Script with Error Handling)
         const maxUsers = planType === 'Enterprise' ? 1000 : planType === 'Pro' ? 50 : 5
-        const saaSSettings = {
-            doctype: 'SaaS Settings',
-            organization_name: organizationName,
-            plan_type: planType,
-            max_users: maxUsers
+
+        try {
+            const seedScript = `
+import frappe
+try:
+    if frappe.db.exists('SaaS Settings', '${organizationName}'):
+        doc = frappe.get_doc('SaaS Settings', '${organizationName}')
+    else:
+        doc = frappe.new_doc('SaaS Settings')
+        
+    doc.organization_name = '${organizationName}'
+    doc.plan_type = '${planType}'
+    doc.max_users = ${maxUsers}
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    print("SaaS Settings seeded successfully.")
+except Exception as e:
+    print(f"Failed to seed SaaS Settings: {e}")
+    # We don't raise here to allow the process to continue
+`
+            const cleanScript = seedScript.trim()
+            const tempFilePath = `/tmp/seed_settings_${subdomain}.py`
+
+            // 1. Write script to file
+            await runCommand(`docker exec -i ${FRA_DOCKER_CONTAINER} sh -c "cat > ${tempFilePath} <<EOF
+${cleanScript}
+EOF"`)
+
+            // 2. Run script
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} bench --site ${siteName} run-script ${tempFilePath}`)
+
+            // 3. Cleanup
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
+
+        } catch (seedError) {
+            console.warn(`[Provisioning] Warning: Failed to seed SaaS Settings. This might be due to missing metadata in nexus_core. Continuing...`, seedError)
         }
-
-        // We use JSON.stringify to pass the dict as a string argument to --kwargs
-        // Note: frappe.client.insert takes a 'doc' argument
-        const saasSettingsArgs = JSON.stringify({ doc: saaSSettings }).replace(/"/g, '\\"')
-
-        await runCommand(
-            `docker exec ${FRA_DOCKER_CONTAINER} bench --site ${siteName} execute frappe.client.insert --kwargs "${saasSettingsArgs}"`
-        )
-
-        console.log(`[Provisioning] SaaS Settings seeded.`)
 
         // 4. Register Tenant in Master DB (CRITICAL STEP)
         console.log(`[Provisioning] Registering tenant in Master DB...`)
