@@ -150,7 +150,7 @@ export async function getRecentActivities() {
     try {
       const closedDeals = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Opportunity',
-        fields: '["name", "customer_name", "party_name", "company_name", "modified", "lead_owner"]',
+        fields: '["name", "customer_name", "party_name", "modified", "lead_owner"]', // Removed company_name
         filters: '[["status", "=", "Converted"]]',
         order_by: 'modified desc',
         limit_page_length: 5
@@ -161,7 +161,7 @@ export async function getRecentActivities() {
           allActivities.push({
             type: 'closed-deal',
             owner: deal.lead_owner || 'Team Member',
-            company: deal.customer_name || deal.party_name || deal.company_name || 'Unknown Company',
+            company: deal.customer_name || deal.party_name || 'Unknown Company',
             time: getTimeAgo(new Date(deal.modified)),
             timestamp: new Date(deal.modified)
           })
@@ -223,6 +223,7 @@ export async function getRecentActivities() {
 
     // 4. Fetch Recent Bookings/Scheduled Services
     try {
+      // Check if Booking Doctype exists first, or just fail silently if not found
       const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Booking',
         fields: '["name", "customer_name", "service_type", "scheduled_date", "creation", "owner"]',
@@ -243,8 +244,14 @@ export async function getRecentActivities() {
           })
         })
       }
-    } catch (error) {
-      console.error("Error fetching bookings:", error)
+    } catch (error: any) {
+      // Suppress "DocType Booking not found" error as it's likely an optional module
+      if (error?.message?.includes('not found') || error?.message?.includes('DoesNotExistError')) {
+        // verbose log only
+        // console.warn("Booking DocType not found, skipping.")
+      } else {
+        console.error("Error fetching bookings:", error)
+      }
     }
 
     // Sort all activities by timestamp (most recent first) and return top 4
@@ -280,7 +287,7 @@ export async function getAtRiskDeals() {
     return opportunities.map((opp: any) => {
       const modifiedDate = new Date(opp.modified);
       const daysSinceActivity = Math.floor((Date.now() - modifiedDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       let reason = '';
       if (daysSinceActivity > 7) {
         reason = `No activity for ${daysSinceActivity} days. Requires immediate attention.`;
