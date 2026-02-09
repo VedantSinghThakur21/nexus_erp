@@ -1,3 +1,5 @@
+'use server'
+
 import { cookies, headers } from 'next/headers'
 import * as crypto from 'crypto'
 import { provisionTenant } from '@/scripts/provision-tenant'

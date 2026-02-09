@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { signupUser } from '@/app/actions/user-auth' // We'll update this to handle social
+import { completeSocialOnboarding } from '@/app/actions/user-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -39,31 +39,24 @@ export default function OnboardingPage() {
                 throw new Error('User email not found in session')
             }
 
-            // Call our provisioning action via a new wrapper for Social Users
-            // We'll add completeSocialOnboarding to user-auth.ts
-            const response = await fetch('/api/auth/complete-onboarding', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    email: session.user.email,
-                    name: session.user.name || session.user.email.split('@')[0],
-                    organizationName: orgName
-                })
+            const result = await completeSocialOnboarding({
+                email: session.user.email,
+                name: session.user.name || session.user.email.split('@')[0],
+                organizationName: orgName
             })
 
-            const result = await response.json()
-
-            if (!response.ok || !result.success) {
+            if (!result.success) {
                 setError(result.error || 'Setup failed')
                 setIsLoading(false)
                 return
             }
 
-            // Force session update/reload to pick up tenant info?
-            // Or just redirect to the new tenant URL
-            window.location.href = result.redirectUrl // Cross-domain redirect
+            // Redirect to the new tenant URL or dashboard
+            if (result.redirectUrl) {
+                window.location.href = result.redirectUrl
+            } else {
+                window.location.href = '/dashboard'
+            }
 
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred')
