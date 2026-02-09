@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from './auth'
 
-export const middleware = auth((request) => {
+export const middleware = auth((request: NextRequest) => {
     // 1. Skip static assets and internal Next.js requests
     if (
         request.nextUrl.pathname.startsWith('/_next') ||
