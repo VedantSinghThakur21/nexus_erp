@@ -1,6 +1,12 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as crypto from 'crypto'
+import * as dotenv from 'dotenv'
+import path from 'path'
+
+// Load environment variables from .env.local or .env
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
 const execAsync = promisify(exec)
 
@@ -11,7 +17,7 @@ interface ProvisionOptions {
     planType?: 'Free' | 'Pro' | 'Enterprise'
 }
 
-const FRA_DOCKER_CONTAINER = 'frappe_docker-backend-1' // adjust based on `docker ps`
+const FRA_DOCKER_CONTAINER = process.env.FRA_DOCKER_CONTAINER || 'frappe_docker-backend-1' // adjust based on `docker ps`
 const PARENT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 
 async function runCommand(command: string) {
