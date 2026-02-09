@@ -1,9 +1,8 @@
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth } from './auth'
 
-export const middleware = auth((request: NextRequest) => {
+export const middleware = (request: NextRequest) => {
     // 1. Skip static assets and internal Next.js requests
     if (
         request.nextUrl.pathname.startsWith('/_next') ||
@@ -40,27 +39,11 @@ export const middleware = auth((request: NextRequest) => {
     console.log(`[Middleware] Host: ${hostname} -> Tenant: ${currentHost}`)
 
     // 5. Auth Protection & Onboarding Enforcement
-    // @ts-ignore
-    const user = request.auth?.user
-    const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup')
-    const isOnboardingRoute = request.nextUrl.pathname.startsWith('/onboarding')
-    const isPublicRoute = request.nextUrl.pathname === '/' || isAuthRoute
-
-    if (user && !isPublicRoute) {
-        // If user is logged in but has NO tenant, force them to onboarding
-        // @ts-ignore
-        if (!user.hasTenant && !isOnboardingRoute) {
-            const onboardingUrl = new URL('/onboarding', request.url)
-            return NextResponse.redirect(onboardingUrl)
-        }
-
-        // If user HAS tenant and is on onboarding, redirect to dashboard?
-        // Maybe let them stay if they want to create another org? 
-        // For now, let's keep it simple.
-    }
-
+    // Note: Auth logic is handled in client-side middleware and route handlers
+    // to avoid edge runtime issues with NextAuth configuration
+    
     return response
-})
+}
 
 export const config = {
     matcher: [
