@@ -96,8 +96,8 @@ except Exception as e:
 ${cleanScript}
 EOF"`)
 
-            // 2. Run script
-            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} bench --site ${siteName} run-script ${tempFilePath}`)
+            // 2. Run script using bench console
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${tempFilePath}"`)
 
             // 3. Cleanup
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
@@ -155,8 +155,8 @@ else:
 ${cleanScript}
 EOF"`)
 
-            // 2. Run script
-            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} bench --site ${PARENT_DOMAIN} run-script ${tempFilePath}`)
+            // 2. Run script using bench console
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${PARENT_DOMAIN} console < ${tempFilePath}"`)
 
             // 3. Cleanup
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
