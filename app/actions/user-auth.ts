@@ -232,79 +232,53 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
     const isEmail = isValidEmail(usernameOrEmail)
     const email = isEmail ? usernameOrEmail : null
-
-    const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
-    const apiKey = process.env.ERP_API_KEY
-    const apiSecret = process.env.ERP_API_SECRET
+    const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL || 'http://127.0.0.1:8080'
 
     console.log('Attempting login for:', usernameOrEmail)
 
-    // Step 1: Check if this is a tenant user (use admin API key - no tenant context needed)
-    let tenantData = { message: [] }
+    // Step 1: Check if this is a tenant user (use masterRequest for proper headers/auth)
+    let tenantData: any[] = []
+
+    const { masterRequest } = await import('@/app/lib/api')
+
     if (email) {
-      const tenantLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `token ${apiKey}:${apiSecret}`
-          // NO X-Frappe-Site-Name here - we're querying master database
-        },
-        body: JSON.stringify({
+      const results = await masterRequest('frappe.client.get_list', 'POST', {
+        doctype: 'SaaS Tenant',
+        filters: { owner_email: email },
+        fields: ['subdomain', 'site_url', 'status'],
+        limit_page_length: 1
+      }) as any[]
+      tenantData = results || []
+    } else {
+      const userResults = await masterRequest('frappe.client.get_list', 'POST', {
+        doctype: 'User',
+        filters: { username: usernameOrEmail },
+        fields: ['email'],
+        limit_page_length: 1
+      }) as any[]
+
+      if (userResults && userResults.length > 0) {
+        const userEmail = userResults[0].email
+        const results = await masterRequest('frappe.client.get_list', 'POST', {
           doctype: 'SaaS Tenant',
-          filters: { owner_email: email },
-          fields: ['subdomain', 'site_url', 'status'], // Removing site_config as it might not be standard
+          filters: { owner_email: userEmail },
+          fields: ['subdomain', 'site_url', 'status'],
           limit_page_length: 1
-        })
-      })
-      tenantData = await tenantLookupResponse.json()
-    }
-    else {
-      const userLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `token ${apiKey}:${apiSecret}`
-        },
-        body: JSON.stringify({
-          doctype: 'User',
-          filters: { username: usernameOrEmail },
-          fields: ['email'],
-          limit_page_length: 1
-        })
-      })
-      const userData = await userLookupResponse.json()
-      if (userData.message && userData.message.length > 0) {
-        const userEmail = userData.message[0].email
-        const tenantLookupResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `token ${apiKey}:${apiSecret}`
-          },
-          body: JSON.stringify({
-            doctype: 'SaaS Tenant',
-            filters: { owner_email: userEmail },
-            fields: ['subdomain', 'site_url', 'status'],
-            limit_page_length: 1
-          })
-        })
-        tenantData = await tenantLookupResponse.json()
+        }) as any[]
+        tenantData = results || []
       }
     }
 
-    console.log('Tenant lookup response:', tenantData)
+    console.log('Tenant lookup response:', { message: tenantData })
 
-    const isTenantUser = tenantData.message && tenantData.message.length > 0
+    const isTenantUser = tenantData && tenantData.length > 0
 
     if (!isTenantUser) {
       console.log('Not a tenant user, attempting master site login')
-      if (!masterUrl) {
-        throw new Error('Master site URL not configured')
-      }
       return await loginToMasterSite(usernameOrEmail, password, masterUrl)
     }
 
-    const tenant = tenantData.message[0] as TenantData
+    const tenant = tenantData[0] as TenantData
 
     // Validate tenant status
     if (tenant.status === 'suspended') {
