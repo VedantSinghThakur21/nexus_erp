@@ -14,6 +14,7 @@ interface ProvisionOptions {
     organizationName: string
     adminEmail: string
     adminPassword?: string // Optional, can be generated
+    adminFullName?: string // User's full name for System User account
     planType?: 'Free' | 'Pro' | 'Enterprise'
 }
 
@@ -36,6 +37,7 @@ export async function provisionTenant({
     organizationName,
     adminEmail,
     adminPassword,
+    adminFullName,
     planType = 'Free'
 }: ProvisionOptions) {
     // 1. Generate Subdomain
@@ -155,7 +157,7 @@ try:
     if not frappe.db.exists('User', '${adminEmail}'):
         user = frappe.new_doc('User')
         user.email = '${adminEmail}'
-        user.first_name = '${organizationName}'
+        user.first_name = '${adminFullName || organizationName}'
         user.enabled = 1
         user.new_password = '${adminPass}'
 
@@ -197,7 +199,6 @@ EOF"`)
             // BUT let's stick to 'execute' for cleaner operation. 
             // Since logic (if exists update else insert) is hard with just 'execute', 
             // we will use the 'bench console' pipe method as requested by the user, but implemented robustly.
-
             const registerScript = `
 import frappe
 if not frappe.db.exists('SaaS Tenant', '${subdomain}'):
@@ -207,9 +208,11 @@ if not frappe.db.exists('SaaS Tenant', '${subdomain}'):
     doc.site_url = 'http://${siteName}'
     doc.status = 'Active'
     doc.organization_name = '${organizationName}'
+    doc.plan_type = '${planType}'
+    doc.admin_user = '${adminEmail}'
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
-    print("Tenant Registered")
+    print("Tenant Registered successfully")
 else:
     print("Tenant already exists")
 `

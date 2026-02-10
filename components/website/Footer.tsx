@@ -9,10 +9,10 @@ export default function Footer() {
           className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
         >
           <div className="w-4 h-4 bg-white/20" />
-          <span className="font-bold text-white tracking-tighter">NEXUS</span>
+          <span className="font-bold text-white tracking-tighter">nexuserp</span>
         </Link>
         <div className="text-neutral-600 text-sm font-mono">
-          © 2026 Avariq Systems
+          © 2026 Avariq
         </div>
       </div>
     </footer>

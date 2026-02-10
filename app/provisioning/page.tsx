@@ -104,7 +104,7 @@ export default function ProvisioningPage() {
             )}
           </div>
           <CardTitle className="text-2xl text-white">
-            {error ? 'Setup Failed' : isComplete ? 'Workspace Ready!' : 'Setting up Nexus ERP'}
+            {error ? 'Setup Failed' : isComplete ? 'Workspace Ready!' : 'Setting up nexuserp'}
           </CardTitle>
           <CardDescription className="text-slate-400">
             {error ? 'Please try again or contact support.' : 'This typically takes about 60 seconds. Please do not close this tab.'}

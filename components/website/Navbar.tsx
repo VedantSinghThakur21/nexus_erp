@@ -14,7 +14,7 @@ export default function Navbar() {
             <Box className="w-[18px] h-[18px] text-white relative z-10" />
           </div>
           <span className="font-sans font-bold tracking-tight text-lg text-white">
-            NEXUS<span className="text-white/20">ERP</span>
+            nexus<span className="text-white/20">erp</span>
           </span>
         </Link>
 
