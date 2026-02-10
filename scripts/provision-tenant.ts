@@ -18,8 +18,9 @@ interface ProvisionOptions {
     planType?: 'Free' | 'Pro' | 'Enterprise'
 }
 
-const FRA_DOCKER_CONTAINER = process.env.FRA_DOCKER_CONTAINER || 'frappe_docker-backend-1' // adjust based on `docker ps`
+const FRA_DOCKER_CONTAINER = process.env.FRA_DOCKER_CONTAINER || 'frappe_docker-backend-1'
 const PARENT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+const WORK_DIR = '/workspace/frappe_docker' // Golden Path Requirement
 
 async function runCommand(command: string) {
     console.log(`[Provisioning] Running: ${command}`)
@@ -58,11 +59,24 @@ export async function provisionTenant({
         const checkScript = `
 import frappe
 import json
-exists = frappe.db.exists('SaaS Tenant', {'subdomain': '${subdomain}'})
-email_exists = frappe.db.count('SaaS Tenant', {'owner_email': '${adminEmail}'})
-result = {'exists': bool(exists), 'email_exists': bool(email_exists)}
-print(json.dumps(result))
+try:
+    if frappe.conf.site_name != "${MASTER_SITE}":
+        frappe.init(site="${MASTER_SITE}", sites_path='.')
+        frappe.connect()
+
+    exists = frappe.db.exists('SaaS Tenant', {'subdomain': '${subdomain}'})
+    email_exists = frappe.db.count('SaaS Tenant', {'owner_email': '${adminEmail}'})
+    result = {'exists': bool(exists), 'email_exists': bool(email_exists)}
+    print(json.dumps(result))
+except Exception as e:
+    print(json.dumps({'error': str(e)}))
 `
+        // Golden Path: Pipe python to bench console
+        // Note: Using 'echo "script" | docker exec ... bench console' is tricky with quotes. 
+        // We stick to 'cat <<EOF | docker exec ...' if possible or file write.
+        // But user asked for "Pipe a Python script into bench console".
+        // The safest way on all OSs (to avoid quote hell) is write to temp file inside container.
+
         const cleanCheckScript = checkScript.trim()
         const checkFilePath = `/tmp/check_tenant_${subdomain}.py`
 
@@ -70,22 +84,25 @@ print(json.dumps(result))
 ${cleanCheckScript}
 EOF"`)
 
-        const checkResultStr = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${checkFilePath}"`)
+        // Execute via bench console
+        const checkResultStr = await runCommand(`docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${checkFilePath}"`)
         await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${checkFilePath}`)
 
-        // Parse output (it might contain other logs, so find the JSON)
-        const jsonMatch = checkResultStr.match(/\{"exists":.*\}/)
+        // Parse output
+        const jsonMatch = checkResultStr.match(/\{"exists":.*\}/) || checkResultStr.match(/\{"error":.*\}/)
         if (jsonMatch) {
             const checkResult = JSON.parse(jsonMatch[0])
-            if (checkResult.exists) {
-                console.warn(`[Provisioning] Tenant '${subdomain}' already exists. Skipping provisioning.`)
-                return { success: true, siteName, url: `http://${siteName}`, adminPassword } // Return existing info (password might be wrong but we can't recover it)
-            }
-            if (checkResult.email_exists) {
-                console.warn(`[Provisioning] User '${adminEmail}' already has a tenant.`)
-                // Optionally block or allow multiple tenants. For now, let's warn but proceed (or block if per-user limit)
-                // User asked to NOT provision if account exists.
-                return { success: false, error: 'User already has a tenant registered.' }
+            if (checkResult.error) {
+                console.warn(`[Provisioning] Pre-flight check error: ${checkResult.error}`)
+            } else {
+                if (checkResult.exists) {
+                    console.warn(`[Provisioning] Tenant '${subdomain}' already exists. Skipping provisioning.`)
+                    return { success: true, siteName, url: `http://${siteName}`, adminPassword }
+                }
+                if (checkResult.email_exists) {
+                    console.warn(`[Provisioning] User '${adminEmail}' already has a tenant.`)
+                    return { success: false, error: 'User already has a tenant registered.' }
+                }
             }
         }
     } catch (checkError) {
@@ -94,21 +111,22 @@ EOF"`)
 
     try {
         // 2. Create Site (bench new-site)
-        // We use mariadb root password from env or default
+        // Golden Path Requirement: --no-mariadb-socket
         const dbRootPass = process.env.DB_ROOT_PASSWORD || '123'
         const adminPass = adminPassword || crypto.randomBytes(8).toString('hex')
 
         await runCommand(
-            `docker exec ${FRA_DOCKER_CONTAINER} bench new-site ${siteName} ` +
+            `docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} bench new-site ${siteName} ` +
             `--admin-password '${adminPass}' ` +
             `--db-root-password '${dbRootPass}' ` +
-            `--install-app nexus_core ` + // Install custom app immediately
+            `--no-mariadb-socket ` + // Golden Path Requirement
+            `--install-app nexus_core ` +
             `--force`
         )
 
         console.log(`[Provisioning] Site created: ${siteName}`)
 
-        // 3. Create SaaS Settings (Using Robust Script with Error Handling)
+        // 3. Create SaaS Settings (Golden Path: Pipe Python to bench console)
         const maxUsers = planType === 'Enterprise' ? 1000 : planType === 'Pro' ? 50 : 5
 
         try {
@@ -125,50 +143,55 @@ try:
     doc.max_users = ${maxUsers}
     doc.save(ignore_permissions=True)
     frappe.db.commit()
-    print("SaaS Settings seeded successfully.")
+    print("SUCCESS: SaaS Settings seeded.")
 except Exception as e:
-    print(f"Failed to seed SaaS Settings: {e}")
-    # We don't raise here to allow the process to continue
+    print(f"ERROR: Failed to seed SaaS Settings: {e}")
 `
             const cleanScript = seedScript.trim()
             const tempFilePath = `/tmp/seed_settings_${subdomain}.py`
 
-            // 1. Write script to file
             await runCommand(`docker exec -i ${FRA_DOCKER_CONTAINER} sh -c "cat > ${tempFilePath} <<EOF
 ${cleanScript}
 EOF"`)
 
-            // 2. Run script using bench console
-            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${tempFilePath}"`)
-
-            // 3. Cleanup
+            const seedOutput = await runCommand(`docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${tempFilePath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
+            if (seedOutput.includes("SUCCESS")) console.log("[Provisioning] SaaS Settings initialized.")
+            else console.warn("[Provisioning] Warning: SaaS Settings initialization might have failed.")
+
         } catch (seedError) {
-            console.warn(`[Provisioning] Warning: Failed to seed SaaS Settings. This might be due to missing metadata in nexus_core. Continuing...`, seedError)
+            console.warn(`[Provisioning] Warning: Failed to seed SaaS Settings. Continuing...`, seedError)
         }
 
-        // 3.5 Create System User on New Site
+        // 3.5 Create System User (Golden Path Requirement: CRITICAL)
         console.log(`[Provisioning] Creating System User (${adminEmail}) on new site...`)
         try {
             const userScript = `
 import frappe
+import frappe.utils.password
 try:
     if not frappe.db.exists('User', '${adminEmail}'):
         user = frappe.new_doc('User')
         user.email = '${adminEmail}'
         user.first_name = '${adminFullName || organizationName}'
         user.enabled = 1
-        user.new_password = '${adminPass}'
-
         user.save(ignore_permissions=True)
-        user.add_roles('System Manager')
-        frappe.db.commit()
-        print("System User created successfully.")
+        print("User created.")
     else:
-        print("System User already exists.")
+        user = frappe.get_doc('User', '${adminEmail}')
+        print("User exists.")
+
+    # Force Password Update
+    frappe.utils.password.update_password('${adminEmail}', '${adminPass}')
+    
+    # Force Roles
+    user.add_roles('System Manager')
+    
+    frappe.db.commit()
+    print("SUCCESS: System User configured.")
 except Exception as e:
-    print(f"Failed to create System User: {e}")
+    print(f"ERROR: Failed to configure System User: {e}")
 `
             const cleanUserScript = userScript.trim()
             const userTempPath = `/tmp/create_user_${subdomain}.py`
@@ -177,81 +200,76 @@ except Exception as e:
 ${cleanUserScript}
 EOF"`)
 
-            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${userTempPath}"`)
+            const userOutput = await runCommand(`docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${userTempPath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${userTempPath}`)
+
+            if (userOutput.includes("SUCCESS")) console.log("[Provisioning] System User configured successfully.")
+            else console.error("[Provisioning] Failed to configure System User.")
+
         } catch (userError) {
             console.error(`[Provisioning] Failed to create System User:`, userError)
         }
 
-        // 4. Register Tenant in Master DB (CRITICAL STEP)
+        // 4. Register Tenant in Master DB (Golden Path Requirement)
         console.log(`[Provisioning] Registering tenant in Master DB...`)
 
         try {
-            // Use bench execute to upsert the tenant record
-            // We'll use frappe.client.save (which inserts or updates) or frappe.get_doc(...).save()
-            // But frappe.client.insert throws if exists.
-
-            // Let's use a small python script via 'bench run-script' if we want logic, 
-            // OR just try insert and ignore error, OR check existence first.
-            // Simplest robust way without custom apps: check if exists, then insert.
-
-            // Actually, we can just use the same "shell" trick but pipe it properly if we really wanted to, 
-            // BUT let's stick to 'execute' for cleaner operation. 
-            // Since logic (if exists update else insert) is hard with just 'execute', 
-            // we will use the 'bench console' pipe method as requested by the user, but implemented robustly.
             const registerScript = `
 import frappe
-if not frappe.db.exists('SaaS Tenant', '${subdomain}'):
-    doc = frappe.new_doc('SaaS Tenant')
-    doc.subdomain = '${subdomain}'
-    doc.owner_email = '${adminEmail}'
-    doc.site_url = 'http://${siteName}'
-    doc.status = 'Active'
-    doc.organization_name = '${organizationName}'
-    doc.plan_type = '${planType}'
-    doc.admin_user = '${adminEmail}'
-    doc.insert(ignore_permissions=True)
-    frappe.db.commit()
-    print("Tenant Registered successfully")
-else:
-    print("Tenant already exists")
+try:
+    # Ensure we are on master site (explicit check/init if needed, but --site argument handles it mostly)
+    if not frappe.db.exists('SaaS Tenant', '${subdomain}'):
+        doc = frappe.new_doc('SaaS Tenant')
+        doc.subdomain = '${subdomain}'
+        doc.owner_email = '${adminEmail}'
+        doc.site_url = 'http://${siteName}'
+        doc.status = 'Active'
+        doc.organization_name = '${organizationName}'
+        doc.plan_type = '${planType}'
+        doc.admin_user = '${adminEmail}'
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        print("SUCCESS: Tenant Registered.")
+    else:
+        # Upsert Logic
+        doc = frappe.get_doc('SaaS Tenant', '${subdomain}')
+        doc.site_url = 'http://${siteName}'
+        doc.status = 'Active'
+        doc.plan_type = '${planType}'
+        doc.save(ignore_permissions=True)
+        frappe.db.commit()
+        print("SUCCESS: Tenant Updated.")
+except Exception as e:
+    print(f"ERROR: Failed to register tenant: {e}")
 `
-            // Robust Pipe Method: echo "script" | bench console
-            // We need to escape the script for the echo command.
-            // Since we are in node 'exec', we can just write to stdin of the process if we used spawn,
-            // but runCommand uses exec. 
-            // Let's us the 'execute' method with a wrapper if possible, OR just pure API if we had keys.
-
-            // User specifically asked for: echo "..." | bench console
-
-            const cleanScript = registerScript.trim()
-            // We use a safe way to pipe: write to a temp file in container, run, delete.
+            const cleanRegisterScript = registerScript.trim()
             const tempFilePath = `/tmp/register_tenant_${subdomain}.py`
 
-            // 1. Write script to file
             await runCommand(`docker exec -i ${FRA_DOCKER_CONTAINER} sh -c "cat > ${tempFilePath} <<EOF
-${cleanScript}
+${cleanRegisterScript}
 EOF"`)
 
-            // 2. Run script using bench console
-            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${tempFilePath}"`)
-
-            // 3. Cleanup
+            const regOutput = await runCommand(`docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${tempFilePath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
-            console.log(`[Provisioning] Tenant registered in Master DB (${MASTER_SITE}).`)
+            if (regOutput.includes("SUCCESS")) console.log(`[Provisioning] Tenant registered/updated in Master DB (${MASTER_SITE}).`)
+            else console.error(`[Provisioning] Failed to register tenant in Master DB.`)
+
+            return {
+                success: true,
+                siteName,
+                url: `http://${siteName}`,
+                adminPassword: adminPass
+            }
 
         } catch (regError) {
             console.error(`[Provisioning] Failed to register tenant in Master DB:`, regError)
-            // We don't throw here because the site IS created, just the record is missing.
-            // Admin might need to manually fix.
-        }
-
-        return {
-            success: true,
-            siteName,
-            url: `http://${siteName}`, // or https
-            adminPassword: adminPass
+            return {
+                success: true,
+                siteName,
+                url: `http://${siteName}`,
+                adminPassword: adminPass
+            }
         }
 
     } catch (error) {
