@@ -48,7 +48,7 @@ export default function SignupPage() {
               <Box className="w-[18px] h-[18px] text-white" />
             </div>
             <span className="font-bold tracking-tight text-lg text-white">
-              NEXUS<span className="text-white/20">ERP</span>
+              nexus<span className="text-white/20">erp</span>
             </span>
           </Link>
         </div>
@@ -188,7 +188,7 @@ export default function SignupPage() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-[10px] text-neutral-600 font-mono uppercase tracking-wider">
-            © 2026 Avariq Systems • SOC-2 Compliant
+            © 2026 Avariq • SOC-2 Compliant
           </p>
         </div>
       </div>

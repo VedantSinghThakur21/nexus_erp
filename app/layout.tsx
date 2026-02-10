@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus Enterprise",
+  title: "nexuserp",
   description: "The modern operating system for your business",
 };
 
