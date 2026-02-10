@@ -20,7 +20,7 @@ interface ProvisionOptions {
 
 const FRA_DOCKER_CONTAINER = process.env.FRA_DOCKER_CONTAINER || 'frappe_docker-backend-1'
 const PARENT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-const WORK_DIR = '/workspace/frappe_docker' // Golden Path Requirement
+// WORK_DIR removed as it caused 'no such file or directory' errors. Relying on container default.
 
 async function runCommand(command: string) {
     console.log(`[Provisioning] Running: ${command}`)
@@ -85,7 +85,7 @@ ${cleanCheckScript}
 EOF"`)
 
         // Execute via bench console
-        const checkResultStr = await runCommand(`docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${checkFilePath}"`)
+        const checkResultStr = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${checkFilePath}"`)
         await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${checkFilePath}`)
 
         // Parse output
@@ -116,7 +116,7 @@ EOF"`)
         const adminPass = adminPassword || crypto.randomBytes(8).toString('hex')
 
         await runCommand(
-            `docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} bench new-site ${siteName} ` +
+            `docker exec ${FRA_DOCKER_CONTAINER} bench new-site ${siteName} ` +
             `--admin-password '${adminPass}' ` +
             `--db-root-password '${dbRootPass}' ` +
             `--no-mariadb-socket ` + // Golden Path Requirement
@@ -154,7 +154,7 @@ except Exception as e:
 ${cleanScript}
 EOF"`)
 
-            const seedOutput = await runCommand(`docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${tempFilePath}"`)
+            const seedOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${tempFilePath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
             if (seedOutput.includes("SUCCESS")) console.log("[Provisioning] SaaS Settings initialized.")
@@ -200,7 +200,7 @@ except Exception as e:
 ${cleanUserScript}
 EOF"`)
 
-            const userOutput = await runCommand(`docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${userTempPath}"`)
+            const userOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${userTempPath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${userTempPath}`)
 
             if (userOutput.includes("SUCCESS")) console.log("[Provisioning] System User configured successfully.")
@@ -249,7 +249,7 @@ except Exception as e:
 ${cleanRegisterScript}
 EOF"`)
 
-            const regOutput = await runCommand(`docker exec -w ${WORK_DIR} ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${tempFilePath}"`)
+            const regOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${tempFilePath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
             if (regOutput.includes("SUCCESS")) console.log(`[Provisioning] Tenant registered/updated in Master DB (${MASTER_SITE}).`)
