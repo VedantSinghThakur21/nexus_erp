@@ -246,7 +246,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         doctype: 'SaaS Tenant',
         filters: { owner_email: email },
         fields: ['subdomain', 'site_url', 'status'],
-        limit_page_length: 1
+        limit_page_length: 1,
+        ignore_permissions: true
       }) as any[]
       tenantData = results || []
     } else {
@@ -254,7 +255,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         doctype: 'User',
         filters: { username: usernameOrEmail },
         fields: ['email'],
-        limit_page_length: 1
+        limit_page_length: 1,
+        ignore_permissions: true
       }) as any[]
 
       if (userResults && userResults.length > 0) {
@@ -263,7 +265,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           doctype: 'SaaS Tenant',
           filters: { owner_email: userEmail },
           fields: ['subdomain', 'site_url', 'status'],
-          limit_page_length: 1
+          limit_page_length: 1,
+          ignore_permissions: true
         }) as any[]
         tenantData = results || []
       }
