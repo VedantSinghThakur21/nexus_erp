@@ -84,8 +84,8 @@ except Exception as e:
 ${cleanCheckScript}
 EOF"`)
 
-        // Execute via bench console
-        const checkResultStr = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${checkFilePath}"`)
+        // Execute via bench run-script
+        const checkResultStr = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} run-script ${checkFilePath}"`)
         await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${checkFilePath}`)
 
         // Parse output
@@ -154,7 +154,7 @@ except Exception as e:
 ${cleanScript}
 EOF"`)
 
-            const seedOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${tempFilePath}"`)
+            const seedOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} run-script ${tempFilePath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
             if (seedOutput.includes("SUCCESS")) {
@@ -204,7 +204,7 @@ except Exception as e:
 ${cleanUserScript}
 EOF"`)
 
-            const userOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${userTempPath}"`)
+            const userOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} run-script ${userTempPath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${userTempPath}`)
 
             if (userOutput.includes("SUCCESS")) {
@@ -257,7 +257,7 @@ except Exception as e:
 ${cleanRegisterScript}
 EOF"`)
 
-            const regOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${tempFilePath}"`)
+            const regOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} run-script ${tempFilePath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
             if (regOutput.includes("SUCCESS")) {
