@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
+import { Providers } from "@/components/providers";
 import { FloatingAIChat } from "@/components/ai/floating-chat";
 
 const geistSans = Geist({
@@ -47,10 +48,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange={false}
         >
-          <ToastProvider>
-            {children}
+          <Providers>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
             <FloatingAIChat />
-          </ToastProvider>
+          </Providers>
         </ThemeProvider>
       </body>
     </html>
