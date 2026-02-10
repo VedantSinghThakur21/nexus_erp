@@ -155,13 +155,18 @@ else:
 ${cleanScript}
 EOF"`)
 
+            const MASTER_SITE = process.env.MASTER_SITE_NAME || 'erp.localhost';
+
+
+
+
             // 2. Run script using bench console
-            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${PARENT_DOMAIN} console < ${tempFilePath}"`)
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${tempFilePath}"`)
 
             // 3. Cleanup
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
-            console.log(`[Provisioning] Tenant registered in Master DB (${PARENT_DOMAIN}).`)
+            console.log(`[Provisioning] Tenant registered in Master DB (${MASTER_SITE}).`)
 
         } catch (regError) {
             console.error(`[Provisioning] Failed to register tenant in Master DB:`, regError)
