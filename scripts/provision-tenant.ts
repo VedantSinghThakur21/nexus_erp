@@ -157,8 +157,12 @@ EOF"`)
             const seedOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${tempFilePath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
-            if (seedOutput.includes("SUCCESS")) console.log("[Provisioning] SaaS Settings initialized.")
-            else console.warn("[Provisioning] Warning: SaaS Settings initialization might have failed.")
+            if (seedOutput.includes("SUCCESS")) {
+                console.log("[Provisioning] SaaS Settings initialized.")
+            } else {
+                console.warn("[Provisioning] Warning: SaaS Settings initialization might have failed.")
+                console.warn(`[Provisioning] Output: ${seedOutput}`)
+            }
 
         } catch (seedError) {
             console.warn(`[Provisioning] Warning: Failed to seed SaaS Settings. Continuing...`, seedError)
@@ -203,8 +207,12 @@ EOF"`)
             const userOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${userTempPath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${userTempPath}`)
 
-            if (userOutput.includes("SUCCESS")) console.log("[Provisioning] System User configured successfully.")
-            else console.error("[Provisioning] Failed to configure System User.")
+            if (userOutput.includes("SUCCESS")) {
+                console.log("[Provisioning] System User configured successfully.")
+            } else {
+                console.error("[Provisioning] Failed to configure System User.")
+                console.error(`[Provisioning] Output: ${userOutput}`)
+            }
 
         } catch (userError) {
             console.error(`[Provisioning] Failed to create System User:`, userError)
@@ -252,8 +260,12 @@ EOF"`)
             const regOutput = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${tempFilePath}"`)
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${tempFilePath}`)
 
-            if (regOutput.includes("SUCCESS")) console.log(`[Provisioning] Tenant registered/updated in Master DB (${MASTER_SITE}).`)
-            else console.error(`[Provisioning] Failed to register tenant in Master DB.`)
+            if (regOutput.includes("SUCCESS")) {
+                console.log(`[Provisioning] Tenant registered/updated in Master DB (${MASTER_SITE}).`)
+            } else {
+                console.error(`[Provisioning] Failed to register tenant in Master DB.`)
+                console.error(`[Provisioning] Output: ${regOutput}`)
+            }
 
             return {
                 success: true,
