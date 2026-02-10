@@ -1,8 +1,5 @@
-'use server'
-
 import { cookies, headers } from 'next/headers'
-import * as crypto from 'crypto'
-import { provisionTenant } from '@/scripts/provision-tenant'
+import { provisionTenantSite } from '@/lib/provisioning-client'
 
 /**
  * Enhanced Frappe API request helper with proper multi-tenancy support
@@ -544,15 +541,16 @@ export async function signupUser(data: {
 
     // 2. Call Provisioning Script
     // This creates: Subdomain, Site, App Install, Admin User, SaaS Settings
-    const result = await provisionTenant({
-      organizationName: data.organizationName,
-      adminEmail: data.email,
-      adminPassword: data.password,
-      planType: 'Free' // Default to Free for self-signup
+    const result = await provisionTenantSite({
+      organization_name: data.organizationName,
+      admin_email: data.email,
+      admin_password: data.password,
+      plan_type: 'Free', // Default to Free for self-signup
+      admin_full_name: data.fullName
     })
 
     if (!result.success) {
-      return { success: false, error: 'Provisioning failed: ' + (result.error as any).message }
+      return { success: false, error: 'Provisioning failed: ' + result.error }
     }
 
     console.log('✅ Provisioning complete:', result)
@@ -563,8 +561,8 @@ export async function signupUser(data: {
       success: true,
       user: { email: data.email, fullName: data.fullName },
       organizationName: data.organizationName,
-      redirectUrl: result.url, // Redirect to new tenant URL
-      adminPassword: result.adminPassword // Only if generated
+      redirectUrl: `http://${result.site_name}`, // Redirect to new tenant URL (adjust protocol if needed)
+      adminPassword: result.admin_password // Only if generated
     }
 
   } catch (error: any) {
@@ -717,66 +715,5 @@ export async function getCurrentUserOrganization() {
     return { ...orgList[0], userRole: orgs[0].role }
   } catch (error) {
     return null
-  }
-}
-
-/**
- * Handle Social Onboarding & Provisioning
- */
-export async function completeSocialOnboarding(data: {
-  email: string
-  name: string
-  organizationName: string
-}) {
-  console.log('[SocialOnboarding] Starting for:', data.email)
-
-  // 1. Verify user doesn't already have a tenant
-  // (Optional extra check via Master DB)
-
-  // 2. Provision Tenant
-  // Since social users don't have a password, we generate a random strong one for the admin account
-  // They will log in via Google anyway, but this admin account exists for emergency/API usage.
-  const adminPassword = crypto.randomBytes(16).toString('hex')
-
-  // Re-use provisionTenant function
-  const result = await provisionTenant({
-    organizationName: data.organizationName,
-    adminEmail: data.email,
-    adminPassword: adminPassword,
-    planType: 'Free'
-  })
-
-  if (!result.success) {
-    return { success: false, error: 'Provisioning failed: ' + (result.error as any).message }
-  }
-
-  console.log('✅ Social Provisioning complete:', result)
-
-  // 3. Create Tenant Record in Master DB
-  // This is critical so that future logins (auth.ts) can find which tenant this user belongs to.
-  try {
-    await frappeRequest('frappe.client.insert', 'POST', {
-      doc: {
-        doctype: 'SaaS Tenant',
-        owner_email: data.email,
-        subdomain: result.siteName?.split('.')[0] || '', // exact logic depends on provisionTenant return
-        status: 'Active',
-        site_url: result.url,
-        // api_key/secret for the tenant owner on the MASTER site is separate from the TENANT site.
-        // We don't strictly need Master Site API keys for the user if they only login via Google.
-      }
-    }, { useUserSession: false }) // Use Admin API Key
-    console.log('✅ Master DB Tenant Record created')
-  } catch (e: any) {
-    console.error('Failed to create Master DB record:', e)
-    // Check if it failed because it already exists (idempotency)
-    if (!e.message?.includes('Duplicate')) {
-      return { success: false, error: 'Failed to register tenant record.' }
-    }
-  }
-
-  return {
-    success: true,
-    redirectUrl: result.url
   }
 }
