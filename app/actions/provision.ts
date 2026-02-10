@@ -26,6 +26,7 @@ export async function performProvisioning() {
             organizationName: data.organizationName,
             adminEmail: data.email,
             adminPassword: data.password,
+            adminFullName: data.fullName,
             planType: data.plan
         })
 
