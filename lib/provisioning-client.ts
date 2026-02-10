@@ -62,6 +62,8 @@ async function serviceRequest<T>(
 ): Promise<T> {
   const { method = 'GET', body, timeout = 120_000 } = options
 
+  console.log(`[ProvisioningClient] Request to: ${PROVISIONING_SERVICE_URL}${path}`)
+
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeout)
 
