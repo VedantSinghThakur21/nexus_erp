@@ -24,7 +24,7 @@ services:
       - ENVIRONMENT=${NODE_ENV:-development}
     volumes:
       # Share the sites directory. In standard frappe_docker, 'sites-vol' is mounted to /home/frappe/frappe-bench/sites
-      - frappe_docker_sites-vol:/home/frappe/frappe-bench/sites
+      - frappe_docker_sites:/home/frappe/frappe-bench/sites
     networks:
       - frappe_docker_default
     # Health check
@@ -36,7 +36,7 @@ services:
 
 # Reference the existing volumes and networks from your Frappe compose
 volumes:
-  frappe_docker_sites-vol:
+  frappe_docker_sites:
     external: true  # This assumes your running frappe_docker project uses the standard volume name
 
 networks:
