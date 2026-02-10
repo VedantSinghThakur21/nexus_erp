@@ -1,23 +1,27 @@
-import Navbar from "@/components/landing/Navbar";
-import HeroSection from "@/components/landing/HeroSection";
-import SocialProof from "@/components/landing/SocialProof";
-import HeadlessAdvantage from "@/components/landing/HeadlessAdvantage";
-import AgenticAI from "@/components/landing/AgenticAI";
-import BentoFeatures from "@/components/landing/BentoFeatures";
-import Pricing from "@/components/landing/Pricing";
-import Footer from "@/components/landing/Footer";
+import Navbar from "@/components/website/Navbar";
+import Hero from "@/components/website/Hero";
+import RadarAI from "@/components/website/RadarAI";
+import Features from "@/components/website/Features";
+import Architecture from "@/components/website/Architecture";
+import Pricing from "@/components/website/Pricing";
+import CTASection from "@/components/website/CTASection";
+import Footer from "@/components/website/Footer";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden">
+    <div
+      suppressHydrationWarning
+      className="landing-page min-h-screen bg-[#050505] text-neutral-200 overflow-x-hidden antialiased"
+    >
+      <div className="noise-overlay" />
       <Navbar />
       <main>
-        <HeroSection />
-        <SocialProof />
-        <HeadlessAdvantage />
-        <AgenticAI />
-        <BentoFeatures />
+        <Hero />
+        <RadarAI />
+        <Features />
+        <Architecture />
         <Pricing />
+        <CTASection />
       </main>
       <Footer />
     </div>

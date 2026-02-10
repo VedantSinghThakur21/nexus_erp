@@ -250,9 +250,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           // NO X-Frappe-Site-Name here - we're querying master database
         },
         body: JSON.stringify({
-          doctype: 'Tenant',
+          doctype: 'SaaS Tenant',
           filters: { owner_email: email },
-          fields: ['subdomain', 'site_url', 'site_config', 'status'],
+          fields: ['subdomain', 'site_url', 'status'], // Removing site_config as it might not be standard
           limit_page_length: 1
         })
       })
@@ -282,9 +282,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             'Authorization': `token ${apiKey}:${apiSecret}`
           },
           body: JSON.stringify({
-            doctype: 'Tenant',
+            doctype: 'SaaS Tenant',
             filters: { owner_email: userEmail },
-            fields: ['subdomain', 'site_url', 'site_config', 'status'],
+            fields: ['subdomain', 'site_url', 'status'],
             limit_page_length: 1
           })
         })
