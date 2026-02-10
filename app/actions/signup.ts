@@ -90,6 +90,7 @@ export async function initiateSignup(formData: FormData) {
     console.error("SaaS Tenant Email Check Failed:", error)
     // Don't fail on this check, proceed
     console.warn("Proceeding despite email uniqueness check failure")
+  }
 
   // 3. Store Data in Secure Cookie
   // We need this data on the /provisioning page to actually run the script
