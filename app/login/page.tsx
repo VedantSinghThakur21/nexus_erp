@@ -86,6 +86,7 @@ export default function LoginPage() {
     <div suppressHydrationWarning className="flex min-h-screen w-full bg-[#050505]">
       {/* Left Panel - Branding */}
       <div suppressHydrationWarning className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden border-r border-white/5">
+
         {/* Background Effects */}
         <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
@@ -135,6 +136,7 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Footer */}
         <div className="relative z-10 text-neutral-600 text-xs font-mono">
           © 2026 Avariq
         </div>
@@ -155,108 +157,107 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <div className="w-full">
-            {/* Login Form */}
-            <div>
-              <div className="mb-8">
-                <h2 className="text-3xl font-semibold text-white tracking-tight mb-2">Welcome back</h2>
-                <p className="text-neutral-500 text-sm">Enter your credentials to access the system.</p>
+          {/* Login Form */}
+          <div>
+            <div className="mb-8">
+              <h2 className="text-3xl font-semibold text-white tracking-tight mb-2">Welcome back</h2>
+              <p className="text-neutral-500 text-sm">Enter your credentials to access the system.</p>
+            </div>
+
+            <form action={handleLogin} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="login-email" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Email or Username</Label>
+                <Input
+                  id="login-email"
+                  name="email"
+                  type="text"
+                  placeholder="name@company.com"
+                  required
+                  className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 py-6 rounded-none focus:border-orange-500 focus:ring-orange-500/20 transition-colors"
+                />
               </div>
 
-              <form action={handleLogin} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Email or Username</Label>
+              <div className="space-y-2">
+                <Label htmlFor="login-password" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Password</Label>
+                <div className="relative">
                   <Input
-                    id="login-email"
-                    name="email"
-                    type="text"
-                    placeholder="name@company.com"
+                    id="login-password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
                     required
-                    className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 py-6 rounded-none focus:border-orange-500 focus:ring-orange-500/20 transition-colors"
+                    className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-6 rounded-none focus:border-orange-500 focus:ring-orange-500/20 transition-colors"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="login-password" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="login-password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      required
-                      className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-6 rounded-none focus:border-orange-500 focus:ring-orange-500/20 transition-colors"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-300 transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-3.5 h-3.5 rounded-none border-white/10 bg-[#111] text-orange-500 focus:ring-orange-500/20 focus:ring-offset-0"
-                    />
-                    <span className="text-xs text-neutral-500">Remember me</span>
-                  </label>
-                  <button type="button" className="text-xs text-orange-500 hover:text-orange-400 font-mono transition-colors">
-                    Forgot password?
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-300 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+              </div>
 
-                {loginError && (
-                  <div className="text-xs text-red-400 font-mono bg-red-500/10 p-3 border border-red-500/20">
-                    {loginError}
-                  </div>
-                )}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded-none border-white/10 bg-[#111] text-orange-500 focus:ring-orange-500/20 focus:ring-offset-0"
+                  />
+                  <span className="text-xs text-neutral-500">Remember me</span>
+                </label>
+                <button type="button" className="text-xs text-orange-500 hover:text-orange-400 font-mono transition-colors">
+                  Forgot password?
+                </button>
+              </div>
 
-                <Button
-                  type="submit"
-                  disabled={loginLoading}
-                  className="w-full bg-white hover:bg-neutral-200 text-black py-6 rounded-none font-semibold tracking-tight transition-colors disabled:opacity-50"
-                >
-                  {loginLoading ? (
-                    <span className="flex items-center gap-2">
-                      <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
-                      Authenticating...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      Sign In
-                      <ArrowUpRight className="w-4 h-4" />
-                    </span>
-                  )}
-                </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/5" />
-                  </div>
-                  <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
-                    <span className="bg-[#0A0A0A] px-3 text-neutral-600 font-mono">Or</span>
-                  </div>
+              {loginError && (
+                <div className="text-xs text-red-400 font-mono bg-red-500/10 p-3 border border-red-500/20">
+                  {loginError}
                 </div>
+              )}
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => signIn('google')}
-                  className="w-full bg-[#111] border-white/10 text-white py-6 rounded-none font-medium hover:bg-white/5 transition-colors"
-                >
-                  <svg className="mr-2 h-4 w-4" viewBox="0 0 488 512">
-                    <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z" />
-                  </svg>
-                  Continue with Google
-                </Button>
-              </form>
-            </div>
+              <Button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full bg-white hover:bg-neutral-200 text-black py-6 rounded-none font-semibold tracking-tight transition-colors disabled:opacity-50"
+              >
+                {loginLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
+                    Authenticating...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Sign In
+                    <ArrowUpRight className="w-4 h-4" />
+                  </span>
+                )}
+              </Button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-white/5" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
+                  <span className="bg-[#0A0A0A] px-3 text-neutral-600 font-mono">Or</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => signIn('google')}
+                className="w-full bg-[#111] border-white/10 text-white py-6 rounded-none font-medium hover:bg-white/5 transition-colors"
+              >
+                <svg className="mr-2 h-4 w-4" viewBox="0 0 488 512">
+                  <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z" />
+                </svg>
+                Continue with Google
+              </Button>
+            </form>
+          </div>
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-white/5">
@@ -269,4 +270,5 @@ export default function LoginPage() {
     </div>
   )
 }
+
 
