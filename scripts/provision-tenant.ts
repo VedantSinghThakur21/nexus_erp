@@ -47,8 +47,48 @@ export async function provisionTenant({
 
     const subdomain = `${slug}` // Just the subdomain part
     const siteName = `${subdomain}.${PARENT_DOMAIN}`
+    const MASTER_SITE = process.env.MASTER_SITE_NAME || 'erp.localhost';
 
     console.log(`[Provisioning] Starting provisioning for ${siteName}...`)
+
+    // 0. Pre-flight Check: Check if tenant already exists in Master DB
+    try {
+        const checkScript = `
+import frappe
+import json
+exists = frappe.db.exists('SaaS Tenant', {'subdomain': '${subdomain}'})
+email_exists = frappe.db.count('SaaS Tenant', {'owner_email': '${adminEmail}'})
+result = {'exists': bool(exists), 'email_exists': bool(email_exists)}
+print(json.dumps(result))
+`
+        const cleanCheckScript = checkScript.trim()
+        const checkFilePath = `/tmp/check_tenant_${subdomain}.py`
+
+        await runCommand(`docker exec -i ${FRA_DOCKER_CONTAINER} sh -c "cat > ${checkFilePath} <<EOF
+${cleanCheckScript}
+EOF"`)
+
+        const checkResultStr = await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${checkFilePath}"`)
+        await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${checkFilePath}`)
+
+        // Parse output (it might contain other logs, so find the JSON)
+        const jsonMatch = checkResultStr.match(/\{"exists":.*\}/)
+        if (jsonMatch) {
+            const checkResult = JSON.parse(jsonMatch[0])
+            if (checkResult.exists) {
+                console.warn(`[Provisioning] Tenant '${subdomain}' already exists. Skipping provisioning.`)
+                return { success: true, siteName, url: `http://${siteName}`, adminPassword } // Return existing info (password might be wrong but we can't recover it)
+            }
+            if (checkResult.email_exists) {
+                console.warn(`[Provisioning] User '${adminEmail}' already has a tenant.`)
+                // Optionally block or allow multiple tenants. For now, let's warn but proceed (or block if per-user limit)
+                // User asked to NOT provision if account exists.
+                return { success: false, error: 'User already has a tenant registered.' }
+            }
+        }
+    } catch (checkError) {
+        console.warn(`[Provisioning] Pre-flight check failed, proceeding anyway...`, checkError)
+    }
 
     try {
         // 2. Create Site (bench new-site)
@@ -106,6 +146,41 @@ EOF"`)
             console.warn(`[Provisioning] Warning: Failed to seed SaaS Settings. This might be due to missing metadata in nexus_core. Continuing...`, seedError)
         }
 
+        // 3.5 Create System User on New Site
+        console.log(`[Provisioning] Creating System User (${adminEmail}) on new site...`)
+        try {
+            const userScript = `
+import frappe
+try:
+    if not frappe.db.exists('User', '${adminEmail}'):
+        user = frappe.new_doc('User')
+        user.email = '${adminEmail}'
+        user.first_name = '${organizationName}'
+        user.enabled = 1
+        user.new_password = '${adminPass}'
+
+        user.save(ignore_permissions=True)
+        user.add_roles('System Manager')
+        frappe.db.commit()
+        print("System User created successfully.")
+    else:
+        print("System User already exists.")
+except Exception as e:
+    print(f"Failed to create System User: {e}")
+`
+            const cleanUserScript = userScript.trim()
+            const userTempPath = `/tmp/create_user_${subdomain}.py`
+
+            await runCommand(`docker exec -i ${FRA_DOCKER_CONTAINER} sh -c "cat > ${userTempPath} <<EOF
+${cleanUserScript}
+EOF"`)
+
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${siteName} console < ${userTempPath}"`)
+            await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} rm ${userTempPath}`)
+        } catch (userError) {
+            console.error(`[Provisioning] Failed to create System User:`, userError)
+        }
+
         // 4. Register Tenant in Master DB (CRITICAL STEP)
         console.log(`[Provisioning] Registering tenant in Master DB...`)
 
@@ -154,11 +229,6 @@ else:
             await runCommand(`docker exec -i ${FRA_DOCKER_CONTAINER} sh -c "cat > ${tempFilePath} <<EOF
 ${cleanScript}
 EOF"`)
-
-            const MASTER_SITE = process.env.MASTER_SITE_NAME || 'erp.localhost';
-
-
-
 
             // 2. Run script using bench console
             await runCommand(`docker exec ${FRA_DOCKER_CONTAINER} sh -c "bench --site ${MASTER_SITE} console < ${tempFilePath}"`)

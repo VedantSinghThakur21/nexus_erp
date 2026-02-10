@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { Mail, Eye, EyeOff, TrendingUp, Users, DollarSign, BarChart3, Building2, User } from 'lucide-react'
+import Link from 'next/link'
+import { Mail, Eye, EyeOff, Box, Building2, User, ArrowUpRight } from 'lucide-react'
 
 export default function LoginPage() {
   const [loginError, setLoginError] = useState<string | null>(null)
@@ -36,12 +37,9 @@ export default function LoginPage() {
       const result = await loginUser(usernameOrEmail, password)
 
       if (result.success) {
-        // Redirect to tenant subdomain (full URL) or dashboard (relative URL)
         if (result.userType === 'tenant') {
-          // Full URL redirect to tenant subdomain
           window.location.href = result.redirectUrl
         } else {
-          // Fallback to relative redirect
           window.location.href = result.dashboardUrl
         }
       } else {
@@ -62,18 +60,13 @@ export default function LoginPage() {
       const password = formData.get('password') as string
       const confirmPassword = formData.get('confirmPassword') as string
 
-      // Validate password match
       if (password !== confirmPassword) {
         setSignupError('Passwords do not match')
         setSignupLoading(false)
         return
       }
 
-      // Show provisioning status
       setProvisioningStatus('Initiating account setup...')
-
-      // Call server action
-      // initiateSignup will redirect on success, or return an error object
       const result = await initiateSignup(formData)
 
       if (result && !result.success) {
@@ -82,7 +75,6 @@ export default function LoginPage() {
         setSignupLoading(false)
       }
     } catch (error: any) {
-      // Next.js Redirects throw an error, so we need to catch it
       if (error.message === 'NEXT_REDIRECT') {
         throw error
       }
@@ -93,149 +85,142 @@ export default function LoginPage() {
   }
 
   return (
-    <div suppressHydrationWarning className="flex h-screen w-full bg-[#0f0f0f]">
+    <div suppressHydrationWarning className="flex min-h-screen w-full bg-[#050505]">
       {/* Left Panel - Branding */}
-      <div suppressHydrationWarning className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background Pattern - Timeless Night style */}
-        <div suppressHydrationWarning className="absolute inset-0 opacity-5">
-          <div suppressHydrationWarning className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl"></div>
-          <div suppressHydrationWarning className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
+      <div suppressHydrationWarning className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden border-r border-white/5">
+        {/* Background Effects */}
+        <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        />
+
+        {/* Logo */}
+        <div className="relative z-10">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-500">
+              <Box className="w-[18px] h-[18px] text-white" />
+            </div>
+            <span className="font-bold tracking-tight text-lg text-white">
+              NEXUS<span className="text-white/20">ERP</span>
+            </span>
+          </Link>
         </div>
 
-        <div suppressHydrationWarning className="relative z-10">
-          <div suppressHydrationWarning className="flex items-center gap-3 mb-8">
-            <div suppressHydrationWarning className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-white" />
+        {/* Center Content */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center">
+          <h1 className="font-sans font-semibold text-5xl xl:text-6xl tracking-tighter leading-[0.95] text-transparent bg-clip-text bg-gradient-to-b from-white via-neutral-200 to-neutral-600 mb-6 max-w-lg">
+            Command your entire operation.
+          </h1>
+          <p className="text-neutral-400 text-lg font-light max-w-md leading-relaxed mb-10">
+            Securely access your pipeline, manage assets, and optimize revenue with AI-driven insights.
+          </p>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 max-w-md">
+            <div className="p-4 border border-white/10 bg-[#0A0A0A]/50 backdrop-blur-sm">
+              <div className="text-2xl font-mono text-white mb-1">10K+</div>
+              <div className="text-[10px] text-neutral-500 uppercase tracking-wider">Active Users</div>
             </div>
-            <span className="text-2xl font-bold text-white">Nexus ERP</span>
-          </div>
-
-          <div className="mt-16">
-            <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
-              Powering ₹1B+ in<br />closed deals globally.
-            </h1>
-            <p className="text-lg text-slate-400 mb-12 max-w-md">
-              Securely access your pipeline, manage leads, and close deals faster with our AI-driven insights.
-            </p>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-6 mb-12">
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <Users className="h-5 w-5 text-blue-400" />
-                  <span className="text-2xl font-bold text-white">10K+</span>
-                </div>
-                <p className="text-sm text-slate-400">Active Users</p>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <DollarSign className="h-5 w-5 text-green-400" />
-                  <span className="text-2xl font-bold text-white">₹1B+</span>
-                </div>
-                <p className="text-sm text-slate-400">Revenue Tracked</p>
-              </div>
+            <div className="p-4 border border-white/10 bg-[#0A0A0A]/50 backdrop-blur-sm">
+              <div className="text-2xl font-mono text-white mb-1">99.9%</div>
+              <div className="text-[10px] text-neutral-500 uppercase tracking-wider">Uptime</div>
             </div>
-
-            {/* Testimonial */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-              <div className="flex items-start gap-4">
-                <img
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=John"
-                  alt="User"
-                  className="w-12 h-12 rounded-full"
-                />
-                <div>
-                  <p className="text-white mb-2">"The most efficient tool we've used."</p>
-                  <p className="text-sm text-slate-400">Head of Sales, TechCorp</p>
-                </div>
-              </div>
+            <div className="p-4 border border-white/10 bg-[#0A0A0A]/50 backdrop-blur-sm">
+              <div className="text-2xl font-mono text-white mb-1">₹1B+</div>
+              <div className="text-[10px] text-neutral-500 uppercase tracking-wider">Revenue Tracked</div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Icons */}
-        <div className="relative z-10 flex items-center gap-6">
-          <button className="w-12 h-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-            <Mail className="h-5 w-5 text-white" />
-          </button>
-          <button className="w-12 h-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-            <BarChart3 className="h-5 w-5 text-white" />
-          </button>
+        {/* Footer */}
+        <div className="relative z-10 text-neutral-600 text-xs font-mono">
+          © 2026 Avariq Systems
         </div>
       </div>
 
-      {/* Right Panel - Login/Signup Forms */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#161616]">
+      {/* Right Panel - Auth Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 bg-[#0A0A0A]">
         <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-white/5 border border-white/10 flex items-center justify-center">
+                <Box className="w-[18px] h-[18px] text-white" />
+              </div>
+              <span className="font-bold tracking-tight text-lg text-white">
+                NEXUS<span className="text-white/20">ERP</span>
+              </span>
+            </Link>
+          </div>
+
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#1f1f1f] border border-[#262626]">
-              <TabsTrigger value="login" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Sign In</TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">Create Account</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#111] border border-white/10 rounded-none p-1">
+              <TabsTrigger value="login" className="data-[state=active]:bg-white data-[state=active]:text-black text-neutral-400 font-mono text-xs uppercase tracking-wider rounded-none transition-all">Sign In</TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-white data-[state=active]:text-black text-neutral-400 font-mono text-xs uppercase tracking-wider rounded-none transition-all">Create Account</TabsTrigger>
             </TabsList>
 
             {/* Login Tab */}
             <TabsContent value="login">
               <div className="mb-8">
-                <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
-                <p className="text-slate-400">Enter your details to access your sales pipeline.</p>
+                <h2 className="text-3xl font-semibold text-white tracking-tight mb-2">Welcome back</h2>
+                <p className="text-neutral-500 text-sm">Enter your credentials to access the system.</p>
               </div>
 
-              <form action={handleLogin} className="space-y-6">
-                {/* Email Input */}
+              <form action={handleLogin} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-sm font-medium text-slate-300">Email or Username</Label>
-                  <div className="relative">
-                    <Input
-                      id="login-email"
-                      name="email"
-                      type="text"
-                      placeholder="name@company.com or username"
-                      required
-                      className="w-full pl-10 bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
-                    />
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-                  </div>
+                  <Label htmlFor="login-email" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Email or Username</Label>
+                  <Input
+                    id="login-email"
+                    name="email"
+                    type="text"
+                    placeholder="name@company.com"
+                    required
+                    className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 py-6 rounded-none focus:border-orange-500 focus:ring-orange-500/20 transition-colors"
+                  />
                 </div>
 
-                {/* Password Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="login-password" className="text-sm font-medium text-slate-300">Password</Label>
+                  <Label htmlFor="login-password" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Password</Label>
                   <div className="relative">
                     <Input
                       id="login-password"
                       name="password"
                       type={showPassword ? "text" : "password"}
                       required
-                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                      className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-6 rounded-none focus:border-orange-500 focus:ring-orange-500/20 transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-300 transition-colors"
                     >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-700 bg-[#161b22] text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                      className="w-3.5 h-3.5 rounded-none border-white/10 bg-[#111] text-orange-500 focus:ring-orange-500/20 focus:ring-offset-0"
                     />
-                    <span className="text-sm text-slate-400">Remember me</span>
+                    <span className="text-xs text-neutral-500">Remember me</span>
                   </label>
-                  <button type="button" className="text-sm text-blue-500 hover:text-blue-400">
+                  <button type="button" className="text-xs text-orange-500 hover:text-orange-400 font-mono transition-colors">
                     Forgot password?
                   </button>
                 </div>
 
                 {loginError && (
-                  <div className="text-sm text-red-400 font-medium bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                  <div className="text-xs text-red-400 font-mono bg-red-500/10 p-3 border border-red-500/20">
                     {loginError}
                   </div>
                 )}
@@ -243,19 +228,27 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="w-full bg-white hover:bg-neutral-200 text-black py-6 rounded-none font-semibold tracking-tight transition-colors disabled:opacity-50"
                 >
-                  {loginLoading ? 'Signing in...' : 'Sign in'}
+                  {loginLoading ? (
+                    <span className="flex items-center gap-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
+                      Authenticating...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      Sign In
+                      <ArrowUpRight className="w-4 h-4" />
+                    </span>
+                  )}
                 </Button>
 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-slate-700" />
+                    <span className="w-full border-t border-white/5" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#161616] px-2 text-slate-500">
-                      Or continue with
-                    </span>
+                  <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
+                    <span className="bg-[#0A0A0A] px-3 text-neutral-600 font-mono">Or</span>
                   </div>
                 </div>
 
@@ -263,12 +256,12 @@ export default function LoginPage() {
                   type="button"
                   variant="outline"
                   onClick={() => signIn('google')}
-                  className="w-full bg-[#161b22] border-slate-700 text-white py-6 rounded-lg font-medium hover:bg-slate-800 transition-colors"
+                  className="w-full bg-[#111] border-white/10 text-white py-6 rounded-none font-medium hover:bg-white/5 transition-colors"
                 >
-                  <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                    <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                  <svg className="mr-2 h-4 w-4" viewBox="0 0 488 512">
+                    <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z" />
                   </svg>
-                  Google
+                  Continue with Google
                 </Button>
               </form>
             </TabsContent>
@@ -276,17 +269,16 @@ export default function LoginPage() {
             {/* Signup Tab */}
             <TabsContent value="signup">
               <div className="mb-8">
-                <h2 className="text-3xl font-bold text-white mb-2">Create your account</h2>
-                <p className="text-slate-400">Start your 14-day free trial, no credit card required.</p>
-                <div className="mt-3 text-sm text-amber-400/80 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
-                  ⏱️ Account setup takes ~3 minutes. Please don't close this page.
+                <h2 className="text-3xl font-semibold text-white tracking-tight mb-2">Create workspace</h2>
+                <p className="text-neutral-500 text-sm">14-day free trial. No credit card required.</p>
+                <div className="mt-3 text-xs text-orange-400/80 bg-orange-500/10 p-3 border border-orange-500/20 font-mono">
+                  ⏱ Account setup takes ~3 minutes. Keep this page open.
                 </div>
               </div>
 
-              <form action={handleSignup} className="space-y-6">
-                {/* Full Name Input */}
+              <form action={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-sm font-medium text-slate-300">Full Name</Label>
+                  <Label htmlFor="fullName" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Full Name</Label>
                   <div className="relative">
                     <Input
                       id="fullName"
@@ -294,15 +286,14 @@ export default function LoginPage() {
                       type="text"
                       placeholder="John Doe"
                       required
-                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                      className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
                     />
-                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-600" />
                   </div>
                 </div>
 
-                {/* Email Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-sm font-medium text-slate-300">Email address</Label>
+                  <Label htmlFor="signup-email" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Email</Label>
                   <div className="relative">
                     <Input
                       id="signup-email"
@@ -310,15 +301,14 @@ export default function LoginPage() {
                       type="email"
                       placeholder="name@company.com"
                       required
-                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                      className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
                     />
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-600" />
                   </div>
                 </div>
 
-                {/* Organization Name Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="organizationName" className="text-sm font-medium text-slate-300">Organization Name</Label>
+                  <Label htmlFor="organizationName" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Organization</Label>
                   <div className="relative">
                     <Input
                       id="organizationName"
@@ -326,107 +316,95 @@ export default function LoginPage() {
                       type="text"
                       placeholder="Acme Corp"
                       required
-                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                      className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
                     />
-                    <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                    <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-600" />
                   </div>
                 </div>
 
-                {/* Subscription Plan Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="plan" className="text-sm font-medium text-slate-300">Subscription Plan</Label>
+                  <Label htmlFor="plan" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Plan</Label>
                   <Select value={selectedPlan} onValueChange={(value: any) => setSelectedPlan(value)}>
-                    <SelectTrigger className="w-full bg-[#161b22] border-slate-700 text-white py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500">
+                    <SelectTrigger className="w-full bg-[#111] border-white/10 text-white py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#0d1117] border-slate-700">
-                      <SelectItem value="free" className="text-white hover:bg-slate-800 focus:bg-slate-800 cursor-pointer">
-                        <div className="flex items-center justify-between w-full py-2">
-                          <div className="flex flex-col items-start">
-                            <span className="font-semibold text-base">Free Plan</span>
-                            <span className="text-xs text-slate-400">₹0/month • 2 users • 50 leads</span>
-                          </div>
+                    <SelectContent className="bg-[#0A0A0A] border-white/10 rounded-none">
+                      <SelectItem value="free" className="text-white hover:bg-white/5 focus:bg-white/5 cursor-pointer rounded-none">
+                        <div className="flex flex-col items-start py-1">
+                          <span className="font-semibold text-sm">Free</span>
+                          <span className="text-[10px] text-neutral-500 font-mono">₹0/mo • 2 users • 50 leads</span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="pro" className="text-white hover:bg-slate-800 focus:bg-slate-800 cursor-pointer">
-                        <div className="flex items-center justify-between w-full py-2">
-                          <div className="flex flex-col items-start">
-                            <span className="font-semibold text-base">Professional</span>
-                            <span className="text-xs text-slate-400">₹2,999/month • 10 users • 1000 leads</span>
-                          </div>
+                      <SelectItem value="pro" className="text-white hover:bg-white/5 focus:bg-white/5 cursor-pointer rounded-none">
+                        <div className="flex flex-col items-start py-1">
+                          <span className="font-semibold text-sm">Professional</span>
+                          <span className="text-[10px] text-neutral-500 font-mono">₹2,999/mo • 10 users • 1000 leads</span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="enterprise" className="text-white hover:bg-slate-800 focus:bg-slate-800 cursor-pointer">
-                        <div className="flex items-center justify-between w-full py-2">
-                          <div className="flex flex-col items-start">
-                            <span className="font-semibold text-base">Enterprise</span>
-                            <span className="text-xs text-slate-400">₹9,999/month • Unlimited</span>
-                          </div>
+                      <SelectItem value="enterprise" className="text-white hover:bg-white/5 focus:bg-white/5 cursor-pointer rounded-none">
+                        <div className="flex flex-col items-start py-1">
+                          <span className="font-semibold text-sm">Enterprise</span>
+                          <span className="text-[10px] text-neutral-500 font-mono">₹9,999/mo • Unlimited</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-slate-400">
-                    Start with 14-day free trial. No credit card required.
-                  </p>
                 </div>
 
-                {/* Password Input */}
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-sm font-medium text-slate-300">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="signup-password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      required
-                      minLength={8}
-                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        required
+                        minLength={8}
+                        className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-300 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Must be at least 8 characters with uppercase, lowercase, number, and special character (!@#$%^&*)
-                  </p>
-                </div>
 
-                {/* Confirm Password Input */}
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-300">Confirm Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      required
-                      minLength={8}
-                      className="w-full bg-[#161b22] border-slate-700 text-white placeholder:text-slate-500 pr-10 py-6 rounded-lg focus:border-blue-500 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Confirm</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        required
+                        minLength={8}
+                        className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-300 transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
+                <p className="text-[10px] text-neutral-600 font-mono">Min 8 chars with uppercase, lowercase, number, and special char.</p>
 
                 {signupError && (
-                  <div className="text-sm text-red-400 font-medium bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                  <div className="text-xs text-red-400 font-mono bg-red-500/10 p-3 border border-red-500/20">
                     {signupError}
                   </div>
                 )}
 
                 {provisioningStatus && !signupError && (
-                  <div className="text-sm text-blue-400 font-medium bg-blue-500/10 p-4 rounded-lg border border-blue-500/20 flex items-center gap-3">
-                    <div className="animate-spin h-4 w-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                  <div className="text-xs text-orange-400 font-mono bg-orange-500/10 p-3 border border-orange-500/20 flex items-center gap-3">
+                    <div className="animate-spin h-3.5 w-3.5 border-2 border-orange-400 border-t-transparent rounded-full" />
                     <span>{provisioningStatus}</span>
                   </div>
                 )}
@@ -434,35 +412,40 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={signupLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="w-full bg-white hover:bg-neutral-200 text-black py-6 rounded-none font-semibold tracking-tight transition-colors disabled:opacity-50"
                 >
                   {signupLoading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                      <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
                       Creating workspace...
                     </span>
-                  ) : 'Create Account'}
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      Create Account
+                      <ArrowUpRight className="w-4 h-4" />
+                    </span>
+                  )}
                 </Button>
 
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-[10px] text-neutral-600 text-center font-mono">
                   By creating an account, you agree to our{' '}
-                  <button type="button" className="text-blue-500 hover:text-blue-400">Terms of Service</button>
-                  {' '}and{' '}
-                  <button type="button" className="text-blue-500 hover:text-blue-400">Privacy Policy</button>
+                  <button type="button" className="text-orange-500 hover:text-orange-400">Terms</button>
+                  {' & '}
+                  <button type="button" className="text-orange-500 hover:text-orange-400">Privacy Policy</button>
                 </p>
               </form>
             </TabsContent>
           </Tabs>
 
-          {/* Footer Text */}
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <p className="text-xs text-slate-500 text-center">
-              © 2024 Nexus ERP. All rights reserved. • Privacy • Terms
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-white/5">
+            <p className="text-[10px] text-neutral-600 text-center font-mono uppercase tracking-wider">
+              © 2026 Avariq Systems • SOC-2 Compliant
             </p>
           </div>
         </div>
       </div>
-    </div >
+    </div>
   )
 }
 
