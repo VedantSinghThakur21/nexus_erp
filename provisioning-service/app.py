@@ -179,10 +179,18 @@ def run_frappe_code(site_name: str, python_code: str) -> str:
     """
     # Build the full script with Frappe init/destroy wrapper
     full_script = f"""import os
+import sys
 import frappe
+
+# Ensure all log directories exist
 os.makedirs("/home/frappe/logs", exist_ok=True)
 os.makedirs("{BENCH_PATH}/logs", exist_ok=True)
+os.makedirs("{BENCH_PATH}/sites/{site_name}/logs", exist_ok=True)
+
 frappe.init(site="{site_name}", sites_path="{BENCH_PATH}/sites")
+print(f"DEBUG: sites_path={{frappe.local.sites_path}}")
+print(f"DEBUG: site_path={{frappe.local.site_path}}")
+
 frappe.connect()
 try:
 {_indent(python_code, 4)}
