@@ -23,6 +23,7 @@ SECURITY:
 
 import os
 import json
+import base64
 import subprocess
 import secrets
 import logging
@@ -46,7 +47,7 @@ PARENT_DOMAIN = os.environ.get("PARENT_DOMAIN", "avariq.in")
 DB_ROOT_PASSWORD = os.environ.get("DB_ROOT_PASSWORD", "123")
 PROVISIONING_SECRET = os.environ.get("PROVISIONING_API_SECRET", "change-me-in-production")
 DEFAULT_APPS = os.environ.get("DEFAULT_APPS", "nexus_core").split(",")
-IS_PRODUCTION = os.environ.get("ENVIRONMENT", "development") == "production"
+IS_PRODUCTION = os.environ.get("ENVIRONMENT", "production") == "production"
 
 # Logging
 logging.basicConfig(
@@ -149,8 +150,8 @@ def docker_exec(args: list[str], timeout: int = 300) -> subprocess.CompletedProc
         )
         if result.returncode != 0:
             logger.error(f"Command failed (exit {result.returncode})")
-            logger.error(f"STDOUT: {result.stdout[:500]}")
-            logger.error(f"STDERR: {result.stderr[:500]}")
+            logger.error(f"STDOUT: {result.stdout}")
+            logger.error(f"STDERR: {result.stderr}")
         else:
             logger.info("Command succeeded")
             if result.stdout.strip():
@@ -172,11 +173,12 @@ def run_bench_command(args: list[str], timeout: int = 300) -> subprocess.Complet
 def run_frappe_code(site_name: str, python_code: str) -> str:
     """
     Execute Python code in the context of a specific Frappe site.
-    Uses the Frappe virtualenv Python inside the backend container.
+    
+    Uses a temp-file approach with base64 encoding to avoid shell escaping
+    issues when passing complex Python code through docker exec.
     """
-    # Wrap user code with Frappe init/destroy
-    wrapped_code = f"""
-import frappe
+    # Build the full script with Frappe init/destroy wrapper
+    full_script = f"""import frappe
 frappe.init(site="{site_name}", sites_path="{BENCH_PATH}/sites")
 frappe.connect()
 try:
@@ -185,16 +187,33 @@ finally:
     frappe.destroy()
 """
 
-    result = docker_exec(
-        [f"{BENCH_PATH}/env/bin/python", "-c", wrapped_code],
-        timeout=60,
+    # Base64 encode to avoid any shell/argument escaping issues
+    encoded = base64.b64encode(full_script.encode()).decode()
+    tmp_file = f"/tmp/_prov_{secrets.token_hex(8)}.py"
+
+    # Write script to temp file inside backend container
+    write_result = docker_exec(
+        ["bash", "-c", f"echo '{encoded}' | base64 -d > {tmp_file}"],
+        timeout=10,
     )
+    if write_result.returncode != 0:
+        raise Exception(f"Failed to write script to container: {write_result.stderr}")
 
-    if result.returncode != 0:
-        logger.error(f"Frappe code execution failed: {result.stderr[:500]}")
-        raise Exception(f"Frappe execution error: {result.stderr[:500]}")
+    # Execute the script with Frappe's virtualenv Python
+    try:
+        result = docker_exec(
+            [f"{BENCH_PATH}/env/bin/python", tmp_file],
+            timeout=120,
+        )
 
-    return result.stdout.strip()
+        if result.returncode != 0:
+            logger.error(f"Frappe code execution failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
+            raise Exception(f"Frappe execution error: {result.stderr}")
+
+        return result.stdout.strip()
+    finally:
+        # Cleanup temp file
+        docker_exec(["rm", "-f", tmp_file], timeout=5)
 
 
 def _indent(code: str, spaces: int) -> str:

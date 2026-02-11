@@ -21,7 +21,7 @@ services:
       - DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-vedant@21}
       - PROVISIONING_API_SECRET=${PROVISIONING_API_SECRET:-change-me-in-production}
       - DEFAULT_APPS=nexus_core
-      - ENVIRONMENT=${NODE_ENV:-development}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
     volumes:
       # Mount Docker socket so we can docker exec into the backend container
       - /var/run/docker.sock:/var/run/docker.sock
