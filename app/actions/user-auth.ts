@@ -484,12 +484,17 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         }
 
         if (apiKeysData.message?.api_key && apiKeysData.message?.api_secret) {
+          const cookieDomain = process.env.NODE_ENV === 'production'
+            ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
+            : undefined
+
           cookieStore.set('tenant_api_key', apiKeysData.message.api_key, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7,
-            path: '/'
+            path: '/',
+            domain: cookieDomain,
           })
 
           cookieStore.set('tenant_api_secret', apiKeysData.message.api_secret, {
@@ -497,7 +502,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7,
-            path: '/'
+            path: '/',
+            domain: cookieDomain,
           })
 
           console.log('✅ Tenant API credentials stored')
