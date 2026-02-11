@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Search, Filter, Package, CheckCircle, Clock, IndianRupee, Calendar, ArrowRight, Sparkles, TrendingUp, Truck } from "lucide-react"
 import type { SalesOrder } from "@/app/actions/sales-orders"
+import { PageHeader } from "@/components/page-header"
 
 interface SalesOrdersClientProps {
   orders: SalesOrder[]
@@ -93,22 +94,8 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-slate-900">
-      {/* Header - removed AVARIQ logo per requirements */}
-      <header className="h-16 bg-white dark:bg-card-dark border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 w-full z-10 sticky top-0">
-        <div className="flex-1 max-w-2xl">
-          <div className="relative group">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-              <Sparkles className="h-5 w-5" />
-            </span>
-            <input
-              className="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg leading-5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
-              placeholder="Ask AI anything about your sales orders..."
-              type="text"
-            />
-          </div>
-        </div>
-        {/* Removed New Sales Order button as per request */}
-      </header>
+      {/* Header */}
+      <PageHeader searchPlaceholder="Ask AI anything about your sales orders..." />
 
       <main className="flex-1 w-full flex flex-col min-w-0 overflow-y-auto custom-scrollbar p-8 bg-white dark:bg-slate-900">
         <div className="max-w-[1600px] mx-auto w-full">
@@ -199,11 +186,10 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
                       setActiveTab(tab.id)
                       setCurrentPage(1)
                     }}
-                    className={`flex-1 lg:flex-none px-8 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-                      activeTab === tab.id
+                    className={`flex-1 lg:flex-none px-8 py-2.5 text-sm font-semibold rounded-lg transition-all ${activeTab === tab.id
                         ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
                         : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                    }`}
+                      }`}
                   >
                     {tab.label} ({count})
                   </button>

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { getInspections } from "@/app/actions/inspections";
 import type { Inspection } from "@/app/actions/inspections";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 
 export default function InspectionsPage() {
   const [inspections, setInspections] = useState<Inspection[]>([]);
@@ -65,38 +66,13 @@ export default function InspectionsPage() {
   return (
     <div className="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors duration-200 min-h-screen flex flex-col">
       {/* Header */}
-      <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 z-10">
-        <div className="flex-1 max-w-2xl relative">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
-            search
-          </span>
-          <input
-            className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full pl-12 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-slate-700 transition-all"
-            placeholder="Ask AI anything about inspections..."
-            type="text"
-          />
-        </div>
-        <div className="flex items-center gap-6">
-          <Link href="/inspections/new">
-            <button className="bg-[#3b82f6] hover:bg-blue-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-sm shadow-blue-500/20">
-              <span className="material-symbols-outlined text-lg">add</span> New Inspection
-            </button>
-          </Link>
-          <button className="relative text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
-            <span className="material-symbols-outlined text-2xl">notifications</span>
-            <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+      <PageHeader searchPlaceholder="Ask AI anything about inspections...">
+        <Link href="/inspections/new">
+          <button className="bg-[#3b82f6] hover:bg-blue-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-sm shadow-blue-500/20">
+            <span className="material-symbols-outlined text-lg">add</span> New Inspection
           </button>
-          <div className="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
-            <div className="text-right">
-              <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">John Doe</p>
-              <p className="text-[10px] text-slate-500 font-medium">Quality Manager</p>
-            </div>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-              JD
-            </div>
-          </div>
-        </div>
-      </header>
+        </Link>
+      </PageHeader>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
@@ -292,13 +268,12 @@ export default function InspectionsPage() {
                                   {inspection.reference_name}
                                 </h3>
                                 <span
-                                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                    inspection.status === "Accepted"
+                                  className={`px-3 py-1 rounded-full text-xs font-bold ${inspection.status === "Accepted"
                                       ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                                       : inspection.status === "Rejected"
-                                      ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                                      : "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
-                                  }`}
+                                        ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                                        : "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
+                                    }`}
                                 >
                                   {inspection.status}
                                 </span>

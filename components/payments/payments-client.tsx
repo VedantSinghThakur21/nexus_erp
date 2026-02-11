@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
+import { PageHeader } from "@/components/page-header"
 
 interface PaymentEntry {
   name: string
@@ -112,32 +113,10 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
   return (
     <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-navy-900 border-b border-slate-200 dark:border-slate-800 px-8 py-3 h-16 flex items-center justify-between">
-        <div className="flex-1 max-w-2xl relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-          <input
-            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-            placeholder="Ask AI anything..."
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400">⌘ K</span>
-        </div>
-        <div className="flex items-center space-x-6">
-          {/* Removed New Payment button as per request */}
-          <div className="flex items-center space-x-4 border-l border-slate-200 dark:border-slate-800 pl-6">
-            <button className="relative text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
-              <span className="material-symbols-outlined text-[24px]">notifications</span>
-              <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-navy-900"></span>
-            </button>
-            <button className="flex items-center space-x-3 group">
-              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-xs text-white font-bold ring-2 ring-white dark:ring-navy-800 shadow-sm">JS</div>
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">James Smith</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
       <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
         <div className="mb-8">
@@ -231,31 +210,28 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
               <div className="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setActiveTab("ALL")}
-                  className={`px-4 py-2 text-xs font-bold transition-colors ${
-                    activeTab === "ALL"
+                  className={`px-4 py-2 text-xs font-bold transition-colors ${activeTab === "ALL"
                       ? "bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
                       : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
+                    }`}
                 >
                   ALL
                 </button>
                 <button
                   onClick={() => setActiveTab("PENDING")}
-                  className={`px-4 py-2 text-xs font-bold transition-colors ${
-                    activeTab === "PENDING"
+                  className={`px-4 py-2 text-xs font-bold transition-colors ${activeTab === "PENDING"
                       ? "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
                       : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
+                    }`}
                 >
                   PENDING
                 </button>
                 <button
                   onClick={() => setActiveTab("ERROR")}
-                  className={`px-4 py-2 text-xs font-bold transition-colors ${
-                    activeTab === "ERROR"
+                  className={`px-4 py-2 text-xs font-bold transition-colors ${activeTab === "ERROR"
                       ? "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
                       : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
+                    }`}
                 >
                   ERROR
                 </button>
@@ -306,11 +282,10 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                           <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{formatDate(payment.posting_date)}</td>
                           <td className="px-6 py-4 text-[16px] font-medium text-slate-900 dark:text-white">{payment.party_name}</td>
                           <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 text-[10px] font-extrabold rounded-md uppercase tracking-tight ${
-                              payment.payment_type === 'Receive'
+                            <span className={`px-2.5 py-1 text-[10px] font-extrabold rounded-md uppercase tracking-tight ${payment.payment_type === 'Receive'
                                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                                 : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
-                            }`}>
+                              }`}>
                               {payment.payment_type}
                             </span>
                           </td>
@@ -384,11 +359,10 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                   <button
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
-                      currentPage === pageNum
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${currentPage === pageNum
                         ? 'bg-primary text-white shadow-sm'
                         : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-navy-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
+                      }`}
                   >
                     {pageNum}
                   </button>

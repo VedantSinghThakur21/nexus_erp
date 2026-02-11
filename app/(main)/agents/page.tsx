@@ -4,6 +4,7 @@ import { useChat } from "ai/react";
 import { useEffect, useRef, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { PageHeader } from "@/components/page-header";
 
 export default function AgentsPage() {
   const [showDebug, setShowDebug] = useState(false);
@@ -99,61 +100,7 @@ export default function AgentsPage() {
       )}
 
       {/* Header */}
-      <header className="h-14 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white dark:bg-midnight-blue z-20 shrink-0">
-        <div className="flex items-center gap-6 flex-1">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-midnight-blue rounded-lg flex items-center justify-center shadow-sm">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 100 100"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle cx="50" cy="55" fill="white" r="35"></circle>
-                <circle cx="50" cy="55" fill="#0F172A" r="30"></circle>
-                <circle cx="40" cy="55" fill="white" r="5"></circle>
-                <circle cx="60" cy="55" fill="white" r="5"></circle>
-                <path
-                  d="M45 65 Q50 68 55 65"
-                  stroke="white"
-                  strokeLinecap="round"
-                  strokeWidth="2"
-                ></path>
-                <circle cx="50" cy="15" fill="white" r="6"></circle>
-                <rect fill="white" height="10" rx="2" width="4" x="48" y="20"></rect>
-              </svg>
-            </div>
-            <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white uppercase">
-              AvarIQ Agent
-            </span>
-          </div>
-          <div className="flex-1 max-w-lg relative group">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
-              search
-            </span>
-            <input
-              className="w-full h-9 pl-10 pr-3 rounded-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-accent/20 text-xs font-medium text-slate-700 dark:text-slate-200 placeholder-slate-400 transition-all"
-              placeholder="Ask AI anything..."
-              type="text"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 pl-4">
-            <div className="text-right">
-              <p className="text-xs font-semibold text-slate-900 dark:text-white leading-tight">
-                Alex Thompson
-              </p>
-              <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 uppercase tracking-wider">
-                Sales Admin
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shadow-md ring-2 ring-white dark:ring-slate-800">
-              AT
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">

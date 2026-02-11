@@ -6,6 +6,7 @@ import { getItemRentalAnalytics } from "@/app/actions/bookings"
 import { CreateItemDialog } from "@/components/catalogue/create-item-dialog"
 import { EditItemDialog } from "@/components/catalogue/edit-item-dialog"
 import { CreateBookingDialog } from "@/components/bookings/create-booking-dialog"
+import { PageHeader } from "@/components/page-header"
 
 interface Item {
   item_code: string
@@ -45,15 +46,15 @@ export default function CataloguePage() {
   const [editingItem, setEditingItem] = useState<Item | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 4
-  
+
   // Dynamically build categories from actual item groups
   const uniqueItemGroups = useMemo(() => {
     const groups = new Set(allItems.map(item => item.item_group))
     return ['All', ...Array.from(groups).sort()]
   }, [allItems])
-  
+
   const categories = uniqueItemGroups
-  
+
   // Load initial data
   useEffect(() => {
     async function loadData() {
@@ -70,7 +71,7 @@ export default function CataloguePage() {
     }
     loadData()
   }, [])
-  
+
   // Filter items based on search, categories, and price
   const filteredItems: Item[] = useMemo(() => {
     let items = allItems;
@@ -91,7 +92,7 @@ export default function CataloguePage() {
     }
     return items;
   }, [allItems, searchQuery, selectedCategories]);
-  
+
   // Pagination logic
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const paginatedItems = useMemo(() => {
@@ -99,26 +100,26 @@ export default function CataloguePage() {
     const endIndex = startIndex + itemsPerPage
     return filteredItems.slice(startIndex, endIndex)
   }, [filteredItems, currentPage])
-  
+
   // Reset to page 1 when filtered items change
   useEffect(() => {
     setCurrentPage(1)
   }, [filteredItems])
-  
+
   // Calculate summary stats
   const totalItems = allItems.length
   const availableItems = allItems.filter(item => item.available).length
-  
+
   // Category counts
   const getCategoryCount = (category: string) => {
     if (category === 'All') return totalItems
     return allItems.filter(item => item.item_group === category).length
   }
-  
+
   // Toggle category selection
   const toggleCategory = (category: string) => {
     const newSelected = new Set(selectedCategories)
-    
+
     if (category === 'All') {
       setSelectedCategories(new Set(['All']))
     } else {
@@ -128,15 +129,15 @@ export default function CataloguePage() {
       } else {
         newSelected.add(category)
       }
-      
+
       if (newSelected.size === 0) {
         newSelected.add('All')
       }
-      
+
       setSelectedCategories(newSelected)
     }
   }
-  
+
   // Load item details for quick view
   const handleQuickView = async (itemCode: string) => {
     setIsLoadingDetails(true)
@@ -151,7 +152,7 @@ export default function CataloguePage() {
       setIsLoadingDetails(false)
     }
   }
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background-light dark:bg-background-dark">
@@ -168,42 +169,13 @@ export default function CataloguePage() {
       </div>
     )
   }
-  
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 w-full z-10">
-        <div className="relative w-[480px]">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
-            search
-          </span>
-          <input
-            className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2.5 pl-11 pr-5 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-500"
-            placeholder="Ask AI anything..."
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-6">
-          <CreateItemDialog />
-          <button className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
-          <div className="flex items-center gap-3 pl-2">
-            <div className="text-right">
-              <p className="text-sm font-semibold leading-tight">Admin User</p>
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                Catalogue Manager
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-slate-100 dark:ring-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-sm">
-              AU
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
+        <CreateItemDialog />
+      </PageHeader>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-background-dark custom-scrollbar">
@@ -260,10 +232,10 @@ export default function CataloguePage() {
                 <div className="space-y-3">
                   {categories.map(category => (
                     <label key={category} className="flex items-center group cursor-pointer">
-                      <input 
+                      <input
                         checked={selectedCategories.has(category)}
                         onChange={() => toggleCategory(category)}
-                        className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4" 
+                        className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4"
                         type="checkbox"
                       />
                       <span className="ml-3 text-sm text-slate-700 dark:text-slate-300 group-hover:text-primary">{category}</span>
@@ -279,9 +251,9 @@ export default function CataloguePage() {
                     <label className="text-[10px] text-slate-400 mb-1 block">MIN</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
-                      <input 
-                        className="w-full pl-6 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-sm" 
-                        type="text" 
+                      <input
+                        className="w-full pl-6 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-sm"
+                        type="text"
                         value={minPrice}
                         onChange={(e) => setMinPrice(parseInt(e.target.value) || 0)}
                       />
@@ -291,17 +263,17 @@ export default function CataloguePage() {
                     <label className="text-[10px] text-slate-400 mb-1 block">MAX</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
-                      <input 
-                        className="w-full pl-6 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-sm" 
-                        type="text" 
+                      <input
+                        className="w-full pl-6 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-sm"
+                        type="text"
                         value={maxPrice}
                         onChange={(e) => setMaxPrice(parseInt(e.target.value) || 5000)}
                       />
                     </div>
                   </div>
                 </div>
-                <input 
-                  className="w-full" 
+                <input
+                  className="w-full"
                   type="range"
                   min="0"
                   max="5000"
@@ -316,9 +288,9 @@ export default function CataloguePage() {
               <div className="space-y-4">
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                  <input 
-                    className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" 
-                    placeholder="Search items by name, code, or description..." 
+                  <input
+                    className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    placeholder="Search items by name, code, or description..."
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -328,18 +300,17 @@ export default function CataloguePage() {
                   {categories.map(category => {
                     const isActive = selectedCategories.has(category)
                     return (
-                      <button 
+                      <button
                         key={category}
                         onClick={() => toggleCategory(category)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center ${
-                          isActive 
-                            ? 'bg-midnight-blue text-white' 
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center ${isActive
+                            ? 'bg-midnight-blue text-white'
                             : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition'
-                        }`}
+                          }`}
                       >
                         <span className="material-symbols-outlined text-sm mr-2">
                           {category === 'All' ? 'apps' : category === 'Heavy Equipment Rental' ? 'agriculture' : 'build'}
-                        </span> 
+                        </span>
                         {category}
                       </button>
                     )
@@ -356,7 +327,7 @@ export default function CataloguePage() {
                     </div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No items found</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                      {allItems.length === 0 
+                      {allItems.length === 0
                         ? "Get started by adding your first item to the catalogue."
                         : "Try adjusting your filters or search query."}
                     </p>
@@ -364,63 +335,63 @@ export default function CataloguePage() {
                   </div>
                 ) : (
                   paginatedItems.map(item => (
-                  <div key={item.item_code} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm group hover:shadow-md transition">
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{item.item_name}</h3>
-                          <p className="text-xs text-slate-500 uppercase font-medium">{item.item_code}</p>
+                    <div key={item.item_code} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm group hover:shadow-md transition">
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{item.item_name}</h3>
+                            <p className="text-xs text-slate-500 uppercase font-medium">{item.item_code}</p>
+                          </div>
+                          <span className="bg-blue-100 dark:bg-blue-900/40 text-primary text-[10px] font-bold px-2 py-1 rounded uppercase">{item.item_group}</span>
                         </div>
-                        <span className="bg-blue-100 dark:bg-blue-900/40 text-primary text-[10px] font-bold px-2 py-1 rounded uppercase">{item.item_group}</span>
-                      </div>
-                      <div className="mt-4 space-y-3">
-                        <div className="flex items-center space-x-2">
-                          {item.stock_qty !== null ? (
-                            <span className={`${item.available ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'} text-[11px] font-semibold px-2 py-1 rounded-md border flex items-center`}>
-                              <span className="material-symbols-outlined text-xs mr-1">check_circle</span> 
-                              {item.available ? `In Stock (${item.stock_qty})` : 'Out of Stock'}
-                            </span>
-                          ) : (
-                            <span className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[11px] font-semibold px-2 py-1 rounded-md border border-blue-100 dark:border-blue-900/30 flex items-center">
-                              <span className="material-symbols-outlined text-xs mr-1">check_circle</span> Service
-                            </span>
-                          )}
+                        <div className="mt-4 space-y-3">
+                          <div className="flex items-center space-x-2">
+                            {item.stock_qty !== null ? (
+                              <span className={`${item.available ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'} text-[11px] font-semibold px-2 py-1 rounded-md border flex items-center`}>
+                                <span className="material-symbols-outlined text-xs mr-1">check_circle</span>
+                                {item.available ? `In Stock (${item.stock_qty})` : 'Out of Stock'}
+                              </span>
+                            ) : (
+                              <span className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[11px] font-semibold px-2 py-1 rounded-md border border-blue-100 dark:border-blue-900/30 flex items-center">
+                                <span className="material-symbols-outlined text-xs mr-1">check_circle</span> Service
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-500 line-clamp-2">{item.description || 'No description available.'}</p>
                         </div>
-                        <p className="text-sm text-slate-500 line-clamp-2">{item.description || 'No description available.'}</p>
+                        <div className="mt-6 flex items-baseline space-x-1">
+                          <span className="text-xl font-bold">₹{Math.round(item.standard_rate || 0).toLocaleString('en-IN')}</span>
+                          <span className="text-slate-400 text-xs">{item.is_stock_item ? '/day' : '/session'}</span>
+                        </div>
+                        <div className="mt-6">
+                          <CreateBookingDialog
+                            itemCode={item.item_code}
+                            itemName={item.item_name}
+                            defaultRate={item.standard_rate || 1000}
+                            available={item.available}
+                          />
+                        </div>
                       </div>
-                      <div className="mt-6 flex items-baseline space-x-1">
-                        <span className="text-xl font-bold">₹{Math.round(item.standard_rate || 0).toLocaleString('en-IN')}</span>
-                        <span className="text-slate-400 text-xs">{item.is_stock_item ? '/day' : '/session'}</span>
-                      </div>
-                      <div className="mt-6">
-                        <CreateBookingDialog
-                          itemCode={item.item_code}
-                          itemName={item.item_name}
-                          defaultRate={item.standard_rate || 1000}
-                          available={item.available}
-                        />
+                      <div className="flex border-t border-slate-100 dark:border-slate-800">
+                        <button
+                          onClick={() => handleQuickView(item.item_code)}
+                          className="flex-1 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center"
+                        >
+                          <span className="material-symbols-outlined text-sm mr-1">visibility</span> Details
+                        </button>
+                        <div className="w-px bg-slate-100 dark:bg-slate-800"></div>
+                        <button
+                          onClick={() => setEditingItem(item)}
+                          className="flex-1 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center"
+                        >
+                          <span className="material-symbols-outlined text-sm mr-1">edit</span> Edit
+                        </button>
                       </div>
                     </div>
-                    <div className="flex border-t border-slate-100 dark:border-slate-800">
-                      <button 
-                        onClick={() => handleQuickView(item.item_code)}
-                        className="flex-1 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center"
-                      >
-                        <span className="material-symbols-outlined text-sm mr-1">visibility</span> Details
-                      </button>
-                      <div className="w-px bg-slate-100 dark:bg-slate-800"></div>
-                      <button 
-                        onClick={() => setEditingItem(item)}
-                        className="flex-1 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center"
-                      >
-                        <span className="material-symbols-outlined text-sm mr-1">edit</span> Edit
-                      </button>
-                    </div>
-                  </div>
                   ))
                 )}
               </div>
-              
+
               {/* Pagination Controls */}
               {filteredItems.length > itemsPerPage && (
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
@@ -440,11 +411,10 @@ export default function CataloguePage() {
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page)}
-                          className={`px-3 py-2 text-sm font-medium rounded-lg transition ${
-                            currentPage === page
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition ${currentPage === page
                               ? 'bg-primary text-white'
                               : 'border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                          }`}
+                            }`}
                         >
                           {page}
                         </button>
@@ -496,7 +466,7 @@ export default function CataloguePage() {
 
       {/* Edit Dialog */}
       {editingItem && (
-        <EditItemDialog 
+        <EditItemDialog
           item={editingItem}
         />
       )}
@@ -515,7 +485,7 @@ export default function CataloguePage() {
                   <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
-              
+
               {isLoadingDetails ? (
                 <div className="py-12 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
@@ -534,21 +504,21 @@ export default function CataloguePage() {
                       <p className="text-xs text-slate-500">Per day</p>
                     </div>
                   </div>
-                  
+
                   {selectedItem.description && (
                     <div>
                       <h4 className="font-semibold text-sm mb-2">Description</h4>
                       <p className="text-sm text-slate-600 dark:text-slate-400">{selectedItem.description}</p>
                     </div>
                   )}
-                  
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div><span className="font-semibold">Category:</span> {selectedItem.item_group}</div>
                     <div><span className="font-semibold">Unit:</span> {selectedItem.uom || 'Unit'}</div>
                     <div><span className="font-semibold">Stock Item:</span> {selectedItem.is_stock_item ? 'Yes' : 'No'}</div>
                     <div><span className="font-semibold">Has Serial No:</span> {selectedItem.has_serial_no ? 'Yes' : 'No'}</div>
                   </div>
-                  
+
                   {itemAnalytics && itemAnalytics.totalRentals > 0 && (
                     <div>
                       <h4 className="font-semibold text-sm mb-3">Rental Performance</h4>

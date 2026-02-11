@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { getTeamMembers, removeTeamMember } from "@/app/actions/team";
 import { InviteTeamMemberDialog } from "@/components/team/invite-team-member-dialog";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 
 interface TeamMember {
   name: string;
@@ -149,42 +150,9 @@ export default function TeamPage() {
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white dark:bg-navy-deep border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50 gap-6">
-        <div className="flex-1 min-w-0 max-w-2xl">
-          <div className="relative group">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] group-focus-within:text-primary transition-colors">
-              search
-            </span>
-            <input
-              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 dark:text-white placeholder:text-slate-400 transition-all shadow-sm"
-              placeholder="Ask AI anything..."
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-4 flex-shrink-0">
-          <InviteTeamMemberDialog />
-          <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 relative">
-            <span className="material-symbols-outlined text-[24px]">notifications</span>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white dark:border-navy-deep rounded-full"></span>
-          </button>
-          <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                Alex Thompson
-              </p>
-              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">
-                Sales Admin
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
-              AT
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
+        <InviteTeamMemberDialog />
+      </PageHeader>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -350,11 +318,10 @@ export default function TeamPage() {
                                 )}
                                 {aiInsight && (
                                   <span
-                                    className={`flex items-center gap-1.5 ${
-                                      aiInsight.color === "purple"
+                                    className={`flex items-center gap-1.5 ${aiInsight.color === "purple"
                                         ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800"
                                         : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800"
-                                    } px-3 py-1 rounded-full text-[11px] font-semibold border`}
+                                      } px-3 py-1 rounded-full text-[11px] font-semibold border`}
                                   >
                                     <span className="material-symbols-outlined text-[14px]">
                                       {aiInsight.icon}
@@ -371,11 +338,10 @@ export default function TeamPage() {
                                   {member.email}
                                 </span>
                                 <span
-                                  className={`flex items-center gap-2 ${
-                                    !member.last_login
+                                  className={`flex items-center gap-2 ${!member.last_login
                                       ? "text-amber-600 font-medium"
                                       : ""
-                                  }`}
+                                    }`}
                                 >
                                   <span className="material-symbols-outlined text-[18px]">
                                     history

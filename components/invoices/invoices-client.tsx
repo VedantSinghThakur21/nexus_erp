@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Download, CheckCircle, Calendar, Receipt } from "lucide-react"
+import { PageHeader } from "@/components/page-header"
 
 interface Invoice {
   name: string
@@ -126,33 +127,11 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
   return (
     <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A]">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-slate-800 px-6 py-3">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-8">
-          <div className="relative flex-1 max-w-2xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
-            <input
-              className="w-full pl-12 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all outline-none text-sm"
-              placeholder="Ask AI anything about your collections..."
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center gap-4">
-            {/* Removed New Invoice button as per request */}
-            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
-            <div className="flex items-center gap-3 pl-2">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">Alex Johnson</p>
-                <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">Finance Lead</p>
-              </div>
-              <div className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white text-sm font-bold">
-                AJ
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Ask AI anything about your collections..."
+      />
 
       <main className="max-w-[1600px] mx-auto p-6 lg:p-10">
         {/* Page Title */}
@@ -354,11 +333,10 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold ${
-                        currentPage === pageNum
+                      className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold ${currentPage === pageNum
                           ? 'bg-blue-600 text-white'
                           : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>

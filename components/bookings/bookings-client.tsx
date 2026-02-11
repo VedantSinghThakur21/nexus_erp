@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import Link from "next/link"
+import { PageHeader } from "@/components/page-header"
 
 interface Booking {
   name: string
@@ -37,8 +38,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   const revenueMTD = bookings
     .filter(b => {
       const transactionDate = new Date(b.transaction_date)
-      return transactionDate.getMonth() === today.getMonth() && 
-             transactionDate.getFullYear() === today.getFullYear()
+      return transactionDate.getMonth() === today.getMonth() &&
+        transactionDate.getFullYear() === today.getFullYear()
     })
     .reduce((sum, b) => sum + b.grand_total, 0)
 
@@ -61,12 +62,12 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   // Map bookings to dates
   const bookingsByDate = useMemo(() => {
     const map: Record<string, Booking[]> = {}
-    
+
     bookings.forEach(booking => {
       try {
         const start = new Date(booking.transaction_date)
         const end = new Date(booking.delivery_date)
-        
+
         // Add booking to each date in range
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
           if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
@@ -81,7 +82,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
         // Skip invalid dates
       }
     })
-    
+
     return map
   }, [bookings, currentMonth, currentYear])
 
@@ -94,7 +95,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
       setCurrentMonth(currentMonth - 1)
     }
   }
-  
+
   const goToNextMonth = () => {
     if (currentMonth === 11) {
       setCurrentMonth(0)
@@ -103,7 +104,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
       setCurrentMonth(currentMonth + 1)
     }
   }
-  
+
   const goToToday = () => {
     setCurrentMonth(today.getMonth())
     setCurrentYear(today.getFullYear())
@@ -130,21 +131,21 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   // Render calendar grid
   const renderCalendar = () => {
     const cells = []
-    
+
     // Empty cells for days before first day of month
     for (let i = 0; i < firstDayOfMonth; i++) {
       cells.push(<div key={`empty-${i}`} className="calendar-cell bg-white dark:bg-[#1a2332] p-3 border-l-2 border-transparent"></div>)
     }
-    
+
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       const dayBookings = bookingsByDate[dateKey] || []
       const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()
-      
+
       cells.push(
-        <div 
-          key={day} 
+        <div
+          key={day}
           className={`calendar-cell bg-white dark:bg-[#1a2332] p-3 text-sm border-l-2 ${isToday ? 'text-blue-500 font-semibold border-blue-500' : 'border-transparent'}`}
         >
           {day}
@@ -163,45 +164,14 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
         </div>
       )
     }
-    
+
     return cells
   }
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-navy-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-8 py-4">
-        <div className="flex items-center justify-between gap-8">
-          <div className="flex items-center flex-1 max-w-2xl">
-            <div className="relative w-full">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">auto_awesome</span>
-              <input 
-                className="w-full pl-12 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm focus:ring-2 focus:ring-primary placeholder:text-slate-500 outline-none" 
-                placeholder="Ask AI anything about your bookings..." 
-                type="text"
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <button className="text-slate-500 hover:text-primary relative transition-colors">
-                <span className="material-symbols-outlined">notifications</span>
-                <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border-2 border-white dark:border-navy-900"></span>
-              </button>
-              <div className="flex items-center gap-3 cursor-pointer group">
-                <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border border-slate-300 dark:border-slate-600 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-slate-600 dark:text-slate-300">person</span>
-                </div>
-                <div className="hidden xl:block text-left">
-                  <p className="text-sm font-semibold leading-tight">Admin Workspace</p>
-                  <p className="text-xs text-slate-500 leading-tight">Enterprise Tier</p>
-                </div>
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-slate-600 transition-colors">expand_more</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader searchPlaceholder="Ask AI anything about your bookings..." />
 
       {/* Main Content */}
       <div className="px-8 py-8 flex flex-col gap-8 max-w-[1920px] mx-auto w-full">
@@ -282,19 +252,19 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
             <div className="flex items-center gap-6">
               <h3 className="text-xl font-bold">{monthNames[currentMonth]} {currentYear}</h3>
               <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-lg p-1 gap-1">
-                <button 
+                <button
                   onClick={goToPreviousMonth}
                   className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all text-slate-600 dark:text-slate-300"
                 >
                   <span className="material-icons-round text-base leading-none">chevron_left</span>
                 </button>
-                <button 
+                <button
                   onClick={goToToday}
                   className="px-3 py-1 text-[11px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all uppercase tracking-wide"
                 >
                   TODAY
                 </button>
-                <button 
+                <button
                   onClick={goToNextMonth}
                   className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all text-slate-600 dark:text-slate-300"
                 >
@@ -304,7 +274,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
             </div>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <select 
+                <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="pl-8 pr-9 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
@@ -444,7 +414,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
       </div>
 
       {/* Floating Dark Mode Toggle - NO background circle/div */}
-      <button 
+      <button
         className="fixed bottom-8 right-8 bg-gradient-to-tr from-blue-500 to-purple-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform z-50 ring-4 ring-white/20 dark:ring-black/20"
         onClick={() => document.documentElement.classList.toggle('dark')}
       >
