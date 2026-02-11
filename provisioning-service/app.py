@@ -437,9 +437,20 @@ else:
 # Set password (idempotent) — always update to match what user entered
 frappe.utils.password.update_password("{req.admin_email}", admin_pwd)
 
-# Assign System Manager role
-if not frappe.db.exists("Has Role", {{"parent": "{req.admin_email}", "role": "System Manager"}}):
-    user.add_roles("System Manager")
+# Assign all necessary roles for full CRM + ERP access
+required_roles = [
+    "System Manager",
+    "Sales User",
+    "Sales Manager",
+    "Lead Owner",
+    "Support Team",
+]
+for role_name in required_roles:
+    if not frappe.db.exists("Has Role", {{"parent": "{req.admin_email}", "role": role_name}}):
+        try:
+            user.add_roles(role_name)
+        except Exception:
+            pass  # Role might not exist in this Frappe version
 
 # Generate API keys for programmatic access
 api_key = frappe.generate_hash(length=15)
