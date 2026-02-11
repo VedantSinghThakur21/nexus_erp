@@ -1,9 +1,8 @@
-# Provisioning Service — Docker Compose (add to your existing compose file)
+# Provisioning Service — Docker Exec Architecture
 #
-# Option A: Sidecar container sharing bench volume
-# Option B: Run as a second process in the backend container via supervisord
-#
-# This file shows Option A (recommended):
+# This container runs a lightweight FastAPI service that orchestrates
+# tenant provisioning by executing commands inside the existing
+# Frappe backend container via `docker exec`.
 
 services:
   provisioning:
@@ -13,8 +12,9 @@ services:
     container_name: nexus-provisioning
     restart: unless-stopped
     ports:
-      - "8002:8001"  # Changed to 8002 because nexus-ai is using 8001
+      - "8002:8001"
     environment:
+      - BACKEND_CONTAINER=${BACKEND_CONTAINER:-frappe_docker-backend-1}
       - BENCH_PATH=/home/frappe/frappe-bench
       - MASTER_SITE_NAME=${FRAPPE_SITE_NAME:-erp.localhost}
       - PARENT_DOMAIN=${NEXT_PUBLIC_ROOT_DOMAIN:-avariq.in}
@@ -23,25 +23,10 @@ services:
       - DEFAULT_APPS=nexus_core
       - ENVIRONMENT=${NODE_ENV:-development}
     volumes:
-      # Share the sites directory. In standard frappe_docker, 'sites-vol' is mounted to /home/frappe/frappe-bench/sites
-      # Share the sites directory.
-      - frappe_docker_sites:/home/frappe/frappe-bench/sites
-      # Mount the extracted apps so Python can find them
-      - ./apps/nexus_core:/home/frappe/frappe-bench/apps/nexus_core
-    networks:
-      - frappe_docker_default
-    # Health check
+      # Mount Docker socket so we can docker exec into the backend container
+      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-# Reference the existing volumes and networks from your Frappe compose
-volumes:
-  frappe_docker_sites:
-    external: true  # This assumes your running frappe_docker project uses the standard volume name
-
-networks:
-  frappe_docker_default:
-    external: true  # This assumes your running frappe_docker project uses the standard network name
