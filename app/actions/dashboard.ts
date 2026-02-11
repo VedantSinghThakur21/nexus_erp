@@ -221,38 +221,8 @@ export async function getRecentActivities() {
       console.error("Error fetching communications:", error)
     }
 
-    // 4. Fetch Recent Bookings/Scheduled Services
-    try {
-      // Check if Booking Doctype exists first, or just fail silently if not found
-      const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Booking',
-        fields: '["name", "customer_name", "service_type", "scheduled_date", "creation", "owner"]',
-        filters: '[["status", "in", ["Confirmed", "Scheduled"]]]',
-        order_by: 'creation desc',
-        limit_page_length: 5
-      })
-
-      if (Array.isArray(bookings)) {
-        bookings.forEach((booking: any) => {
-          const timestamp = new Date(booking.scheduled_date || booking.creation)
-          allActivities.push({
-            type: 'booking-scheduled',
-            owner: booking.owner || 'Team Member',
-            company: booking.customer_name || booking.service_type || 'Service Booking',
-            time: getTimeAgo(timestamp),
-            timestamp: timestamp
-          })
-        })
-      }
-    } catch (error: any) {
-      // Suppress "DocType Booking not found" error as it's likely an optional module
-      if (error?.message?.includes('not found') || error?.message?.includes('DoesNotExistError')) {
-        // verbose log only
-        // console.warn("Booking DocType not found, skipping.")
-      } else {
-        console.error("Error fetching bookings:", error)
-      }
-    }
+    // NOTE: Booking DocType query removed - it doesn't exist on tenant sites yet.
+    // Re-enable this section once a Booking DocType is created in nexus_core.
 
     // Sort all activities by timestamp (most recent first) and return top 4
     const sortedActivities = allActivities
