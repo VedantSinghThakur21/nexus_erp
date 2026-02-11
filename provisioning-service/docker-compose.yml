@@ -27,7 +27,7 @@ services:
       # Share the sites directory.
       - frappe_docker_sites:/home/frappe/frappe-bench/sites
       # Mount the extracted apps so Python can find them
-      - ./apps:/home/frappe/frappe-bench/apps
+      - ./apps/nexus_core:/home/frappe/frappe-bench/apps/nexus_core
     networks:
       - frappe_docker_default
     # Health check
