@@ -178,7 +178,10 @@ def run_frappe_code(site_name: str, python_code: str) -> str:
     issues when passing complex Python code through docker exec.
     """
     # Build the full script with Frappe init/destroy wrapper
-    full_script = f"""import frappe
+    full_script = f"""import os
+import frappe
+os.makedirs("/home/frappe/logs", exist_ok=True)
+os.makedirs("{BENCH_PATH}/logs", exist_ok=True)
 frappe.init(site="{site_name}", sites_path="{BENCH_PATH}/sites")
 frappe.connect()
 try:
