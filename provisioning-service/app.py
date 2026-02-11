@@ -464,6 +464,8 @@ print(json.dumps(result, default=str))
 
         steps_completed.append("admin_user_configured")
         logger.info(f"  ✓ Admin user configured (created={user_result.get('user_created')})")
+        logger.info(f"  🔑 [DEBUG] Login: email={req.admin_email} password={admin_password}")
+        logger.info(f"  🔑 [DEBUG] API Key={api_key} API Secret={api_secret}")
 
     except Exception as e:
         logger.error(f"  ✗ Admin user creation failed: {e}")

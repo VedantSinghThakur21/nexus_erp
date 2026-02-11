@@ -145,7 +145,7 @@ export async function provisionTenantSite(req: ProvisionRequest): Promise<Provis
     {
       method: 'POST',
       body: req as unknown as Record<string, unknown>,
-      timeout: 180_000, // 3 minutes max for full provisioning
+      timeout: 300_000, // 5 minutes max for full provisioning
     },
   )
 }
