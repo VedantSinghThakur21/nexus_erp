@@ -405,9 +405,18 @@ print(json.dumps({{"subdomain_exists": bool(subdomain_exists), "email_exists": i
     api_secret = None
 
     try:
+        # Base64-encode the password to avoid any escaping issues in generated Python
+        import base64 as b64mod
+        password_b64 = b64mod.b64encode(admin_password.encode()).decode()
+        safe_admin_name = admin_name.replace('"', '\\"').replace("'", "\\'")
+
         user_code = f"""
 import json
+import base64
 import frappe.utils.password
+
+# Decode password safely (avoids f-string injection issues)
+admin_pwd = base64.b64decode("{password_b64}").decode()
 
 result = {{"user_created": False, "api_key": None, "api_secret": None}}
 
@@ -415,9 +424,9 @@ result = {{"user_created": False, "api_key": None, "api_secret": None}}
 if not frappe.db.exists("User", "{req.admin_email}"):
     user = frappe.new_doc("User")
     user.email = "{req.admin_email}"
-    user.first_name = "{admin_name}"
+    user.first_name = "{safe_admin_name}"
     user.enabled = 1
-    user.new_password = "{admin_password}"
+    user.new_password = admin_pwd
     user.flags.no_welcome_mail = True
     user.insert(ignore_permissions=True)
     result["user_created"] = True
@@ -425,8 +434,8 @@ else:
     user = frappe.get_doc("User", "{req.admin_email}")
     result["user_created"] = False
 
-# Set password (idempotent)
-frappe.utils.password.update_password("{req.admin_email}", "{admin_password}")
+# Set password (idempotent) — always update to match what user entered
+frappe.utils.password.update_password("{req.admin_email}", admin_pwd)
 
 # Assign System Manager role
 if not frappe.db.exists("Has Role", {{"parent": "{req.admin_email}", "role": "System Manager"}}):
