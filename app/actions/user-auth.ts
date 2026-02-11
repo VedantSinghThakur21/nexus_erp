@@ -433,62 +433,61 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         maxAge: 60 * 60 * 24 * 7
       })
 
-      // CRITICAL FIX: Fetch tenant user's API keys from TENANT site (not master)
-      // Each Frappe site has separate User records with their own API keys
-      console.log('Fetching tenant API credentials from tenant site...')
+      // Generate fresh API keys on every login
+      // NOTE: We MUST use generate_keys instead of get_value because Frappe masks
+      // Password-type fields (api_secret) with '***' when read via get_value.
+      // generate_keys returns the actual unmasked secret.
+      console.log('Generating API keys for tenant user...')
       try {
         const sessionCookie = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
 
-        // First, try to get existing API keys
-        let apiKeysResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
+        const generateResponse = await fetch(`${masterUrl}/api/method/frappe.core.doctype.user.user.generate_keys`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Cookie': `sid=${sessionCookie}`,
-            'X-Frappe-Site-Name': siteName
+            'X-Frappe-Site-Name': siteName,
+            'Host': siteName,
           },
           body: JSON.stringify({
-            doctype: 'User',
-            name: userEmail,
-            fieldname: JSON.stringify(['api_key', 'api_secret'])
+            user: userEmail
           })
         })
 
-        let apiKeysData = await apiKeysResponse.json()
-        console.log('API keys response:', apiKeysData)
+        const generateData = await generateResponse.json()
+        console.log('Generate API keys response:', generateData)
 
-        // If no API keys exist, generate them
-        if (!apiKeysData.message?.api_key || !apiKeysData.message?.api_secret) {
-          console.log('Generating new API keys for tenant user...')
+        // generate_keys returns { api_secret: 'actual_secret' }
+        // We also need the api_key which is on the User doc
+        let apiKey = generateData.message?.api_key
+        const apiSecret = generateData.message?.api_secret
 
-          const generateResponse = await fetch(`${masterUrl}/api/method/frappe.core.doctype.user.user.generate_keys`, {
+        // If generate_keys didn't return api_key, fetch it separately
+        if (!apiKey && apiSecret) {
+          const keyResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Cookie': `sid=${sessionCookie}`,
-              'X-Frappe-Site-Name': siteName
+              'X-Frappe-Site-Name': siteName,
+              'Host': siteName,
             },
             body: JSON.stringify({
-              user: userEmail
+              doctype: 'User',
+              name: userEmail,
+              fieldname: 'api_key'
             })
           })
-
-          const generateData = await generateResponse.json()
-          console.log('Generate API keys response:', generateData)
-
-          if (generateData.message) {
-            apiKeysData = { message: generateData.message }
-          } else {
-            console.warn('⚠️ Failed to generate API keys')
-          }
+          const keyData = await keyResponse.json()
+          apiKey = keyData.message?.api_key
         }
 
-        if (apiKeysData.message?.api_key && apiKeysData.message?.api_secret) {
+        if (apiKey && apiSecret) {
           const cookieDomain = process.env.NODE_ENV === 'production'
             ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
             : undefined
 
-          cookieStore.set('tenant_api_key', apiKeysData.message.api_key, {
+          cookieStore.set('tenant_api_key', apiKey, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
@@ -497,7 +496,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             domain: cookieDomain,
           })
 
-          cookieStore.set('tenant_api_secret', apiKeysData.message.api_secret, {
+          cookieStore.set('tenant_api_secret', apiSecret, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
