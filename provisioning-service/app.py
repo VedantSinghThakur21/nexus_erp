@@ -46,7 +46,7 @@ MASTER_SITE = os.environ.get("MASTER_SITE_NAME", "erp.localhost")
 PARENT_DOMAIN = os.environ.get("PARENT_DOMAIN", "avariq.in")
 DB_ROOT_PASSWORD = os.environ.get("DB_ROOT_PASSWORD", "123")
 PROVISIONING_SECRET = os.environ.get("PROVISIONING_API_SECRET", "change-me-in-production")
-DEFAULT_APPS = os.environ.get("DEFAULT_APPS", "nexus_core").split(",")
+DEFAULT_APPS = os.environ.get("DEFAULT_APPS", "erpnext,nexus_core").split(",")
 IS_PRODUCTION = os.environ.get("ENVIRONMENT", "production") == "production"
 
 # Logging
