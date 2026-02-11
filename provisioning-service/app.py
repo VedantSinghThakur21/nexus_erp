@@ -472,17 +472,21 @@ print(json.dumps(result, default=str))
         seed_code = f"""
 import json
 
-if frappe.db.exists("SaaS Settings", "{req.organization_name}"):
-    doc = frappe.get_doc("SaaS Settings", "{req.organization_name}")
+# Check if SaaS Settings DocType exists before trying to use it
+if not frappe.db.table_exists("SaaS Settings"):
+    print(json.dumps({{"seeded": False, "reason": "DocType not found"}}))
 else:
-    doc = frappe.new_doc("SaaS Settings")
+    if frappe.db.exists("SaaS Settings", "{req.organization_name}"):
+        doc = frappe.get_doc("SaaS Settings", "{req.organization_name}")
+    else:
+        doc = frappe.new_doc("SaaS Settings")
 
-doc.organization_name = "{req.organization_name}"
-doc.plan_type = "{req.plan_type.value}"
-doc.max_users = {max_users}
-doc.save(ignore_permissions=True)
-frappe.db.commit()
-print(json.dumps({{"seeded": True}}))
+    doc.organization_name = "{req.organization_name}"
+    doc.plan_type = "{req.plan_type.value}"
+    doc.max_users = {max_users}
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    print(json.dumps({{"seeded": True}}))
 """
         run_frappe_code(site_name, seed_code)
         steps_completed.append("saas_settings_seeded")
@@ -501,6 +505,7 @@ import json
 if not frappe.db.exists("SaaS Tenant", "{subdomain}"):
     doc = frappe.new_doc("SaaS Tenant")
     doc.subdomain = "{subdomain}"
+    doc.company_name = "{req.organization_name}"
     doc.owner_email = "{req.admin_email}"
     doc.organization_name = "{req.organization_name}"
     doc.site_url = "{site_url}"
