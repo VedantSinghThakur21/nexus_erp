@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { useRouter } from "next/navigation";
 import {
   getDashboardStats,
@@ -237,7 +238,7 @@ export default function DashboardPage() {
   // Lead source data - calculate from actual API data
   const leadSourceData = (() => {
     const total = leadSources.reduce((sum, src) => sum + (src.count || 0), 0);
-    
+
     if (total === 0 || leadSources.length === 0) {
       return {
         total: 0,
@@ -249,7 +250,7 @@ export default function DashboardPage() {
     // Take top 3 sources and group rest as "Other"
     const topSources = leadSources.slice(0, 3);
     const othersCount = leadSources.slice(3).reduce((sum, s) => sum + (s.count || 0), 0);
-    
+
     const sources = topSources.map(s => ({
       name: s.source,
       count: s.count,
@@ -266,7 +267,7 @@ export default function DashboardPage() {
 
     // Assign colors
     const colorPalette = ['#3f51b5', '#10b981', '#f59e0b', '#e2e8f0'];
-    
+
     return {
       total,
       sources,
@@ -277,7 +278,7 @@ export default function DashboardPage() {
   // Generate conic gradient for donut chart
   const donutGradient = (() => {
     if (leadSourceData.sources.length === 0) return 'conic-gradient(#e2e8f0 0% 100%)';
-    
+
     let currentPercent = 0;
     const gradientStops = leadSourceData.sources.map((source, idx) => {
       const startPercent = currentPercent;
@@ -305,37 +306,10 @@ export default function DashboardPage() {
   return (
     <div className="bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 w-full z-10">
-        <div className="relative w-[480px]">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
-            search
-          </span>
-          <input
-            className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2.5 pl-11 pr-5 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-500"
-            placeholder="Ask AI anything..."
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-6">
-          <button className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
-          <div className="flex items-center gap-3 pl-2">
-            <div className="text-right">
-              <p className="text-sm font-semibold leading-tight">Adrian Chen</p>
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                Regional Director
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-slate-100 dark:ring-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-sm">
-              AC
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-background-dark custom-scrollbar">
@@ -548,13 +522,12 @@ export default function DashboardPage() {
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-9 rounded-xl overflow-hidden relative">
                           <div
-                            className={`absolute inset-y-0 left-0 flex items-center px-4 text-white text-[11px] font-bold ${
-                              index === 0
+                            className={`absolute inset-y-0 left-0 flex items-center px-4 text-white text-[11px] font-bold ${index === 0
                                 ? "bg-gradient-to-r from-blue-700 to-blue-600"
                                 : index === 1
-                                ? "bg-gradient-to-r from-blue-600 to-blue-500"
-                                : "bg-gradient-to-r from-blue-500 to-blue-400"
-                            }`}
+                                  ? "bg-gradient-to-r from-blue-600 to-blue-500"
+                                  : "bg-gradient-to-r from-blue-500 to-blue-400"
+                              }`}
                             style={{ width: `${item.width}%` }}
                           >
                             {item.count} Deals
@@ -597,8 +570,8 @@ export default function DashboardPage() {
                     <div className="flex flex-col gap-4">
                       {leadSourceData.sources.map((source, idx) => (
                         <div key={source.name} className="flex items-center gap-3">
-                          <span 
-                            className="w-3 h-3 rounded-full" 
+                          <span
+                            className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: leadSourceData.colors[idx] }}
                           ></span>
                           <div className="flex flex-col">

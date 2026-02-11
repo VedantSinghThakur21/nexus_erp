@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { updateLeadStatus } from "@/app/actions/crm"
+import { PageHeader } from "@/components/page-header"
 
 interface Lead {
   name: string
@@ -99,17 +100,17 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
     const totalLeads = leads.length
     const convertedLeads = leads.filter(l => l.status === "Converted").length
     const winRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : "0.0"
-    
+
     // Pipeline value (mock calculation based on high-confidence opportunities)
     const pipelineValue = (highProbOpportunities.length * 315000).toLocaleString()
-    
+
     // Revenue MTD (mock)
     const revenueMTD = "2.45M"
-    
+
     // Active leads count
-    const activeLeads = leads.filter(l => 
-      l.status !== "Converted" && 
-      l.status !== "Do Not Contact" && 
+    const activeLeads = leads.filter(l =>
+      l.status !== "Converted" &&
+      l.status !== "Do Not Contact" &&
       l.status !== "Lost Quotation"
     ).length
 
@@ -126,9 +127,9 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
     const discovery = leads.filter(l => l.status === "Open" || l.status === "Lead").length
     const proposal = leads.filter(l => l.status === "Replied" || l.status === "Interested").length
     const negotiation = leads.filter(l => l.status === "Opportunity" || l.status === "Quotation").length
-    
+
     const maxCount = Math.max(discovery, proposal, negotiation, 1)
-    
+
     return [
       {
         stage: "Discovery",
@@ -156,7 +157,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
     const totalLeads = leads.length
     const direct = Math.round(totalLeads * 0.65)
     const referral = Math.round(totalLeads * 0.20)
-    
+
     return {
       total: totalLeads,
       direct: { count: direct, percent: 65 },
@@ -203,43 +204,17 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
   return (
     <div className="bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 w-full z-10">
-        <div className="relative w-[480px]">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
-            search
-          </span>
-          <input
-            className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2.5 pl-11 pr-5 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-500"
-            placeholder="Ask AI anything..."
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-6">
-          <Link href="/crm/new">
-            <button className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition">
-              <span className="material-symbols-outlined text-lg">add</span>
-              New Lead
-            </button>
-          </Link>
-          <button className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
+      <PageHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      >
+        <Link href="/crm/new">
+          <button className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition">
+            <span className="material-symbols-outlined text-lg">add</span>
+            New Lead
           </button>
-          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
-          <div className="flex items-center gap-3 pl-2">
-            <div className="text-right">
-              <p className="text-sm font-semibold leading-tight">Adrian Chen</p>
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                Regional Director
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-slate-100 dark:ring-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-sm">
-              AC
-            </div>
-          </div>
-        </div>
-      </header>
+        </Link>
+      </PageHeader>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-background-dark custom-scrollbar">
@@ -427,13 +402,12 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-9 rounded-xl overflow-hidden relative">
                           <div
-                            className={`absolute inset-y-0 left-0 flex items-center px-4 text-white text-[11px] font-bold ${
-                              index === 0
+                            className={`absolute inset-y-0 left-0 flex items-center px-4 text-white text-[11px] font-bold ${index === 0
                                 ? 'bg-gradient-to-r from-blue-700 to-blue-600'
                                 : index === 1
-                                ? 'bg-gradient-to-r from-blue-600 to-blue-500'
-                                : 'bg-gradient-to-r from-blue-500 to-blue-400'
-                            }`}
+                                  ? 'bg-gradient-to-r from-blue-600 to-blue-500'
+                                  : 'bg-gradient-to-r from-blue-500 to-blue-400'
+                              }`}
                             style={{ width: `${item.width}%` }}
                           >
                             {item.count} Deals
