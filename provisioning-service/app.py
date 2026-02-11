@@ -361,7 +361,7 @@ print(json.dumps({{"subdomain_exists": bool(subdomain_exists), "email_exists": i
             "--admin-password", admin_password,
             "--db-root-password", DB_ROOT_PASSWORD,
             "--no-mariadb-socket",
-        ], timeout=120)
+        ], timeout=300)
 
         if result.returncode != 0:
             if "already exists" in (result.stderr + result.stdout).lower():
