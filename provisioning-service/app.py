@@ -211,9 +211,11 @@ finally:
         raise Exception(f"Failed to write script to container: {write_result.stderr}")
 
     # Execute the script with Frappe's virtualenv Python
+    # IMPORTANT: CWD must be the sites directory so Frappe's logger
+    # resolves relative site paths correctly (site_name/logs/...)
     try:
         result = docker_exec(
-            [f"{BENCH_PATH}/env/bin/python", tmp_file],
+            ["bash", "-c", f"cd {BENCH_PATH}/sites && {BENCH_PATH}/env/bin/python {tmp_file}"],
             timeout=120,
         )
 
