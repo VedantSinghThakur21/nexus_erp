@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Grid, List as ListIcon, ArrowRight, TrendingUp, DollarSign, Zap, CheckCircle, AlertCircle, PauseCircle } from "lucide-react"
 import { updateOpportunitySalesStage } from "@/app/actions/crm"
+import { PageHeader } from "@/components/page-header"
 
 interface Opportunity {
   name: string
@@ -132,31 +133,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center space-x-8">
-          {/* AVARIQ logo removed */}
-          <div className="relative w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              className="w-full bg-slate-50 dark:bg-slate-900/50 border-0 rounded-full h-10 py-2 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-blue-600 outline-none text-sm"
-              placeholder="Ask AI anything..."
-              type="text"
-            />
-          </div>
-        </div>
-        <div className="flex items-center space-x-6">
-          {/* New Opportunity button intentionally removed */}
-          <div className="flex items-center space-x-4 border-l border-slate-200 dark:border-slate-700 pl-6">
-            <div className="text-right">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">Alex Thompson</p>
-              <p className="text-[10px] uppercase text-slate-500 tracking-wider">Sales Operations Manager</p>
-            </div>
-            <div className="w-10 h-10 rounded-full border-2 border-blue-600/20 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white text-sm font-bold">
-              AT
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader />
 
       <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
         {/* KPI Cards */}
@@ -213,14 +190,14 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
         {/* Tabs and Filters */}
         <div className="flex items-center justify-between mb-6 border-b border-slate-200 dark:border-slate-800 pb-1">
           <div className="flex space-x-10">
-            <button 
+            <button
               onClick={() => setSelectedStage("All Stages")}
               className={`pb-4 text-[14px] font-bold ${selectedStage === "All Stages" ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"} transition-colors`}
             >
               All Stages
             </button>
             {SALES_STAGES.map(stage => (
-              <button 
+              <button
                 key={stage}
                 onClick={() => setSelectedStage(stage)}
                 className={`pb-4 text-[14px] font-semibold ${selectedStage === stage ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"} transition-colors`}
@@ -245,14 +222,14 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
               <span>Filter</span>
             </button>
             <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-700 h-10 items-center">
-              <button 
+              <button
                 onClick={() => setViewMode("list")}
                 className={`flex items-center justify-center space-x-2 px-5 h-8 rounded-md ${viewMode === "list" ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"} text-sm font-bold transition-all`}
               >
                 <ListIcon className="h-4 w-4" />
                 <span>List</span>
               </button>
-              <button 
+              <button
                 onClick={() => setViewMode("kanban")}
                 className={`flex items-center justify-center space-x-2 px-5 h-8 rounded-md ${viewMode === "kanban" ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"} text-sm font-medium transition-all`}
               >
@@ -335,7 +312,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                         <div className="flex flex-col items-end">
                           <div className="flex items-center space-x-4">
                             <div className="w-32 bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                              <div 
+                              <div
                                 className={`h-full ${opp.probability >= 75 ? "bg-green-500" : opp.probability >= 40 ? "bg-blue-500" : "bg-orange-500"}`}
                                 style={{ width: `${opp.probability}%` }}
                               ></div>
@@ -381,11 +358,10 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          currentPage === pageNum
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === pageNum
                             ? "bg-blue-600 text-white"
                             : "text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
-                        }`}
+                          }`}
                       >
                         {pageNum}
                       </button>

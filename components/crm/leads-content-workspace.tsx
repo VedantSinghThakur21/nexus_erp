@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { updateLeadStatus } from "@/app/actions/crm"
+import { PageHeader } from "@/components/page-header"
 
 interface Lead {
     name: string
@@ -201,40 +202,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
             <div className="flex min-h-screen">
                 <main className="flex-1 flex flex-col h-screen overflow-hidden">
                     {/* Header */}
-                    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 shrink-0 z-10">
-                        <div className="flex-1 max-w-2xl relative">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
-                                search
-                            </span>
-                            <input
-                                className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full pl-12 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-slate-700 transition-all"
-                                placeholder="Ask AI anything..."
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex items-center gap-6">
-                            <Link href="/crm/new">
-                                <button className="bg-[#3b82f6] hover:bg-blue-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-sm shadow-blue-500/20">
-                                    <span className="material-symbols-outlined text-lg">add</span> New Lead
-                                </button>
-                            </Link>
-                            <button className="relative text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
-                                <span className="material-symbols-outlined text-2xl">notifications</span>
-                                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+                    <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
+                        <Link href="/crm/new">
+                            <button className="bg-[#3b82f6] hover:bg-blue-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-sm shadow-blue-500/20">
+                                <span className="material-symbols-outlined text-lg">add</span> New Lead
                             </button>
-                            <div className="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
-                                <div className="text-right">
-                                    <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Alex Thompson</p>
-                                    <p className="text-[10px] text-slate-500 font-medium">Sales Admin</p>
-                                </div>
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                                    AT
-                                </div>
-                            </div>
-                        </div>
-                    </header>
+                        </Link>
+                    </PageHeader>
 
                     {/* Main Content */}
                     <div className="flex-1 overflow-y-auto p-8 space-y-8">

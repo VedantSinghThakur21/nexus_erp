@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CreateProjectDialog } from "./create-project-dialog"
+import { PageHeader } from "@/components/page-header"
 
 interface Project {
   name: string
@@ -25,7 +26,7 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
   const totalProjects = projects.length
   const openProjects = projects.filter(p => p.status === 'Open').length
   const completedProjects = projects.filter(p => p.status === 'Completed').length
-  const avgCompletion = projects.length > 0 
+  const avgCompletion = projects.length > 0
     ? Math.round(projects.reduce((sum, p) => sum + (p.percent_complete || 0), 0) / projects.length)
     : 0
 
@@ -58,41 +59,9 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
       {/* Header */}
-      <header className="h-16 bg-white dark:bg-sidebar-dark border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex-1 max-w-2xl">
-          <div className="relative group">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors text-xl">search</span>
-            <input
-              className="w-full bg-slate-50 dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-800 rounded-full py-2.5 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-700 dark:text-slate-300 outline-none"
-              placeholder="Ask AI anything about your projects..."
-              type="text"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-6 ml-8">
-          <CreateProjectDialog />
-          <button className="relative text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
-            <span className="material-symbols-outlined text-2xl">notifications</span>
-            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-sidebar-dark"></span>
-          </button>
-          <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800"></div>
-          <button
-            onClick={() => document.documentElement.classList.toggle('dark')}
-            className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-          >
-            <span className="material-symbols-outlined text-2xl">dark_mode</span>
-          </button>
-          <div className="flex items-center gap-3 cursor-pointer group">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">Admin User</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Enterprise Plan</p>
-            </div>
-            <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-white text-sm font-bold shadow-sm border border-slate-600 dark:border-slate-700">
-              <span className="material-symbols-outlined text-lg">person</span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader searchPlaceholder="Ask AI anything about your projects...">
+        <CreateProjectDialog />
+      </PageHeader>
 
       <main className="flex-1 overflow-y-auto">
         <div className="px-8 pt-8 pb-4">
@@ -151,7 +120,7 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
                 {projects.map((project) => {
                   const health = getProjectHealth(project)
                   const aiInsight = getAIInsight(project)
-                  
+
                   const healthColors: Record<string, { bg: string; text: string }> = {
                     emerald: { bg: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-300' },
                     blue: { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-300' },

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, TrendingUp, Wallet, Zap, User, Calendar, DollarSign, Package, ArrowRight } from "lucide-react"
+import { PageHeader } from "@/components/page-header"
 
 
 interface Quotation {
@@ -138,7 +139,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
     const validDate = new Date(validTill)
     const diffTime = validDate.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
+
     if (diffDays < 0) {
       return { text: 'Expired', color: 'text-red-500' }
     } else if (diffDays < 7) {
@@ -166,31 +167,11 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950">
       {/* Header */}
-      <header className="h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-10 shrink-0 sticky top-0 z-40">
-        <div className="flex-1 flex items-center">
-          <div className="max-w-xl w-full relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
-            <input
-              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-full pl-12 pr-5 py-2.5 text-[15px] focus:ring-2 focus:ring-blue-600 placeholder-slate-400 text-slate-600 dark:text-slate-300"
-              placeholder="Search quotations, customers or ask AI..."
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-6 ml-10">
-          <div className="flex items-center gap-4 pl-6 border-l border-slate-200 dark:border-slate-800">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Alex Thompson</p>
-              <p className="text-xs text-slate-500 mt-0.5">Sales Admin</p>
-            </div>
-            <div className="w-10 h-10 rounded-full border-2 border-blue-600/20 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white text-sm font-bold">
-              AT
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search quotations, customers or ask AI..."
+      />
 
       <main className="flex-1 overflow-y-auto p-10 space-y-10 w-full">
         {/* KPI Cards */}
@@ -252,11 +233,10 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                 <button
                   key={tab.filter}
                   onClick={() => setSelectedTab(tab.filter)}
-                  className={`text-[16px] font-bold pb-4 transition-all ${
-                    selectedTab === tab.filter
+                  className={`text-[16px] font-bold pb-4 transition-all ${selectedTab === tab.filter
                       ? 'text-slate-900 dark:text-white border-b-4 border-blue-600'
                       : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium'
-                  }`}
+                    }`}
                 >
                   {tab.name} ({tab.filter === "all" ? quotations.length : draftQuotations.length + proposalOpportunities.length})
                 </button>
@@ -340,7 +320,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                         )}
                         {selectedTab === "ready" && (
                           <Link href={`/crm/quotations/new?from=${quotation.name}`}>
-                            <button 
+                            <button
                               className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -412,7 +392,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                     >
                       <div className="absolute top-10 right-10 flex items-center gap-4">
                         <Link href={`/crm/quotations/new?opportunity=${opp.name}`}>
-                          <button 
+                          <button
                             className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -501,11 +481,10 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            currentPage === pageNum
+                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === pageNum
                               ? "bg-blue-600 text-white"
                               : "text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
-                          }`}
+                            }`}
                         >
                           {pageNum}
                         </button>

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { PageHeader } from "@/components/page-header"
 
 interface PricingRule {
   name: string
@@ -74,41 +75,13 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
       {/* Header */}
-      <header className="h-16 bg-white dark:bg-sidebar-dark border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex-1 max-w-2xl">
-          <div className="relative group">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors text-xl">search</span>
-            <input
-              className="w-full bg-slate-50 dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-800 rounded-full py-2.5 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-700 dark:text-slate-300 outline-none"
-              placeholder="Ask AI anything..."
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-6 ml-8">
-          <Link href="/pricing-rules/new">
-            <button className="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all shadow-sm">
-              <span className="material-symbols-outlined text-xl">add</span> Create Rule
-            </button>
-          </Link>
-          <button className="relative text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
-            <span className="material-symbols-outlined text-2xl">notifications</span>
-            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-sidebar-dark"></span>
+      <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
+        <Link href="/pricing-rules/new">
+          <button className="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all shadow-sm">
+            <span className="material-symbols-outlined text-xl">add</span> Create Rule
           </button>
-          <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800"></div>
-          <div className="flex items-center gap-3 cursor-pointer group">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">Alex Thompson</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Sales Admin</p>
-            </div>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm group-hover:shadow-md transition-shadow">
-              AT
-            </div>
-          </div>
-        </div>
-      </header>
+        </Link>
+      </PageHeader>
 
       <main className="flex-1 overflow-y-auto">
         <div className="px-8 pt-8 pb-4">
@@ -231,11 +204,10 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                         <h3 className="font-semibold text-slate-900 dark:text-white">
                           {rule.title}
                         </h3>
-                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider ${
-                          rule.disable === 0
+                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider ${rule.disable === 0
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}>
+                          }`}>
                           {rule.disable === 0 ? "Active" : "Inactive"}
                         </span>
                         {rule.priority && (
@@ -252,19 +224,19 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                           {rule.brands && rule.brands.length > 0 && ` (${rule.brands.map(b => b.brand).join(', ')})`}
                           {rule.items && rule.items.length > 0 && ` (${rule.items.length} items)`}
                         </span>
-                        
+
                         {rule.rate_or_discount === "Discount Percentage" && rule.discount_percentage && (
                           <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
                             <strong>Discount:</strong> {rule.discount_percentage}%
                           </span>
                         )}
-                        
+
                         {rule.rate_or_discount === "Discount Amount" && rule.discount_amount && (
                           <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
                             <strong>Discount:</strong> ₹{rule.discount_amount}
                           </span>
                         )}
-                        
+
                         {rule.rate_or_discount === "Rate" && rule.rate && (
                           <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
                             <strong>Rate:</strong> ₹{rule.rate}
@@ -300,11 +272,10 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
 
                     <div className="flex items-center gap-2 mt-4 md:mt-0">
                       <button
-                        className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                          rule.disable === 0
+                        className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${rule.disable === 0
                             ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                             : 'bg-primary text-white hover:bg-blue-700'
-                        }`}
+                          }`}
                         onClick={() => onToggleStatus(rule.name, rule.disable || 0)}
                       >
                         {rule.disable === 0 ? "Disable" : "Enable"}
