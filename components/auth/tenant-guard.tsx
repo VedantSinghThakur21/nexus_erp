@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 
-export function TenantGuard({ children }: { children: React.ReactNode }) {
+export function TenantGuard({ children, hasApiKey }: { children: React.ReactNode, hasApiKey?: boolean }) {
     const { data: session, status } = useSession()
     const router = useRouter()
     const pathname = usePathname()
@@ -13,21 +13,15 @@ export function TenantGuard({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (status === 'loading') return
 
-        // If authenticated but no tenant, and not already on onboarding page
-        // CRITICAL: Also check if they have a tenant_api_key cookie (email login)
-        // because NextAuth session might be stale or from a Google login without tenant linkage yet.
-        const hasApiKey = document.cookie.includes('tenant_api_key')
-
+        // If authenticated via NextAuth but no tenant linked in session,
+        // check if they have a valid API key (from email/password login).
+        // The hasApiKey prop comes from the server component (reads HttpOnly cookie).
         if (status === 'authenticated' && !session?.hasTenant && !hasApiKey) {
-            // We also avoid redirecting if on specific onboarding/signup/api pages to prevent loops
-            // But TenantGuard is intended for (main)/layout, which covers dashboard/crm/etc.
-            // Onboarding is at root logic /app/onboarding.
-            // Just in case (main) includes unknown logic, we check pathname.
             if (!pathname?.startsWith('/onboarding')) {
                 router.replace('/onboarding')
             }
         }
-    }, [status, session, router, pathname])
+    }, [status, session, router, pathname, hasApiKey])
 
     if (status === 'loading') {
         return (
@@ -36,14 +30,6 @@ export function TenantGuard({ children }: { children: React.ReactNode }) {
             </div>
         )
     }
-
-    // If no tenant, we shouldn't show dashboard content (flicker protection)
-    // If no tenant, we shouldn't show dashboard content (flicker protection)
-    // BUT we must allow render if they have an API key (handled by check above)
-    // so we don't return null here aggressively.
-    // Instead rely on the useEffect to redirect if needed.
-
-    return <>{children}</>
 
     return <>{children}</>
 }
