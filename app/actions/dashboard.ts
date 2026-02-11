@@ -150,7 +150,7 @@ export async function getRecentActivities() {
     try {
       const closedDeals = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Opportunity',
-        fields: '["name", "customer_name", "party_name", "modified", "lead_owner"]', // Removed company_name
+        fields: '["name", "customer_name", "party_name", "modified", "owner"]',
         filters: '[["status", "=", "Converted"]]',
         order_by: 'modified desc',
         limit_page_length: 5
@@ -160,7 +160,7 @@ export async function getRecentActivities() {
         closedDeals.forEach((deal: any) => {
           allActivities.push({
             type: 'closed-deal',
-            owner: deal.lead_owner || 'Team Member',
+            owner: deal.owner || 'Team Member',
             company: deal.customer_name || deal.party_name || 'Unknown Company',
             time: getTimeAgo(new Date(deal.modified)),
             timestamp: new Date(deal.modified)
@@ -175,7 +175,7 @@ export async function getRecentActivities() {
     try {
       const newLeads = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Lead',
-        fields: '["name", "lead_name", "company_name", "creation", "lead_owner"]',
+        fields: '["name", "lead_name", "company_name", "creation", "owner"]',
         filters: '[["status", "in", ["Open", "Lead"]]]',
         order_by: 'creation desc',
         limit_page_length: 5
@@ -185,7 +185,7 @@ export async function getRecentActivities() {
         newLeads.forEach((lead: any) => {
           allActivities.push({
             type: 'new-lead',
-            owner: lead.lead_owner || 'Team Member',
+            owner: lead.owner || 'Team Member',
             company: lead.company_name || lead.lead_name || 'Unknown Company',
             time: getTimeAgo(new Date(lead.creation)),
             timestamp: new Date(lead.creation)

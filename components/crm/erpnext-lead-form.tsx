@@ -50,7 +50,6 @@ export default function ERPNextLeadForm() {
     // Tracking & Assignment
     source: '',
     status: 'Lead',
-    lead_owner: '',
     assigned_to: '',
     // Address Details
     address_line1: '',
@@ -69,20 +68,20 @@ export default function ERPNextLeadForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validation for mandatory fields
     if (!formData.first_name) {
       alert('First name is required')
       setActiveSection('basic')
       return
     }
-    
+
     if (!formData.email_id) {
       alert('Email address is required')
       setActiveSection('basic')
       return
     }
-    
+
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email_id)) {
@@ -90,7 +89,7 @@ export default function ERPNextLeadForm() {
       setActiveSection('basic')
       return
     }
-    
+
     if (!formData.mobile_no) {
       alert('Mobile phone is required')
       setActiveSection('basic')
@@ -101,25 +100,25 @@ export default function ERPNextLeadForm() {
       setActiveSection('company')
       return
     }
-    
+
     if (!formData.source) {
       alert('Lead source is required')
       setActiveSection('tracking')
       return
     }
-    
+
     if (!formData.city) {
       alert('City is required')
       setActiveSection('address')
       return
     }
-    
+
     if (!formData.state) {
       alert('State/Province is required')
       setActiveSection('address')
       return
     }
-    
+
     setLoading(true)
 
     try {
@@ -393,8 +392,8 @@ export default function ERPNextLeadForm() {
                 <Label>Assigned To</Label>
                 <select
                   className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
-                  value={formData.lead_owner}
-                  onChange={(e) => updateField('lead_owner', e.target.value)}
+                  value={formData.assigned_to}
+                  onChange={(e) => updateField('assigned_to', e.target.value)}
                 >
                   <option value="">Select team member</option>
                   {teamMembers.map((member) => (
@@ -543,8 +542,8 @@ export default function ERPNextLeadForm() {
           >
             Cancel
           </Button>
-          <AnimatedButton 
-            type="submit" 
+          <AnimatedButton
+            type="submit"
             variant="neon"
             disabled={loading}
           >
@@ -580,11 +579,10 @@ export default function ERPNextLeadForm() {
                       key={section.id}
                       type="button"
                       onClick={() => setActiveSection(section.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${
-                        activeSection === section.id
+                      className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${activeSection === section.id
                           ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600'
                           : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                      }`}
+                        }`}
                     >
                       <Icon className="w-5 h-5" />
                       <span className="text-sm font-medium">{section.label}</span>
