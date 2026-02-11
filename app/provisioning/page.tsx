@@ -112,8 +112,24 @@ export default function ProvisioningPage() {
         </CardHeader>
         <CardContent className="space-y-8">
           {error ? (
-            <div className="bg-red-900/20 border border-red-900/50 rounded-lg p-4 text-red-200 text-sm text-center">
-              {error}
+            <div className="space-y-4">
+              <div className="bg-red-900/20 border border-red-900/50 rounded-lg p-4 text-red-200 text-sm text-center">
+                {error}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => window.location.href = '/login'}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 rounded-lg transition-colors"
+                >
+                  Go to Login
+                </button>
+              </div>
             </div>
           ) : (
             <>

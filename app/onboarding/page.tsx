@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { completeSocialOnboarding } from '@/app/actions/social-onboarding'
+import { completeSocialOnboarding, lookupTenantByEmail } from '@/app/actions/social-onboarding'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,8 +17,33 @@ export default function OnboardingPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [checking, setChecking] = useState(true)
 
-    if (!sessionResult || status === 'loading') {
+    // Check if user already has a tenant (e.g., created via email signup)
+    useEffect(() => {
+        async function checkExistingTenant() {
+            if (session?.user?.email) {
+                try {
+                    const result = await lookupTenantByEmail(session.user.email)
+                    if (result.hasTenant && result.siteUrl) {
+                        // User already has a tenant — redirect to their dashboard
+                        window.location.href = `${result.siteUrl}/dashboard`
+                        return
+                    }
+                } catch (e) {
+                    console.warn('Tenant lookup failed:', e)
+                }
+            }
+            setChecking(false)
+        }
+        if (status === 'authenticated') {
+            checkExistingTenant()
+        } else if (status !== 'loading') {
+            setChecking(false)
+        }
+    }, [session, status])
+
+    if (!sessionResult || status === 'loading' || checking) {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>
     }
 

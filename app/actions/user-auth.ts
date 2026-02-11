@@ -335,7 +335,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Frappe-Site-Name': siteName // CRITICAL: Tell Frappe which site to auth against
+        'X-Frappe-Site-Name': siteName, // Tell Frappe which site to auth against
+        'Host': siteName, // CRITICAL: Also set Host header so nginx routes to correct site
       },
       body: new URLSearchParams({
         usr: usernameOrEmail,

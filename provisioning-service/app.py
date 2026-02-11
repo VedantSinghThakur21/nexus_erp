@@ -562,9 +562,27 @@ else:
         try:
             result = run_bench_command(["setup", "nginx", "--yes"], timeout=60)
             if result.returncode == 0:
-                docker_exec(["sudo", "nginx", "-s", "reload"], timeout=15)
                 steps_completed.append("nginx_configured")
-                logger.info("  ✓ Nginx configured and reloaded")
+                logger.info("  ✓ Nginx config generated")
+
+                # Try multiple approaches to reload nginx (container may not have sudo)
+                reload_cmds = [
+                    ["nginx", "-s", "reload"],
+                    ["bash", "-c", "kill -HUP $(cat /var/run/nginx.pid 2>/dev/null) 2>/dev/null || nginx -s reload"],
+                    ["service", "nginx", "reload"],
+                ]
+                reloaded = False
+                for cmd in reload_cmds:
+                    try:
+                        r = docker_exec(cmd, timeout=15)
+                        if r.returncode == 0:
+                            logger.info("  ✓ Nginx reloaded")
+                            reloaded = True
+                            break
+                    except Exception:
+                        continue
+                if not reloaded:
+                    logger.warning("  ⚠ Nginx reload failed — may need manual reload")
         except Exception as e:
             logger.warning(f"  ⚠ Nginx setup failed (non-fatal): {e}")
 
