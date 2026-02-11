@@ -178,22 +178,12 @@ def run_frappe_code(site_name: str, python_code: str) -> str:
     tmp_file = Path(BENCH_PATH) / f"_tmp_provision_{secrets.token_hex(8)}.py"
     
     try:
-        tmp_file.write_text(python_code)
+        # Use Frappe's virtualenv Python (not the provisioning service's Python)
+        frappe_python = f"{BENCH_PATH}/env/bin/python"
         
-        result = subprocess.run(
-            ["bench", "--site", site_name, "execute", f"frappe.utils.safe_exec.read_sql"],
-            cwd=BENCH_PATH,
-            input=python_code,
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        
-        # Better approach: use bench run-script or direct Python execution
-        # with Frappe context initialized
         result = subprocess.run(
             [
-                sys.executable, "-c",
+                frappe_python, "-c",
                 f"""
 import frappe
 frappe.init(site="{site_name}", sites_path="{BENCH_PATH}/sites")
