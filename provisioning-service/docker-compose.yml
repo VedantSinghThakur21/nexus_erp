@@ -18,7 +18,7 @@ services:
       - BENCH_PATH=/home/frappe/frappe-bench
       - MASTER_SITE_NAME=${FRAPPE_SITE_NAME:-erp.localhost}
       - PARENT_DOMAIN=${NEXT_PUBLIC_ROOT_DOMAIN:-avariq.in}
-      - DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-123}
+      - DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD: vedant@21}
       - PROVISIONING_API_SECRET=${PROVISIONING_API_SECRET:-change-me-in-production}
       - DEFAULT_APPS=nexus_core
       - ENVIRONMENT=${NODE_ENV:-development}
