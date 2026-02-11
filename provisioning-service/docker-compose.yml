@@ -24,7 +24,10 @@ services:
       - ENVIRONMENT=${NODE_ENV:-development}
     volumes:
       # Share the sites directory. In standard frappe_docker, 'sites-vol' is mounted to /home/frappe/frappe-bench/sites
+      # Share the sites directory.
       - frappe_docker_sites:/home/frappe/frappe-bench/sites
+      # Mount the extracted apps so Python can find them
+      - ./apps:/home/frappe/frappe-bench/apps
     networks:
       - frappe_docker_default
     # Health check
