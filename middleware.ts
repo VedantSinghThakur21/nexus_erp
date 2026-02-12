@@ -27,11 +27,13 @@ export function middleware(request: NextRequest) {
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 
   // ── 1. Skip internal assets, API routes, and NextAuth ──
+  // File extension check: matches paths ending with .ext (e.g., .png, .ico, .svg)
+  const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(pathname)
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/static') ||
-    pathname.includes('.') // favicon, images, etc.
+    hasFileExtension // favicon, images, etc.
   ) {
     return NextResponse.next()
   }
@@ -95,8 +97,9 @@ export function middleware(request: NextRequest) {
     const hasSid = request.cookies.get('sid')?.value
 
     if (!hasApiKey && !hasSession && !hasSid) {
-      // No credentials → redirect to tenant login
+      // No credentials → redirect to tenant login with returnTo parameter
       const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('returnTo', request.nextUrl.pathname + request.nextUrl.search)
       return NextResponse.redirect(loginUrl)
     }
   }

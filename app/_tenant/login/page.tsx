@@ -65,9 +65,11 @@ export default function TenantLoginPage() {
           </div>
           <CardTitle className="text-2xl">Sign in to your workspace</CardTitle>
           <CardDescription>
-            <span className="inline-flex items-center gap-1.5 mt-1 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              {tenant}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}
-            </span>
+            {tenant && (
+              <span className="inline-flex items-center gap-1.5 mt-1 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                {tenant}.{process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
 

@@ -70,8 +70,8 @@ export async function joinTenant(formData: FormData): Promise<JoinTenantResult> 
 
     const authHeader = `token ${apiKey}:${apiSecret}`
 
-    // ── Step 1: Check user limit from SaaS Settings ──
-    let maxUsers = 5 // sensible default
+    // ── Step 1: Check user limit from SaaS Settings (fail-loud) ──
+    let maxUsers: number
     try {
       const settingsRes = await fetch(
         `${masterUrl}/api/method/frappe.client.get_single_value`,
@@ -89,19 +89,29 @@ export async function joinTenant(formData: FormData): Promise<JoinTenantResult> 
           }),
         },
       )
-      if (settingsRes.ok) {
-        const settingsData = await settingsRes.json()
-        const val = settingsData.message
-        if (typeof val === 'number' && val > 0) {
-          maxUsers = val
-        }
+      if (!settingsRes.ok) {
+        const errText = await settingsRes.text().catch(() => 'unknown')
+        throw new Error(
+          `Failed to fetch SaaS Settings from ${tenantSiteName}: ${settingsRes.status} ${errText}`
+        )
       }
-    } catch (err) {
-      console.warn('[joinTenant] Could not fetch SaaS Settings, using default:', err)
+      const settingsData = await settingsRes.json()
+      const val = settingsData.message
+      if (typeof val !== 'number' || val <= 0) {
+        throw new Error(
+          `Invalid max_users value from SaaS Settings for ${tenantSiteName}: ${val}`
+        )
+      }
+      maxUsers = val
+    } catch (err: any) {
+      console.error('[joinTenant] SaaS Settings fetch failed:', err)
+      throw new Error(
+        `Unable to verify workspace capacity. Please contact support. (${err.message})`
+      )
     }
 
-    // ── Step 2: Count existing users ──
-    let currentUserCount = 0
+    // ── Step 2: Count existing users (fail-closed) ──
+    let currentUserCount: number
     try {
       const countRes = await fetch(
         `${masterUrl}/api/method/frappe.client.get_count`,
@@ -119,14 +129,29 @@ export async function joinTenant(formData: FormData): Promise<JoinTenantResult> 
           }),
         },
       )
-      if (countRes.ok) {
-        const countData = await countRes.json()
-        currentUserCount = countData.message || 0
+      if (!countRes.ok) {
+        const errText = await countRes.text().catch(() => 'unknown')
+        throw new Error(
+          `Failed to count users on ${tenantSiteName}: ${countRes.status} ${errText}`
+        )
       }
-    } catch (err) {
-      console.warn('[joinTenant] Could not count users:', err)
+      const countData = await countRes.json()
+      if (typeof countData.message !== 'number') {
+        throw new Error(
+          `Invalid user count response from ${tenantSiteName}: ${countData.message}`
+        )
+      }
+      currentUserCount = countData.message
+    } catch (err: any) {
+      console.error('[joinTenant] User count fetch failed:', err)
+      throw new Error(
+        `Unable to verify current user count. Please try again later. (${err.message})`
+      )
     }
 
+    // NOTE: TOCTOU race condition exists between count check and user creation.
+    // TODO: Replace with atomic server-side endpoint (e.g., "create_user_if_under_limit")
+    // or distributed locking mechanism to ensure count + create happens atomically.
     if (currentUserCount >= maxUsers) {
       return {
         success: false,
@@ -166,9 +191,19 @@ export async function joinTenant(formData: FormData): Promise<JoinTenantResult> 
       console.warn('[joinTenant] User existence check failed:', err)
     }
 
-    // ── Step 4: Create user via frappe.client.insert ──
-    const [firstName, ...lastParts] = fullName.trim().split(' ')
-    const lastName = lastParts.join(' ')
+    // ── Step 4: Validate and parse name ──
+    const trimmedName = fullName.trim()
+    if (!trimmedName) {
+      return { success: false, error: 'Full name cannot be empty.' }
+    }
+    const nameParts = trimmedName.split(' ').filter(part => part.length > 0)
+    if (nameParts.length === 0) {
+      return { success: false, error: 'Please provide a valid full name.' }
+    }
+    const firstName = nameParts[0]
+    const lastName = nameParts.slice(1).join(' ')
+
+    // ── Step 5: Create user via frappe.client.insert ──
 
     const createRes = await fetch(
       `${masterUrl}/api/method/frappe.client.insert`,
@@ -191,7 +226,7 @@ export async function joinTenant(formData: FormData): Promise<JoinTenantResult> 
             user_type: 'System User',
             enabled: 1,
             roles: [
-              { role: 'System Manager' }, // Adjust based on your needs
+              { role: 'Self Registered' }, // Restricted default role; admin must promote
             ],
           },
         }),
@@ -208,7 +243,9 @@ export async function joinTenant(formData: FormData): Promise<JoinTenantResult> 
       return { success: false, error: errMsg }
     }
 
-    console.log(`[joinTenant] ✅ User ${email} created on tenant ${tenantId}`)
+    const createdUser = await createRes.json()
+    const userId = createdUser?.message?.name || 'unknown'
+    console.log(`[joinTenant] ✅ User created on tenant ${tenantId} (ID: ${userId})`)
 
     return { success: true }
   } catch (error: any) {
