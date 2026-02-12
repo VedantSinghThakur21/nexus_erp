@@ -276,8 +276,12 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     const isTenantUser = tenantData && tenantData.length > 0
 
     if (!isTenantUser) {
-      console.log('Not a tenant user, attempting master site login')
-      return await loginToMasterSite(usernameOrEmail, password, masterUrl)
+      console.log('No tenant found for user:', usernameOrEmail)
+      // In the new multi-tenant architecture, root domain login requires a tenant
+      return {
+        success: false,
+        error: 'No workspace found for this account. Please sign up to create a workspace first.'
+      }
     }
 
     const tenant = tenantData[0] as TenantData

@@ -1,5 +1,5 @@
 /**
  * Marketing site landing page (avariq.in)
- * Serves the root domain's home/marketing page.
+ * Re-exports the root marketing page.
  */
-export { default } from '@/components/landing/page'
+export { default } from '@/app/page'

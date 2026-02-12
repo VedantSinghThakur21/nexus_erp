@@ -1,6 +1,11 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 
-export default function NotFound() {
+export default async function NotFound() {
+  const headersList = await headers()
+  const tenantId = headersList.get('x-tenant-id')
+  const isTenantDomain = tenantId && tenantId !== 'master'
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -20,12 +25,14 @@ export default function NotFound() {
             Go Home
           </Link>
 
-          <Link
-            href="/dashboard"
-            className="inline-block w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors"
-          >
-            Go to Dashboard
-          </Link>
+          {isTenantDomain && (
+            <Link
+              href="/dashboard"
+              className="inline-block w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors"
+            >
+              Go to Dashboard
+            </Link>
+          )}
         </div>
       </div>
     </div>
