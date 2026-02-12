@@ -26,6 +26,11 @@ export function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 
+  console.log('[Middleware] Request:', { pathname, hostname })
+
+  // Check if this is an internal rewrite (has our marker header)
+  const isInternalRewrite = request.headers.get('x-middleware-rewrite') === 'true'
+
   // ── 1. Skip internal assets, API routes, and NextAuth ──
   // File extension check: matches paths ending with .ext (e.g., .png, .ico, .svg)
   const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(pathname)
@@ -35,11 +40,14 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/static') ||
     hasFileExtension // favicon, images, etc.
   ) {
+    console.log('[Middleware] Bypassing:', pathname)
     return NextResponse.next()
   }
 
-  // ── 2. Block direct access to internal route groups ──
-  if (pathname.startsWith('/site') || pathname.startsWith('/tenant')) {
+  // ── 2. Block direct browser access to internal route groups ──
+  // Allow if it's an internal rewrite from middleware
+  if (!isInternalRewrite && (pathname.startsWith('/site') || pathname.startsWith('/tenant'))) {
+    console.log('[Middleware] Blocking direct access to:', pathname)
     return NextResponse.rewrite(new URL('/404', request.url))
   }
 
@@ -67,22 +75,27 @@ export function middleware(request: NextRequest) {
 
   // ── 4. ROOT DOMAIN → rewrite to /site ──
   if (tenantSlug === null) {
-    const siteUrl = new URL(`/site${pathname === '/' ? '' : pathname}`, request.url)
+    console.log('[Middleware] Root domain detected, rewriting to /site')
+    const siteUrl = new URL(`/site${pathname}`, request.url)
     siteUrl.search = request.nextUrl.search
 
     const response = NextResponse.rewrite(siteUrl)
     response.headers.set('x-tenant-id', 'master')
     response.headers.set('x-current-path', pathname)
+    response.headers.set('x-middleware-rewrite', 'true')
+    console.log('[Middleware] Rewriting to:', siteUrl.pathname)
     return response
   }
 
   // ── 5. TENANT SUBDOMAIN → rewrite to /tenant ──
-  const tenantUrl = new URL(`/tenant${pathname === '/' ? '' : pathname}`, request.url)
+  console.log('[Middleware] Tenant subdomain detected:', tenantSlug)
+  const tenantUrl = new URL(`/tenant${pathname}`, request.url)
   tenantUrl.search = request.nextUrl.search
 
   const response = NextResponse.rewrite(tenantUrl)
   response.headers.set('x-tenant-id', tenantSlug)
   response.headers.set('x-current-path', pathname)
+  response.headers.set('x-middleware-rewrite', 'true')
 
   // ── 6. Tenant Auth Protection ──
   // Public tenant paths that don't require auth
