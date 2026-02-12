@@ -1,88 +1,102 @@
 /**
- * Nexus ERP — Production Middleware
- * ===================================
- * 
- * Responsibilities:
- * 1. Extract tenant subdomain from hostname → inject as `x-tenant-id` header
- * 2. Redirect authenticated Google users without a tenant to /onboarding
- * 3. Protect tenant routes from unauthenticated access
- * 
- * ROUTING MATRIX:
- * ┌──────────────────────┬──────────────────┬────────────────────────┐
- * │ URL                  │ Condition        │ Action                 │
- * ├──────────────────────┼──────────────────┼────────────────────────┤
- * │ avariq.in/login      │ -                │ Show login/signup      │
- * │ avariq.in/signup     │ -                │ Show signup form       │
- * │ avariq.in/onboarding │ Has session      │ Show org name form     │
- * │ avariq.in/dashboard  │ Has session      │ Redirect to tenant     │
- * │ tesla.avariq.in/*    │ Has credentials  │ Serve tenant app       │
- * │ tesla.avariq.in/*    │ No credentials   │ Redirect to login      │
- * └──────────────────────┴──────────────────┴────────────────────────┘
+ * Nexus ERP — Domain-Based Multi-Tenancy Middleware
+ * ===================================================
+ *
+ * ROUTING:
+ * ┌─────────────────────────┬───────────────────────────────────┐
+ * │ Hostname                │ Rewrite Target                    │
+ * ├─────────────────────────┼───────────────────────────────────┤
+ * │ avariq.in (root)        │ /app/_site/*                      │
+ * │ tesla.avariq.in (tenant)│ /app/_tenant/* + x-tenant-id hdr  │
+ * │ localhost:3000           │ /app/_site/* (dev root)           │
+ * │ tesla.localhost:3000     │ /app/_tenant/* (dev tenant)       │
+ * └─────────────────────────┴───────────────────────────────────┘
+ *
+ * Also:
+ * - Blocks direct browser access to /_site and /_tenant paths
+ * - Protects tenant routes (require credentials)
+ * - Passes through static assets and API routes untouched
  */
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  // ── 1. Skip static assets ──
+  const { pathname } = request.nextUrl
+  const hostname = request.headers.get('host') || ''
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+
+  // ── 1. Skip internal assets, API routes, and NextAuth ──
   if (
-    request.nextUrl.pathname.startsWith('/_next') ||
-    request.nextUrl.pathname.startsWith('/api/auth') ||
-    request.nextUrl.pathname.startsWith('/static') ||
-    request.nextUrl.pathname.includes('.')
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/static') ||
+    pathname.includes('.') // favicon, images, etc.
   ) {
     return NextResponse.next()
   }
 
-  // ── 2. Extract Subdomain ──
-  const hostname = request.headers.get('host') || ''
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-  let currentHost = 'master'
-
-  if (hostname.includes('localhost')) {
-    // Dev: tesla.localhost:3000 → "tesla"
-    const parts = hostname.split('.')[0]
-    const hostWithoutPort = hostname.split(':')[0]
-    const domainParts = hostWithoutPort.split('.')
-    
-    if (domainParts.length > 1 && domainParts[domainParts.length - 1] === 'localhost') {
-      currentHost = domainParts[0]
-    } else {
-      currentHost = 'master'
-    }
-  } else if (hostname === rootDomain || hostname === `www.${rootDomain}`) {
-    currentHost = 'master'
-  } else if (hostname.endsWith(`.${rootDomain}`)) {
-    // Production: tesla.avariq.in → "tesla"
-    currentHost = hostname.replace(`.${rootDomain}`, '')
+  // ── 2. Block direct access to internal route groups ──
+  if (pathname.startsWith('/_site') || pathname.startsWith('/_tenant')) {
+    return NextResponse.rewrite(new URL('/404', request.url))
   }
 
-  // ── 3. Inject Headers ──
-  const response = NextResponse.next()
-  response.headers.set('x-tenant-id', currentHost)
-  response.headers.set('x-current-path', request.nextUrl.pathname)
+  // ── 3. Determine if root domain or tenant subdomain ──
+  let tenantSlug: string | null = null
 
-  // ── 4. Public Routes (no auth required) ──
-  const publicPaths = ['/login', '/signup', '/onboarding', '/provisioning', '/api/', '/print/']
-  const isPublicPath = publicPaths.some(p => request.nextUrl.pathname.startsWith(p))
+  if (hostname.includes('localhost')) {
+    // Dev: tesla.localhost:3000 → "tesla", localhost:3000 → null (root)
+    const hostWithoutPort = hostname.split(':')[0]
+    const parts = hostWithoutPort.split('.')
 
-  if (isPublicPath || request.nextUrl.pathname === '/') {
+    if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
+      tenantSlug = parts[0] // e.g. "tesla"
+    }
+    // else: bare "localhost" → root
+  } else if (
+    hostname === rootDomain ||
+    hostname === `www.${rootDomain}`
+  ) {
+    tenantSlug = null // root domain
+  } else if (hostname.endsWith(`.${rootDomain}`)) {
+    // Production: tesla.avariq.in → "tesla"
+    tenantSlug = hostname.replace(`.${rootDomain}`, '')
+  }
+
+  // ── 4. ROOT DOMAIN → rewrite to /_site ──
+  if (tenantSlug === null) {
+    const siteUrl = new URL(`/_site${pathname === '/' ? '' : pathname}`, request.url)
+    siteUrl.search = request.nextUrl.search
+
+    const response = NextResponse.rewrite(siteUrl)
+    response.headers.set('x-tenant-id', 'master')
+    response.headers.set('x-current-path', pathname)
     return response
   }
 
-  // ── 5. Tenant Route Protection ──
-  // If accessing a tenant subdomain, user must have API credentials
-  if (currentHost !== 'master') {
+  // ── 5. TENANT SUBDOMAIN → rewrite to /_tenant ──
+  const tenantUrl = new URL(`/_tenant${pathname === '/' ? '' : pathname}`, request.url)
+  tenantUrl.search = request.nextUrl.search
+
+  const response = NextResponse.rewrite(tenantUrl)
+  response.headers.set('x-tenant-id', tenantSlug)
+  response.headers.set('x-current-path', pathname)
+
+  // ── 6. Tenant Auth Protection ──
+  // Public tenant paths that don't require auth
+  const publicTenantPaths = ['/login', '/signup', '/join', '/provisioning']
+  const isPublicPath = publicTenantPaths.some(p => pathname.startsWith(p)) || pathname === '/'
+
+  if (!isPublicPath) {
     const hasApiKey = request.cookies.get('tenant_api_key')?.value
-    const hasSession = request.cookies.get('next-auth.session-token')?.value
-      || request.cookies.get('__Secure-next-auth.session-token')?.value
+    const hasSession =
+      request.cookies.get('next-auth.session-token')?.value ||
+      request.cookies.get('__Secure-next-auth.session-token')?.value
     const hasSid = request.cookies.get('sid')?.value
 
     if (!hasApiKey && !hasSession && !hasSid) {
-      // No auth at all — redirect to login on root domain
-      const loginUrl = process.env.NODE_ENV === 'production'
-        ? `https://${rootDomain}/login`
-        : `http://localhost:3000/login`
+      // No credentials → redirect to tenant login
+      const loginUrl = new URL('/login', request.url)
       return NextResponse.redirect(loginUrl)
     }
   }
@@ -92,6 +106,11 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    /*
+     * Match all paths except:
+     * - _next/static, _next/image (Next.js internals)
+     * - favicon.ico, sitemap.xml, robots.txt
+     */
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
   ],
 }
