@@ -89,10 +89,10 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.rewrite(tenantUrl)
   response.headers.set('x-tenant-id', tenantSlug)
   response.headers.set('x-current-path', pathname)
-  response.headers.set('x-middleware-rewrite', 'true')
+  response.headers.set('x-middleware-executed', 'true')
+  response.headers.set('x-rewrite-to', tenantUrl.pathname)
 
-  // ── 6. Tenant Auth Protection ──executed', 'true')
-  response.headers.set('x-rewrite-to', tenantUrl.pathname
+  // ── 6. Tenant Auth Protection ──
   // Public tenant paths that don't require auth
   const publicTenantPaths = ['/login', '/signup', '/join', '/provisioning']
   const isPublicPath = publicTenantPaths.some(p => pathname.startsWith(p)) || pathname === '/'

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, UserPlus } from 'lucide-react'
-import { useClientTenant } from '@/lib/tenant'
+import { useClientTenant } from '@/lib/tenant-client'
 import { joinTenant } from '@/app/actions/tenant-signup'
 
 /**
