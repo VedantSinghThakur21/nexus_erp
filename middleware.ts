@@ -6,14 +6,14 @@
  * ┌─────────────────────────┬───────────────────────────────────┐
  * │ Hostname                │ Rewrite Target                    │
  * ├─────────────────────────┼───────────────────────────────────┤
- * │ avariq.in (root)        │ /app/_site/*                      │
- * │ tesla.avariq.in (tenant)│ /app/_tenant/* + x-tenant-id hdr  │
- * │ localhost:3000           │ /app/_site/* (dev root)           │
- * │ tesla.localhost:3000     │ /app/_tenant/* (dev tenant)       │
+ * │ avariq.in (root)        │ /site/*                           │
+ * │ tesla.avariq.in (tenant)│ /tenant/* + x-tenant-id hdr       │
+ * │ localhost:3000           │ /site/* (dev root)                │
+ * │ tesla.localhost:3000     │ /tenant/* (dev tenant)            │
  * └─────────────────────────┴───────────────────────────────────┘
  *
  * Also:
- * - Blocks direct browser access to /_site and /_tenant paths
+ * - Blocks direct browser access to /site and /tenant paths
  * - Protects tenant routes (require credentials)
  * - Passes through static assets and API routes untouched
  */
@@ -39,7 +39,7 @@ export function middleware(request: NextRequest) {
   }
 
   // ── 2. Block direct access to internal route groups ──
-  if (pathname.startsWith('/_site') || pathname.startsWith('/_tenant')) {
+  if (pathname.startsWith('/site') || pathname.startsWith('/tenant')) {
     return NextResponse.rewrite(new URL('/404', request.url))
   }
 
@@ -65,9 +65,9 @@ export function middleware(request: NextRequest) {
     tenantSlug = hostname.replace(`.${rootDomain}`, '')
   }
 
-  // ── 4. ROOT DOMAIN → rewrite to /_site ──
+  // ── 4. ROOT DOMAIN → rewrite to /site ──
   if (tenantSlug === null) {
-    const siteUrl = new URL(`/_site${pathname === '/' ? '' : pathname}`, request.url)
+    const siteUrl = new URL(`/site${pathname === '/' ? '' : pathname}`, request.url)
     siteUrl.search = request.nextUrl.search
 
     const response = NextResponse.rewrite(siteUrl)
@@ -76,8 +76,8 @@ export function middleware(request: NextRequest) {
     return response
   }
 
-  // ── 5. TENANT SUBDOMAIN → rewrite to /_tenant ──
-  const tenantUrl = new URL(`/_tenant${pathname === '/' ? '' : pathname}`, request.url)
+  // ── 5. TENANT SUBDOMAIN → rewrite to /tenant ──
+  const tenantUrl = new URL(`/tenant${pathname === '/' ? '' : pathname}`, request.url)
   tenantUrl.search = request.nextUrl.search
 
   const response = NextResponse.rewrite(tenantUrl)
