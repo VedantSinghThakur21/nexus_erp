@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * Tenant pricing rules page (tesla.avariq.in/pricing-rules)
  */

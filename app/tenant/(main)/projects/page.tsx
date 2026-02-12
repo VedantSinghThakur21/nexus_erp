@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * Tenant projects page (tesla.avariq.in/projects)
  */

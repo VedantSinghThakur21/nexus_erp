@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * Tenant payments page (tesla.avariq.in/payments)
  */

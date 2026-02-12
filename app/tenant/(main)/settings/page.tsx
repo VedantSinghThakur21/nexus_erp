@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * Tenant settings page (tesla.avariq.in/settings)
  */

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * Tenant agents page (tesla.avariq.in/agents)
  */

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * Tenant inspections page (tesla.avariq.in/inspections)
  */

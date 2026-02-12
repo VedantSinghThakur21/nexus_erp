@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * Tenant catalogue page (tesla.avariq.in/catalogue)
  */
