@@ -14,13 +14,26 @@ import { redirect } from 'next/navigation'
  */
 export async function getUserRoles(): Promise<string[]> {
   try {
-    // Fetch user from Frappe
+    // First get the current logged-in user's email
+    const userInfoResponse = await frappeRequest(
+      'frappe.auth.get_logged_user',
+      'GET'
+    ) as any
+
+    const userEmail = userInfoResponse.message || userInfoResponse
+    
+    if (!userEmail) {
+      console.warn('[getUserRoles] No user logged in')
+      return []
+    }
+
+    // Now fetch full user details with roles using the actual email
     const response = await frappeRequest(
       'frappe.client.get',
       'POST',
       {
         doctype: 'User',
-        name: 'frappe.session.user',
+        name: userEmail,
         fields: JSON.stringify(['name', 'roles']),
       }
     ) as any

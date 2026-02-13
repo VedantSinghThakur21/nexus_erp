@@ -9,13 +9,25 @@ import { frappeRequest } from '@/app/lib/api'
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch current user details including roles
+    // Fetch current logged-in user info using Frappe's auth method
+    const userInfoResponse = await frappeRequest(
+      'frappe.auth.get_logged_user',
+      'GET'
+    ) as any
+
+    const userEmail = userInfoResponse.message || userInfoResponse
+    
+    if (!userEmail) {
+      throw new Error('No user logged in')
+    }
+
+    // Now fetch full user details with roles using the actual email
     const response = await frappeRequest(
       'frappe.client.get',
       'POST',
       {
         doctype: 'User',
-        name: 'frappe.session.user',
+        name: userEmail,
         fields: JSON.stringify(['name', 'email', 'full_name', 'roles']),
       }
     ) as any
