@@ -445,24 +445,43 @@ required_roles = [
     "Lead Owner",
     "Support Team",
 ]
+# Assign all necessary roles for full CRM + ERP access
+required_roles = [
+    "System Manager",
+    "Sales User",
+    "Sales Manager",
+    "Lead Owner",
+    "Support Team",
+]
 for role_name in required_roles:
-    if not frappe.db.exists("Has Role", {{"parent": "{req.admin_email}", "role": role_name}}):
-        try:
-            user.add_roles(role_name)
-        except Exception:
-            pass  # Role might not exist in this Frappe version
+    # Check if role exists in system first
+    if frappe.db.exists("Role", role_name):
+        # Check if user already has this role
+        already_has = False
+        for r in user.roles:
+            if r.role == role_name:
+                already_has = True
+                break
+        
+        if not already_has:
+            user.append("roles", {{"role": role_name, "doctype": "Has Role"}})
+    else:
+        print(f"WARNING: Role '{{role_name}}' does not exist in this instance")
+
+# Save user with new roles
+user.save(ignore_permissions=True)
 
 # Generate API keys for programmatic access
 api_key = frappe.generate_hash(length=15)
 api_secret_val = frappe.generate_hash(length=15)
 
-user.reload()
 user.api_key = api_key
 user.api_secret = api_secret_val
 user.save(ignore_permissions=True)
 
 result["api_key"] = api_key
 result["api_secret"] = api_secret_val
+result["roles"] = [r.role for r in user.roles]
 
 frappe.db.commit()
 print(json.dumps(result, default=str))
@@ -477,6 +496,7 @@ print(json.dumps(result, default=str))
         logger.info(f"  ✓ Admin user configured (created={user_result.get('user_created')})")
         logger.info(f"  🔑 [DEBUG] Login: email={req.admin_email} password={admin_password}")
         logger.info(f"  🔑 [DEBUG] API Key={api_key} API Secret={api_secret}")
+        logger.info(f"  🛑 [DEBUG] Assigned Roles: {user_result.get('roles')}")
 
     except Exception as e:
         logger.error(f"  ✗ Admin user creation failed: {e}")
