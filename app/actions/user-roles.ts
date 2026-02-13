@@ -14,7 +14,8 @@ import { redirect } from 'next/navigation'
  */
 export async function getUserRoles(): Promise<string[]> {
   try {
-    const user = await api.get('frappe.client.get', {
+    // Frappe expects params in the body for POST
+    const user = await api.post('frappe.client.get', {
       doctype: 'User',
       name: 'frappe.session.user',
       fields: JSON.stringify(['name', 'roles']),
