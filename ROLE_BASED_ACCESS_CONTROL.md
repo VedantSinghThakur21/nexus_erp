@@ -241,5 +241,92 @@ export default async function PaymentsPage() {
 
 ---
 
+## Troubleshooting
+
+### Issue: "User does not have doctype access via role permission"
+
+**Symptoms:**
+- 403 Permission errors when accessing CRM/Opportunity
+- 404 Not Found on lead pages
+- Empty dashboard widgets
+
+**Cause:** User lacks required roles on the tenant site.
+
+**Solution:**
+
+1. **Check current roles:**
+   ```bash
+   bench --site <tenant>.avariq.in console
+   >>> user = frappe.get_doc("User", "user@email.com")
+   >>> print([r.role for r in user.roles])
+   ```
+
+2. **Add required roles:**
+   ```python
+   # In bench console
+   user = frappe.get_doc("User", "user@email.com")
+   required_roles = ["System Manager", "Sales Manager", "Sales User", "CRM Manager"]
+   
+   for role in required_roles:
+       if role not in [r.role for r in user.roles]:
+           user.append("roles", {"role": role})
+   
+   user.save(ignore_permissions=True)
+   frappe.db.commit()
+   ```
+
+3. **Logout and login** to refresh session
+
+**See Also:** [scripts/QUICK_FIX_VFIXIT_PERMISSIONS.md](../scripts/QUICK_FIX_VFIXIT_PERMISSIONS.md)
+
+---
+
+### Issue: Roles not syncing between Frappe and Next.js
+
+**Symptoms:**
+- Roles show correctly in Frappe UI
+- But sidebar doesn't update in Next.js app
+
+**Solution:**
+1. Clear browser cookies
+2. Logout completely: `/tenant/logout`
+3. Login again: `/tenant/login`
+4. If still not working, check `app/actions/profile.ts` fetches roles correctly
+
+---
+
+### Issue: New tenant users have no permissions
+
+**Cause:** Provisioning script doesn't assign default roles.
+
+**Solution:** Update `provisioning-service/apps/tenant_provisioner.py`:
+```python
+def create_tenant_admin_user(site_name, email, password):
+    # After creating user
+    user = frappe.get_doc("User", email)
+    
+    default_roles = [
+        "System Manager",
+        "Sales Manager", 
+        "Sales User",
+        "CRM Manager",
+        "Accounts Manager"
+    ]
+    
+    for role in default_roles:
+        user.append("roles", {"role": role})
+    
+    user.save(ignore_permissions=True)
+    frappe.db.commit()
+```
+
+---
+
+## Related Documentation
+- [scripts/fix-user-roles-vfixit.py](../scripts/fix-user-roles-vfixit.py) - Automated role fix script
+- [scripts/QUICK_FIX_VFIXIT_PERMISSIONS.md](../scripts/QUICK_FIX_VFIXIT_PERMISSIONS.md) - Quick fix guide
+
+---
+
 **Last Updated:** February 13, 2026  
-**Version:** 1.0.0
+**Version:** 1.1.0
