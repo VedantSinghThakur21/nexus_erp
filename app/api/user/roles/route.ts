@@ -5,12 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getApiClient } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 
 export async function GET(request: NextRequest) {
   try {
-    const api = await getApiClient()
-
     // Fetch current user details including roles
     const user = await api.get('frappe.client.get', {
       doctype: 'User',

@@ -5,7 +5,7 @@
  */
 'use server'
 
-import { getApiClient } from '@/lib/api-client'
+import { api } from '@/lib/api-client'
 import { canAccessModule, getPrimaryRole } from '@/lib/role-permissions'
 import { redirect } from 'next/navigation'
 
@@ -14,8 +14,6 @@ import { redirect } from 'next/navigation'
  */
 export async function getUserRoles(): Promise<string[]> {
   try {
-    const api = await getApiClient()
-
     const user = await api.get('frappe.client.get', {
       doctype: 'User',
       name: 'frappe.session.user',
