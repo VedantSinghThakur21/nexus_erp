@@ -38,13 +38,14 @@ export async function getUserProfile(): Promise<UserProfile | null> {
         // Fetch user's primary role
         let role = 'User'
         try {
-            const roles = await frappeRequest('frappe.client.get_list', 'GET', {
-                doctype: 'Has Role',
-                filters: `[["parent", "=", "${userEmail}"], ["role", "!=", "All"]]`,
-                fields: '["role"]',
-                limit_page_length: 10
-            }) as any[]
+            // Fetch user document with roles to avoid child table permission issues
+            const userDoc = await frappeRequest('frappe.client.get', 'POST', {
+                doctype: 'User',
+                name: userEmail,
+                fields: JSON.stringify(['name', 'roles'])
+            }) as any
 
+            const roles = userDoc?.roles || []
             if (roles && roles.length > 0) {
                 // Priority order for display
                 const roleHierarchy = [
@@ -56,7 +57,9 @@ export async function getUserProfile(): Promise<UserProfile | null> {
                     'HR Manager',
                     'Employee'
                 ]
-                const userRoles = roles.map((r: any) => r.role)
+                const userRoles = roles
+                    .map((r: any) => r.role)
+                    .filter((r: string) => r !== 'All')
                 const primaryRole = roleHierarchy.find(r => userRoles.includes(r)) || userRoles[0]
                 role = primaryRole
             }
