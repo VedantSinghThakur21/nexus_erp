@@ -5,7 +5,7 @@
  */
 'use server'
 
-import { getApiClient } from '@/app/lib/api-client'
+import { getApiClient } from '@/lib/api-client'
 import { canAccessModule, getPrimaryRole } from '@/lib/role-permissions'
 import { redirect } from 'next/navigation'
 
