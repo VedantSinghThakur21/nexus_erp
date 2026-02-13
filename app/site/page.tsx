@@ -6,6 +6,7 @@ import Architecture from "@/components/website/Architecture";
 import Pricing from "@/components/website/Pricing";
 import CTASection from "@/components/website/CTASection";
 import Footer from "@/components/website/Footer";
+import { UnicornBackground } from "@/components/unicorn-background";
 
 /**
  * Marketing site landing page (avariq.in)
@@ -17,6 +18,9 @@ export default function LandingPage() {
       suppressHydrationWarning
       className="landing-page min-h-screen bg-[#050505] text-neutral-200 overflow-x-hidden antialiased"
     >
+      {/* Unicorn Studio WebGL Animated Background */}
+      <UnicornBackground projectId="bmaMERjX2VZDtPrh4Zwx" />
+      
       <div className="noise-overlay" />
       <Navbar />
       <main>
