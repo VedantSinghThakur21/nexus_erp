@@ -322,3 +322,15 @@ button, a {
 .animate-beam { animation: beam 2s linear infinite; }
 .animate-float { animation: float 6s ease-in-out infinite; }
 .animate-pulse-slow { animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+@keyframes aurora {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+  to {
+    background-position: 350% 50%, 350% 50%;
+  }
+}
+.animate-aurora {
+  animation: aurora 60s linear infinite;
+}
