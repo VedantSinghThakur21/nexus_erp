@@ -5,7 +5,7 @@
  */
 'use server'
 
-import { api } from '@/lib/api-client'
+import { frappeRequest } from '@/app/lib/api'
 import { canAccessModule, getPrimaryRole } from '@/lib/role-permissions'
 import { redirect } from 'next/navigation'
 
@@ -14,12 +14,18 @@ import { redirect } from 'next/navigation'
  */
 export async function getUserRoles(): Promise<string[]> {
   try {
-    // Frappe expects params in the body for POST
-    const user = await api.post('frappe.client.get', {
-      doctype: 'User',
-      name: 'frappe.session.user',
-      fields: JSON.stringify(['name', 'roles']),
-    })
+    // Fetch user from Frappe
+    const response = await frappeRequest(
+      'frappe.client.get',
+      'POST',
+      {
+        doctype: 'User',
+        name: 'frappe.session.user',
+        fields: JSON.stringify(['name', 'roles']),
+      }
+    ) as any
+
+    const user = response.message || response
 
     return Array.isArray(user.roles)
       ? user.roles.map((r: any) => r.role || r.name)

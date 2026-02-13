@@ -5,16 +5,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { api } from '@/lib/api-client'
+import { frappeRequest } from '@/app/lib/api'
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch current user details including roles (Frappe expects params in POST body)
-    const user = await api.post('frappe.client.get', {
-      doctype: 'User',
-      name: 'frappe.session.user',
-      fields: JSON.stringify(['name', 'email', 'full_name', 'roles']),
-    })
+    // Fetch current user details including roles
+    const response = await frappeRequest(
+      'frappe.client.get',
+      'POST',
+      {
+        doctype: 'User',
+        name: 'frappe.session.user',
+        fields: JSON.stringify(['name', 'email', 'full_name', 'roles']),
+      }
+    ) as any
+
+    const user = response.message || response
 
     // Extract role names from the roles array
     const roles = Array.isArray(user.roles)
