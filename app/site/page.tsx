@@ -16,9 +16,9 @@ export default function LandingPage() {
   return (
     <div
       suppressHydrationWarning
-      className="landing-page min-h-screen text-neutral-200 overflow-x-hidden antialiased relative bg-[#050505]"
+      className="landing-page min-h-screen text-neutral-200 overflow-x-hidden antialiased relative"
     >
-      <AuroraBackground className="fixed inset-0 -z-10 !h-screen !w-screen bg-[#050505]" />
+      <AuroraBackground className="fixed inset-0 -z-10 !h-screen !w-screen" />
 
       <div className="noise-overlay" />
 
