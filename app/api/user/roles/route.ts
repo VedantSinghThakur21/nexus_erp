@@ -9,8 +9,8 @@ import { api } from '@/lib/api-client'
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch current user details including roles
-    const user = await api.get('frappe.client.get', {
+    // Fetch current user details including roles (Frappe expects params in POST body)
+    const user = await api.post('frappe.client.get', {
       doctype: 'User',
       name: 'frappe.session.user',
       fields: JSON.stringify(['name', 'email', 'full_name', 'roles']),
