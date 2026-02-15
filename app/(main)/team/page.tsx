@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { getTeamMembers, removeTeamMember } from "@/app/actions/team";
 import { InviteTeamMemberDialog } from "@/components/team/invite-team-member-dialog";
+import { EditPermissionsDialog } from "@/components/team/edit-permissions-dialog";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 
@@ -147,12 +148,35 @@ export default function TeamPage() {
     };
   }, [teamMembers]);
 
+  // Permissions dialog state
+  const [selectedUser, setSelectedUser] = useState<TeamMember | null>(null);
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
+
+  async function handleEditPermissions(member: TeamMember) {
+    setSelectedUser(member);
+    setIsPermissionsDialogOpen(true);
+  }
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
       {/* Header */}
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <InviteTeamMemberDialog />
       </PageHeader>
+
+      {/* Permissions Dialog */}
+      <EditPermissionsDialog
+        isOpen={isPermissionsDialogOpen}
+        onClose={() => setIsPermissionsDialogOpen(false)}
+        user={selectedUser ? {
+          name: selectedUser.email,
+          full_name: `${selectedUser.first_name} ${selectedUser.last_name || ""}`,
+          roles: [] // Will be fetched by dialog
+        } : null}
+        onSave={() => {
+          loadTeamMembers(); // Refresh to reflect any changes if needed
+        }}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -319,8 +343,8 @@ export default function TeamPage() {
                                 {aiInsight && (
                                   <span
                                     className={`flex items-center gap-1.5 ${aiInsight.color === "purple"
-                                        ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800"
-                                        : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800"
+                                      ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800"
+                                      : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800"
                                       } px-3 py-1 rounded-full text-[11px] font-semibold border`}
                                   >
                                     <span className="material-symbols-outlined text-[14px]">
@@ -339,8 +363,8 @@ export default function TeamPage() {
                                 </span>
                                 <span
                                   className={`flex items-center gap-2 ${!member.last_login
-                                      ? "text-amber-600 font-medium"
-                                      : ""
+                                    ? "text-amber-600 font-medium"
+                                    : ""
                                     }`}
                                 >
                                   <span className="material-symbols-outlined text-[18px]">
@@ -352,7 +376,10 @@ export default function TeamPage() {
                             </div>
 
                             <div className="flex items-center gap-4">
-                              <button className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors flex items-center gap-2 text-sm font-semibold">
+                              <button
+                                onClick={() => handleEditPermissions(member)}
+                                className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors flex items-center gap-2 text-sm font-semibold"
+                              >
                                 <span className="material-symbols-outlined text-[20px]">
                                   admin_panel_settings
                                 </span>

@@ -21,7 +21,7 @@ export async function getUserRoles(): Promise<string[]> {
     ) as any
 
     const userEmail = userInfoResponse.message || userInfoResponse
-    
+
     if (!userEmail) {
       console.warn('[getUserRoles] No user logged in')
       return []
@@ -75,4 +75,71 @@ export async function hasRole(role: string): Promise<boolean> {
  */
 export async function isSystemManager(): Promise<boolean> {
   return await hasRole('System Manager')
+}
+
+/**
+ * Update user roles
+ */
+export async function updateUserRoles(email: string, roles: string[]) {
+  try {
+    // 1. Fetch current user to get their ID/Name (usually email for System Users)
+    // We already have email passed in, which is the 'name' of the User doctype
+
+    // 2. Prepare the roles structure for Frappe
+    // Frappe expects a list of dicts: [{"role": "System Manager"}, ...]
+    const rolesList = roles.map(role => ({ role }))
+
+    // 3. Update the user
+    // We use frappe.client.set_value or save logic
+    // But child tables are tricky. It's often better to save the whole doc or use a specific setter.
+    // Let's try writing to the 'roles' child table directly if possible, or updating the doc.
+
+    // Best approach for Frappe API: update the document with the new child table
+    const response = await frappeRequest(
+      'frappe.client.set_value',
+      'POST',
+      {
+        doctype: 'User',
+        name: email,
+        fieldname: 'roles',
+        value: JSON.stringify(rolesList)
+      }
+    ) as any
+
+    if (response) {
+      return { success: true }
+    } else {
+      console.error('Failed to update roles', response)
+      return { success: false, error: 'Failed to update roles in backend' }
+    }
+  } catch (error: any) {
+    console.error('Error updating user roles:', error)
+    return { success: false, error: error.message || 'Failed to update roles' }
+  }
+}
+
+/**
+ * Get roles for a specific user
+ */
+export async function getUserRolesForUser(email: string): Promise<string[]> {
+  try {
+    const response = await frappeRequest(
+      'frappe.client.get',
+      'POST',
+      {
+        doctype: 'User',
+        name: email,
+        fields: JSON.stringify(['name', 'roles']),
+      }
+    ) as any
+
+    const user = response.message || response
+
+    return Array.isArray(user.roles)
+      ? user.roles.map((r: any) => r.role || r.name)
+      : []
+  } catch (error) {
+    console.error(`[getUserRolesForUser] Failed to fetch roles for ${email}:`, error)
+    return []
+  }
 }
