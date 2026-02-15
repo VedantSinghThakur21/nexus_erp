@@ -23,17 +23,17 @@ interface BackendConfig {
 function extractTenant(hostname: string): string {
   const host = hostname.split(':')[0]
   const parts = host.split('.')
-  
+
   // subdomain.localhost → "subdomain"
   if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
     return parts[0]
   }
-  
+
   // subdomain.example.com → "subdomain"
   if (parts.length > 2) {
     return parts[0]
   }
-  
+
   // localhost or example.com → "default"
   return 'default'
 }
@@ -48,21 +48,21 @@ export function getBackendURL(config?: BackendConfig): string {
   if (typeof window === 'undefined') {
     throw new Error('getBackendURL can only be called in browser environment')
   }
-  
+
   const hostname = window.location.hostname
   const tenant = extractTenant(hostname)
-  
+
   // Determine environment
   const isLocalhost = hostname.includes('localhost') || hostname === '127.0.0.1'
-  
+
   // Default configuration
   const protocol = config?.protocol || (isLocalhost ? 'http' : 'https')
   const port = config?.port || (isLocalhost ? 8080 : undefined)
   const apiPrefix = config?.apiPrefix || 'api'
-  
+
   // Build backend hostname
   let backendHostname: string
-  
+
   if (isLocalhost) {
     // Local development: api.tenant.localhost
     if (tenant === 'default') {
@@ -73,7 +73,7 @@ export function getBackendURL(config?: BackendConfig): string {
   } else {
     // Production: api.tenant.example.com or api.example.com
     const parts = hostname.split('.')
-    
+
     if (parts.length > 2) {
       // tenant.example.com → api.tenant.example.com
       parts[0] = apiPrefix
@@ -83,7 +83,7 @@ export function getBackendURL(config?: BackendConfig): string {
       backendHostname = `${apiPrefix}.${hostname}`
     }
   }
-  
+
   // Construct full URL
   const portSuffix = port ? `:${port}` : ''
   return `${protocol}://${backendHostname}${portSuffix}`
@@ -95,14 +95,14 @@ export function getBackendURL(config?: BackendConfig): string {
  */
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null
-  
+
   // Get token and expiration
   const token = localStorage.getItem('access_token')
   const expiresAt = localStorage.getItem('token_expires_at')
-  
+
   // If no token, return null
   if (!token) return null
-  
+
   // Check if token is expired
   if (expiresAt && parseInt(expiresAt) <= Date.now()) {
     // Token expired, clear it
@@ -110,15 +110,15 @@ export function getAuthToken(): string | null {
     localStorage.removeItem('token_expires_at')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user_info')
-    
+
     // Redirect to login if in browser
     if (typeof window !== 'undefined') {
       window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname)
     }
-    
+
     return null
   }
-  
+
   return token
 }
 
@@ -134,10 +134,10 @@ export function isAuthenticated(): boolean {
  */
 export function getUserInfo(): any | null {
   if (typeof window === 'undefined') return null
-  
+
   const userInfoStr = localStorage.getItem('user_info')
   if (!userInfoStr) return null
-  
+
   try {
     return JSON.parse(userInfoStr)
   } catch {
@@ -150,13 +150,13 @@ export function getUserInfo(): any | null {
  */
 export function logout() {
   if (typeof window === 'undefined') return
-  
+
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('token_expires_at')
   localStorage.removeItem('user_info')
   sessionStorage.clear()
-  
+
   // Redirect to login
   window.location.href = '/auth/login'
 }
@@ -190,56 +190,73 @@ export async function apiRequest<T = any>(
 ): Promise<T> {
   // Get auth token
   const token = getAuthToken()
-  
+
   if (!token) {
+    // If no token found, ensure we are logged out and redirect
+    logout()
     throw new APIError('Authentication token not found. Please log in.', 401)
   }
-  
+
   // Resolve backend URL
   const baseURL = getBackendURL()
-  
+
   // Normalize endpoint (remove leading slash if present)
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
   const url = `${baseURL}/${normalizedEndpoint}`
-  
+
   // Prepare headers
   const headers: HeadersInit = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
     ...options.headers,
   }
-  
+
   try {
     const response = await fetch(url, {
       ...options,
       headers,
     })
-    
+
     // Handle non-JSON responses
     const contentType = response.headers.get('content-type')
     const isJSON = contentType?.includes('application/json')
-    
+
     // Parse response
     const data = isJSON ? await response.json() : await response.text()
-    
+
     // Handle error responses
     if (!response.ok) {
-      const message = typeof data === 'object' && data.message 
-        ? data.message 
-        : typeof data === 'string' 
-        ? data 
-        : `Request failed with status ${response.status}`
-      
+      const message = typeof data === 'object' && data.message
+        ? data.message
+        : typeof data === 'string'
+          ? data
+          : `Request failed with status ${response.status}`
+
+      // Auto-logout on Auth failures
+      if (response.status === 401 || response.status === 403) {
+        logout()
+      }
+
+      // Auto-logout if Tenant is completely missing (404 on critical paths)
+      // We need to be careful not to logout on simple "Resource not found" (like a missing project)
+      // But "Tenant not found" usually comes from the middleware/gateway layers
+      if (response.status === 404 && (
+        message.toLowerCase().includes('tenant not found') ||
+        message.toLowerCase().includes('site not found')
+      )) {
+        logout()
+      }
+
       throw new APIError(message, response.status, data)
     }
-    
+
     return data
   } catch (error) {
     // Re-throw APIErrors
     if (error instanceof APIError) {
       throw error
     }
-    
+
     // Network or parsing errors
     if (error instanceof Error) {
       throw new APIError(
@@ -248,7 +265,7 @@ export async function apiRequest<T = any>(
         error
       )
     }
-    
+
     throw new APIError('Unknown error occurred')
   }
 }
@@ -263,7 +280,7 @@ export const api = {
   get: <T = any>(endpoint: string, options?: RequestInit): Promise<T> => {
     return apiRequest<T>(endpoint, { ...options, method: 'GET' })
   },
-  
+
   /**
    * POST request
    */
@@ -274,7 +291,7 @@ export const api = {
       body: body ? JSON.stringify(body) : undefined,
     })
   },
-  
+
   /**
    * PUT request
    */
@@ -285,7 +302,7 @@ export const api = {
       body: body ? JSON.stringify(body) : undefined,
     })
   },
-  
+
   /**
    * PATCH request
    */
@@ -296,7 +313,7 @@ export const api = {
       body: body ? JSON.stringify(body) : undefined,
     })
   },
-  
+
   /**
    * DELETE request
    */
