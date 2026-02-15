@@ -102,7 +102,7 @@ export async function updateUserRoles(email: string, roles: string[]) {
         doctype: 'User',
         name: email,
         fieldname: 'roles',
-        value: JSON.stringify(rolesList)
+        value: rolesList // Send as object, not string
       }
     ) as any
 
