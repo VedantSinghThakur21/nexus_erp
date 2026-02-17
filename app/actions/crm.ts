@@ -651,6 +651,7 @@ export async function convertLeadToOpportunity(
     }
 
     // 7. Save the Opportunity
+    console.log('[convertLeadToOpportunity] Opportunity doc to be inserted:', JSON.stringify(opportunityDoc, null, 2))
     const savedOpportunity = await frappeRequest('frappe.client.insert', 'POST', {
       doc: opportunityDoc
     }) as { name?: string }

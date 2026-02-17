@@ -6,6 +6,7 @@ import { InviteUserDialog } from "@/components/settings/invite-user-dialog";
 import { CreateTaxTemplateDialog } from "@/components/settings/create-tax-template-dialog";
 import { EditCompanyDialog } from "@/components/settings/edit-company-dialog";
 import { CreateBankAccountDialog } from "@/components/settings/create-bank-account-dialog";
+import { CrmSetupSection } from "@/components/settings/crm-setup-section";
 
 interface User {
   name: string;
@@ -243,6 +244,9 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+
+        {/* CRM Setup Section */}
+        <CrmSetupSection />
 
         {/* My Profile Section */}
         <section className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
