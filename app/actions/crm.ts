@@ -267,7 +267,7 @@ export async function createLead(data: any) {
         doctype,
         filters: { name: value },
         fieldname: 'name'
-      });
+      }) as { name?: string };
       if (exact && exact.name) return exact.name;
 
       // 2. Try "like" match (useful for "Mr" vs "Mr.", or case sensitivity)
