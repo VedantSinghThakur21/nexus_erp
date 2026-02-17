@@ -14,7 +14,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
+import { useToastHelpers } from "@/components/ui/toast"
 
 interface Lead {
     name: string
@@ -85,7 +85,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     const [selectedPriority, setSelectedPriority] = useState<"hot" | "warm" | "cold" | null>("hot")
     const [draggedLead, setDraggedLead] = useState<string | null>(null)
     // Removed local toast state in favor of useToast
-    const { toast } = useToast()
+    const toast = useToastHelpers()
 
     // Conversion Dialog State
     const [isConversionDialogOpen, setIsConversionDialogOpen] = useState(false)
@@ -173,24 +173,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
             const result = await updateLeadStatus(leadName, newStatus)
             if (result.success) {
                 router.refresh()
-                toast({
-                    title: "Success",
-                    description: "Lead status updated",
-                })
+                toast.success("Success", "Lead status updated")
             } else {
-                toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: "Failed to update lead status"
-                })
+                toast.error("Error", "Failed to update lead status")
             }
         } catch (error) {
             console.error("Error updating lead status:", error)
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Failed to update lead status"
-            })
+            toast.error("Error", "Failed to update lead status")
         }
     }
 
@@ -202,25 +191,14 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
             const res = await convertLeadToOpportunity(pendingConversion.leadName)
 
             if (res.success) {
-                toast({
-                    title: "Success",
-                    description: "Lead converted to Opportunity successfully!"
-                })
+                toast.success("Success", "Lead converted to Opportunity successfully!")
                 router.refresh()
             } else {
-                toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: res.error || "Failed to convert lead"
-                })
+                toast.error("Error", res.error || "Failed to convert lead")
             }
         } catch (e) {
             console.error(e)
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "An error occurred during conversion"
-            })
+            toast.error("Error", "An error occurred during conversion")
         } finally {
             setIsConverting(false)
             setIsConversionDialogOpen(false)
@@ -229,19 +207,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     }
 
     // Drag and drop handlers for Kanban
+    // Drag and drop handlers for Kanban
     const handleDragStart = (e: React.DragEvent, leadName: string, leadStatus: string) => {
         // Prevent dragging converted leads
         if (leadStatus === "Converted") {
             e.preventDefault()
-            if (leadStatus === "Converted") {
-                e.preventDefault()
-                toast({
-                    variant: "destructive",
-                    title: "Action Not Allowed",
-                    description: "Converted leads cannot be moved to other stages"
-                })
-                return
-            }
+            toast.error("Action Not Allowed", "Converted leads cannot be moved to other stages")
+            return
         }
         setDraggedLead(leadName)
     }
@@ -256,15 +228,8 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
         // Prevent dropping into Converted stage
         if (targetStage === "Converted") {
             setDraggedLead(null)
-            if (targetStage === "Converted") {
-                setDraggedLead(null)
-                toast({
-                    variant: "destructive",
-                    title: "Action Not Allowed",
-                    description: "Leads cannot be manually moved to Converted stage"
-                })
-                return
-            }
+            toast.error("Action Not Allowed", "Leads cannot be manually moved to Converted stage")
+            return
         }
 
         const lead = leads.find(l => l.name === draggedLead)
@@ -757,32 +722,32 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
           scrollbar-width: none;
         }
       `}</style>
-        </div>
 
-            {/* Conversion Confirmation Dialog */ }
-    <Dialog open={isConversionDialogOpen} onOpenChange={setIsConversionDialogOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Convert to Opportunity?</DialogTitle>
-                <DialogDescription>
-                    This will create a new <strong>Opportunity</strong> record from this Lead and mark the Lead as <strong>Converted</strong>.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                <p className="text-sm text-slate-500">
-                    Do you want to proceed with creating an Opportunity?
-                </p>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsConversionDialogOpen(false)} disabled={isConverting}>
-                    Cancel
-                </Button>
-                <Button onClick={confirmConversion} disabled={isConverting}>
-                    {isConverting ? "Converting..." : "Yes, Convert"}
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
+
+            {/* Conversion Confirmation Dialog */}
+            <Dialog open={isConversionDialogOpen} onOpenChange={setIsConversionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Convert to Opportunity?</DialogTitle>
+                        <DialogDescription>
+                            This will create a new <strong>Opportunity</strong> record from this Lead and mark the Lead as <strong>Converted</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <p className="text-sm text-slate-500">
+                            Do you want to proceed with creating an Opportunity?
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsConversionDialogOpen(false)} disabled={isConverting}>
+                            Cancel
+                        </Button>
+                        <Button onClick={confirmConversion} disabled={isConverting}>
+                            {isConverting ? "Converting..." : "Yes, Convert"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div >
     )
 }
