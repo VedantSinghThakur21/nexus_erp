@@ -294,39 +294,61 @@ export async function createLead(data: any) {
     defaultCompany = checkCompany?.default_company;
 
     if (!defaultCompany) {
-      // 2. Check Candidate Names
-      const candidateNames = ['Avariq', 'VFixit'];
-      for (const name of candidateNames) {
-        try {
-          const comp = await frappeRequest('frappe.client.get_value', 'GET', {
-            doctype: 'Company',
-            filters: { name: ['like', `%${name}%`] },
-            fieldname: 'name'
-          }) as { name?: string };
-          if (comp?.name) {
-            defaultCompany = comp.name;
-            break;
-          }
-        } catch (ignore) { }
-      }
-    }
-
-    if (!defaultCompany) {
-      // 3. Fallback to any company
+      // 2. Check if any company exists
       const companies = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Company',
         fields: '["name"]',
         limit_page_length: 1
       }) as { name: string }[];
+      
       if (companies && companies.length > 0) {
         defaultCompany = companies[0].name;
+      } else if (data.company_name) {
+        // 3. No company exists - create one from lead's company_name
+        console.log(`[createLead] No company exists, creating from lead: ${data.company_name}`);
+        
+        // Generate abbreviation from company name
+        const abbr = data.company_name
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .substring(0, 5)
+          .toUpperCase() || 'COMP';
+        
+        try {
+          const newCompany = await frappeRequest('frappe.client.insert', 'POST', {
+            doc: {
+              doctype: 'Company',
+              company_name: data.company_name,
+              abbr: abbr,
+              default_currency: 'INR',
+              country: 'India'
+            }
+          }) as { name: string };
+          
+          defaultCompany = newCompany.name;
+          
+          // Set as default in Global Defaults
+          try {
+            await frappeRequest('frappe.client.set_value', 'POST', {
+              doctype: 'Global Defaults',
+              name: 'Global Defaults',
+              fieldname: 'default_company',
+              value: defaultCompany
+            });
+            console.log(`[createLead] Created and set default company: ${defaultCompany}`);
+          } catch (e) {
+            console.warn('[createLead] Failed to set default company:', e);
+          }
+        } catch (e) {
+          console.error('[createLead] Failed to create company:', e);
+        }
       }
     }
+    
     if (defaultCompany) {
       leadData.company = defaultCompany;
     }
   } catch (e) {
-    console.warn('[createLead] Failed to fetch default company:', e);
+    console.warn('[createLead] Failed to fetch/create default company:', e);
   }
 
 
