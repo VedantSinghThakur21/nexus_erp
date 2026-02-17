@@ -283,9 +283,10 @@ export async function createLead(data: any) {
     mobile_no: data.mobile_no,
   }
 
-  // Fetch Default Company
+  // Fetch Default Company (Aggressive Search)
   let defaultCompany: string | undefined = undefined;
   try {
+    // 1. Check Global Defaults
     let checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
       doctype: 'Global Defaults',
       fieldname: 'default_company'
@@ -293,6 +294,25 @@ export async function createLead(data: any) {
     defaultCompany = checkCompany?.default_company;
 
     if (!defaultCompany) {
+      // 2. Check Candidate Names
+      const candidateNames = ['Avariq', 'VFixit'];
+      for (const name of candidateNames) {
+        try {
+          const comp = await frappeRequest('frappe.client.get_value', 'GET', {
+            doctype: 'Company',
+            filters: { name: ['like', `%${name}%`] },
+            fieldname: 'name'
+          }) as { name?: string };
+          if (comp?.name) {
+            defaultCompany = comp.name;
+            break;
+          }
+        } catch (ignore) { }
+      }
+    }
+
+    if (!defaultCompany) {
+      // 3. Fallback to any company
       const companies = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Company',
         fields: '["name"]',
@@ -308,6 +328,8 @@ export async function createLead(data: any) {
   } catch (e) {
     console.warn('[createLead] Failed to fetch default company:', e);
   }
+
+
 
   // Helper to safely get a valid Link field value
   const getValidLinkValue = async (doctype: string, value: string): Promise<string | undefined> => {
