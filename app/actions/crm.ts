@@ -562,7 +562,7 @@ export async function convertLeadToOpportunity(
         fields: '["name"]',
         limit_page_length: 100
       }) as { name: string }[];
-      
+
       if (types && types.length > 0) {
         // Check if provided type exists in database
         const typeNames = types.map(t => t.name);
@@ -587,7 +587,7 @@ export async function convertLeadToOpportunity(
         fields: '["name"]',
         limit_page_length: 100
       }) as { name: string }[];
-      
+
       if (stages && stages.length > 0) {
         // Check if provided stage exists in database
         const stageNames = stages.map(s => s.name);
@@ -605,6 +605,33 @@ export async function convertLeadToOpportunity(
       console.warn('[convertLeadToOpportunity] Failed to fetch Sales Stages:', e);
     }
 
+    // 4.5 Fetch Default Company
+    let checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
+      doctype: 'Global Defaults',
+      fieldname: 'default_company'
+    }) as { default_company?: string }
+
+    let defaultCompany = checkCompany?.default_company;
+
+    if (!defaultCompany) {
+      // If no global default, try to find any company
+      const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Company',
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as { name: string }[];
+      if (companies && companies.length > 0) {
+        defaultCompany = companies[0].name;
+      }
+    }
+
+    if (!defaultCompany) {
+      console.warn('[convertLeadToOpportunity] No Company found in system. This might fail if Company is mandatory.');
+    } else {
+      console.log('[convertLeadToOpportunity] Using Company:', defaultCompany);
+    }
+
+
     // 5. Always construct Opportunity doc from Lead data (no make_opportunity call)
     let opportunityDoc: any = {
       doctype: 'Opportunity',
@@ -619,6 +646,7 @@ export async function convertLeadToOpportunity(
       opportunity_amount: opportunityAmount || 0,
       with_items: 0,
       status: 'Open',
+      company: defaultCompany, // Add Company field
       probability: 10,
       expected_closing: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       notes: ''
