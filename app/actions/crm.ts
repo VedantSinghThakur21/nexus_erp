@@ -550,7 +550,48 @@ export async function convertLeadToOpportunity(
       console.log('[convertLeadToOpportunity] Created new Contact:', contactPersonName);
     }
 
-    // 4. Always construct Opportunity doc from Lead data (no make_opportunity call)
+
+    // 4. Validate and Fetch Opportunity Metadata (Type & Stage)
+    let validOpportunityType = opportunityType;
+    let validSalesStage = salesStage;
+
+    // Check if provided type exists, if not fetch first available
+    if (!validOpportunityType || validOpportunityType === 'Sales') {
+      try {
+        const types = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Opportunity Type',
+          fields: '["name"]',
+          limit_page_length: 1
+        }) as { name: string }[];
+        if (types && types.length > 0) {
+          validOpportunityType = types[0].name;
+        } else {
+          console.warn('[convertLeadToOpportunity] No Opportunity Types found in system.');
+        }
+      } catch (e) {
+        console.warn('[convertLeadToOpportunity] Failed to fetch Opportunity Types:', e);
+      }
+    }
+
+    // Check if provided stage exists, if not fetch first available
+    if (!validSalesStage || validSalesStage === 'Qualification') {
+      try {
+        const stages = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Sales Stage',
+          fields: '["name"]',
+          limit_page_length: 1
+        }) as { name: string }[];
+        if (stages && stages.length > 0) {
+          validSalesStage = stages[0].name;
+        } else {
+          console.warn('[convertLeadToOpportunity] No Sales Stages found in system.');
+        }
+      } catch (e) {
+        console.warn('[convertLeadToOpportunity] Failed to fetch Sales Stages:', e);
+      }
+    }
+
+    // 5. Always construct Opportunity doc from Lead data (no make_opportunity call)
     let opportunityDoc: any = {
       doctype: 'Opportunity',
       opportunity_from: createCustomer ? 'Customer' : 'Lead',
@@ -564,8 +605,8 @@ export async function convertLeadToOpportunity(
       opportunity_amount: opportunityAmount || 0,
       with_items: 0,
       status: 'Open',
-      sales_stage: salesStage || 'Qualification',
-      opportunity_type: opportunityType || 'Sales',
+      sales_stage: validSalesStage || 'Qualification', // Fallback to provided or fetched, else keep default (which might fail)
+      opportunity_type: validOpportunityType || 'Sales',
       probability: 10,
       expected_closing: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       notes: ''
