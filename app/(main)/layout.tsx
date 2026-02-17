@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { TenantGuard } from "@/components/auth/tenant-guard";
+import { FloatingAIChat } from "@/components/ai/floating-chat";
 
 import { cookies } from "next/headers"
 
@@ -19,6 +20,7 @@ export default async function DashboardLayout({
       <main className="ml-64 flex-1 min-h-screen">
         <TenantGuard hasApiKey={hasApiKey}>
           {children}
+          <FloatingAIChat />
         </TenantGuard>
       </main>
     </div>
