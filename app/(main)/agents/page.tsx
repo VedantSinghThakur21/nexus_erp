@@ -1,14 +1,31 @@
 "use client";
 
-import { useChat } from "ai/react";
 import { useEffect, useRef, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { PageHeader } from "@/components/page-header";
 
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
 export default function AgentsPage() {
   const [showDebug, setShowDebug] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+  // Chat State
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      role: "assistant",
+      content: "Hello! I'm **AvarIQ**, your autonomous agent. I can help you manage Leads, Fleet, Customers, and Invoices.",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const addDebugLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -16,49 +33,98 @@ export default function AgentsPage() {
     console.log(`[DEBUG] ${message}`);
   };
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-    api: "/api/chat",
-    streamProtocol: "text",
-
-    body: {
-      tenant_id: "master",
-    },
-
-    initialMessages: [
-      {
-        id: "1",
-        role: "assistant",
-        content:
-          "Hello! I'm **AvarIQ**, your autonomous agent. I can help you manage Leads, Fleet, Customers, and Invoices.",
-      },
-    ],
-
-    onResponse: (response) => {
-      addDebugLog(`✅ Response received: ${response.status} ${response.statusText}`);
-    },
-
-    onFinish: (message) => {
-      addDebugLog(`✅ Message finished: ${message.content.substring(0, 100)}...`);
-    },
-
-    onError: (error) => {
-      addDebugLog(`❌ Error: ${error.message}`);
-      console.error("Chat Error:", error);
-    },
-  });
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleCustomSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    addDebugLog(`📤 Sending message: "${input}"`);
-    handleSubmit(e);
+    const userMessageContent = input;
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: userMessageContent,
+    };
+
+    setInput("");
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+    addDebugLog(`📤 Sending message: "${userMessageContent}"`);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: userMessageContent }],
+          conversation_id: "",
+          tenant_id: "master",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to send message: ${response.statusText}`);
+      }
+
+      addDebugLog(`✅ Response received: ${response.status} ${response.statusText}`);
+
+      // Initialize assistant message
+      const assistantId = (Date.now() + 1).toString();
+      setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) return;
+
+      let assistantMessageContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          addDebugLog(`✅ Message finished: ${assistantMessageContent.substring(0, 100)}...`);
+          break;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        assistantMessageContent += chunk;
+
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastIndex = newMessages.length - 1;
+          if (newMessages[lastIndex].role === "assistant") {
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              content: assistantMessageContent
+            };
+          }
+          return newMessages;
+        });
+      }
+
+    } catch (err: any) {
+      console.error("Chat error:", err);
+      setError(err);
+      addDebugLog(`❌ Error: ${err.message}`);
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now().toString(), role: "assistant", content: "Sorry, I'm having trouble connecting to the AI right now." },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCustomSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleSend();
   };
 
   // Calculate KPIs from messages
@@ -212,10 +278,7 @@ export default function AgentsPage() {
                           <div className="flex flex-wrap gap-1.5">
                             <button
                               onClick={() => {
-                                const event = {
-                                  target: { value: "Show me all leads" },
-                                } as any;
-                                handleInputChange(event);
+                                setInput("Show me all leads");
                               }}
                               className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
                             >
@@ -223,10 +286,7 @@ export default function AgentsPage() {
                             </button>
                             <button
                               onClick={() => {
-                                const event = {
-                                  target: { value: "Find available 50T Cranes" },
-                                } as any;
-                                handleInputChange(event);
+                                setInput("Find available 50T Cranes");
                               }}
                               className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
                             >
@@ -234,10 +294,7 @@ export default function AgentsPage() {
                             </button>
                             <button
                               onClick={() => {
-                                const event = {
-                                  target: { value: "Create a lead for Acme Corp" },
-                                } as any;
-                                handleInputChange(event);
+                                setInput("Create a lead for Acme Corp");
                               }}
                               className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
                             >

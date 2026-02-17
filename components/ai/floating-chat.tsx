@@ -66,33 +66,17 @@ export function FloatingAIChat() {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        // Dify sends data: { ... } \n\n
-        const lines = chunk.split('\n');
+        const chunk = decoder.decode(value, { stream: true });
+        assistantMessage += chunk;
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              // Check event type
-              if (data.event === 'message' || data.event === 'agent_message') {
-                assistantMessage += data.answer;
-
-                // Update the last message (assistant) with new content
-                setMessages(prev => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1] = {
-                    role: 'assistant',
-                    content: assistantMessage
-                  };
-                  return newMessages;
-                });
-              }
-            } catch (e) {
-              console.error('Error parsing SSE:', e);
-            }
-          }
-        }
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = {
+            role: 'assistant',
+            content: assistantMessage
+          };
+          return newMessages;
+        });
       }
 
     } catch (error) {
