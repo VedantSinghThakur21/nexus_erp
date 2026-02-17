@@ -2,7 +2,6 @@
 
 import { cookies } from 'next/headers'
 import { provisionTenantSite, ProvisioningError } from '@/lib/provisioning-client'
-import { setupCrmMasterData } from './setup-crm'
 
 /**
  * Provision Server Action (Step 2 of 2)
@@ -85,21 +84,6 @@ export async function performProvisioning(): Promise<{
           ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
           : undefined,
       })
-
-      // ── Setup CRM Master Data (Opportunity Types & Sales Stages) ──
-      console.log('[Provision Action] Setting up CRM master data...')
-      try {
-        const crmSetup = await setupCrmMasterData()
-        if (crmSetup.success) {
-          console.log('[Provision Action] ✓ CRM master data setup complete:', crmSetup.results)
-        } else {
-          console.warn('[Provision Action] ⚠ CRM master data setup failed:', crmSetup.error)
-          // Don't fail the whole provisioning if CRM setup fails
-        }
-      } catch (error) {
-        console.warn('[Provision Action] ⚠ CRM master data setup error:', error)
-        // Continue with provisioning even if CRM setup fails
-      }
     }
 
     // ── Clear pending signup cookie ──

@@ -536,6 +536,42 @@ else:
     except Exception as e:
         logger.warning(f"  ⚠ SaaS Settings seeding failed (non-fatal): {e}")
 
+    # ── Step 4b: Setup CRM Master Data (Opportunity Types & Sales Stages) ──
+    try:
+        crm_setup_code = """
+import json
+
+result = {"opportunity_types": 0, "sales_stages": 0}
+
+# Setup Opportunity Types
+default_types = ["Sales", "Rental", "Maintenance", "Service"]
+for type_name in default_types:
+    if not frappe.db.exists("Opportunity Type", type_name):
+        doc = frappe.new_doc("Opportunity Type")
+        doc.name = type_name
+        doc.insert(ignore_permissions=True)
+        result["opportunity_types"] += 1
+
+# Setup Sales Stages  
+default_stages = ["Prospecting", "Qualification", "Needs Analysis", "Proposal", "Negotiation", "Won", "Lost"]
+for stage_name in default_stages:
+    if not frappe.db.exists("Sales Stage", stage_name):
+        doc = frappe.new_doc("Sales Stage")
+        doc.stage_name = stage_name
+        doc.insert(ignore_permissions=True)
+        result["sales_stages"] += 1
+
+frappe.db.commit()
+print(json.dumps(result))
+"""
+        output = run_frappe_code(site_name, crm_setup_code)
+        crm_result = _parse_json_output(output)
+        
+        steps_completed.append("crm_master_data_seeded")
+        logger.info(f"  ✓ CRM master data seeded: {crm_result.get('opportunity_types', 0)} types, {crm_result.get('sales_stages', 0)} stages")
+    except Exception as e:
+        logger.warning(f"  ⚠ CRM master data seeding failed (non-fatal): {e}")
+
     # ── Step 5: Register in Master DB ──
     try:
         protocol = "https" if IS_PRODUCTION else "http"
