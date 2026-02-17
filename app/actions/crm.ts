@@ -205,6 +205,31 @@ export async function updateOpportunitySalesStage(opportunityId: string, salesSt
     return { error: error.message || 'Failed to update sales stage' }
   }
 }
+// 4. READ: Get Opportunity Metadata (Types & Stages)
+export async function getOpportunityMetadata() {
+  try {
+    const types = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Opportunity Type',
+      fields: '["name"]',
+      limit_page_length: 50
+    }) as { name: string }[];
+
+    const stages = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Stage',
+      fields: '["name"]',
+      limit_page_length: 50
+    }) as { name: string }[];
+
+    return {
+      types: types.map(t => t.name),
+      stages: stages.map(s => s.name)
+    };
+  } catch (error) {
+    console.error("Failed to fetch opportunity metadata:", error);
+    return { types: [], stages: [] };
+  }
+}
+
 
 // ========== LEADS ==========
 
@@ -453,7 +478,13 @@ export async function convertLeadToCustomer(leadId: string) {
 }
 
 // 3. CONVERT: Create Opportunity from Lead using native ERPNext method
-export async function convertLeadToOpportunity(leadId: string, createCustomer: boolean = false, opportunityAmount: number = 0) {
+export async function convertLeadToOpportunity(
+  leadId: string,
+  createCustomer: boolean = false,
+  opportunityAmount: number = 0,
+  opportunityType: string = 'Sales',
+  salesStage: string = 'Qualification'
+) {
   try {
     console.log('[convertLeadToOpportunity] Starting conversion for lead:', leadId)
 
@@ -533,7 +564,8 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       opportunity_amount: opportunityAmount || 0,
       with_items: 0,
       status: 'Open',
-      sales_stage: 'Qualification',
+      sales_stage: salesStage || 'Qualification',
+      opportunity_type: opportunityType || 'Sales',
       probability: 10,
       expected_closing: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       notes: ''
@@ -1732,3 +1764,4 @@ export async function returnAsset(serialNo: string, orderId?: string) {
     return { error: error.message || 'Failed to return asset' }
   }
 }
+

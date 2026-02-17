@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { updateLeadStatus, convertLeadToOpportunity } from "@/app/actions/crm"
+import { updateLeadStatus, convertLeadToOpportunity, getOpportunityMetadata } from "@/app/actions/crm"
 import { PageHeader } from "@/components/page-header"
 import {
     Dialog,
@@ -14,6 +14,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToastHelpers } from "@/components/ui/toast"
 
 interface Lead {
@@ -91,6 +94,21 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     const [isConversionDialogOpen, setIsConversionDialogOpen] = useState(false)
     const [pendingConversion, setPendingConversion] = useState<{ leadName: string, newStatus: string } | null>(null)
     const [isConverting, setIsConverting] = useState(false)
+    const [opportunityAmount, setOpportunityAmount] = useState<number>(0)
+    const [opportunityType, setOpportunityType] = useState<string>('Sales')
+    const [salesStage, setSalesStage] = useState<string>('Qualification')
+    const [metadata, setMetadata] = useState<{ types: string[], stages: string[] }>({ types: [], stages: [] })
+
+    // Fetch metadata when dialog opens
+    const handleConversionDialogOpen = async (open: boolean) => {
+        setIsConversionDialogOpen(open)
+        if (open && metadata.types.length === 0) {
+            const data = await getOpportunityMetadata()
+            setMetadata(data)
+            if (data.types.length > 0) setOpportunityType(data.types[0])
+            if (data.stages.length > 0) setSalesStage(data.stages[0])
+        }
+    }
 
 
 
@@ -165,7 +183,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
         // Special handling for Opportunity conversion
         if (newStatus === "Opportunity") {
             setPendingConversion({ leadName, newStatus })
-            setIsConversionDialogOpen(true)
+            handleConversionDialogOpen(true)
             return
         }
 
@@ -188,7 +206,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
 
         setIsConverting(true)
         try {
-            const res = await convertLeadToOpportunity(pendingConversion.leadName)
+            const res = await convertLeadToOpportunity(
+                pendingConversion.leadName,
+                false, // createCustomer
+                opportunityAmount,
+                opportunityType,
+                salesStage
+            )
 
             if (res.success) {
                 toast.success("Success", "Lead converted to Opportunity successfully!")
@@ -203,11 +227,14 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
             setIsConverting(false)
             setIsConversionDialogOpen(false)
             setPendingConversion(null)
+            setOpportunityAmount(0)
+            setOpportunityType('Sales')
+            setSalesStage('Qualification')
         }
     }
 
     // Drag and drop handlers for Kanban
-    // Drag and drop handlers for Kanban
+
     const handleDragStart = (e: React.DragEvent, leadName: string, leadStatus: string) => {
         // Prevent dragging converted leads
         if (leadStatus === "Converted") {

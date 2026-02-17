@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { DndContext, DragEndEvent, closestCorners } from '@dnd-kit/core'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { updateLeadStatus, convertLeadToOpportunity } from "@/app/actions/crm"
+import { updateLeadStatus, convertLeadToOpportunity, getOpportunityMetadata } from "@/app/actions/crm"
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -16,6 +16,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToastHelpers } from "@/components/ui/toast"
 
 // Define the columns for your pipeline (Updated with proper ERPNext Lead statuses)
@@ -40,6 +43,21 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
   const [isConversionDialogOpen, setIsConversionDialogOpen] = useState(false)
   const [pendingConversion, setPendingConversion] = useState<{ leadId: string, newStatus: string } | null>(null)
   const [isConverting, setIsConverting] = useState(false)
+  const [opportunityAmount, setOpportunityAmount] = useState<number>(0)
+  const [opportunityType, setOpportunityType] = useState<string>('Sales')
+  const [salesStage, setSalesStage] = useState<string>('Qualification')
+  const [metadata, setMetadata] = useState<{ types: string[], stages: string[] }>({ types: [], stages: [] })
+
+  // Fetch metadata when dialog opens
+  const handleConversionDialogOpen = async (open: boolean) => {
+    setIsConversionDialogOpen(open)
+    if (open && metadata.types.length === 0) {
+      const data = await getOpportunityMetadata()
+      setMetadata(data)
+      if (data.types.length > 0) setOpportunityType(data.types[0])
+      if (data.stages.length > 0) setSalesStage(data.stages[0])
+    }
+  }
 
   // Handle the drop event
   async function handleDragEnd(event: DragEndEvent) {
@@ -57,7 +75,8 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
     // Special handling for Opportunity conversion
     if (newStatus === 'Opportunity') {
       setPendingConversion({ leadId, newStatus })
-      setIsConversionDialogOpen(true)
+      setPendingConversion({ leadId, newStatus })
+      handleConversionDialogOpen(true)
       return
     }
 
@@ -86,8 +105,13 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
     setIsConverting(true)
     try {
       // Perform the actual conversion logic
-      // We assume convertLeadToOpportunity handles the creation of the Opp and updating Lead status
-      const res = await convertLeadToOpportunity(pendingConversion.leadId)
+      const res = await convertLeadToOpportunity(
+        pendingConversion.leadId,
+        false, // createCustomer
+        opportunityAmount,
+        opportunityType,
+        salesStage
+      )
 
       if (res.success) {
         // Remove from board or move to 'Converted'? 
@@ -120,6 +144,9 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
       setIsConverting(false)
       setIsConversionDialogOpen(false)
       setPendingConversion(null)
+      setOpportunityAmount(0)
+      setOpportunityType('Sales')
+      setSalesStage('Qualification')
     }
   }
 
@@ -145,7 +172,7 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
       </DndContext>
 
       {/* Conversion Confirmation Dialog */}
-      <Dialog open={isConversionDialogOpen} onOpenChange={setIsConversionDialogOpen}>
+      <Dialog open={isConversionDialogOpen} onOpenChange={handleConversionDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Convert to Opportunity?</DialogTitle>
@@ -153,10 +180,52 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
               This will create a new <strong>Opportunity</strong> record from this Lead and mark the Lead as <strong>Converted</strong>.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-4">
             <p className="text-sm text-slate-500">
-              Do you want to proceed with creating an Opportunity?
+              Do you want to proceed with creating an Opportunity? You can set the initial details below.
             </p>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Opportunity Type</Label>
+                <Select value={opportunityType} onValueChange={setOpportunityType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {metadata.types.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                    {metadata.types.length === 0 && <SelectItem value="Sales">Sales</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Sales Stage</Label>
+                <Select value={salesStage} onValueChange={setSalesStage}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {metadata.stages.map(stage => (
+                      <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+                    ))}
+                    {metadata.stages.length === 0 && <SelectItem value="Qualification">Qualification</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Estimated Amount</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={opportunityAmount}
+                  onChange={(e) => setOpportunityAmount(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsConversionDialogOpen(false)} disabled={isConverting}>
