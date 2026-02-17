@@ -552,8 +552,8 @@ export async function convertLeadToOpportunity(
 
 
     // 4. Validate and Fetch Opportunity Metadata (Type & Stage)
-    let validOpportunityType = opportunityType;
-    let validSalesStage = salesStage;
+    let validOpportunityType: string | undefined = opportunityType;
+    let validSalesStage: string | undefined = salesStage;
 
     // Check if provided type exists, if not fetch first available
     if (!validOpportunityType || validOpportunityType === 'Sales') {
@@ -567,9 +567,11 @@ export async function convertLeadToOpportunity(
           validOpportunityType = types[0].name;
         } else {
           console.warn('[convertLeadToOpportunity] No Opportunity Types found in system.');
+          validOpportunityType = undefined; // Don't use non-existent value
         }
       } catch (e) {
         console.warn('[convertLeadToOpportunity] Failed to fetch Opportunity Types:', e);
+        validOpportunityType = undefined; // Don't use non-existent value
       }
     }
 
@@ -585,9 +587,11 @@ export async function convertLeadToOpportunity(
           validSalesStage = stages[0].name;
         } else {
           console.warn('[convertLeadToOpportunity] No Sales Stages found in system.');
+          validSalesStage = undefined; // Don't use non-existent value
         }
       } catch (e) {
         console.warn('[convertLeadToOpportunity] Failed to fetch Sales Stages:', e);
+        validSalesStage = undefined; // Don't use non-existent value
       }
     }
 
@@ -605,12 +609,18 @@ export async function convertLeadToOpportunity(
       opportunity_amount: opportunityAmount || 0,
       with_items: 0,
       status: 'Open',
-      sales_stage: validSalesStage || 'Qualification', // Fallback to provided or fetched, else keep default (which might fail)
-      opportunity_type: validOpportunityType || 'Sales',
       probability: 10,
       expected_closing: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       notes: ''
     };
+
+    // Only add sales_stage and opportunity_type if they exist in the database
+    if (validSalesStage) {
+      opportunityDoc.sales_stage = validSalesStage;
+    }
+    if (validOpportunityType) {
+      opportunityDoc.opportunity_type = validOpportunityType;
+    }
 
     // Remove the name field if it exists (it might be empty)
     if (opportunityDoc.name === undefined || opportunityDoc.name === null || opportunityDoc.name === '') {
@@ -1327,14 +1337,35 @@ export async function markOpportunityAsLost(opportunityId: string, lostReason: s
 // Reopen Opportunity (Undo Won/Lost)
 export async function reopenOpportunity(opportunityId: string) {
   try {
+    // Fetch a valid sales stage if it exists
+    let validSalesStage: string | undefined = undefined;
+    try {
+      const stages = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Sales Stage',
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as { name: string }[];
+      if (stages && stages.length > 0) {
+        validSalesStage = stages[0].name;
+      }
+    } catch (e) {
+      console.warn('[reopenOpportunity] Failed to fetch Sales Stages:', e);
+    }
+
+    const updateFields: any = {
+      status: 'Open',
+      probability: 20
+    };
+
+    // Only set sales_stage if a valid one exists
+    if (validSalesStage) {
+      updateFields.sales_stage = validSalesStage;
+    }
+
     await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Opportunity',
       name: opportunityId,
-      fieldname: {
-        status: 'Open',
-        sales_stage: 'Qualification',
-        probability: 20
-      }
+      fieldname: updateFields
     })
 
     revalidatePath('/crm')
