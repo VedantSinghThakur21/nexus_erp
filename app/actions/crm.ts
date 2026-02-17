@@ -552,47 +552,57 @@ export async function convertLeadToOpportunity(
 
 
     // 4. Validate and Fetch Opportunity Metadata (Type & Stage)
-    let validOpportunityType: string | undefined = opportunityType;
-    let validSalesStage: string | undefined = salesStage;
+    let validOpportunityType: string | undefined = undefined;
+    let validSalesStage: string | undefined = undefined;
 
-    // Check if provided type exists, if not fetch first available
-    if (!validOpportunityType || validOpportunityType === 'Sales') {
-      try {
-        const types = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Opportunity Type',
-          fields: '["name"]',
-          limit_page_length: 1
-        }) as { name: string }[];
-        if (types && types.length > 0) {
-          validOpportunityType = types[0].name;
+    // Always fetch available types from database to validate
+    try {
+      const types = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Opportunity Type',
+        fields: '["name"]',
+        limit_page_length: 100
+      }) as { name: string }[];
+      
+      if (types && types.length > 0) {
+        // Check if provided type exists in database
+        const typeNames = types.map(t => t.name);
+        if (opportunityType && typeNames.includes(opportunityType)) {
+          validOpportunityType = opportunityType;
         } else {
-          console.warn('[convertLeadToOpportunity] No Opportunity Types found in system.');
-          validOpportunityType = undefined; // Don't use non-existent value
+          // Use first available type as fallback
+          validOpportunityType = types[0].name;
+          console.log(`[convertLeadToOpportunity] Using first available Opportunity Type: ${validOpportunityType}`);
         }
-      } catch (e) {
-        console.warn('[convertLeadToOpportunity] Failed to fetch Opportunity Types:', e);
-        validOpportunityType = undefined; // Don't use non-existent value
+      } else {
+        console.warn('[convertLeadToOpportunity] No Opportunity Types found in system - field will be omitted.');
       }
+    } catch (e) {
+      console.warn('[convertLeadToOpportunity] Failed to fetch Opportunity Types:', e);
     }
 
-    // Check if provided stage exists, if not fetch first available
-    if (!validSalesStage || validSalesStage === 'Qualification') {
-      try {
-        const stages = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Sales Stage',
-          fields: '["name"]',
-          limit_page_length: 1
-        }) as { name: string }[];
-        if (stages && stages.length > 0) {
-          validSalesStage = stages[0].name;
+    // Always fetch available stages from database to validate
+    try {
+      const stages = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Sales Stage',
+        fields: '["name"]',
+        limit_page_length: 100
+      }) as { name: string }[];
+      
+      if (stages && stages.length > 0) {
+        // Check if provided stage exists in database
+        const stageNames = stages.map(s => s.name);
+        if (salesStage && stageNames.includes(salesStage)) {
+          validSalesStage = salesStage;
         } else {
-          console.warn('[convertLeadToOpportunity] No Sales Stages found in system.');
-          validSalesStage = undefined; // Don't use non-existent value
+          // Use first available stage as fallback
+          validSalesStage = stages[0].name;
+          console.log(`[convertLeadToOpportunity] Using first available Sales Stage: ${validSalesStage}`);
         }
-      } catch (e) {
-        console.warn('[convertLeadToOpportunity] Failed to fetch Sales Stages:', e);
-        validSalesStage = undefined; // Don't use non-existent value
+      } else {
+        console.warn('[convertLeadToOpportunity] No Sales Stages found in system - field will be omitted.');
       }
+    } catch (e) {
+      console.warn('[convertLeadToOpportunity] Failed to fetch Sales Stages:', e);
     }
 
     // 5. Always construct Opportunity doc from Lead data (no make_opportunity call)
