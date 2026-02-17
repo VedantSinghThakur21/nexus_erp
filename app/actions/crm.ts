@@ -121,28 +121,28 @@ async function getTenantSiteName(): Promise<string> {
   try {
     const headersList = await headers()
     const cookieStore = await cookies()
-    
+
     // First check cookies
     const cookieTenant = cookieStore.get('tenant_subdomain')?.value
     if (cookieTenant) {
       console.log(`[DEBUG] Tenant from cookie: ${cookieTenant}`)
       return `${cookieTenant}.localhost`
     }
-    
+
     // Then check X-Subdomain header (set by middleware)
     const headerSubdomain = headersList.get('X-Subdomain')
     if (headerSubdomain) {
       console.log(`[DEBUG] Tenant from header: ${headerSubdomain}`)
       return `${headerSubdomain}.localhost`
     }
-    
+
     // Check x-tenant-id header
     const tenantHeader = headersList.get('x-tenant-id')
     if (tenantHeader) {
       console.log(`[DEBUG] Tenant from x-tenant-id: ${tenantHeader}`)
       return `${tenantHeader}.localhost`
     }
-    
+
     console.log(`[DEBUG] No tenant context found, using master site`)
     return 'erp.localhost'
   } catch (error) {
@@ -196,7 +196,7 @@ export async function updateOpportunitySalesStage(opportunityId: string, salesSt
         probability: probability
       }
     })
-    
+
     revalidatePath('/crm')
     revalidatePath(`/crm/opportunities/${opportunityId}`)
     return { success: true }
@@ -212,8 +212,8 @@ export async function updateOpportunitySalesStage(opportunityId: string, salesSt
 export async function getLeads() {
   try {
     const response = await frappeRequest(
-      'frappe.client.get_list', 
-      'GET', 
+      'frappe.client.get_list',
+      'GET',
       {
         doctype: 'Lead',
         fields: '["name", "lead_name", "email_id", "mobile_no", "status", "company_name", "job_title", "territory"]',
@@ -233,11 +233,11 @@ export async function createLead(data: any) {
   // Check usage limits first
   const headersList = await headers()
   const subdomain = headersList.get('X-Subdomain')
-  
+
   if (subdomain) {
     const usageCheck = await canCreateLead(subdomain)
     if (!usageCheck.allowed) {
-      return { 
+      return {
         error: usageCheck.message || 'Lead limit reached',
         limitReached: true,
         currentUsage: usageCheck.current,
@@ -245,32 +245,59 @@ export async function createLead(data: any) {
       }
     }
   }
-  
+
   // Build the lead document with required fields
   const leadData: any = {
     doctype: 'Lead',
     // Details
     first_name: data.first_name,
     status: 'Lead', // Default status
-    
+
     // Contact Info
     email_id: data.email_id,
     mobile_no: data.mobile_no,
   }
 
+  // Helper to safely get a valid Link field value
+  const getValidLinkValue = async (doctype: string, value: string): Promise<string | undefined> => {
+    if (!value) return undefined;
+    try {
+      // 1. Try exact match
+      const exact = await frappeRequest('frappe.client.get_value', 'GET', {
+        doctype,
+        filters: { name: value },
+        fieldname: 'name'
+      });
+      if (exact && exact.name) return exact.name;
+
+      // 2. Try "like" match (useful for "Mr" vs "Mr.", or case sensitivity)
+      const similar = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype,
+        filters: { name: ['like', `%${value}%`] },
+        limit_page_length: 1
+      }) as any[];
+      if (similar && similar.length > 0) return similar[0].name;
+    } catch (e) {
+      console.warn(`[createLead] Failed to validate ${doctype} value '${value}':`, e);
+    }
+    console.warn(`[createLead] Invalid value for ${doctype}: '${value}'. Skipping.`);
+    return undefined;
+  };
+
   // Add optional fields only if they have values
-  if (data.salutation) leadData.salutation = data.salutation
+  if (data.salutation) leadData.salutation = await getValidLinkValue('Salutation', data.salutation);
+  if (data.source) leadData.source = await getValidLinkValue('Lead Source', data.source);
+  if (data.industry) leadData.industry = await getValidLinkValue('Industry Type', data.industry);
+
   if (data.middle_name) leadData.middle_name = data.middle_name
   if (data.last_name) leadData.last_name = data.last_name
   if (data.job_title) leadData.job_title = data.job_title
   if (data.gender) leadData.gender = data.gender
-  if (data.source) leadData.source = data.source
   if (data.phone) leadData.phone = data.phone
   if (data.website) leadData.website = data.website
   if (data.company_name) leadData.company_name = data.company_name
   if (data.no_of_employees) leadData.no_of_employees = data.no_of_employees
   if (data.annual_revenue) leadData.annual_revenue = data.annual_revenue
-  if (data.industry) leadData.industry = data.industry
   if (data.market_segment) leadData.market_segment = data.market_segment
   if (data.territory) leadData.territory = data.territory
   if (data.fax) leadData.fax = data.fax
@@ -284,12 +311,12 @@ export async function createLead(data: any) {
     await frappeRequest('frappe.client.insert', 'POST', {
       doc: leadData
     })
-    
+
     // Increment usage counter
     if (subdomain) {
       await incrementUsage(subdomain, 'usage_leads')
     }
-    
+
     revalidatePath('/crm')
     return { success: true }
   } catch (error: any) {
@@ -321,9 +348,9 @@ export async function updateLead(leadId: string, formData: FormData) {
 
   try {
     await frappeRequest('frappe.client.set_value', 'POST', {
-        doctype: 'Lead',
-        name: leadId,
-        fieldname: values
+      doctype: 'Lead',
+      name: leadId,
+      fieldname: values
     })
 
     revalidatePath(`/crm/${leadId}`)
@@ -365,8 +392,8 @@ export interface Customer {
 export async function getCustomers() {
   try {
     const response = await frappeRequest(
-      'frappe.client.get_list', 
-      'GET', 
+      'frappe.client.get_list',
+      'GET',
       {
         doctype: 'Customer',
         fields: '["name", "customer_name", "customer_type", "territory"]',
@@ -386,20 +413,20 @@ export async function convertLeadToCustomer(leadId: string) {
   try {
     // 1. Fetch Lead Details
     const lead = await frappeRequest('frappe.client.get', 'GET', {
-        doctype: 'Lead', 
-        name: leadId 
+      doctype: 'Lead',
+      name: leadId
     }) as Lead & { organization_slug?: string }
 
     if (!lead) throw new Error("Lead not found")
 
     // 2. Create Customer Object
     const customerData: any = {
-        doctype: 'Customer',
-        customer_name: lead.company_name || lead.lead_name, // Prefer Company Name
-        customer_type: lead.company_name ? 'Company' : 'Individual',
-        territory: lead.territory || 'All Territories',
-        email_id: lead.email_id,
-        mobile_no: lead.mobile_no
+      doctype: 'Customer',
+      customer_name: lead.company_name || lead.lead_name, // Prefer Company Name
+      customer_type: lead.company_name ? 'Company' : 'Individual',
+      territory: lead.territory || 'All Territories',
+      email_id: lead.email_id,
+      mobile_no: lead.mobile_no
     }
 
     // 3. Add organization_slug from the source lead for multi-tenancy
@@ -409,13 +436,13 @@ export async function convertLeadToCustomer(leadId: string) {
 
     // 4. Save to ERPNext
     const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData }) as { name: string }
-    
+
     // 5. Update Lead Status to 'Converted'
     await frappeRequest('frappe.client.set_value', 'POST', {
-        doctype: 'Lead',
-        name: leadId,
-        fieldname: 'status',
-        value: 'Converted'
+      doctype: 'Lead',
+      name: leadId,
+      fieldname: 'status',
+      value: 'Converted'
     })
 
     revalidatePath('/crm')
@@ -429,7 +456,7 @@ export async function convertLeadToCustomer(leadId: string) {
 export async function convertLeadToOpportunity(leadId: string, createCustomer: boolean = false, opportunityAmount: number = 0) {
   try {
     console.log('[convertLeadToOpportunity] Starting conversion for lead:', leadId)
-    
+
 
     // 1. Fetch Lead details (needed for organization_slug)
     const lead = await frappeRequest('frappe.client.get', 'GET', {
@@ -569,7 +596,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
       stack: error.stack,
       fullError: error
     })
-    return { 
+    return {
       error: error.message || 'Failed to convert lead to opportunity'
     }
   }
@@ -581,7 +608,7 @@ export async function convertLeadToOpportunity(leadId: string, createCustomer: b
 export async function createQuotationFromOpportunity(opportunityId: string) {
   try {
     console.log('[createQuotationFromOpportunity] Starting quotation creation from opportunity:', opportunityId)
-    
+
     // 1. Fetch Opportunity to get organization_slug for multi-tenancy
     const opportunity = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Opportunity',
@@ -608,7 +635,7 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
 
     // 3. Extract the quotation document
     const quotationDoc = draftQuotation.message || draftQuotation
-    
+
     // Remove the name field if it exists (it might be empty)
     if (quotationDoc.name === undefined || quotationDoc.name === null || quotationDoc.name === '') {
       delete quotationDoc.name
@@ -690,7 +717,7 @@ export async function createQuotation(quotationData: {
       // Map rental fields to custom fields if this is a rental item
       if (item.is_rental || item.rental_type || item.rental_duration) {
         mappedItem.custom_is_rental = 1
-        
+
         // Capitalize rental_type for ERPNext Select field (days -> Days, hours -> Hours, months -> Months)
         if (item.rental_type) {
           mappedItem.custom_rental_type = item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1)
@@ -700,11 +727,11 @@ export async function createQuotation(quotationData: {
         if (item.rental_end_date) mappedItem.custom_rental_end_date = item.rental_end_date
         if (item.rental_start_time) mappedItem.custom_rental_start_time = item.rental_start_time
         if (item.rental_end_time) mappedItem.custom_rental_end_time = item.rental_end_time
-        
+
         if (item.requires_operator) mappedItem.custom_requires_operator = 1
         if (item.operator_included) mappedItem.custom_operator_included = 1
         if (item.operator_name) mappedItem.custom_operator_name = item.operator_name
-        
+
         // Map pricing components
         if (item.pricing_components) {
           mappedItem.custom_base_rental_cost = item.pricing_components.base_cost || 0
@@ -717,7 +744,7 @@ export async function createQuotation(quotationData: {
           mappedItem.custom_incidental_charges = item.pricing_components.incidental_charges || 0
           mappedItem.custom_other_charges = item.pricing_components.other_charges || 0
         }
-        
+
         if (item.total_rental_cost) mappedItem.custom_total_rental_cost = item.total_rental_cost
       }
 
@@ -739,7 +766,7 @@ export async function createQuotation(quotationData: {
     if (quotationData.payment_terms_template) {
       doc.payment_terms_template = quotationData.payment_terms_template
     }
-    
+
     if (quotationData.terms) {
       doc.terms = quotationData.terms
     }
@@ -747,14 +774,14 @@ export async function createQuotation(quotationData: {
     // If tax template is specified, fetch and add tax rows
     if (quotationData.taxes_and_charges) {
       doc.taxes_and_charges = quotationData.taxes_and_charges
-      
+
       try {
         // Fetch the tax template to get the tax rows
         const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
           doctype: 'Sales Taxes and Charges Template',
           name: quotationData.taxes_and_charges
         }) as { taxes?: any[] }
-        
+
         // Add the tax rows to the quotation
         if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
           doc.taxes = taxTemplate.taxes.map((tax: any, idx: number) => ({
@@ -783,7 +810,7 @@ export async function createQuotation(quotationData: {
 
     revalidatePath('/crm')
     revalidatePath('/crm/quotations')
-    
+
     return quotation
   } catch (error: any) {
     console.error("Create quotation error:", error)
@@ -882,11 +909,11 @@ export async function updateQuotation(quotationId: string, quotationData: {
     if (quotationData.payment_terms_template) {
       updatedQuotation.payment_terms_template = quotationData.payment_terms_template
     }
-    
+
     if (quotationData.terms) {
       updatedQuotation.terms = quotationData.terms
     }
-    
+
     if (quotationData.opportunity) {
       updatedQuotation.opportunity = quotationData.opportunity
     }
@@ -894,14 +921,14 @@ export async function updateQuotation(quotationId: string, quotationData: {
     // If tax template is specified, fetch and add tax rows
     if (quotationData.taxes_and_charges) {
       updatedQuotation.taxes_and_charges = quotationData.taxes_and_charges
-      
+
       try {
         // Fetch the tax template to get the tax rows
         const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
           doctype: 'Sales Taxes and Charges Template',
           name: quotationData.taxes_and_charges
         }) as { taxes?: any[] }
-        
+
         // Add the tax rows to the quotation
         if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
           updatedQuotation.taxes = taxTemplate.taxes.map((tax: any, idx: number) => ({
@@ -1034,9 +1061,9 @@ export async function getCompanyDetails() {
       fields: '["name", "tax_id"]',
       limit_page_length: 1
     }) as any[];
-    
+
     if (!companies || companies.length === 0) return null;
-    
+
     const company = companies[0];
     return { name: company.name, gstin: company.tax_id }
   } catch (e) {
@@ -1053,17 +1080,17 @@ export async function getBankDetails() {
       fields: '["name"]',
       limit_page_length: 1
     }) as any[];
-    
+
     if (!companies || companies.length === 0) return null;
     const companyName = companies[0].name;
-    
+
     const banks = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Bank Account',
-        filters: `[["company", "=", "${companyName}"], ["is_default", "=", 1]]`,
-        fields: '["bank", "bank_account_no", "branch_code"]',
-        limit_page_length: 1
+      doctype: 'Bank Account',
+      filters: `[["company", "=", "${companyName}"], ["is_default", "=", 1]]`,
+      fields: '["bank", "bank_account_no", "branch_code"]',
+      limit_page_length: 1
     }) as any[]
-    
+
     return banks[0] || null
   } catch (e) {
     return null
@@ -1178,7 +1205,7 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
       doctype: 'Opportunity',
       name: opportunityId
     }) as Opportunity
-    
+
     if (updatedOpportunity.opportunity_from === 'Lead') {
       try {
         await frappeRequest('frappe.client.set_value', 'POST', {
@@ -1277,7 +1304,7 @@ export async function updateOpportunity(opportunityId: string, data: {
 export async function createOrderFromQuotation(quotationId: string) {
   try {
     console.log('[createOrderFromQuotation] Starting sales order creation from quotation:', quotationId)
-    
+
     // 1. Fetch the Quotation to verify it's submitted and get organization_slug
     const quotation = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
@@ -1315,7 +1342,7 @@ export async function createOrderFromQuotation(quotationId: string) {
 
     // 5. Extract the sales order document
     const orderDoc = draftOrder.message || draftOrder
-    
+
     if (orderDoc.name === undefined || orderDoc.name === null || orderDoc.name === '') {
       delete orderDoc.name
     }
@@ -1406,7 +1433,7 @@ export async function getSalesOrder(id: string): Promise<any | null> {
 export async function createInvoiceFromOrder(orderId: string) {
   try {
     console.log('[createInvoiceFromOrder] Starting invoice creation from sales order:', orderId)
-    
+
     // 1. Fetch the Sales Order to verify it exists and get organization_slug
     const order = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
@@ -1442,7 +1469,7 @@ export async function createInvoiceFromOrder(orderId: string) {
 
     // 3. Extract the sales invoice document
     const invoiceDoc = draftInvoice.message || draftInvoice
-    
+
     if (invoiceDoc.name === undefined || invoiceDoc.name === null || invoiceDoc.name === '') {
       delete invoiceDoc.name
     }
@@ -1526,7 +1553,7 @@ export async function getSalesInvoice(id: string): Promise<any | null> {
 export async function mobilizeAsset(orderId: string, serialNo: string) {
   try {
     console.log('[mobilizeAsset] Starting asset mobilization - Order:', orderId, 'Serial:', serialNo)
-    
+
     // 1. Fetch the Sales Order
     const order = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
@@ -1554,7 +1581,7 @@ export async function mobilizeAsset(orderId: string, serialNo: string) {
 
     // 3. Extract the delivery note document
     const deliveryNoteDoc = draftDeliveryNote.message || draftDeliveryNote
-    
+
     if (deliveryNoteDoc.name === undefined || deliveryNoteDoc.name === null || deliveryNoteDoc.name === '') {
       delete deliveryNoteDoc.name
     }
@@ -1623,7 +1650,7 @@ export async function mobilizeAsset(orderId: string, serialNo: string) {
 export async function returnAsset(serialNo: string, orderId?: string) {
   try {
     console.log('[returnAsset] Starting asset return - Serial:', serialNo, 'Order:', orderId)
-    
+
     // 1. Fetch the Serial Number (Asset) details
     const asset = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Serial No',
