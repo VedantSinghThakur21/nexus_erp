@@ -572,6 +572,54 @@ print(json.dumps(result))
     except Exception as e:
         logger.warning(f"  ⚠ CRM master data seeding failed (non-fatal): {e}")
 
+    # ── Step 4c: Setup Default Company (Required for ERPNext modules) ──
+    try:
+        # Generate company abbreviation (first 3-5 chars of org name)
+        safe_org_name = req.organization_name.replace('"', '\\"').replace("'", "\\'")
+        abbr = ''.join(c for c in req.organization_name if c.isalnum())[:5].upper() or "COMP"
+        
+        company_setup_code = f"""
+import json
+
+result = {{"company_created": False, "company_name": None}}
+
+# Check if any company exists
+existing_companies = frappe.get_all("Company", limit=1)
+
+if not existing_companies:
+    # Create default company
+    company = frappe.new_doc("Company")
+    company.company_name = "{safe_org_name}"
+    company.abbr = "{abbr}"
+    company.default_currency = "INR"
+    company.country = "India"
+    company.insert(ignore_permissions=True)
+    
+    # Set as default company in Global Defaults
+    if frappe.db.exists("Global Defaults", "Global Defaults"):
+        global_defaults = frappe.get_doc("Global Defaults", "Global Defaults")
+        global_defaults.default_company = company.company_name
+        global_defaults.save(ignore_permissions=True)
+    
+    frappe.db.commit()
+    result["company_created"] = True
+    result["company_name"] = company.company_name
+else:
+    result["company_name"] = existing_companies[0].name
+
+print(json.dumps(result))
+"""
+        output = run_frappe_code(site_name, company_setup_code)
+        company_result = _parse_json_output(output)
+        
+        steps_completed.append("company_setup")
+        if company_result.get("company_created"):
+            logger.info(f"  ✓ Default Company created: {company_result.get('company_name')}")
+        else:
+            logger.info(f"  ✓ Company already exists: {company_result.get('company_name')}")
+    except Exception as e:
+        logger.warning(f"  ⚠ Company setup failed (non-fatal): {e}")
+
     # ── Step 5: Register in Master DB ──
     try:
         protocol = "https" if IS_PRODUCTION else "http"
