@@ -1,103 +1,50 @@
+import { NextRequest, NextResponse } from 'next/server';
 
-const PYTHON_BACKEND_URL = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || 'http://localhost:8000'
+export const runtime = 'edge';
 
-export const runtime = 'edge'
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { messages, tenant_id } = await req.json()
+    const { messages, conversation_id, user } = await req.json();
 
-    console.log('🔍 API Route - Received request:', {
-      messagesCount: messages?.length,
-      tenant_id,
-      lastMessage: messages?.[messages.length - 1]?.content?.substring(0, 50)
-    })
+    // Get the last user message
+    const query = messages[messages.length - 1].content;
 
-    if (!messages || messages.length === 0) {
-      console.error('❌ No messages in request')
-      return new Response('No messages provided', { status: 400 })
-    }
-
-    const lastMessage = messages[messages.length - 1]
-    if (!lastMessage || lastMessage.role !== 'user') {
-      console.error('❌ Last message is not from user')
-      return new Response('Invalid message format', { status: 400 })
-    }
-
-    // Format with tenant context
-    const formattedInput = formatUserInputWithContext(
-      lastMessage.content,
-      tenant_id || 'master'
-    )
-
-    console.log('📤 Sending to Python backend:', {
-      url: `${PYTHON_BACKEND_URL}/chat`,
-      tenant_id,
-      formattedPreview: formattedInput.substring(0, 150)
-    })
-
-    // Call Python backend
-    const response = await fetch(`${PYTHON_BACKEND_URL}/chat`, {
+    // Call Dify API
+    const response = await fetch(`${process.env.DIFY_API_URL}/chat-messages`, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${process.env.DIFY_CHAT_API_KEY}`,
         'Content-Type': 'application/json',
-        'Accept': 'text/plain, text/event-stream, application/json'
       },
       body: JSON.stringify({
-        message: formattedInput,
-        tenant_id: tenant_id || 'master'
+        inputs: {},
+        query: query,
+        response_mode: 'streaming',
+        conversation_id: conversation_id,
+        user: user || 'nexus-user',
       }),
-    })
-
-    console.log('📥 Backend response status:', response.status)
-    console.log('📥 Backend response headers:', Object.fromEntries(response.headers.entries()))
+    });
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Backend error:', errorText)
-      return new Response(
-        `Backend error (${response.status}): ${errorText}`, 
-        { status: response.status }
-      )
+      const error = await response.text();
+      console.error("Dify API Error:", error);
+      return NextResponse.json({ error: "Failed to connect to AI service" }, { status: response.status });
     }
 
-    if (!response.body) {
-      console.error('❌ No response body from backend')
-      return new Response('No response from backend', { status: 500 })
-    }
-
-    console.log('✅ Streaming response from backend')
-
-    // CRITICAL: Return the stream directly without modification
+    // Return the stream directly from Dify
     return new Response(response.body, {
-      status: 200,
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no'
-      }
-    })
+        'Connection': 'keep-alive',
+      },
+    });
 
-  } catch (error) {
-    console.error('❌ API Route Error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return new Response(
-      `API Route Error: ${errorMessage}`,
+  } catch (error: any) {
+    console.error('Chat API Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal Server Error' },
       { status: 500 }
-    )
+    );
   }
-}
-
-function formatUserInputWithContext(
-  userMessage: string,
-  tenantId: string
-): string {
-  const timestamp = new Date().toISOString()
-  
-  return `Context:
-- Current Tenant ID: ${tenantId}
-- Timestamp: ${timestamp}
-
-User Request:
-${userMessage}`
 }
