@@ -283,6 +283,32 @@ export async function createLead(data: any) {
     mobile_no: data.mobile_no,
   }
 
+  // Fetch Default Company
+  let defaultCompany: string | undefined = undefined;
+  try {
+    let checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
+      doctype: 'Global Defaults',
+      fieldname: 'default_company'
+    }) as { default_company?: string }
+    defaultCompany = checkCompany?.default_company;
+
+    if (!defaultCompany) {
+      const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Company',
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as { name: string }[];
+      if (companies && companies.length > 0) {
+        defaultCompany = companies[0].name;
+      }
+    }
+    if (defaultCompany) {
+      leadData.company = defaultCompany;
+    }
+  } catch (e) {
+    console.warn('[createLead] Failed to fetch default company:', e);
+  }
+
   // Helper to safely get a valid Link field value
   const getValidLinkValue = async (doctype: string, value: string): Promise<string | undefined> => {
     if (!value) return undefined;
@@ -493,7 +519,7 @@ export async function convertLeadToOpportunity(
     const lead = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Lead',
       name: leadId
-    }) as Lead & { organization_slug?: string }
+    }) as Lead & { organization_slug?: string, company?: string }
 
     if (!lead) {
       throw new Error("Lead not found")
@@ -606,12 +632,16 @@ export async function convertLeadToOpportunity(
     }
 
     // 4.5 Fetch Default Company
-    let checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
-      doctype: 'Global Defaults',
-      fieldname: 'default_company'
-    }) as { default_company?: string }
+    let defaultCompany = lead.company; // 1. Try to get from Lead
 
-    let defaultCompany = checkCompany?.default_company;
+    if (!defaultCompany) {
+      // 2. Try Global Defaults
+      let checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
+        doctype: 'Global Defaults',
+        fieldname: 'default_company'
+      }) as { default_company?: string }
+      defaultCompany = checkCompany?.default_company;
+    }
 
     if (!defaultCompany) {
       // If no global default, try to find any company
