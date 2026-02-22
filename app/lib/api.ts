@@ -117,7 +117,7 @@ function getAuthorizationHeader(
     }
   }
 
-  // For tenant users WITHOUT credentials - this is an error state
+  // For tenant users WITHOUT credentials - this is an error state  
   if (context.isTenant && !context.hasCredentials) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.error(`[API] ❌ TENANT API CREDENTIALS NOT FOUND`)
@@ -132,11 +132,8 @@ function getAuthorizationHeader(
     console.error(`[API] Solution: Log out and log back in after ensuring the`)
     console.error(`[API] SaaS Tenant record has api_key and api_secret populated.`)
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    throw new Error(
-      `Tenant API credentials not found in cookies. Please log out and log back in. ` +
-      `If the problem persists, check that the SaaS Tenant record for "${context.subdomain}" ` +
-      `has api_key and api_secret fields populated.`
-    )
+    // Use a special error code so the client/middleware can detect this and auto-logout
+    throw new Error(`TENANT_CREDENTIALS_MISSING:${context.subdomain}`)
   }
 
   // Default: admin user with master credentials

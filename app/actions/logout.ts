@@ -15,6 +15,7 @@ export async function logoutUser() {
   cookieStore.delete('access_token')
   cookieStore.delete('refresh_token')
   cookieStore.delete('tenant_api_key')
+  cookieStore.delete('tenant_api_secret')
 
   // NextAuth cookies
   cookieStore.delete('next-auth.session-token')

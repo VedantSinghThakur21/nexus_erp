@@ -107,8 +107,8 @@ for ot in ["Sales", "Rental", "Maintenance", "Service"]:
         doc.name = ot
         doc.insert(ignore_permissions=True)
 
-# 8. Seed Sales Stages
-for stage in ["Prospecting", "Qualification", "Needs Analysis", "Proposal", "Negotiation", "Won", "Lost"]:
+# 8. Seed Sales Stages (use ERPNext exact default names)
+for stage in ["Prospecting", "Qualification", "Needs Analysis", "Value Proposition", "Identifying Decision Makers", "Perception Analysis", "Proposal/Price Quote", "Negotiation/Review", "Won", "Lost"]:
     if not frappe.db.exists("Sales Stage", stage):
         doc = frappe.new_doc("Sales Stage")
         doc.stage_name = stage

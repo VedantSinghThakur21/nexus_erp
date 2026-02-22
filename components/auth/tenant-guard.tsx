@@ -13,6 +13,15 @@ export function TenantGuard({ children, hasApiKey }: { children: React.ReactNode
     useEffect(() => {
         if (status === 'loading') return
 
+        // If authenticated but tenant API key is missing from cookies → expired/missing session → force re-login
+        if (status === 'authenticated' && hasApiKey === false) {
+            if (!pathname?.startsWith('/login') && !pathname?.startsWith('/onboarding')) {
+                console.warn('[TenantGuard] Tenant API key missing for authenticated user — redirecting to login.')
+                router.replace('/login?reason=session_expired')
+            }
+            return
+        }
+
         // If authenticated via NextAuth but no tenant linked in session,
         // check if they have a valid API key (from email/password login).
         // The hasApiKey prop comes from the server component (reads HttpOnly cookie).

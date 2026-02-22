@@ -594,8 +594,8 @@ for type_name in default_types:
         doc.insert(ignore_permissions=True)
         result["opportunity_types"] += 1
 
-# Setup Sales Stages  
-default_stages = ["Prospecting", "Qualification", "Needs Analysis", "Proposal", "Negotiation", "Won", "Lost"]
+# Setup Sales Stages (use ERPNext exact default names)
+default_stages = ["Prospecting", "Qualification", "Needs Analysis", "Value Proposition", "Identifying Decision Makers", "Perception Analysis", "Proposal/Price Quote", "Negotiation/Review", "Won", "Lost"]
 for stage_name in default_stages:
     if not frappe.db.exists("Sales Stage", stage_name):
         doc = frappe.new_doc("Sales Stage")
