@@ -445,14 +445,6 @@ required_roles = [
     "Lead Owner",
     "Support Team",
 ]
-# Assign all necessary roles for full CRM + ERP access
-required_roles = [
-    "System Manager",
-    "Sales User",
-    "Sales Manager",
-    "Lead Owner",
-    "Support Team",
-]
 for role_name in required_roles:
     # Check if role exists in system first
     if frappe.db.exists("Role", role_name):
@@ -536,7 +528,57 @@ else:
     except Exception as e:
         logger.warning(f"  ⚠ SaaS Settings seeding failed (non-fatal): {e}")
 
-    # ── Step 4b: Setup CRM Master Data (Opportunity Types & Sales Stages) ──
+    # ── Step 4b: Initialize ERPNext Defaults (Company, Warehouses, etc.) ──
+    # NOTE: This MUST happen before CRM data seeding so Company exists
+    try:
+        # Use simple string replacement for safely embedding values, avoiding f-string complexity with json braces
+        init_code = f"""
+import json
+import frappe
+
+# 1. Create Default Warehouse Types (Required for Company creation)
+warehouse_types = ["Transit", "Store", "WIP", "Finished Goods"]
+for wt in warehouse_types:
+    if not frappe.db.exists("Warehouse Type", wt):
+        frappe.get_doc({{"doctype": "Warehouse Type", "name": wt}}).insert(ignore_permissions=True)
+
+# 2. Create Company
+company_name = "{req.organization_name}"
+# Generate simple abbr
+abbr = ''.join(c for c in company_name if c.isalnum())[:5].upper()
+if not abbr:
+    abbr = "COMP"
+
+if not frappe.db.exists("Company", company_name):
+    company = frappe.new_doc("Company")
+    company.company_name = company_name
+    company.abbr = abbr
+    company.default_currency = "INR" 
+    company.country = "India" 
+    company.insert(ignore_permissions=True)
+    print(f"DEBUG: Created Company {{company_name}}")
+
+# 3. Always set Global Defaults (even if company already exists)
+gd = frappe.get_doc("Global Defaults", "Global Defaults")
+if not gd.default_company:
+    gd.default_company = company_name
+    gd.default_currency = "INR"
+    gd.country = "India"
+    gd.save(ignore_permissions=True)
+    print(f"DEBUG: Set Global Defaults to {{company_name}}")
+else:
+    print(f"DEBUG: Global Defaults already set to {{gd.default_company}}")
+
+frappe.db.commit()
+print(json.dumps({{"initialized": True}}))
+"""
+        run_frappe_code(site_name, init_code)
+        steps_completed.append("erpnext_defaults_initialized")
+        logger.info("  ✓ ERPNext defaults initialized (Company, Warehouses)")
+    except Exception as e:
+        logger.warning(f"  ⚠ ERPNext initialization failed (non-fatal): {e}")
+
+    # ── Step 4c: Setup CRM Master Data (Opportunity Types & Sales Stages) ──
     try:
         crm_setup_code = """
 import json
@@ -571,6 +613,39 @@ print(json.dumps(result))
         logger.info(f"  ✓ CRM master data seeded: {crm_result.get('opportunity_types', 0)} types, {crm_result.get('sales_stages', 0)} stages")
     except Exception as e:
         logger.warning(f"  ⚠ CRM master data seeding failed (non-fatal): {e}")
+
+    # ── Step 4d: Seed Standard Dropdown Options (Salutation, Source, etc.) ──
+    try:
+        data_seed_code = """
+import json
+import frappe
+
+# 1. Seed Salutations
+salutations = ["Mr", "Ms", "Mrs", "Dr", "Prof"]
+for s in salutations:
+    if not frappe.db.exists("Salutation", s):
+        frappe.get_doc({"doctype": "Salutation", "salutation": s}).insert(ignore_permissions=True)
+
+# 2. Seed Lead Sources
+sources = ["Cold Calling", "Advertisement", "Reference", "Walk In", "Website", "Campaign", "Supplier", "Exhibition", "Customer"]
+for s in sources:
+    if not frappe.db.exists("Lead Source", s):
+        frappe.get_doc({"doctype": "Lead Source", "source_name": s}).insert(ignore_permissions=True)
+
+# 3. Seed Industry Types
+industries = ["Manufacturing", "Service", "Distribution", "Retail", "Technology", "Logistics", "Healthcare", "Education"]
+for i in industries:
+    if not frappe.db.exists("Industry Type", i):
+        frappe.get_doc({"doctype": "Industry Type", "industry": i}).insert(ignore_permissions=True)
+
+frappe.db.commit()
+print(json.dumps({"seeded": True}))
+"""
+        run_frappe_code(site_name, data_seed_code)
+        steps_completed.append("standard_data_seeded")
+        logger.info("  ✓ Standard data options seeded (Salutation, Source, Industry)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Standard data seeding failed (non-fatal): {e}")
 
     # ── Step 5: Register in Master DB ──
     try:
