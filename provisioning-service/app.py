@@ -640,6 +640,14 @@ for i in industries:
     if not frappe.db.exists("Industry Type", i):
         frappe.get_doc({"doctype": "Industry Type", "industry": i}).insert(ignore_permissions=True)
 
+# 4. Seed Item Groups
+root_groups = frappe.get_all("Item Group", filters={"is_group": 1, "parent_item_group": ""}, pluck="name")
+root_group = root_groups[0] if root_groups else "All Item Groups"
+item_groups = ["Heavy Equipment Rental", "Construction Services", "Consulting"]
+for ig in item_groups:
+    if not frappe.db.exists("Item Group", ig):
+        frappe.get_doc({"doctype": "Item Group", "item_group_name": ig, "parent_item_group": root_group, "is_group": 0}).insert(ignore_permissions=True)
+
 frappe.db.commit()
 print(json.dumps({"seeded": True}))
 """
