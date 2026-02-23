@@ -641,15 +641,10 @@ for i in industries:
         frappe.get_doc({"doctype": "Industry Type", "industry": i}).insert(ignore_permissions=True)
 
 # 4. Seed Item Groups
-# In ERPNext, the root Item Group is usually named "All Item Groups" or similar, and has no parent.
-root_groups = frappe.get_all("Item Group", filters={"is_group": 1}, or_filters={"parent_item_group": "", "parent_item_group": ["is", "not set"]}, pluck="name")
-root_group = "All Item Groups"
-if root_groups:
-    for rg in root_groups:
-        current = frappe.get_doc("Item Group", rg)
-        if not current.parent_item_group:
-            root_group = rg
-            break
+# In ERPNext, the root Item Group in the NestedSet tree always has lft = 1.
+root_groups = frappe.get_all("Item Group", filters={"lft": 1}, pluck="name")
+root_group = root_groups[0] if root_groups else "Item Group"
+
 item_groups = ["Heavy Equipment Rental", "Construction Services", "Consulting"]
 for ig in item_groups:
     if not frappe.db.exists("Item Group", ig):
