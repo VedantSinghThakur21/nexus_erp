@@ -115,7 +115,7 @@ for stage in ["Prospecting", "Qualification", "Needs Analysis", "Value Propositi
         doc.insert(ignore_permissions=True)
 
 # 9. Ensure Admin User has Item Manager role
-admin_emails = frappe.get_all("User", filters={"email": ["like", "%%"]}, pluck="name")
+admin_emails = frappe.get_all("User", filters={{"email": ["like", "%%"]}}, pluck="name")
 for admin in admin_emails:
     if admin == "Administrator":
         continue
@@ -127,7 +127,7 @@ for admin in admin_emails:
         
         for role in roles_to_add:
             if role not in current_roles and frappe.db.exists("Role", role):
-                user.append("roles", {"role": role, "doctype": "Has Role"})
+                user.append("roles", {{"role": role, "doctype": "Has Role"}})
                 changed = True
                 print(f"Added {{role}} role to {{admin}}")
         if changed:
