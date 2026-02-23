@@ -444,6 +444,8 @@ required_roles = [
     "Sales Manager",
     "Lead Owner",
     "Support Team",
+    "Item Manager",
+    "Purchase Manager",
 ]
 for role_name in required_roles:
     # Check if role exists in system first
