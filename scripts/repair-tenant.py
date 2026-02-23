@@ -134,8 +134,15 @@ for admin in admin_emails:
             user.save(ignore_permissions=True)
 
 # 10. Seed Item Groups
-root_groups = frappe.get_all("Item Group", filters={{"is_group": 1, "parent_item_group": ""}}, pluck="name")
-root_group = root_groups[0] if root_groups else "All Item Groups"
+root_groups = frappe.get_all("Item Group", filters={{"is_group": 1}}, or_filters={{"parent_item_group": "", "parent_item_group": ["is", "not set"]}}, pluck="name")
+root_group = "All Item Groups"
+if root_groups:
+    for rg in root_groups:
+        current = frappe.get_doc("Item Group", rg)
+        if not current.parent_item_group:
+            root_group = rg
+            break
+
 for ig in ["Heavy Equipment Rental", "Construction Services", "Consulting"]:
     if not frappe.db.exists("Item Group", ig):
         frappe.get_doc({{"doctype": "Item Group", "item_group_name": ig, "parent_item_group": root_group, "is_group": 0}}).insert(ignore_permissions=True)
