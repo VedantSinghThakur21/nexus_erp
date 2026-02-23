@@ -132,10 +132,23 @@ for admin in admin_emails:
                 print(f"Added {{role}} role to {{admin}}")
         if changed:
             user.save(ignore_permissions=True)
-
 # 10. Seed Item Groups
-root_groups = frappe.get_all("Item Group", filters={{"lft": 1}}, pluck="name")
-root_group = root_groups[0] if root_groups else "Item Group"
+all_groups = frappe.get_all("Item Group", fields=["name", "parent_item_group"])
+root_group = None
+for g in all_groups:
+    if not g.get("parent_item_group"):
+        root_group = g.get("name")
+        break
+
+if not root_group:
+    root_group = "All Item Groups"
+    if not frappe.db.exists("Item Group", root_group):
+        frappe.get_doc({
+            "doctype": "Item Group", 
+            "item_group_name": root_group, 
+            "is_group": 1
+        }).insert(ignore_permissions=True)
+        print(f"Created Root Item Group: {{root_group}}")
 
 for ig in ["Heavy Equipment Rental", "Construction Services", "Consulting"]:
     if not frappe.db.exists("Item Group", ig):
