@@ -579,14 +579,10 @@ start_date = f"{{current_year}}-04-01"
 end_date = f"{{current_year+1}}-03-31"
 
 if not frappe.db.exists("Fiscal Year", fy_name):
-    # Ensure there isn't already another overlapping active fiscal year if this is a rerun
-    existing_active = frappe.db.get_list("Fiscal Year", filters={{"is_active": 1}})
-    
     fy = frappe.new_doc("Fiscal Year")
     fy.year = fy_name
     fy.year_start_date = start_date
     fy.year_end_date = end_date
-    fy.is_active = 1 if not existing_active else 0
     fy.insert(ignore_permissions=True)
     print(f"DEBUG: Created Fiscal Year {{fy_name}}")
     
