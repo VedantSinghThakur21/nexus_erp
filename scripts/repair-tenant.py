@@ -84,11 +84,18 @@ frappe.db.set_single_value("Global Defaults", "country", "India")
 print(f"Set Global Defaults: company={{company_name}}")
 
 # 4. Create Active Fiscal Year
-from datetime import datetime
-current_year = datetime.now().year
-fy_name = f"{{current_year}}-{{current_year+1}}"
-start_date = f"{{current_year}}-04-01"
-end_date = f"{{current_year+1}}-03-31"
+from datetime import datetime, date
+today = date.today()
+# Indian fiscal year: April 1 to March 31
+# If today is before April 1, we're still in the previous fiscal year
+if today.month < 4:
+    fy_start_year = today.year - 1
+else:
+    fy_start_year = today.year
+
+fy_name = f"{{fy_start_year}}-{{fy_start_year+1}}"
+start_date = f"{{fy_start_year}}-04-01"
+end_date = f"{{fy_start_year+1}}-03-31"
 
 if not frappe.db.exists("Fiscal Year", fy_name):
     fy = frappe.new_doc("Fiscal Year")
