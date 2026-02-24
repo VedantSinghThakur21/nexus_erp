@@ -564,9 +564,9 @@ if not frappe.db.exists("Company", company_name):
 # 3. Always set Global Defaults
 gd = frappe.get_doc("Global Defaults")
 if not gd.default_company:
-    frappe.db.set_value("Global Defaults", None, "default_company", company_name)
-    frappe.db.set_value("Global Defaults", None, "default_currency", "INR")
-    frappe.db.set_value("Global Defaults", None, "country", "India")
+    frappe.db.set_single_value("Global Defaults", "default_company", company_name)
+    frappe.db.set_single_value("Global Defaults", "default_currency", "INR")
+    frappe.db.set_single_value("Global Defaults", "country", "India")
     print(f"DEBUG: Set Global Defaults to {{company_name}}")
 else:
     print(f"DEBUG: Global Defaults already set to {{gd.default_company}}")
@@ -586,11 +586,8 @@ if not frappe.db.exists("Fiscal Year", fy_name):
     fy.insert(ignore_permissions=True)
     print(f"DEBUG: Created Fiscal Year {{fy_name}}")
     
-    # Assign default fiscal year to company if missing
-    company_doc = frappe.get_doc("Company", company_name)
-    if not company_doc.default_fiscal_year:
-        company_doc.default_fiscal_year = fy_name
-        company_doc.save(ignore_permissions=True)
+    # Assign current fiscal year globally
+    frappe.db.set_single_value("Global Defaults", "current_fiscal_year", fy_name)
 
 
 frappe.db.commit()

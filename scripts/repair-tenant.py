@@ -78,9 +78,9 @@ if not frappe.db.exists("Company", company_name):
     print(f"Created Company: {{company_name}}")
 
 # 3. Set Global Defaults
-frappe.db.set_value("Global Defaults", None, "default_company", company_name)
-frappe.db.set_value("Global Defaults", None, "default_currency", "INR")
-frappe.db.set_value("Global Defaults", None, "country", "India")
+frappe.db.set_single_value("Global Defaults", "default_company", company_name)
+frappe.db.set_single_value("Global Defaults", "default_currency", "INR")
+frappe.db.set_single_value("Global Defaults", "country", "India")
 print(f"Set Global Defaults: company={{company_name}}")
 
 # 4. Create Active Fiscal Year
@@ -98,11 +98,8 @@ if not frappe.db.exists("Fiscal Year", fy_name):
     fy.insert(ignore_permissions=True)
     print(f"Created Fiscal Year {{fy_name}}")
     
-    # Assign default fiscal year to company if missing
-    company_doc = frappe.get_doc("Company", company_name)
-    if not company_doc.default_fiscal_year:
-        company_doc.default_fiscal_year = fy_name
-        company_doc.save(ignore_permissions=True)
+    # Assign current fiscal year globally
+    frappe.db.set_single_value("Global Defaults", "current_fiscal_year", fy_name)
 
 # 4. Seed Salutations
 for s in ["Mr", "Ms", "Mrs", "Dr", "Prof"]:
