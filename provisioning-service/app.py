@@ -670,6 +670,20 @@ for u in uoms:
     if not frappe.db.exists("UOM", u):
         frappe.get_doc({"doctype": "UOM", "uom_name": u}).insert(ignore_permissions=True)
 
+# 6. Seed Stock Entry Types
+stock_entry_types = [
+    {"name": "Material Receipt", "purpose": "Material Receipt"},
+    {"name": "Material Issue", "purpose": "Material Issue"},
+    {"name": "Material Transfer", "purpose": "Material Transfer"},
+]
+for setype in stock_entry_types:
+    if not frappe.db.exists("Stock Entry Type", setype["name"]):
+        frappe.get_doc({
+            "doctype": "Stock Entry Type",
+            "name": setype["name"],
+            "purpose": setype["purpose"]
+        }).insert(ignore_permissions=True)
+
 frappe.db.commit()
 print(json.dumps({"seeded": True}))
 """

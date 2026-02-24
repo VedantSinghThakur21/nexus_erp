@@ -161,6 +161,21 @@ for u in ["Unit", "Nos", "Hr", "Day", "Month", "Year"]:
         frappe.get_doc({{"doctype": "UOM", "uom_name": u}}).insert(ignore_permissions=True)
         print(f"Created UOM: {{u}}")
 
+# 12. Seed Stock Entry Types
+stock_entry_types = [
+    {{"name": "Material Receipt", "purpose": "Material Receipt"}},
+    {{"name": "Material Issue", "purpose": "Material Issue"}},
+    {{"name": "Material Transfer", "purpose": "Material Transfer"}},
+]
+for setype in stock_entry_types:
+    if not frappe.db.exists("Stock Entry Type", setype["name"]):
+        frappe.get_doc({{
+            "doctype": "Stock Entry Type",
+            "name": setype["name"],
+            "purpose": setype["purpose"]
+        }}).insert(ignore_permissions=True)
+        print(f"Created Stock Entry Type: {{setype['name']}}")
+
 frappe.db.commit()
 print("REPAIR COMPLETE!")
 """
