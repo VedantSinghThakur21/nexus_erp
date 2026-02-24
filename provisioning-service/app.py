@@ -663,6 +663,12 @@ for ig in item_groups:
     if not frappe.db.exists("Item Group", ig):
         frappe.get_doc({"doctype": "Item Group", "item_group_name": ig, "parent_item_group": root_group, "is_group": 0}).insert(ignore_permissions=True)
 
+# 5. Seed UOMs
+uoms = ["Unit", "Nos", "Hr", "Day", "Month", "Year"]
+for u in uoms:
+    if not frappe.db.exists("UOM", u):
+        frappe.get_doc({"doctype": "UOM", "uom_name": u}).insert(ignore_permissions=True)
+
 frappe.db.commit()
 print(json.dumps({"seeded": True}))
 """

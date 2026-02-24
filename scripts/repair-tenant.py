@@ -143,17 +143,23 @@ for g in all_groups:
 if not root_group:
     root_group = "All Item Groups"
     if not frappe.db.exists("Item Group", root_group):
-        frappe.get_doc({
+        frappe.get_doc({{
             "doctype": "Item Group", 
             "item_group_name": root_group, 
             "is_group": 1
-        }).insert(ignore_permissions=True)
+        }}).insert(ignore_permissions=True)
         print(f"Created Root Item Group: {{root_group}}")
 
 for ig in ["Heavy Equipment Rental", "Construction Services", "Consulting"]:
     if not frappe.db.exists("Item Group", ig):
         frappe.get_doc({{"doctype": "Item Group", "item_group_name": ig, "parent_item_group": root_group, "is_group": 0}}).insert(ignore_permissions=True)
         print(f"Created Item Group: {{ig}} (parent: {{root_group}})")
+
+# 11. Seed UOMs
+for u in ["Unit", "Nos", "Hr", "Day", "Month", "Year"]:
+    if not frappe.db.exists("UOM", u):
+        frappe.get_doc({{"doctype": "UOM", "uom_name": u}}).insert(ignore_permissions=True)
+        print(f"Created UOM: {{u}}")
 
 frappe.db.commit()
 print("REPAIR COMPLETE!")
