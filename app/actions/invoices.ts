@@ -666,7 +666,7 @@ export async function searchItems(query: string, itemGroup?: string) {
         try {
           const stockData = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Bin',
-            filters: `[["item_code", "=", "${item.item_code}"]]`,
+            filters: `{"item_code": "${item.item_code}"}`,
             fields: '["actual_qty"]',
             limit_page_length: 0
           }) as any[]
@@ -783,7 +783,7 @@ export async function getItemDetails(itemCode: string) {
     try {
       const stockData = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Bin',
-        filters: `[["item_code", "=", "${itemCode}"]]`,
+        filters: `{"item_code": "${itemCode}"}`,
         fields: '["actual_qty", "warehouse"]',
         limit_page_length: 0
       }) as any[]
