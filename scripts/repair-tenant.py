@@ -78,11 +78,9 @@ if not frappe.db.exists("Company", company_name):
     print(f"Created Company: {{company_name}}")
 
 # 3. Set Global Defaults
-gd = frappe.get_doc("Global Defaults", "Global Defaults")
-gd.default_company = company_name
-gd.default_currency = "INR"
-gd.country = "India"
-gd.save(ignore_permissions=True)
+frappe.db.set_value("Global Defaults", None, "default_company", company_name)
+frappe.db.set_value("Global Defaults", None, "default_currency", "INR")
+frappe.db.set_value("Global Defaults", None, "country", "India")
 print(f"Set Global Defaults: company={{company_name}}")
 
 # 4. Create Active Fiscal Year

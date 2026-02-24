@@ -561,13 +561,12 @@ if not frappe.db.exists("Company", company_name):
     company.insert(ignore_permissions=True)
     print(f"DEBUG: Created Company {{company_name}}")
 
-# 3. Always set Global Defaults (even if company already exists)
-gd = frappe.get_doc("Global Defaults", "Global Defaults")
+# 3. Always set Global Defaults
+gd = frappe.get_doc("Global Defaults")
 if not gd.default_company:
-    gd.default_company = company_name
-    gd.default_currency = "INR"
-    gd.country = "India"
-    gd.save(ignore_permissions=True)
+    frappe.db.set_value("Global Defaults", None, "default_company", company_name)
+    frappe.db.set_value("Global Defaults", None, "default_currency", "INR")
+    frappe.db.set_value("Global Defaults", None, "country", "India")
     print(f"DEBUG: Set Global Defaults to {{company_name}}")
 else:
     print(f"DEBUG: Global Defaults already set to {{gd.default_company}}")
