@@ -666,7 +666,7 @@ export async function searchItems(query: string, itemGroup?: string) {
         try {
           const stockData = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Bin',
-            filters: `[{"fieldname": "item_code", "operator": "=", "value": "${item.item_code}"}]`,
+            filters: `[["item_code", "=", "${item.item_code}"]]`,
             fields: '["actual_qty"]',
             limit_page_length: 0
           }) as any[]
@@ -674,7 +674,7 @@ export async function searchItems(query: string, itemGroup?: string) {
           return { ...item, stock_qty: stockQty, available: stockQty > 0 }
         } catch (e) {
           console.error(`Failed to fetch stock for ${item.item_code}:`, e)
-          return { ...item, stock_qty: 0, available: false }
+          return { ...item, stock_qty: item.actual_qty || 0, available: (item.actual_qty || 0) > 0 }
         }
       }
       return { ...item, stock_qty: null, available: true } // Services always available
