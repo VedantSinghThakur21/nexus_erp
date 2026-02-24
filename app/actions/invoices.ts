@@ -789,8 +789,10 @@ export async function getItemDetails(itemCode: string) {
       }) as any[]
       stockQty = stockData.reduce((sum: number, bin: any) => sum + (bin.actual_qty || 0), 0)
     } catch (e) {
-      // Stock tracking may not be enabled
+      // Bin data not available — fall back to the item's own actual_qty field
+      stockQty = item.actual_qty || 0
     }
+
 
     // Get latest price from Item Price
     let price = item.standard_rate || 0

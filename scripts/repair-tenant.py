@@ -144,7 +144,7 @@ for admin in admin_emails:
         continue
     user = frappe.get_doc("User", admin)
     if "System Manager" in [r.role for r in user.roles]:
-        roles_to_add = ["Item Manager", "Purchase Manager", "Stock Manager", "Stock User"]
+        roles_to_add = ["Item Manager", "Purchase Manager", "Stock Manager", "Stock User", "Accounts User"]
         changed = False
         current_roles = [r.role for r in user.roles]
         
