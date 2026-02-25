@@ -653,32 +653,21 @@ export async function searchItems(query: string, itemGroup?: string) {
     const items = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Item',
       filters: filters,
-      fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item"]',
+      fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item", "actual_qty"]',
       limit_page_length: 500,
       order_by: 'item_group asc, item_code asc'
     }) as any[]
 
     console.log('[searchItems] Found items:', items.length, items)
 
-    // Enhance items with stock info for stock items
-    const enhancedItems = await Promise.all(items.map(async (item: any) => {
+    // Use actual_qty directly from Item record (no separate Bin query needed)
+    const enhancedItems = items.map((item: any) => {
       if (item.is_stock_item) {
-        try {
-          const stockData = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Bin',
-            filters: `{"item_code": "${item.item_code}"}`,
-            fields: '["actual_qty"]',
-            limit_page_length: 0
-          }) as any[]
-          const stockQty = stockData.reduce((sum: number, bin: any) => sum + (bin.actual_qty || 0), 0)
-          return { ...item, stock_qty: stockQty, available: stockQty > 0 }
-        } catch (e) {
-          console.error(`Failed to fetch stock for ${item.item_code}:`, e)
-          return { ...item, stock_qty: item.actual_qty || 0, available: (item.actual_qty || 0) > 0 }
-        }
+        const stockQty = item.actual_qty || 0
+        return { ...item, stock_qty: stockQty, available: stockQty > 0 }
       }
       return { ...item, stock_qty: null, available: true } // Services always available
-    }))
+    })
 
     console.log('[searchItems] Returning enhanced items:', enhancedItems.length)
     return enhancedItems as ({
