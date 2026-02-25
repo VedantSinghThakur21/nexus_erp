@@ -635,16 +635,16 @@ export async function searchItems(query: string, itemGroup?: string) {
     // If no query, get all items
     if (!query || query.trim() === '') {
       if (itemGroup && itemGroup !== 'All') {
-        filters = `[{"fieldname": "item_group", "operator": "=", "value": "${itemGroup}"}]`
+        filters = `[["item_group", "=", "${itemGroup}"]]`
       } else {
         filters = '[]' // Get all items
       }
     } else {
       // Add item group filter if specified
       if (itemGroup && itemGroup !== 'All') {
-        filters = `[{"fieldname": "item_code", "operator": "like", "value": "%${query}%"}, {"fieldname": "item_group", "operator": "=", "value": "${itemGroup}"}]`
+        filters = `[["item_code", "like", "%${query}%"], ["item_group", "=", "${itemGroup}"]]`
       } else {
-        filters = `[{"fieldname": "item_code", "operator": "like", "value": "%${query}%"}]`
+        filters = `[["item_code", "like", "%${query}%"]]`
       }
     }
 
@@ -767,28 +767,15 @@ export async function getItemDetails(itemCode: string) {
       name: itemCode
     }) as any
 
-    // Get stock balance across all warehouses
-    let stockQty = 0
-    try {
-      const stockData = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Bin',
-        filters: `{"item_code": "${itemCode}"}`,
-        fields: '["actual_qty", "warehouse"]',
-        limit_page_length: 0
-      }) as any[]
-      stockQty = stockData.reduce((sum: number, bin: any) => sum + (bin.actual_qty || 0), 0)
-    } catch (e) {
-      // Bin data not available — fall back to the item's own actual_qty field
-      stockQty = item.actual_qty || 0
-    }
-
+    // Use actual_qty from item record directly (no separate Bin query needed)
+    const stockQty = item.actual_qty || 0
 
     // Get latest price from Item Price
     let price = item.standard_rate || 0
     try {
       const priceList = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Item Price',
-        filters: `[["item_code", "=", "${itemCode}"]]`,
+        filters: `{"item_code": "${itemCode}"}`,
         fields: '["price_list_rate"]',
         order_by: 'modified desc',
         limit_page_length: 1
