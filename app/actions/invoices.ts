@@ -653,17 +653,42 @@ export async function searchItems(query: string, itemGroup?: string) {
     const items = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Item',
       filters: filters,
-      fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item", "actual_qty"]',
+      fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item"]',
       limit_page_length: 500,
       order_by: 'item_group asc, item_code asc'
     }) as any[]
 
     console.log('[searchItems] Found items:', items.length, items)
 
-    // Use actual_qty directly from Item record (no separate Bin query needed)
+    // Fetch actual stock quantities from Bin doctype for stock items
+    // actual_qty is not a stored field on Item — it's aggregated from Bin
+    const stockItemCodes = items
+      .filter((item: any) => item.is_stock_item)
+      .map((item: any) => item.item_code)
+
+    const stockQtyMap: Record<string, number> = {}
+
+    if (stockItemCodes.length > 0) {
+      try {
+        const binRecords = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Bin',
+          filters: JSON.stringify([['item_code', 'in', stockItemCodes]]),
+          fields: '["item_code", "actual_qty"]',
+          limit_page_length: 1000
+        }) as any[]
+
+        // Sum actual_qty across all warehouses per item
+        for (const bin of binRecords) {
+          stockQtyMap[bin.item_code] = (stockQtyMap[bin.item_code] || 0) + (bin.actual_qty || 0)
+        }
+      } catch (binError) {
+        console.warn('[searchItems] Could not fetch Bin stock data:', binError)
+      }
+    }
+
     const enhancedItems = items.map((item: any) => {
       if (item.is_stock_item) {
-        const stockQty = item.actual_qty || 0
+        const stockQty = stockQtyMap[item.item_code] || 0
         return { ...item, stock_qty: stockQty, available: stockQty > 0 }
       }
       return { ...item, stock_qty: null, available: true } // Services always available
