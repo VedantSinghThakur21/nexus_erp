@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, Trash2, Barcode, Calendar, FileText, DollarSign, Percent } from "lucide-react"
 import { createQuotation } from "@/app/actions/quotations"
+import { ItemSearch } from "@/components/invoices/item-search"
 import { getTaxTemplates, applyItemPricingRules } from "@/app/actions/common"
 import { useRouter } from 'next/navigation'
 
@@ -101,12 +102,12 @@ export default function QuotationForm() {
   const updateItem = (index: number, field: keyof QuotationItem, value: any) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
-    
+
     // Recalculate amount
     if (['qty', 'rate', 'discount_percentage'].includes(field)) {
       newItems[index].amount = calculateItemAmount(newItems[index])
     }
-    
+
     setItems(newItems)
 
     // Apply pricing rules when item_code or qty changes
@@ -196,8 +197,8 @@ export default function QuotationForm() {
           >
             Cancel
           </Button>
-          <AnimatedButton 
-            type="submit" 
+          <AnimatedButton
+            type="submit"
             variant="neon"
             disabled={loading}
           >
@@ -364,13 +365,23 @@ export default function QuotationForm() {
               <tbody>
                 {items.map((item, index) => (
                   <tr key={index} className="border-b border-slate-100 dark:border-slate-800">
-                    <td className="py-2 px-2">
-                      <Input
-                        required
-                        placeholder="Item code"
+                    <td className="py-2 px-2 min-w-[200px]">
+                      <ItemSearch
                         value={item.item_code}
-                        onChange={(e) => updateItem(index, 'item_code', e.target.value)}
-                        className="text-sm"
+                        onChange={(itemCode, description, itemName) => {
+                          const newItems = [...items]
+                          newItems[index] = {
+                            ...newItems[index],
+                            item_code: itemCode,
+                            item_name: itemName || itemCode,
+                            description: description || newItems[index].description,
+                          }
+                          newItems[index].amount = calculateItemAmount(newItems[index])
+                          setItems(newItems)
+                          if (itemCode && newItems[index].qty > 0) {
+                            applyPricingRules(index, itemCode, newItems[index].qty)
+                          }
+                        }}
                       />
                     </td>
                     <td className="py-2 px-2">

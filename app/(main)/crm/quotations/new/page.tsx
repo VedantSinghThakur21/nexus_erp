@@ -33,12 +33,12 @@ interface QuotationItem {
   item_name: string
   description: string
   item_category?: string
-  
+
   // Standard pricing
   qty: number
   rate: number
   amount: number
-  
+
   // Rental pricing fields
   is_rental?: boolean
   rental_type?: 'hours' | 'days' | 'months'
@@ -68,7 +68,7 @@ export default function NewQuotationPage() {
 
   // Pricing rules state
   const [appliedPricingRules, setAppliedPricingRules] = useState<any[]>([])
-  
+
   // Rental mode state
   const [isRentalMode, setIsRentalMode] = useState(false)
   const [expandedItemId, setExpandedItemId] = useState<number | null>(null)
@@ -96,13 +96,13 @@ export default function NewQuotationPage() {
 
   // Items State
   const [items, setItems] = useState<QuotationItem[]>([
-    { 
-      id: 1, 
-      item_code: "", 
-      item_name: "", 
-      description: "", 
-      qty: 1, 
-      rate: 0, 
+    {
+      id: 1,
+      item_code: "",
+      item_name: "",
+      description: "",
+      qty: 1,
+      rate: 0,
       amount: 0,
       is_rental: false
     }
@@ -112,7 +112,7 @@ export default function NewQuotationPage() {
   const [paymentTermsTemplate, setPaymentTermsTemplate] = useState("")
   const [termsAndConditions, setTermsAndConditions] = useState("")
   const [taxTemplate, setTaxTemplate] = useState("")
-  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>([])
+  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{ name: string, title: string }>>([])
   const [selectedTaxTemplateDetails, setSelectedTaxTemplateDetails] = useState<any>(null)
 
   // Company and Bank Info (for display only)
@@ -124,15 +124,15 @@ export default function NewQuotationPage() {
     getTaxTemplates().then(templates => {
       setAvailableTaxTemplates(templates)
     })
-    
+
     getCompanyDetails().then(data => {
       if (data) setCompanyInfo(data)
     })
-    
+
     getBankDetails().then(data => {
       if (data) setBankInfo(data)
     })
-    
+
     getItemGroups().then(groups => {
       setItemGroups(['All', ...groups])
     })
@@ -160,7 +160,7 @@ export default function NewQuotationPage() {
             setQuotationTo(quotation.quotation_to || 'Customer')
             setPartyName(quotation.party_name || quotation.customer_name || '')
             setCurrency(quotation.currency || 'INR')
-            
+
             // Set dates
             if (quotation.transaction_date) {
               setTransactionDate(quotation.transaction_date)
@@ -168,7 +168,7 @@ export default function NewQuotationPage() {
             if (quotation.valid_till) {
               setValidTill(quotation.valid_till)
             }
-            
+
             // Set items if available
             if (quotation.items && quotation.items.length > 0) {
               const prefillItems = quotation.items.map((item: any, index: number) => ({
@@ -202,13 +202,13 @@ export default function NewQuotationPage() {
         .then(data => {
           if (data.opportunity) {
             const opp = data.opportunity
-            
+
             // Set party info
             setQuotationTo(opp.opportunity_from === 'Customer' ? 'Customer' : 'Lead')
             setPartyName(opp.party_name || '')
             setCurrency(opp.currency || 'INR')
             setOpportunityReference(opp.name)
-            
+
             // Set items if available
             if (opp.items && opp.items.length > 0) {
               const prefillItems = opp.items.map((item: any, index: number) => ({
@@ -276,7 +276,7 @@ export default function NewQuotationPage() {
             if (ruleItem && ruleItem.pricing_rule) {
               const originalRate = item.rate
               let finalRate = ruleItem.rate
-              
+
               // Apply discount if specified
               if (ruleItem.discount_percentage) {
                 finalRate = originalRate * (1 - ruleItem.discount_percentage / 100)
@@ -324,13 +324,13 @@ export default function NewQuotationPage() {
 
   const addItem = () => {
     const newId = Math.max(...items.map(i => i.id), 0) + 1
-    setItems([...items, { 
-      id: newId, 
-      item_code: "", 
-      item_name: "", 
-      description: "", 
-      qty: 1, 
-      rate: 0, 
+    setItems([...items, {
+      id: newId,
+      item_code: "",
+      item_name: "",
+      description: "",
+      qty: 1,
+      rate: 0,
       amount: 0,
       is_rental: false
     }])
@@ -344,17 +344,17 @@ export default function NewQuotationPage() {
 
   // Totals
   const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
-  
+
   // Calculate taxes dynamically based on selected template
   const totalTaxes = selectedTaxTemplateDetails?.taxes?.reduce((sum: number, tax: any) => {
     return sum + (netTotal * (tax.rate || 0) / 100)
   }, 0) || 0
-  
+
   const grandTotal = netTotal + totalTaxes
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!partyName) {
       alert(`Please select a ${quotationTo.toLowerCase()}`)
       return
@@ -365,19 +365,18 @@ export default function NewQuotationPage() {
       return
     }
 
-    // Validate items - check if description is filled even if item_code is not selected from dropdown
+    // Validate items - require item_code to be selected from the dropdown
     const invalidItems = items.filter(item => {
       const hasItemCode = item.item_code && item.item_code.trim() !== ''
-      const hasDescription = item.description && item.description.trim() !== ''
       const hasValidQty = item.qty > 0
-      
-      // Item is valid if it has either item_code OR description, AND has valid quantity
-      return !(hasItemCode || hasDescription) || !hasValidQty
+
+      // Item must have a valid item_code (selected from dropdown) and valid quantity
+      return !hasItemCode || !hasValidQty
     })
-    
+
     if (invalidItems.length > 0) {
       console.log('Invalid items:', invalidItems)
-      alert('Please fill in item code or description, and ensure quantity is greater than 0 for all items')
+      alert('Please select an item from the dropdown for each row, and ensure quantity is greater than 0 for all items')
       return
     }
 
@@ -393,14 +392,14 @@ export default function NewQuotationPage() {
         order_type: orderType,
         items: items.map(item => {
           const baseItem: any = {
-            item_code: item.item_code || item.description || 'MISC',
+            item_code: item.item_code || undefined,
             item_name: item.item_name || item.description || item.item_code || 'Miscellaneous',
             description: item.description || item.item_name || item.item_code,
             qty: item.qty,
             rate: item.rate,
             amount: item.amount
           }
-          
+
           // Add rental fields if this is a rental item
           if (item.is_rental) {
             baseItem.is_rental = true
@@ -416,7 +415,7 @@ export default function NewQuotationPage() {
             baseItem.pricing_components = item.pricing_components
             baseItem.total_rental_cost = item.total_rental_cost
           }
-          
+
           return baseItem
         })
       }
@@ -425,11 +424,11 @@ export default function NewQuotationPage() {
       if (opportunityReference && opportunityReference.trim() !== '') {
         quotationData.opportunity = opportunityReference
       }
-      
+
       if (paymentTermsTemplate && paymentTermsTemplate.trim() !== '') {
         quotationData.payment_terms_template = paymentTermsTemplate
       }
-      
+
       if (termsAndConditions && termsAndConditions.trim() !== '') {
         quotationData.terms = termsAndConditions
       }
@@ -439,7 +438,7 @@ export default function NewQuotationPage() {
       }
 
       console.log('Submitting quotation data:', quotationData)
-      
+
       // Log rental items specifically
       const rentalItems = quotationData.items.filter((i: any) => i.is_rental)
       if (rentalItems.length > 0) {
@@ -455,7 +454,7 @@ export default function NewQuotationPage() {
       if (!response.ok) {
         const error = await response.json()
         const errorMessage = typeof error === 'string' ? error : (error.error || error.message || 'Failed to create quotation')
-        
+
         // Provide helpful error messages
         if (errorMessage.includes('Could not find Party')) {
           alert(`The ${quotationTo} "${partyName}" does not exist in ERPNext. Please create this ${quotationTo} first, or select a different party.`)
@@ -464,12 +463,12 @@ export default function NewQuotationPage() {
         } else {
           alert(errorMessage)
         }
-        
+
         throw new Error(errorMessage)
       }
 
       const result = await response.json()
-      
+
       if (result.quotation?.name) {
         router.push(`/crm/quotations/${encodeURIComponent(result.quotation.name)}`)
       } else {
@@ -498,8 +497,8 @@ export default function NewQuotationPage() {
             {opportunityId ? 'Create Quotation from Opportunity' : 'Create New Quotation'}
           </h1>
           <p className="text-slate-500 mt-1">
-            {opportunityId 
-              ? `Creating quotation for opportunity ${opportunityId}` 
+            {opportunityId
+              ? `Creating quotation for opportunity ${opportunityId}`
               : 'Fill in the details below to create a new quotation'}
           </p>
         </div>
@@ -678,18 +677,18 @@ export default function NewQuotationPage() {
                       <div className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 dark:hover:bg-slate-900/50 group">
                         <div className="col-span-1 pt-2 text-center text-sm text-slate-400">
                           <span className="group-hover:hidden">{index + 1}</span>
-                          <Trash2 
-                            className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer" 
-                            onClick={() => removeItem(item.id)} 
+                          <Trash2
+                            className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer"
+                            onClick={() => removeItem(item.id)}
                           />
                         </div>
                         <div className="col-span-4 space-y-1">
                           <div className="h-8">
                             <ItemSearch
                               value={item.item_code}
-                              onChange={(code, desc) => {
+                              onChange={(code, desc, itemName) => {
                                 updateItem(item.id, 'item_code', code)
-                                updateItem(item.id, 'item_name', code)
+                                updateItem(item.id, 'item_name', itemName || code)
                                 if (desc) updateItem(item.id, 'description', desc)
                               }}
                               itemGroup={selectedItemGroup === 'All' ? undefined : selectedItemGroup}
@@ -740,8 +739,8 @@ export default function NewQuotationPage() {
                                 if (newIsRental) {
                                   // Initialize rental fields - batch all updates
                                   const today = new Date().toISOString().split('T')[0]
-                                  const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]
-                                  
+                                  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
                                   setItems(items.map(i => {
                                     if (i.id === item.id) {
                                       return {
@@ -795,7 +794,7 @@ export default function NewQuotationPage() {
                                 rate: updates.total_rental_cost || item.rate,
                                 amount: (item.qty || 1) * (updates.total_rental_cost || item.rate)
                               }
-                              
+
                               // Calculate duration if dates are provided
                               if (updates.rental_start_date && updates.rental_end_date && updates.rental_type) {
                                 const duration = calculateRentalDuration(
@@ -807,7 +806,7 @@ export default function NewQuotationPage() {
                                 )
                                 rentalUpdates.rental_duration = duration
                               }
-                              
+
                               setItems(items.map(i => i.id === item.id ? { ...i, ...rentalUpdates } : i))
                             }}
                             itemCategory={item.item_category || selectedItemGroup}
@@ -850,7 +849,7 @@ export default function NewQuotationPage() {
                         <span className="text-slate-500">Net Total:</span>
                         <span className="font-medium">₹{netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      
+
                       {/* Dynamic tax breakdown */}
                       {selectedTaxTemplateDetails?.taxes && selectedTaxTemplateDetails.taxes.length > 0 ? (
                         <>
@@ -871,7 +870,7 @@ export default function NewQuotationPage() {
                           <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ) : null}
-                      
+
                       <div className="flex justify-between text-lg font-bold border-t pt-2">
                         <span>Grand Total:</span>
                         <span className="text-slate-900 dark:text-white">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -899,7 +898,7 @@ export default function NewQuotationPage() {
                   <p className="text-xs text-slate-500">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
                 </div>
               </div>
-              
+
               <div>
                 <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Bank Details</Label>
                 {bankInfo ? (
