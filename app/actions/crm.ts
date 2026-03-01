@@ -976,8 +976,9 @@ export async function createQuotation(quotationData: {
     }
 
     // Fetch default selling price list (mandatory in ERPNext Quotation)
-    let sellingPriceList = 'Standard Selling'
+    let sellingPriceList = ''
     try {
+      // 1. Try Selling Settings first
       const priceListDefaults = await frappeRequest('frappe.client.get_value', 'GET', {
         doctype: 'Selling Settings',
         fieldname: 'selling_price_list'
@@ -985,9 +986,27 @@ export async function createQuotation(quotationData: {
       if (priceListDefaults?.selling_price_list) {
         sellingPriceList = priceListDefaults.selling_price_list
       }
-    } catch {
-      // Fall back to "Standard Selling"
+    } catch { /* continue */ }
+
+    if (!sellingPriceList) {
+      try {
+        // 2. Get any Selling-type price list from ERPNext
+        const priceLists = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Price List',
+          filters: '[["selling","=","1"]]',
+          fields: '["name"]',
+          limit_page_length: 1
+        }) as { name: string }[]
+        if (priceLists?.length > 0) {
+          sellingPriceList = priceLists[0].name
+        }
+      } catch { /* continue */ }
     }
+
+    if (!sellingPriceList) {
+      throw new Error('No selling Price List found on this site. Please create one in ERPNext (Selling > Price List) before creating a quotation.')
+    }
+
     doc.selling_price_list = sellingPriceList
     doc.price_list_currency = quotationData.currency || 'INR'
     doc.plc_conversion_rate = 1
