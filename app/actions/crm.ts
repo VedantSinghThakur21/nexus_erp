@@ -1004,7 +1004,24 @@ export async function createQuotation(quotationData: {
     }
 
     if (!sellingPriceList) {
-      throw new Error('No selling Price List found on this site. Please create one in ERPNext (Selling > Price List) before creating a quotation.')
+      // 3. No price list exists — auto-create "Standard Selling"
+      try {
+        const created = await frappeRequest('frappe.client.insert', 'POST', {
+          doc: {
+            doctype: 'Price List',
+            price_list_name: 'Standard Selling',
+            selling: 1,
+            buying: 0,
+            enabled: 1,
+            currency: quotationData.currency || 'INR'
+          }
+        }) as { name: string }
+        sellingPriceList = created.name
+        console.log('[createQuotation] Auto-created Price List:', sellingPriceList)
+      } catch (createErr) {
+        console.error('[createQuotation] Failed to auto-create Price List:', createErr)
+        throw new Error('No selling Price List found and auto-creation failed. Please create one in ERPNext (Selling > Price List).')
+      }
     }
 
     doc.selling_price_list = sellingPriceList
