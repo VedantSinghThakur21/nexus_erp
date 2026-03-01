@@ -31,12 +31,12 @@ interface QuotationItem {
   item_name: string
   description: string
   item_category?: string
-  
+
   // Standard pricing
   qty: number
   rate: number
   amount: number
-  
+
   // Rental pricing fields
   is_rental?: boolean
   rental_type?: 'hours' | 'days' | 'months'
@@ -74,13 +74,13 @@ export default function EditQuotationPage() {
 
   // Items State
   const [items, setItems] = useState<QuotationItem[]>([
-    { 
-      id: 1, 
-      item_code: "", 
-      item_name: "", 
-      description: "", 
-      qty: 1, 
-      rate: 0, 
+    {
+      id: 1,
+      item_code: "",
+      item_name: "",
+      description: "",
+      qty: 1,
+      rate: 0,
       amount: 0,
       is_rental: false,
       pricing_components: {
@@ -101,7 +101,7 @@ export default function EditQuotationPage() {
   const [paymentTermsTemplate, setPaymentTermsTemplate] = useState("")
   const [termsAndConditions, setTermsAndConditions] = useState("")
   const [taxTemplate, setTaxTemplate] = useState("")
-  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{name: string, title: string}>>([])
+  const [availableTaxTemplates, setAvailableTaxTemplates] = useState<Array<{ name: string, title: string }>>([])
   const [selectedTaxTemplateDetails, setSelectedTaxTemplateDetails] = useState<any>(null)
   // Company and Bank Info (for display only)
   const [companyInfo, setCompanyInfo] = useState<{ name: string, gstin: string } | null>(null)
@@ -111,11 +111,11 @@ export default function EditQuotationPage() {
     getTaxTemplates().then(templates => {
       setAvailableTaxTemplates(templates)
     })
-    
+
     getCompanyDetails().then(data => {
       if (data) setCompanyInfo(data)
     })
-    
+
     getBankDetails().then(data => {
       if (data) setBankInfo(data)
     })
@@ -138,10 +138,10 @@ export default function EditQuotationPage() {
       try {
         const response = await fetch(`/api/quotations/${encodeURIComponent(quotationId)}`)
         const data = await response.json()
-        
+
         if (data.quotation) {
           const q = data.quotation
-          
+
           // Set header fields
           setQuotationTo(q.quotation_to || 'Customer')
           setPartyName(q.party_name || '')
@@ -150,17 +150,17 @@ export default function EditQuotationPage() {
           setCurrency(q.currency || 'INR')
           setOrderType(q.order_type || 'Sales')
           setOpportunityReference(q.opportunity || '')
-          
+
           // Set items
           if (q.items && q.items.length > 0) {
             const loadedItems = q.items.map((item: any, index: number) => {
               // Parse rental data
-              const rentalData = item.custom_rental_data ? 
-                (typeof item.custom_rental_data === 'string' ? JSON.parse(item.custom_rental_data) : item.custom_rental_data) : 
+              const rentalData = item.custom_rental_data ?
+                (typeof item.custom_rental_data === 'string' ? JSON.parse(item.custom_rental_data) : item.custom_rental_data) :
                 null
-              
+
               const isRental = item.custom_is_rental || item.is_rental || false
-              
+
               return {
                 id: index + 1,
                 item_code: item.item_code || '',
@@ -213,13 +213,13 @@ export default function EditQuotationPage() {
               }
             })
             setItems(loadedItems)
-            
+
             // Enable rental mode if any item is rental
             if (loadedItems.some((item: QuotationItem) => item.is_rental)) {
               setIsRentalMode(true)
             }
           }
-          
+
           // Set additional fields
           setPaymentTermsTemplate(q.payment_terms_template || '')
           setTermsAndConditions(q.terms || '')
@@ -232,18 +232,18 @@ export default function EditQuotationPage() {
         setFetching(false)
       }
     }
-    
+
     fetchQuotation()
   }, [quotationId])
 
   // Calculate totals
   const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
-  
+
   // Calculate taxes dynamically based on selected template
   const totalTaxes = selectedTaxTemplateDetails?.taxes?.reduce((sum: number, tax: any) => {
     return sum + (netTotal * (tax.rate || 0) / 100)
   }, 0) || 0
-  
+
   const grandTotal = netTotal + totalTaxes
 
   // Item management functions
@@ -278,7 +278,7 @@ export default function EditQuotationPage() {
 
     try {
       // Validate items
-      const validItems = items.filter(item => 
+      const validItems = items.filter(item =>
         (item.item_code || item.description) && item.qty > 0
       )
 
@@ -329,11 +329,11 @@ export default function EditQuotationPage() {
       if (paymentTermsTemplate && paymentTermsTemplate.trim()) {
         quotationData.payment_terms_template = paymentTermsTemplate.trim()
       }
-      
+
       if (termsAndConditions && termsAndConditions.trim()) {
         quotationData.terms = termsAndConditions.trim()
       }
-      
+
       if (opportunityReference && opportunityReference.trim()) {
         quotationData.opportunity = opportunityReference.trim()
       }
@@ -359,10 +359,10 @@ export default function EditQuotationPage() {
       router.push(`/crm/quotations/${encodeURIComponent(quotationId)}`)
     } catch (error: any) {
       console.error('Error updating quotation:', error)
-      
+
       // Parse error message for better user feedback
       const errorMessage = error.message || 'Failed to update quotation'
-      
+
       if (errorMessage.includes('Party')) {
         alert(`❌ Error: ${errorMessage}\n\nThe customer/lead specified does not exist in ERPNext. Please create it first or use an existing party name.`)
       } else if (errorMessage.includes('Payment Terms')) {
@@ -529,9 +529,11 @@ export default function EditQuotationPage() {
                                 <ItemSearch
                                   value={item.item_code}
                                   onChange={(code, desc, name) => {
-                                    updateItem(item.id, 'item_code', code)
-                                    updateItem(item.id, 'item_name', name || code)
-                                    if (desc) updateItem(item.id, 'description', desc)
+                                    setItems(prev => prev.map(i =>
+                                      i.id === item.id
+                                        ? { ...i, item_code: code, item_name: name || code, description: desc || i.description }
+                                        : i
+                                    ))
                                   }}
                                 />
                               </div>
@@ -825,7 +827,7 @@ export default function EditQuotationPage() {
                         <span className="text-slate-500">Net Total:</span>
                         <span className="font-medium">₹{netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
-                      
+
                       {/* Dynamic tax breakdown */}
                       {selectedTaxTemplateDetails?.taxes && selectedTaxTemplateDetails.taxes.length > 0 ? (
                         <>
@@ -846,7 +848,7 @@ export default function EditQuotationPage() {
                           <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ) : null}
-                      
+
                       <div className="flex justify-between text-lg font-bold border-t pt-2">
                         <span>Grand Total:</span>
                         <span className="text-slate-900 dark:text-white">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -874,7 +876,7 @@ export default function EditQuotationPage() {
                   <p className="text-xs text-slate-500">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
                 </div>
               </div>
-              
+
               <div>
                 <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Bank Details</Label>
                 {bankInfo ? (

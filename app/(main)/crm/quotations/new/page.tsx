@@ -687,9 +687,11 @@ export default function NewQuotationPage() {
                             <ItemSearch
                               value={item.item_code}
                               onChange={(code, desc, itemName) => {
-                                updateItem(item.id, 'item_code', code)
-                                updateItem(item.id, 'item_name', itemName || code)
-                                if (desc) updateItem(item.id, 'description', desc)
+                                setItems(prev => prev.map(i =>
+                                  i.id === item.id
+                                    ? { ...i, item_code: code, item_name: itemName || code, description: desc || i.description }
+                                    : i
+                                ))
                               }}
                               itemGroup={selectedItemGroup === 'All' ? undefined : selectedItemGroup}
                             />
