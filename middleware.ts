@@ -26,23 +26,40 @@ export function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 
-  // ── 1. Skip internal assets, API routes, and NextAuth ──
-  // File extension check: matches paths ending with .ext (e.g., .png, .ico, .svg)
+  // ── 1. Skip internal Next.js assets ──
   const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(pathname)
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
     pathname.startsWith('/static') ||
     hasFileExtension // favicon, images, etc.
   ) {
     return NextResponse.next()
   }
 
+  // ── 1b. For API routes: pass through but inject x-tenant-id from hostname ──
+  if (pathname.startsWith('/api')) {
+    let apiTenantSlug: string | null = null
+
+    if (hostname.includes('localhost')) {
+      const hostWithoutPort = hostname.split(':')[0]
+      const parts = hostWithoutPort.split('.')
+      if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
+        apiTenantSlug = parts[0]
+      }
+    } else if (hostname.endsWith(`.${rootDomain}`)) {
+      apiTenantSlug = hostname.replace(`.${rootDomain}`, '')
+    }
+
+    const apiResponse = NextResponse.next()
+    apiResponse.headers.set('x-tenant-id', apiTenantSlug || 'master')
+    return apiResponse
+  }
+
   // ── 2. Block direct browser access to internal route groups ──
   // Check if this is a direct browser request (not a rewrite)
   const referer = request.headers.get('referer')
   const isDirectAccess = !referer || new URL(referer).pathname !== pathname
-  
+
   if (isDirectAccess && (pathname.startsWith('/site') || pathname.startsWith('/tenant'))) {
     return NextResponse.rewrite(new URL('/404', request.url))
   }
