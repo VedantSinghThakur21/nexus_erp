@@ -975,6 +975,23 @@ export async function createQuotation(quotationData: {
       items: mappedItems
     }
 
+    // Fetch default selling price list (mandatory in ERPNext Quotation)
+    let sellingPriceList = 'Standard Selling'
+    try {
+      const priceListDefaults = await frappeRequest('frappe.client.get_value', 'GET', {
+        doctype: 'Selling Settings',
+        fieldname: 'selling_price_list'
+      }) as { selling_price_list?: string }
+      if (priceListDefaults?.selling_price_list) {
+        sellingPriceList = priceListDefaults.selling_price_list
+      }
+    } catch {
+      // Fall back to "Standard Selling"
+    }
+    doc.selling_price_list = sellingPriceList
+    doc.price_list_currency = quotationData.currency || 'INR'
+    doc.plc_conversion_rate = 1
+
     // Add optional fields
     if (quotationData.payment_terms_template) {
       doc.payment_terms_template = quotationData.payment_terms_template
