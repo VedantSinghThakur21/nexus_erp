@@ -1011,9 +1011,8 @@ export async function createQuotation(quotationData: {
     }
 
     if (!sellingPriceList) {
-      // 3. No price list exists — auto-create "Standard Selling" using master credentials on the tenant site
+      // 3. No price list exists — auto-create "Standard Selling" using tenant admin credentials
       try {
-        const tenantSite = await getTenantSiteName()
         const created = await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Price List',
@@ -1023,7 +1022,7 @@ export async function createQuotation(quotationData: {
             enabled: 1,
             currency: quotationData.currency || 'INR'
           }
-        }, { useMasterCredentials: true, siteOverride: tenantSite }) as { name: string }
+        }) as { name: string }
         sellingPriceList = created.name
         console.log('[createQuotation] Auto-created Price List:', sellingPriceList)
       } catch (createErr) {

@@ -599,6 +599,23 @@ if not frappe.db.exists("Fiscal Year", fy_name):
     # Assign current fiscal year globally
     frappe.db.set_single_value("Global Defaults", "current_fiscal_year", fy_name)
 
+# 5. Create Standard Selling Price List (required for Quotations)
+if not frappe.db.exists("Price List", "Standard Selling"):
+    pl = frappe.new_doc("Price List")
+    pl.price_list_name = "Standard Selling"
+    pl.selling = 1
+    pl.buying = 0
+    pl.enabled = 1
+    pl.currency = "INR"
+    pl.insert(ignore_permissions=True)
+    print("DEBUG: Created Standard Selling Price List")
+
+# 6. Set it as the default in Selling Settings
+selling_settings = frappe.get_doc("Selling Settings")
+if not selling_settings.selling_price_list:
+    selling_settings.selling_price_list = "Standard Selling"
+    selling_settings.save(ignore_permissions=True)
+    print("DEBUG: Set Standard Selling as default price list")
 
 frappe.db.commit()
 print(json.dumps({{"initialized": True}}))

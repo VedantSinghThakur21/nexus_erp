@@ -108,7 +108,27 @@ if not frappe.db.exists("Fiscal Year", fy_name):
     # Assign current fiscal year globally
     frappe.db.set_single_value("Global Defaults", "current_fiscal_year", fy_name)
 
-# 4. Seed Salutations
+# 4a. Create Standard Selling Price List (required for Quotations)
+if not frappe.db.exists("Price List", "Standard Selling"):
+    pl = frappe.new_doc("Price List")
+    pl.price_list_name = "Standard Selling"
+    pl.selling = 1
+    pl.buying = 0
+    pl.enabled = 1
+    pl.currency = "INR"
+    pl.insert(ignore_permissions=True)
+    print("Created Standard Selling Price List")
+else:
+    print("Standard Selling Price List already exists")
+
+# 4b. Set as default in Selling Settings
+selling_settings = frappe.get_doc("Selling Settings")
+if not selling_settings.selling_price_list:
+    selling_settings.selling_price_list = "Standard Selling"
+    selling_settings.save(ignore_permissions=True)
+    print("Set Standard Selling as default price list")
+
+# 4c. Seed Salutations
 for s in ["Mr", "Ms", "Mrs", "Dr", "Prof"]:
     if not frappe.db.exists("Salutation", s):
         frappe.get_doc({{"doctype": "Salutation", "salutation": s}}).insert(ignore_permissions=True)
