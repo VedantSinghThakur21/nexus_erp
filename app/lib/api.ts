@@ -28,6 +28,7 @@ interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: Record<string, unknown> | null
   useMasterCredentials?: boolean // Force use of master credentials
+  siteOverride?: string // Override the target site name (use with useMasterCredentials for tenant admin ops)
 }
 
 // ============================================================================
@@ -253,7 +254,7 @@ export async function frappeRequest(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null,
-  options: { useMasterCredentials?: boolean } = {}
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'siteOverride'> = {}
 ): Promise<unknown> {
   // Get tenant context from cookies/headers
   const context = await getTenantContext()
@@ -264,8 +265,8 @@ export async function frappeRequest(
     options.useMasterCredentials || false
   )
 
-  // Use appropriate site name
-  const siteName = options.useMasterCredentials ? MASTER_SITE_NAME : context.siteName
+  // Use appropriate site name (siteOverride takes priority, then master/tenant logic)
+  const siteName = options.siteOverride || (options.useMasterCredentials ? MASTER_SITE_NAME : context.siteName)
 
   // Log request details
   logApiRequest(endpoint, method, siteName, authSource, context)

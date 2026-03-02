@@ -118,6 +118,13 @@ export interface Quotation {
 
 // Helper: Get tenant site name from request context
 async function getTenantSiteName(): Promise<string> {
+  const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+  const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+  const MASTER_SITE = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
+
+  const makeSiteName = (subdomain: string) =>
+    IS_PRODUCTION ? `${subdomain}.${ROOT_DOMAIN}` : `${subdomain}.localhost`
+
   try {
     const headersList = await headers()
     const cookieStore = await cookies()
@@ -126,28 +133,28 @@ async function getTenantSiteName(): Promise<string> {
     const cookieTenant = cookieStore.get('tenant_subdomain')?.value
     if (cookieTenant) {
       console.log(`[DEBUG] Tenant from cookie: ${cookieTenant}`)
-      return `${cookieTenant}.localhost`
+      return makeSiteName(cookieTenant)
     }
 
     // Then check X-Subdomain header (set by middleware)
     const headerSubdomain = headersList.get('X-Subdomain')
     if (headerSubdomain) {
       console.log(`[DEBUG] Tenant from header: ${headerSubdomain}`)
-      return `${headerSubdomain}.localhost`
+      return makeSiteName(headerSubdomain)
     }
 
-    // Check x-tenant-id header
+    // Check x-tenant-id header (injected by middleware for all routes incl. API)
     const tenantHeader = headersList.get('x-tenant-id')
-    if (tenantHeader) {
+    if (tenantHeader && tenantHeader !== 'master') {
       console.log(`[DEBUG] Tenant from x-tenant-id: ${tenantHeader}`)
-      return `${tenantHeader}.localhost`
+      return makeSiteName(tenantHeader)
     }
 
     console.log(`[DEBUG] No tenant context found, using master site`)
-    return 'erp.localhost'
+    return MASTER_SITE
   } catch (error) {
     console.error('[DEBUG] Error getting tenant site name:', error)
-    return 'erp.localhost'
+    return MASTER_SITE
   }
 }
 
@@ -1004,8 +1011,9 @@ export async function createQuotation(quotationData: {
     }
 
     if (!sellingPriceList) {
-      // 3. No price list exists — auto-create "Standard Selling"
+      // 3. No price list exists — auto-create "Standard Selling" using master credentials on the tenant site
       try {
+        const tenantSite = await getTenantSiteName()
         const created = await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Price List',
@@ -1015,7 +1023,7 @@ export async function createQuotation(quotationData: {
             enabled: 1,
             currency: quotationData.currency || 'INR'
           }
-        }) as { name: string }
+        }, { useMasterCredentials: true, siteOverride: tenantSite }) as { name: string }
         sellingPriceList = created.name
         console.log('[createQuotation] Auto-created Price List:', sellingPriceList)
       } catch (createErr) {
