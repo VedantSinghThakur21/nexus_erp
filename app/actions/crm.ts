@@ -983,52 +983,26 @@ export async function createQuotation(quotationData: {
     }
 
     // Fetch default selling price list (mandatory in ERPNext Quotation)
+    // NOTE: If this fails, run GET /api/setup/init once to initialize the tenant price list
     let sellingPriceList = ''
     try {
-      // 1. Try Selling Settings first
-      const priceListDefaults = await frappeRequest('frappe.client.get_value', 'GET', {
-        doctype: 'Selling Settings',
-        fieldname: 'selling_price_list'
-      }) as { selling_price_list?: string }
-      if (priceListDefaults?.selling_price_list) {
-        sellingPriceList = priceListDefaults.selling_price_list
+      const priceLists = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Price List',
+        filters: '[["selling","=","1"],["enabled","=","1"]]',
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as { name: string }[]
+      if (priceLists?.length > 0) {
+        sellingPriceList = priceLists[0].name
       }
-    } catch { /* continue */ }
-
-    if (!sellingPriceList) {
-      try {
-        // 2. Get any Selling-type price list from ERPNext
-        const priceLists = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Price List',
-          filters: '[["selling","=","1"]]',
-          fields: '["name"]',
-          limit_page_length: 1
-        }) as { name: string }[]
-        if (priceLists?.length > 0) {
-          sellingPriceList = priceLists[0].name
-        }
-      } catch { /* continue */ }
+    } catch (e) {
+      console.error('[createQuotation] Failed to fetch Price List:', e)
     }
 
     if (!sellingPriceList) {
-      // 3. No price list exists — auto-create "Standard Selling" using tenant admin credentials
-      try {
-        const created = await frappeRequest('frappe.client.insert', 'POST', {
-          doc: {
-            doctype: 'Price List',
-            price_list_name: 'Standard Selling',
-            selling: 1,
-            buying: 0,
-            enabled: 1,
-            currency: quotationData.currency || 'INR'
-          }
-        }) as { name: string }
-        sellingPriceList = created.name
-        console.log('[createQuotation] Auto-created Price List:', sellingPriceList)
-      } catch (createErr) {
-        console.error('[createQuotation] Failed to auto-create Price List:', createErr)
-        throw new Error('No selling Price List found and auto-creation failed. Please create one in ERPNext (Selling > Price List).')
-      }
+      throw new Error(
+        'No selling Price List found. Please visit /api/setup/init once to initialize your tenant, then try again.'
+      )
     }
 
     doc.selling_price_list = sellingPriceList
