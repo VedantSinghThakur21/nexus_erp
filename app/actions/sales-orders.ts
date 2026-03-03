@@ -49,7 +49,7 @@ export interface SalesOrder {
   customer: string
   customer_name?: string
   status: string // Draft | To Deliver and Bill | To Bill | To Deliver | Completed | Cancelled | On Hold
-                // "To Bill" and "To Deliver and Bill" indicate "Ready for Invoice"
+  // "To Bill" and "To Deliver and Bill" indicate "Ready for Invoice"
   delivery_status?: string // Not Delivered | Partly Delivered | Fully Delivered | Closed | Not Applicable
   transaction_date: string
   delivery_date?: string
@@ -122,6 +122,85 @@ export async function getSalesOrder(id: string) {
 // 3. CREATE: Create New Sales Order
 export async function createSalesOrder(data: any) {
   try {
+    // ── Resolve Lead → Customer ──────────────────────────────────────────────
+    // When a quotation is created for a Lead (quotation_to = 'Lead'), the form
+    // populates `customer` with the Lead ID (e.g. CRM-LEAD-2026-00002).
+    // ERPNext requires a Customer record — so we resolve it here.
+    let resolvedCustomer = data.customer
+    let resolvedCustomerName = data.customer_name
+
+    if (data.customer && data.customer.startsWith('CRM-LEAD-')) {
+      const leadId = data.customer
+      console.log('[createSalesOrder] Customer looks like a Lead ID, resolving:', leadId)
+
+      try {
+        // 1. Fetch the lead to get details
+        const lead = await frappeRequest('frappe.client.get', 'GET', {
+          doctype: 'Lead',
+          name: leadId
+        }) as any
+
+        if (lead) {
+          // 2. Look for an existing Customer that was created from this lead
+          //    (ERPNext stores lead_name on Customer when converted)
+          const existingCustomers = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Customer',
+            filters: JSON.stringify([
+              ['customer_name', 'in', [
+                lead.company_name || '',
+                lead.lead_name || '',
+                lead.customer_name || ''
+              ].filter(Boolean)]
+            ]),
+            fields: '["name", "customer_name"]',
+            limit_page_length: 1
+          }) as any[]
+
+          if (existingCustomers && existingCustomers.length > 0) {
+            resolvedCustomer = existingCustomers[0].name
+            resolvedCustomerName = existingCustomers[0].customer_name
+            console.log('[createSalesOrder] Found existing customer:', resolvedCustomer)
+          } else {
+            // 3. No existing customer — create one from this lead
+            console.log('[createSalesOrder] No existing customer found, creating from lead:', leadId)
+            const customerData: any = {
+              doctype: 'Customer',
+              customer_name: lead.company_name || lead.lead_name,
+              customer_type: lead.company_name ? 'Company' : 'Individual',
+              territory: lead.territory || 'All Territories',
+              email_id: lead.email_id,
+              mobile_no: lead.mobile_no
+            }
+            if (lead.organization_slug) customerData.organization_slug = lead.organization_slug
+
+            const newCustomer = await frappeRequest('frappe.client.insert', 'POST', {
+              doc: customerData
+            }) as any
+
+            resolvedCustomer = newCustomer.name
+            resolvedCustomerName = newCustomer.customer_name
+            console.log('[createSalesOrder] Created new customer:', resolvedCustomer)
+
+            // Update lead status to Converted
+            try {
+              await frappeRequest('frappe.client.set_value', 'POST', {
+                doctype: 'Lead',
+                name: leadId,
+                fieldname: 'status',
+                value: 'Converted'
+              })
+            } catch (e) {
+              console.warn('[createSalesOrder] Could not update lead status to Converted:', e)
+            }
+          }
+        }
+      } catch (leadResolveError: any) {
+        console.error('[createSalesOrder] Failed to resolve lead to customer:', leadResolveError)
+        return { error: `Cannot create Sales Order: the quotation was made for a Lead (${leadId}) which has not been converted to a Customer. Error: ${leadResolveError.message}` }
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     // Process items to preserve rental data if present
     const processedItems = (data.items || []).map((item: any) => {
       const baseItem: any = {
@@ -153,7 +232,7 @@ export async function createSalesOrder(data: any) {
         if (item.operator_name || item.custom_operator_name) {
           baseItem.custom_operator_name = item.operator_name || item.custom_operator_name
         }
-        
+
         // Map pricing components to ERPNext custom fields
         baseItem.custom_base_rental_cost = item.base_cost || item.custom_base_rental_cost || 0
         baseItem.custom_accommodation_charges = item.accommodation_charges || item.custom_accommodation_charges || 0
@@ -172,7 +251,7 @@ export async function createSalesOrder(data: any) {
 
     const orderData: any = {
       doctype: 'Sales Order',
-      customer: data.customer,
+      customer: resolvedCustomer,
       transaction_date: data.transaction_date || new Date().toISOString().split('T')[0],
       delivery_date: data.delivery_date,
       currency: data.currency || 'USD',
@@ -180,7 +259,7 @@ export async function createSalesOrder(data: any) {
     }
 
     // Add optional fields
-    if (data.customer_name) orderData.customer_name = data.customer_name
+    if (resolvedCustomerName) orderData.customer_name = resolvedCustomerName
     if (data.quotation_no) orderData.quotation_no = data.quotation_no
     if (data.opportunity) orderData.opportunity = data.opportunity
     if (data.contact_email) orderData.contact_email = data.contact_email
@@ -188,18 +267,18 @@ export async function createSalesOrder(data: any) {
     if (data.terms) orderData.terms = data.terms
     if (data.po_no) orderData.po_no = data.po_no
     if (data.po_date) orderData.po_date = data.po_date
-    
+
     // Add tax template if specified
     if (data.taxes_and_charges) {
       orderData.taxes_and_charges = data.taxes_and_charges
-      
+
       try {
         // Fetch the tax template to get the tax rows
         const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
           doctype: 'Sales Taxes and Charges Template',
           name: data.taxes_and_charges
         }) as { taxes?: any[] }
-        
+
         // Add the tax rows to the sales order
         if (taxTemplate.taxes && taxTemplate.taxes.length > 0) {
           orderData.taxes = taxTemplate.taxes.map((tax: any, idx: number) => ({
@@ -219,7 +298,7 @@ export async function createSalesOrder(data: any) {
 
     console.log('Creating Sales Order with data:', JSON.stringify(orderData, null, 2))
     const result = await frappeRequest('frappe.client.insert', 'POST', { doc: orderData })
-    
+
     revalidatePath('/sales-orders')
     return { success: true, data: result }
   } catch (error: any) {
@@ -236,7 +315,7 @@ export async function updateSalesOrder(id: string, data: any) {
       name: id,
       fieldname: data
     })
-    
+
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${id}`)
     return { success: true, data: result }
@@ -284,7 +363,7 @@ export async function cancelSalesOrder(id: string) {
       doctype: 'Sales Order',
       name: id
     })
-    
+
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${id}`)
     return { success: true }
@@ -298,14 +377,14 @@ export async function cancelSalesOrder(id: string) {
 export async function getSalesOrderStats() {
   try {
     const orders = await getSalesOrders()
-    
+
     const stats = {
       draft: orders.filter(o => o.status === 'Draft').length,
       confirmed: orders.filter(o => ['To Deliver and Bill', 'To Bill', 'To Deliver'].includes(o.status)).length,
       inProgress: orders.filter(o => o.status === 'To Deliver and Bill' && (o.per_delivered || 0) > 0 && (o.per_delivered || 0) < 100).length,
       totalValue: orders.reduce((sum, o) => sum + (o.grand_total || 0), 0)
     }
-    
+
     return stats
   } catch (error) {
     console.error("Failed to fetch sales order stats:", error)
@@ -328,7 +407,7 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
 
     // 2. Verify quotation is submitted (docstatus = 1)
     if (quotation.docstatus !== 1) {
-      return { 
+      return {
         error: 'Quotation must be submitted before creating Sales Order. Please submit the quotation first.',
         needsSubmission: true
       }
@@ -349,7 +428,7 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
     }
 
     const salesOrderDoc = result.message || result
-    
+
     // 5. Save the sales order
     const savedOrder = await frappeRequest('frappe.client.insert', 'POST', {
       doc: salesOrderDoc
@@ -376,14 +455,14 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
         value: 'Converted'
       })
     }
-    
+
     revalidatePath('/sales-orders')
     revalidatePath('/crm/quotations')
     revalidatePath(`/crm/quotations/${quotationId}`)
     if (quotation.opportunity) {
       revalidatePath(`/crm/opportunities/${quotation.opportunity}`)
     }
-    
+
     return { success: true, name: savedOrder.name, salesOrder: savedOrder }
   } catch (error: any) {
     console.error("Failed to create sales order from quotation:", error)
@@ -400,7 +479,7 @@ export async function updateSalesOrderStatus(orderId: string, status: string) {
       fieldname: 'status',
       value: status
     })
-    
+
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${orderId}`)
     return { success: true }
