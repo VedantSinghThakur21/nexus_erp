@@ -6,6 +6,35 @@ import { canCreateLead, incrementUsage } from "./usage-limits"
 import { headers } from "next/headers"
 import { cookies } from "next/headers"
 
+/**
+ * Validates a territory name against ERPNext’s actual Territory records.
+ * Returns a valid territory name, or undefined if none can be found.
+ * Never uses hardcoded fallbacks that may not exist on the site.
+ */
+async function resolveValidTerritory(preferredTerritory?: string): Promise<string | undefined> {
+  try {
+    if (preferredTerritory) {
+      const check = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Territory',
+        filters: JSON.stringify([['name', '=', preferredTerritory]]),
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as any[]
+      if (check && check.length > 0) return check[0].name
+      console.warn(`[resolveValidTerritory] '${preferredTerritory}' not found in ERPNext, using fallback`)
+    }
+    const all = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Territory',
+      fields: '["name"]',
+      limit_page_length: 1
+    }) as any[]
+    return all && all.length > 0 ? all[0].name : undefined
+  } catch (e) {
+    console.warn('[resolveValidTerritory] Could not resolve territory, omitting field:', e)
+    return undefined
+  }
+}
+
 // 7. DELETE: Delete Lead (only if not Converted)
 export async function deleteLead(leadId: string) {
   try {
@@ -538,25 +567,13 @@ export async function convertLeadToCustomer(leadId: string) {
 
     if (!lead) throw new Error("Lead not found")
 
-    // 2. Resolve a valid territory — never hardcode 'All Territories' as it may not exist on the site
-    let resolvedTerritory: string | undefined = (lead as any).territory || undefined
-    if (!resolvedTerritory) {
-      try {
-        const territories = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Territory',
-          fields: '["name"]',
-          limit_page_length: 1
-        }) as any[]
-        if (territories && territories.length > 0) resolvedTerritory = territories[0].name
-      } catch (e) {
-        console.warn('[convertLeadToCustomer] Could not fetch territories:', e)
-      }
-    }
+    // 2. Validate territory against ERPNext — lead.territory may not exist on this site
+    const resolvedTerritory = await resolveValidTerritory((lead as any).territory)
 
     // 3. Create Customer Object
     const customerData: any = {
       doctype: 'Customer',
-      customer_name: lead.company_name || lead.lead_name, // Prefer Company Name
+      customer_name: lead.company_name || lead.lead_name,
       customer_type: lead.company_name ? 'Company' : 'Individual',
       email_id: lead.email_id,
       mobile_no: lead.mobile_no
@@ -1435,19 +1452,8 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
       }
     }
 
-    // Resolve territory dynamically if not set — never use hardcoded 'All Territories'
-    if (!territory) {
-      try {
-        const territories = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Territory',
-          fields: '["name"]',
-          limit_page_length: 1
-        }) as any[]
-        if (territories && territories.length > 0) territory = territories[0].name
-      } catch (e) {
-        console.warn('Could not fetch territories:', e)
-      }
-    }
+    // Validate territory against ERPNext — the stored value may not exist on this site
+    territory = await resolveValidTerritory(territory)
 
     // 4. Create Customer
     const customerData: any = {

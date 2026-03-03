@@ -44,6 +44,39 @@
 import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 
+/**
+ * Validates a territory name against ERPNext's actual Territory records.
+ * Returns a valid territory name, or undefined if none can be found.
+ * Never uses hardcoded fallbacks like 'All Territories' or 'Asia' that may not exist.
+ */
+async function resolveValidTerritory(preferredTerritory?: string): Promise<string | undefined> {
+  try {
+    if (preferredTerritory) {
+      // Check if this specific territory actually exists in ERPNext
+      const check = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Territory',
+        filters: JSON.stringify([['name', '=', preferredTerritory]]),
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as any[]
+      if (check && check.length > 0) {
+        return check[0].name // Confirmed valid
+      }
+      console.warn(`[resolveValidTerritory] Territory '${preferredTerritory}' not found in ERPNext, using fallback`)
+    }
+    // Fall back to the first territory that actually exists
+    const all = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Territory',
+      fields: '["name"]',
+      limit_page_length: 1
+    }) as any[]
+    return all && all.length > 0 ? all[0].name : undefined
+  } catch (e) {
+    console.warn('[resolveValidTerritory] Could not resolve territory, omitting field:', e)
+    return undefined
+  }
+}
+
 export interface SalesOrder {
   name: string
   customer: string
@@ -164,22 +197,8 @@ export async function createSalesOrder(data: any) {
             // 3. No existing customer — create one from this lead
             console.log('[createSalesOrder] No existing customer found, creating from lead:', leadId)
 
-            // Resolve a valid territory — never hardcode 'All Territories' as it may not exist
-            let validTerritory: string | undefined = lead.territory || undefined
-            if (!validTerritory) {
-              try {
-                const territories = await frappeRequest('frappe.client.get_list', 'GET', {
-                  doctype: 'Territory',
-                  fields: '["name"]',
-                  limit_page_length: 1
-                }) as any[]
-                if (territories && territories.length > 0) {
-                  validTerritory = territories[0].name
-                }
-              } catch (e) {
-                console.warn('[createSalesOrder] Could not fetch territories, omitting field:', e)
-              }
-            }
+            // Validate territory against ERPNext — the lead's territory value may not exist on this site
+            const validTerritory = await resolveValidTerritory(lead.territory)
 
             const customerData: any = {
               doctype: 'Customer',
