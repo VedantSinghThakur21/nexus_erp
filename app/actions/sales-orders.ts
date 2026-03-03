@@ -300,7 +300,10 @@ export async function createSalesOrder(data: any) {
     if (data.quotation_no) orderData.quotation_no = data.quotation_no
     if (data.opportunity) orderData.opportunity = data.opportunity
     if (data.contact_email) orderData.contact_email = data.contact_email
-    if (data.territory) orderData.territory = data.territory
+    if (data.territory) {
+      const validTerritory = await resolveValidTerritory(data.territory)
+      if (validTerritory) orderData.territory = validTerritory
+    }
     if (data.terms) orderData.terms = data.terms
     if (data.po_no) orderData.po_no = data.po_no
     if (data.po_date) orderData.po_date = data.po_date
