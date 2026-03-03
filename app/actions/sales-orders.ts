@@ -163,14 +163,32 @@ export async function createSalesOrder(data: any) {
           } else {
             // 3. No existing customer — create one from this lead
             console.log('[createSalesOrder] No existing customer found, creating from lead:', leadId)
+
+            // Resolve a valid territory — never hardcode 'All Territories' as it may not exist
+            let validTerritory: string | undefined = lead.territory || undefined
+            if (!validTerritory) {
+              try {
+                const territories = await frappeRequest('frappe.client.get_list', 'GET', {
+                  doctype: 'Territory',
+                  fields: '["name"]',
+                  limit_page_length: 1
+                }) as any[]
+                if (territories && territories.length > 0) {
+                  validTerritory = territories[0].name
+                }
+              } catch (e) {
+                console.warn('[createSalesOrder] Could not fetch territories, omitting field:', e)
+              }
+            }
+
             const customerData: any = {
               doctype: 'Customer',
               customer_name: lead.company_name || lead.lead_name,
               customer_type: lead.company_name ? 'Company' : 'Individual',
-              territory: lead.territory || 'All Territories',
               email_id: lead.email_id,
               mobile_no: lead.mobile_no
             }
+            if (validTerritory) customerData.territory = validTerritory
             if (lead.organization_slug) customerData.organization_slug = lead.organization_slug
 
             const newCustomer = await frappeRequest('frappe.client.insert', 'POST', {

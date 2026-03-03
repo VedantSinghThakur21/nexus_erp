@@ -538,22 +538,37 @@ export async function convertLeadToCustomer(leadId: string) {
 
     if (!lead) throw new Error("Lead not found")
 
-    // 2. Create Customer Object
+    // 2. Resolve a valid territory — never hardcode 'All Territories' as it may not exist on the site
+    let resolvedTerritory: string | undefined = (lead as any).territory || undefined
+    if (!resolvedTerritory) {
+      try {
+        const territories = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Territory',
+          fields: '["name"]',
+          limit_page_length: 1
+        }) as any[]
+        if (territories && territories.length > 0) resolvedTerritory = territories[0].name
+      } catch (e) {
+        console.warn('[convertLeadToCustomer] Could not fetch territories:', e)
+      }
+    }
+
+    // 3. Create Customer Object
     const customerData: any = {
       doctype: 'Customer',
       customer_name: lead.company_name || lead.lead_name, // Prefer Company Name
       customer_type: lead.company_name ? 'Company' : 'Individual',
-      territory: lead.territory || 'All Territories',
       email_id: lead.email_id,
       mobile_no: lead.mobile_no
     }
+    if (resolvedTerritory) customerData.territory = resolvedTerritory
 
-    // 3. Add organization_slug from the source lead for multi-tenancy
+    // 4. Add organization_slug from the source lead for multi-tenancy
     if (lead.organization_slug) {
       customerData.organization_slug = lead.organization_slug
     }
 
-    // 4. Save to ERPNext
+    // 5. Save to ERPNext
     const customer = await frappeRequest('frappe.client.insert', 'POST', { doc: customerData }) as { name: string }
 
     // 5. Update Lead Status to 'Converted'
@@ -1403,7 +1418,7 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
     let customerName = opportunity.customer_name || opportunity.party_name
     let email = null
     let mobile = null
-    let territory = 'All Territories'
+    let territory: string | undefined = undefined
 
     if (opportunity.opportunity_from === 'Lead') {
       try {
@@ -1414,9 +1429,23 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
         customerName = lead.company_name || lead.lead_name
         email = lead.email_id
         mobile = lead.mobile_no
-        territory = lead.territory || territory
+        territory = lead.territory || undefined
       } catch (e) {
         console.warn('Could not fetch lead details:', e)
+      }
+    }
+
+    // Resolve territory dynamically if not set — never use hardcoded 'All Territories'
+    if (!territory) {
+      try {
+        const territories = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Territory',
+          fields: '["name"]',
+          limit_page_length: 1
+        }) as any[]
+        if (territories && territories.length > 0) territory = territories[0].name
+      } catch (e) {
+        console.warn('Could not fetch territories:', e)
       }
     }
 
@@ -1425,7 +1454,7 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
       doctype: 'Customer',
       customer_name: customerName,
       customer_type: 'Company',
-      territory: territory,
+      ...(territory ? { territory } : {}),
       email_id: email,
       mobile_no: mobile
     }
