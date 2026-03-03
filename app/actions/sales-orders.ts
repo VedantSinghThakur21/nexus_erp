@@ -238,6 +238,38 @@ export async function createSalesOrder(data: any) {
     }
     // ────────────────────────────────────────────────────────────────────────
 
+    // ── Resolve default warehouse for stock items ──────────────────────────
+    // ERPNext requires a warehouse for stock items on Sales Orders.
+    let defaultWarehouse: string | undefined = undefined
+    try {
+      // Try to get default warehouse from Stock Settings
+      const stockSettings = await frappeRequest('frappe.client.get_value', 'GET', {
+        doctype: 'Stock Settings',
+        fieldname: 'default_warehouse'
+      }) as any
+      defaultWarehouse = stockSettings?.default_warehouse
+    } catch (e) {
+      console.warn('[createSalesOrder] Could not fetch default warehouse from Stock Settings:', e)
+    }
+    if (!defaultWarehouse) {
+      try {
+        // Fallback: get the first available non-group warehouse
+        const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Warehouse',
+          filters: JSON.stringify([['is_group', '=', 0]]),
+          fields: '["name"]',
+          limit_page_length: 1
+        }) as any[]
+        if (warehouses && warehouses.length > 0) {
+          defaultWarehouse = warehouses[0].name
+        }
+      } catch (e) {
+        console.warn('[createSalesOrder] Could not fetch any warehouse:', e)
+      }
+    }
+    console.log('[createSalesOrder] Default warehouse:', defaultWarehouse)
+    // ────────────────────────────────────────────────────────────────────────
+
     // Process items to preserve rental data if present
     const processedItems = (data.items || []).map((item: any) => {
       const baseItem: any = {
@@ -249,6 +281,10 @@ export async function createSalesOrder(data: any) {
         rate: item.rate,
         amount: item.amount,
         delivery_date: item.delivery_date || data.delivery_date
+      }
+      // Include warehouse — use form value or default
+      if (item.warehouse || defaultWarehouse) {
+        baseItem.warehouse = item.warehouse || defaultWarehouse
       }
 
       // Map rental data to ERPNext custom fields if present (from frontend or quotation)
