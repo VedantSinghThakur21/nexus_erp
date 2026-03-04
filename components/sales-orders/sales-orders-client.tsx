@@ -226,15 +226,15 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
                 <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
                   <thead className="bg-slate-50 dark:bg-slate-900/50">
                     <tr>
-                      <th className="px-8 py-5 text-left text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order ID</th>
-                      <th className="px-8 py-5 text-left text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer</th>
-                      <th className="px-8 py-5 text-left text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order Date</th>
-                      <th className="px-8 py-5 text-left text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Items</th>
-                      <th className="px-8 py-5 text-left text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
-                      <th className="px-8 py-5 text-left text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">AI Fulfillment Risk</th>
-                      <th className="px-8 py-5 text-left text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">AI Insight</th>
-                      <th className="px-8 py-5 text-left text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                      <th className="px-8 py-5 text-right text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order ID</th>
+                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order Date</th>
+                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Items</th>
+                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">AI Fulfillment Risk</th>
+                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">AI Insight</th>
+                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-4 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-card-dark">
@@ -245,47 +245,47 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
 
                       return (
                         <tr key={order.name} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors group">
-                          <td className="px-8 py-6 whitespace-nowrap text-[16px] font-semibold text-primary">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-primary">
                             <Link href={`/sales-orders/${order.name}`}>{order.name}</Link>
                           </td>
-                          <td className="px-8 py-6 whitespace-nowrap text-[16px] text-slate-900 dark:text-slate-100">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                             {order.customer_name || order.customer}
                           </td>
-                          <td className="px-8 py-6 whitespace-nowrap text-[16px] text-slate-500 dark:text-slate-400">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                             {formatDate(order.transaction_date)}
                           </td>
-                          <td className="px-8 py-6 whitespace-nowrap text-[16px] text-slate-500 dark:text-slate-400">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                             {order.total_qty || 0} items
                           </td>
-                          <td className="px-8 py-6 whitespace-nowrap text-[16px] font-semibold text-slate-900 dark:text-white">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white">
                             {order.currency} {order.grand_total.toLocaleString()}
                           </td>
-                          <td className="px-8 py-6 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
                             <div className={`flex items-center text-${risk.color}-600 dark:text-${risk.color}-400 text-xs font-bold uppercase tracking-tight`}>
-                              <span className={`w-2.5 h-2.5 rounded-full ${risk.glow} mr-2`}></span>
+                              <span className={`w-2 h-2 rounded-full ${risk.glow} mr-1.5`}></span>
                               {risk.label}
                             </div>
                           </td>
-                          <td className="px-8 py-6 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${insight.color}`}>
-                              <InsightIcon className="h-4 w-4 mr-1" />
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${insight.color}`}>
+                              <InsightIcon className="h-3.5 w-3.5 mr-1" />
                               {insight.label}
                             </span>
                           </td>
-                          <td className="px-8 py-6 whitespace-nowrap">
-                            <span className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md ${getStatusColor(order.status)}`}>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md ${getStatusColor(order.status)}`}>
                               {order.delivery_status || order.status}
                             </span>
                           </td>
-                          <td className="px-8 py-6 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end space-x-3">
+                          <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end space-x-2">
                               <Link href={`/sales-orders/${order.name}`}>
-                                <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs">
                                   View
                                 </button>
                               </Link>
-                              <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center transition-colors">
-                                <Truck className="h-[18px] w-[18px] mr-1.5" />
+                              <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center transition-colors text-xs">
+                                <Truck className="h-3.5 w-3.5 mr-1" />
                                 Update
                               </button>
                             </div>
@@ -298,7 +298,7 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
               </div>
 
               {/* Pagination */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 px-8 py-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <span className="text-sm text-slate-500 dark:text-slate-400">
                   Showing {startIndex + 1} to {Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} entries
                 </span>
