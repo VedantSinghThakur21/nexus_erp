@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -22,38 +22,41 @@ import {
 } from "@/components/ui/select"
 import { DollarSign, Loader2 } from "lucide-react"
 import { createPaymentEntry } from "@/app/actions/invoices"
+import { getModesOfPayment } from "@/app/actions/common"
 import { useRouter } from "next/navigation"
-
-const PAYMENT_MODES = [
-  'Cash',
-  'Bank Draft',
-  'Credit Card',
-  'Debit Card',
-  'Cheque',
-  'Wire Transfer',
-  'UPI',
-  'NEFT',
-  'RTGS',
-  'IMPS'
-]
 
 export function PaymentDialog({ invoice }: { invoice: any }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [paymentModes, setPaymentModes] = useState<string[]>([])
+  const [loadingModes, setLoadingModes] = useState(false)
   const [formData, setFormData] = useState({
     paymentAmount: Number(invoice.outstanding_amount ?? invoice.grand_total ?? 0),
     paymentDate: new Date().toISOString().split('T')[0],
-    modeOfPayment: 'Cash',
+    modeOfPayment: '',
     referenceNo: '',
     referenceDate: new Date().toISOString().split('T')[0]
   })
   const router = useRouter()
 
+  // Fetch modes from ERPNext when dialog opens
+  useEffect(() => {
+    if (!open) return
+    setLoadingModes(true)
+    getModesOfPayment().then(modes => {
+      setPaymentModes(modes)
+      if (modes.length > 0 && !formData.modeOfPayment) {
+        setFormData(f => ({ ...f, modeOfPayment: modes[0] }))
+      }
+      setLoadingModes(false)
+    }).catch(() => setLoadingModes(false))
+  }, [open])
+
   const outstandingAmount = invoice.outstanding_amount || invoice.grand_total || 0
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (formData.paymentAmount <= 0) {
       alert('Payment amount must be greater than 0')
       return
@@ -101,7 +104,7 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
               Create a payment entry for invoice {invoice.name}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {/* Outstanding Amount Display */}
             <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
@@ -144,12 +147,13 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
               <Select
                 value={formData.modeOfPayment}
                 onValueChange={(value) => setFormData({ ...formData, modeOfPayment: value })}
+                disabled={loadingModes}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={loadingModes ? 'Loading...' : 'Select mode'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_MODES.map((mode) => (
+                  {paymentModes.map((mode) => (
                     <SelectItem key={mode} value={mode}>
                       {mode}
                     </SelectItem>

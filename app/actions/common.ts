@@ -101,6 +101,23 @@ export async function getWarehouses() {
   }
 }
 
+// ── Mode of Payment ──────────────────────────────────────────────────────────
+
+export async function getModesOfPayment(): Promise<string[]> {
+  try {
+    const modes = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Mode of Payment',
+      fields: '["name"]',
+      order_by: 'name asc',
+      limit_page_length: 50
+    }) as { name: string }[]
+    return modes?.map(m => m.name) || []
+  } catch (error) {
+    console.error('Failed to fetch modes of payment:', error)
+    return []
+  }
+}
+
 export async function applyItemPricingRules(data: {
   item_code: string
   customer?: string
