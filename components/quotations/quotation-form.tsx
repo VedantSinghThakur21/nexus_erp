@@ -12,7 +12,7 @@ import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, Trash2, Barcode, Calendar, FileText, DollarSign, Percent } from "lucide-react"
 import { createQuotation } from "@/app/actions/quotations"
 import { ItemSearch } from "@/components/invoices/item-search"
-import { getTaxTemplates, applyItemPricingRules } from "@/app/actions/common"
+import { getTaxTemplates, getTerritories, createTerritory, applyItemPricingRules } from "@/app/actions/common"
 import { useRouter } from 'next/navigation'
 
 interface QuotationItem {
@@ -36,6 +36,10 @@ export default function QuotationForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [taxTemplates, setTaxTemplates] = useState<TaxTemplate[]>([])
+  const [territories, setTerritories] = useState<string[]>([])
+  const [newTerritoryName, setNewTerritoryName] = useState('')
+  const [showNewTerritory, setShowNewTerritory] = useState(false)
+  const [creatingTerritory, setCreatingTerritory] = useState(false)
   const [formData, setFormData] = useState({
     quotation_to: 'Customer',
     party_name: '',
@@ -63,14 +67,37 @@ export default function QuotationForm() {
     }
   ])
 
-  // Fetch tax templates on mount
+  // Fetch tax templates and territories on mount
   useEffect(() => {
     const fetchTaxTemplates = async () => {
       const templates = await getTaxTemplates()
       setTaxTemplates(Array.isArray(templates) ? templates : [])
     }
+    const fetchTerritories = async () => {
+      const list = await getTerritories()
+      setTerritories(list.map(t => t.name))
+    }
     fetchTaxTemplates()
+    fetchTerritories()
   }, [])
+
+  const handleCreateTerritory = async () => {
+    if (!newTerritoryName.trim()) return
+    setCreatingTerritory(true)
+    try {
+      const result = await createTerritory(newTerritoryName.trim())
+      if (result.success && result.name) {
+        setTerritories(prev => [...prev, result.name!].sort())
+        setFormData(f => ({ ...f, territory: result.name! }))
+        setNewTerritoryName('')
+        setShowNewTerritory(false)
+      } else {
+        alert(result.error || 'Failed to create territory')
+      }
+    } finally {
+      setCreatingTerritory(false)
+    }
+  }
 
   // Apply pricing rules when item details change
   const applyPricingRules = async (index: number, itemCode: string, qty: number) => {
@@ -285,12 +312,52 @@ export default function QuotationForm() {
             </div>
             <div>
               <Label>Territory</Label>
-              <Input
-                placeholder="Territory"
-                value={formData.territory}
-                onChange={(e) => setFormData({ ...formData, territory: e.target.value })}
-                className="mt-1"
-              />
+              {showNewTerritory ? (
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-sm"
+                    placeholder="New territory name"
+                    value={newTerritoryName}
+                    onChange={e => setNewTerritoryName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCreateTerritory())}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCreateTerritory}
+                    disabled={creatingTerritory}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {creatingTerritory ? '...' : 'Add'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowNewTerritory(false); setNewTerritoryName('') }}
+                    className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.territory}
+                  onChange={e => {
+                    if (e.target.value === '__new__') {
+                      setShowNewTerritory(true)
+                    } else {
+                      setFormData({ ...formData, territory: e.target.value })
+                    }
+                  }}
+                >
+                  <option value="">— Select Territory —</option>
+                  {territories.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                  <option value="__new__">＋ Add new territory</option>
+                </select>
+              )}
             </div>
           </div>
 

@@ -61,5 +61,41 @@ export async function GET(request: NextRequest) {
         results.selling_settings = `Error: ${e.message}`
     }
 
+    // 3. Ensure default Territory tree exists (root + at least one leaf)
+    try {
+        const existingTerritories = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Territory',
+            fields: '[\"name\", \"is_group\"]',
+            limit_page_length: 5
+        }) as { name: string; is_group: number }[]
+
+        if (existingTerritories && existingTerritories.length > 0) {
+            results.territory = `Already exists: ${existingTerritories.map(t => t.name).join(', ')}`
+        } else {
+            // Create root group
+            const root = await frappeRequest('frappe.client.insert', 'POST', {
+                doc: {
+                    doctype: 'Territory',
+                    territory_name: 'All Territories',
+                    is_group: 1
+                }
+            }) as { name: string }
+
+            // Create a default leaf territory
+            const leaf = await frappeRequest('frappe.client.insert', 'POST', {
+                doc: {
+                    doctype: 'Territory',
+                    territory_name: 'India',
+                    parent_territory: root.name,
+                    is_group: 0
+                }
+            }) as { name: string }
+
+            results.territory = `Created: ${root.name} (root) + ${leaf.name} (default)`
+        }
+    } catch (e: any) {
+        results.territory = `Error: ${e.message}`
+    }
+
     return NextResponse.json({ success: true, results })
 }

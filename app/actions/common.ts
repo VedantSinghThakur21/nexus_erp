@@ -16,6 +16,64 @@ export async function getTaxTemplates() {
   }
 }
 
+// ── Territory ────────────────────────────────────────────────────────────────
+
+export async function getTerritories(): Promise<{ name: string }[]> {
+  try {
+    const territories = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Territory',
+      fields: '["name"]',
+      filters: JSON.stringify([['is_group', '=', 0]]),
+      order_by: 'name asc',
+      limit_page_length: 200
+    }) as { name: string }[]
+    return territories || []
+  } catch (error) {
+    console.error('Failed to fetch territories:', error)
+    return []
+  }
+}
+
+export async function createTerritory(name: string): Promise<{ success: boolean; name?: string; error?: string }> {
+  if (!name?.trim()) return { success: false, error: 'Territory name is required' }
+  try {
+    // Ensure a root group territory exists first
+    let rootTerritory: string | undefined
+    try {
+      const roots = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Territory',
+        filters: JSON.stringify([['is_group', '=', 1], ['parent_territory', '=', '']]),
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as { name: string }[]
+      rootTerritory = roots?.[0]?.name
+    } catch (e) { /* ignore */ }
+
+    if (!rootTerritory) {
+      // Create root group
+      const root = await frappeRequest('frappe.client.insert', 'POST', {
+        doc: { doctype: 'Territory', territory_name: 'All Territories', is_group: 1 }
+      }) as { name: string }
+      rootTerritory = root.name
+    }
+
+    const result = await frappeRequest('frappe.client.insert', 'POST', {
+      doc: {
+        doctype: 'Territory',
+        territory_name: name.trim(),
+        parent_territory: rootTerritory,
+        is_group: 0
+      }
+    }) as { name: string }
+    return { success: true, name: result.name }
+  } catch (error: any) {
+    console.error('Failed to create territory:', error)
+    return { success: false, error: error.message || 'Failed to create territory' }
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 export async function getTaxTemplateDetails(templateName: string) {
   try {
     const template = await frappeRequest('frappe.client.get', 'GET', {
@@ -69,7 +127,7 @@ export async function applyItemPricingRules(data: {
       customer: data.customer,
       qty: data.qty,
       transaction_date: data.transaction_date
-    }) as { 
+    }) as {
       discount_percentage?: number;
       price_list_rate?: number;
       pricing_rules?: any;

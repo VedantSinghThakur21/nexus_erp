@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { AnimatedCard, AnimatedButton } from "@/components/ui/animated"
 import { Plus, Trash2, FileText, DollarSign, Percent, Package, Calendar, ChevronDown, ChevronUp } from "lucide-react"
 import { createSalesOrder } from "@/app/actions/sales-orders"
-import { getTaxTemplates, getTaxTemplateDetails, getWarehouses, applyItemPricingRules } from "@/app/actions/common"
+import { getTaxTemplates, getTaxTemplateDetails, getWarehouses, getTerritories, createTerritory, applyItemPricingRules } from "@/app/actions/common"
 import { getQuotation } from "@/app/actions/crm"
 import { useRouter } from 'next/navigation'
 
@@ -59,13 +59,17 @@ export default function SalesOrderForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const quotationParam = searchParams.get('quotation')
-  
+
   const [loading, setLoading] = useState(false)
   const [fetchingQuotation, setFetchingQuotation] = useState(false)
   const [taxTemplates, setTaxTemplates] = useState<TaxTemplate[]>([])
   const [warehouses, setWarehouses] = useState<string[]>([])
+  const [territories, setTerritories] = useState<string[]>([])
+  const [newTerritoryName, setNewTerritoryName] = useState('')
+  const [showNewTerritory, setShowNewTerritory] = useState(false)
+  const [creatingTerritory, setCreatingTerritory] = useState(false)
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
-  
+
   const [formData, setFormData] = useState({
     customer: '',
     customer_name: '',
@@ -97,18 +101,38 @@ export default function SalesOrderForm() {
     }
   ])
 
-  // Fetch tax templates and warehouses on mount
+  // Fetch tax templates, warehouses, and territories on mount
   useEffect(() => {
     const fetchData = async () => {
-      const [templates, warehouseList] = await Promise.all([
+      const [templates, warehouseList, territoryList] = await Promise.all([
         getTaxTemplates(),
-        getWarehouses()
+        getWarehouses(),
+        getTerritories()
       ])
       setTaxTemplates(Array.isArray(templates) ? templates : [])
       setWarehouses(warehouseList)
+      setTerritories(territoryList.map((t: { name: string }) => t.name))
     }
     fetchData()
   }, [])
+
+  const handleCreateTerritory = async () => {
+    if (!newTerritoryName.trim()) return
+    setCreatingTerritory(true)
+    try {
+      const result = await createTerritory(newTerritoryName.trim())
+      if (result.success && result.name) {
+        setTerritories(prev => [...prev, result.name!].sort())
+        setFormData(f => ({ ...f, territory: result.name! }))
+        setNewTerritoryName('')
+        setShowNewTerritory(false)
+      } else {
+        alert(result.error || 'Failed to create territory')
+      }
+    } finally {
+      setCreatingTerritory(false)
+    }
+  }
 
   // Fetch quotation data if quotation parameter exists
   useEffect(() => {
@@ -117,7 +141,7 @@ export default function SalesOrderForm() {
         console.log('No quotation parameter found')
         return
       }
-      
+
       console.log('Fetching quotation:', quotationParam)
       setFetchingQuotation(true)
       try {
@@ -136,13 +160,13 @@ export default function SalesOrderForm() {
             })
           })
         }
-        
+
         if (quotation) {
           // Determine correct customer ID based on quotation_to
-          const customerId = (quotation as any).quotation_to === 'Customer' 
-            ? (quotation as any).party_name 
+          const customerId = (quotation as any).quotation_to === 'Customer'
+            ? (quotation as any).party_name
             : (quotation as any).customer || (quotation as any).party_name
-          
+
           // Populate form with quotation data
           setFormData({
             customer: customerId || '',
@@ -253,12 +277,12 @@ export default function SalesOrderForm() {
   const updateItem = (index: number, field: keyof SalesOrderItem, value: any) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
-    
+
     // Recalculate amount
     if (['qty', 'rate', 'discount_percentage'].includes(field)) {
       newItems[index].amount = calculateItemAmount(newItems[index])
     }
-    
+
     // Recalculate total rental cost when pricing components change
     if (field.includes('_cost') || field.includes('_charges')) {
       const item = newItems[index]
@@ -277,7 +301,7 @@ export default function SalesOrderForm() {
       newItems[index].rate = totalRentalCost
       newItems[index].amount = calculateItemAmount(newItems[index])
     }
-    
+
     setItems(newItems)
 
     // Apply pricing rules when item_code or qty changes
@@ -324,11 +348,11 @@ export default function SalesOrderForm() {
 
   const netTotal = items.reduce((sum, item) => sum + item.amount, 0)
   const totalQty = items.reduce((sum, item) => sum + item.qty, 0)
-  
+
   // Calculate tax based on selected tax template
   const [taxAmount, setTaxAmount] = useState(0)
   const [taxRate, setTaxRate] = useState(0)
-  
+
   useEffect(() => {
     const fetchTaxRate = async () => {
       if (formData.taxes_and_charges && netTotal > 0) {
@@ -354,7 +378,7 @@ export default function SalesOrderForm() {
     }
     fetchTaxRate()
   }, [formData.taxes_and_charges, netTotal])
-  
+
   const grandTotal = netTotal + taxAmount
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -377,7 +401,7 @@ export default function SalesOrderForm() {
             delivery_date: item.delivery_date || formData.delivery_date,
             warehouse: item.warehouse
           }
-          
+
           // Include rental pricing components if this is a rental item
           if (item.rental_type || item.rental_duration) {
             baseItem.rental_type = item.rental_type
@@ -400,7 +424,7 @@ export default function SalesOrderForm() {
             baseItem.other_charges = item.other_charges
             baseItem.total_rental_cost = item.total_rental_cost
           }
-          
+
           return baseItem
         })
       }
@@ -440,8 +464,8 @@ export default function SalesOrderForm() {
           >
             Cancel
           </Button>
-          <AnimatedButton 
-            type="submit" 
+          <AnimatedButton
+            type="submit"
             variant="neon"
             disabled={loading}
           >
@@ -527,12 +551,52 @@ export default function SalesOrderForm() {
             </div>
             <div>
               <Label>Territory</Label>
-              <Input
-                placeholder="Territory"
-                value={formData.territory}
-                onChange={(e) => setFormData({ ...formData, territory: e.target.value })}
-                className="mt-1"
-              />
+              {showNewTerritory ? (
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-sm"
+                    placeholder="New territory name"
+                    value={newTerritoryName}
+                    onChange={e => setNewTerritoryName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCreateTerritory())}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCreateTerritory}
+                    disabled={creatingTerritory}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {creatingTerritory ? '...' : 'Add'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowNewTerritory(false); setNewTerritoryName('') }}
+                    className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <select
+                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  value={formData.territory}
+                  onChange={e => {
+                    if (e.target.value === '__new__') {
+                      setShowNewTerritory(true)
+                    } else {
+                      setFormData({ ...formData, territory: e.target.value })
+                    }
+                  }}
+                >
+                  <option value="">— Select Territory —</option>
+                  {territories.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                  <option value="__new__">＋ Add new territory</option>
+                </select>
+              )}
             </div>
           </div>
 
@@ -634,283 +698,283 @@ export default function SalesOrderForm() {
               <tbody>
                 {items.map((item, index) => {
                   const isRental = item.rental_type || item.rental_duration || item.base_cost
-                  const hasBreakdown = (item.base_cost && item.base_cost > 0) || 
-                                      (item.accommodation_charges && item.accommodation_charges > 0) ||
-                                      (item.usage_charges && item.usage_charges > 0) ||
-                                      (item.fuel_charges && item.fuel_charges > 0) ||
-                                      (item.elongation_charges && item.elongation_charges > 0) ||
-                                      (item.risk_charges && item.risk_charges > 0) ||
-                                      (item.commercial_charges && item.commercial_charges > 0) ||
-                                      (item.incidental_charges && item.incidental_charges > 0) ||
-                                      (item.other_charges && item.other_charges > 0)
-                  
+                  const hasBreakdown = (item.base_cost && item.base_cost > 0) ||
+                    (item.accommodation_charges && item.accommodation_charges > 0) ||
+                    (item.usage_charges && item.usage_charges > 0) ||
+                    (item.fuel_charges && item.fuel_charges > 0) ||
+                    (item.elongation_charges && item.elongation_charges > 0) ||
+                    (item.risk_charges && item.risk_charges > 0) ||
+                    (item.commercial_charges && item.commercial_charges > 0) ||
+                    (item.incidental_charges && item.incidental_charges > 0) ||
+                    (item.other_charges && item.other_charges > 0)
+
                   return (
                     <React.Fragment key={index}>
                       <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <td className="py-2 px-2">
-                      <Input
-                        required
-                        placeholder="Item code"
-                        value={item.item_code}
-                        onChange={(e) => updateItem(index, 'item_code', e.target.value)}
-                        className="text-sm"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <Input
-                        placeholder="Description"
-                        value={item.description}
-                        onChange={(e) => updateItem(index, 'description', e.target.value)}
-                        className="text-sm"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <select
-                        className="w-full px-2 py-1 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
-                        value={item.warehouse}
-                        onChange={(e) => updateItem(index, 'warehouse', e.target.value)}
-                      >
-                        <option value="">Select</option>
-                        {warehouses.map((wh) => (
-                          <option key={wh} value={wh}>{wh}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2 px-2">
-                      <Input
-                        type="date"
-                        value={item.delivery_date}
-                        onChange={(e) => updateItem(index, 'delivery_date', e.target.value)}
-                        className="text-sm"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <Input
-                        type="number"
-                        required
-                        min="1"
-                        value={item.qty}
-                        onChange={(e) => updateItem(index, 'qty', parseFloat(e.target.value) || 0)}
-                        className="text-sm text-right"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <Input
-                        placeholder="UOM"
-                        value={item.uom}
-                        onChange={(e) => updateItem(index, 'uom', e.target.value)}
-                        className="text-sm"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <Input
-                        type="number"
-                        required
-                        min="0"
-                        step="0.01"
-                        value={item.rate}
-                        onChange={(e) => updateItem(index, 'rate', parseFloat(e.target.value) || 0)}
-                        className="text-sm text-right"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={item.discount_percentage}
-                        onChange={(e) => updateItem(index, 'discount_percentage', parseFloat(e.target.value) || 0)}
-                        className="text-sm text-right"
-                      />
-                      {item.pricing_rules && (
-                        <Badge variant="secondary" className="mt-1 text-xs">
-                          <Percent className="w-3 h-3 mr-1" />
-                          Rule
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="py-2 px-2 text-right font-medium text-slate-900 dark:text-white">
-                      {item.amount.toFixed(2)}
-                    </td>
-                    <td className="py-2 px-2">
-                      {items.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(index)}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                  
-                  {/* Rental Pricing Breakdown Row - Editable */}
-                  {isRental && (
-                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
-                      <td colSpan={10} className="py-2 px-2">
-                        <div className="space-y-2">
-                          {/* Toggle Button */}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleItemExpansion(index)}
-                            className="w-full flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        <td className="py-2 px-2">
+                          <Input
+                            required
+                            placeholder="Item code"
+                            value={item.item_code}
+                            onChange={(e) => updateItem(index, 'item_code', e.target.value)}
+                            className="text-sm"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input
+                            placeholder="Description"
+                            value={item.description}
+                            onChange={(e) => updateItem(index, 'description', e.target.value)}
+                            className="text-sm"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <select
+                            className="w-full px-2 py-1 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+                            value={item.warehouse}
+                            onChange={(e) => updateItem(index, 'warehouse', e.target.value)}
                           >
-                            <div className="flex items-center gap-2">
-                              <Package className="w-3.5 h-3.5" />
-                              <span>Rental Pricing Components</span>
-                              {item.rental_type && (
-                                <Badge variant="outline" className="text-xs">
-                                  {item.rental_duration} {item.rental_type}
-                                </Badge>
-                              )}
-                              {hasBreakdown && (
-                                <Badge variant="secondary" className="text-xs">
-                                  ₹{(item.total_rental_cost || 0).toLocaleString('en-IN')}
-                                </Badge>
-                              )}
-                            </div>
-                            {expandedItems.has(index) ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )}
-                          </Button>
-                          
-                          {/* Editable Pricing Components */}
-                          {expandedItems.has(index) && (
-                            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                              <div className="grid grid-cols-3 gap-3">
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Base Cost *</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.base_cost || 0}
-                                    onChange={(e) => updateItem(index, 'base_cost', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Accommodation</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.accommodation_charges || 0}
-                                    onChange={(e) => updateItem(index, 'accommodation_charges', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Usage Charges</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.usage_charges || 0}
-                                    onChange={(e) => updateItem(index, 'usage_charges', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Fuel Charges</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.fuel_charges || 0}
-                                    onChange={(e) => updateItem(index, 'fuel_charges', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Elongation</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.elongation_charges || 0}
-                                    onChange={(e) => updateItem(index, 'elongation_charges', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Risk Charges</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.risk_charges || 0}
-                                    onChange={(e) => updateItem(index, 'risk_charges', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Commercial</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.commercial_charges || 0}
-                                    onChange={(e) => updateItem(index, 'commercial_charges', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Incidental</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.incidental_charges || 0}
-                                    onChange={(e) => updateItem(index, 'incidental_charges', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-400">Other Charges</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={item.other_charges || 0}
-                                    onChange={(e) => updateItem(index, 'other_charges', parseFloat(e.target.value) || 0)}
-                                    className="mt-1 text-sm"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                              </div>
-                              
-                              {/* Total Display */}
-                              <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Total Rental Cost</span>
-                                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                  ₹{(item.total_rental_cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                </span>
-                              </div>
-                            </div>
+                            <option value="">Select</option>
+                            {warehouses.map((wh) => (
+                              <option key={wh} value={wh}>{wh}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input
+                            type="date"
+                            value={item.delivery_date}
+                            onChange={(e) => updateItem(index, 'delivery_date', e.target.value)}
+                            className="text-sm"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input
+                            type="number"
+                            required
+                            min="1"
+                            value={item.qty}
+                            onChange={(e) => updateItem(index, 'qty', parseFloat(e.target.value) || 0)}
+                            className="text-sm text-right"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input
+                            placeholder="UOM"
+                            value={item.uom}
+                            onChange={(e) => updateItem(index, 'uom', e.target.value)}
+                            className="text-sm"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input
+                            type="number"
+                            required
+                            min="0"
+                            step="0.01"
+                            value={item.rate}
+                            onChange={(e) => updateItem(index, 'rate', parseFloat(e.target.value) || 0)}
+                            className="text-sm text-right"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={item.discount_percentage}
+                            onChange={(e) => updateItem(index, 'discount_percentage', parseFloat(e.target.value) || 0)}
+                            className="text-sm text-right"
+                          />
+                          {item.pricing_rules && (
+                            <Badge variant="secondary" className="mt-1 text-xs">
+                              <Percent className="w-3 h-3 mr-1" />
+                              Rule
+                            </Badge>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              )
-            })}
+                        </td>
+                        <td className="py-2 px-2 text-right font-medium text-slate-900 dark:text-white">
+                          {item.amount.toFixed(2)}
+                        </td>
+                        <td className="py-2 px-2">
+                          {items.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeItem(index)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+
+                      {/* Rental Pricing Breakdown Row - Editable */}
+                      {isRental && (
+                        <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+                          <td colSpan={10} className="py-2 px-2">
+                            <div className="space-y-2">
+                              {/* Toggle Button */}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleItemExpansion(index)}
+                                className="w-full flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Package className="w-3.5 h-3.5" />
+                                  <span>Rental Pricing Components</span>
+                                  {item.rental_type && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {item.rental_duration} {item.rental_type}
+                                    </Badge>
+                                  )}
+                                  {hasBreakdown && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      ₹{(item.total_rental_cost || 0).toLocaleString('en-IN')}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {expandedItems.has(index) ? (
+                                  <ChevronUp className="w-4 h-4" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4" />
+                                )}
+                              </Button>
+
+                              {/* Editable Pricing Components */}
+                              {expandedItems.has(index) && (
+                                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                                  <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Base Cost *</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.base_cost || 0}
+                                        onChange={(e) => updateItem(index, 'base_cost', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Accommodation</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.accommodation_charges || 0}
+                                        onChange={(e) => updateItem(index, 'accommodation_charges', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Usage Charges</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.usage_charges || 0}
+                                        onChange={(e) => updateItem(index, 'usage_charges', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Fuel Charges</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.fuel_charges || 0}
+                                        onChange={(e) => updateItem(index, 'fuel_charges', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Elongation</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.elongation_charges || 0}
+                                        onChange={(e) => updateItem(index, 'elongation_charges', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Risk Charges</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.risk_charges || 0}
+                                        onChange={(e) => updateItem(index, 'risk_charges', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Commercial</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.commercial_charges || 0}
+                                        onChange={(e) => updateItem(index, 'commercial_charges', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Incidental</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.incidental_charges || 0}
+                                        onChange={(e) => updateItem(index, 'incidental_charges', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-slate-600 dark:text-slate-400">Other Charges</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.other_charges || 0}
+                                        onChange={(e) => updateItem(index, 'other_charges', parseFloat(e.target.value) || 0)}
+                                        className="mt-1 text-sm"
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Total Display */}
+                                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Total Rental Cost</span>
+                                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                      ₹{(item.total_rental_cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>
