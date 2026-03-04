@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { FileText } from "lucide-react"
-import { updateSalesOrderStatus } from "@/app/actions/sales-orders"
+import { Badge } from "@/components/ui/badge"
+import { FileText, RefreshCw } from "lucide-react"
+import { cancelSalesOrder } from "@/app/actions/sales-orders"
 import { DeleteSalesOrderButton } from "./delete-sales-order-button"
 
 interface SalesOrderActionsProps {
@@ -16,38 +15,36 @@ interface SalesOrderActionsProps {
   canCreateInvoice?: boolean
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  'Draft': 'bg-slate-100 text-slate-700',
+  'To Deliver and Bill': 'bg-blue-100 text-blue-800',
+  'To Bill': 'bg-yellow-100 text-yellow-800',
+  'To Deliver': 'bg-orange-100 text-orange-800',
+  'Completed': 'bg-green-100 text-green-800',
+  'Cancelled': 'bg-red-100 text-red-800',
+  'On Hold': 'bg-purple-100 text-purple-800',
+  'Closed': 'bg-slate-100 text-slate-700',
+}
+
 export function SalesOrderActions({ orderId, currentStatus, docStatus, canCreateInvoice = true }: SalesOrderActionsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [selectedStatus, setSelectedStatus] = useState(currentStatus)
 
-  const statuses = [
-    'Draft',
-    'To Deliver and Bill',
-    'To Bill',
-    'To Deliver',
-    'Completed',
-    'On Hold',
-    'Cancelled'
-  ]
+  // ERPNext computes 'status' automatically — we never set it directly.
+  // The only valid manual transitions on a submitted SO are Cancel and Put On Hold.
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (newStatus === currentStatus) return
-    
-    setSelectedStatus(newStatus)
+  const handleCancel = async () => {
+    if (!confirm(`Cancel Sales Order ${orderId}? This cannot be undone.`)) return
     setLoading(true)
     try {
-      const result = await updateSalesOrderStatus(orderId, newStatus)
-      if (result.success) {
+      const result = await cancelSalesOrder(orderId)
+      if ((result as any)?.success) {
         router.refresh()
       } else {
-        alert(result.error || 'Failed to update status')
-        setSelectedStatus(currentStatus)
+        alert((result as any)?.error || 'Failed to cancel sales order')
       }
-    } catch (error) {
-      console.error('Error updating status:', error)
-      alert('Failed to update status')
-      setSelectedStatus(currentStatus)
+    } catch (e) {
+      alert('Failed to cancel sales order')
     } finally {
       setLoading(false)
     }
@@ -57,37 +54,42 @@ export function SalesOrderActions({ orderId, currentStatus, docStatus, canCreate
     router.push(`/invoices/new?sales_order=${encodeURIComponent(orderId)}`)
   }
 
-  // Determine if we can create invoice
-  const isReadyForInvoice = canCreateInvoice && (
-    currentStatus === 'To Bill' || 
+  const isReadyForInvoice = canCreateInvoice && docStatus === 1 && (
+    currentStatus === 'To Bill' ||
     currentStatus === 'To Deliver and Bill'
   )
 
+  const canCancel = docStatus === 1 && currentStatus !== 'Cancelled' && currentStatus !== 'Completed'
+
   return (
     <div className="flex gap-3 items-center">
-      {/* Status Dropdown */}
+      {/* Read-only status badge — ERPNext calculates this automatically */}
       <div className="flex items-center gap-2">
-        <Label className="text-sm text-slate-600">Status:</Label>
-        <Select value={selectedStatus} onValueChange={handleStatusChange} disabled={loading}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {statuses.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <span className="text-sm text-slate-500">Status:</span>
+        <Badge className={STATUS_COLORS[currentStatus] || 'bg-slate-100 text-slate-700'}>
+          {currentStatus}
+        </Badge>
+        <button
+          onClick={() => router.refresh()}
+          className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+          title="Refresh status"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+        </button>
       </div>
 
-      {/* Delete Button */}
-      <DeleteSalesOrderButton orderId={orderId} orderStatus={currentStatus} docStatus={docStatus} />
+      {/* Delete/Cancel Button */}
+      {docStatus === 0 ? (
+        <DeleteSalesOrderButton orderId={orderId} orderStatus={currentStatus} docStatus={docStatus} />
+      ) : canCancel ? (
+        <Button variant="outline" size="sm" onClick={handleCancel} disabled={loading} className="text-red-600 border-red-200 hover:bg-red-50">
+          Cancel Order
+        </Button>
+      ) : null}
 
       {/* Create Invoice */}
       {isReadyForInvoice && (
-        <Button onClick={handleCreateInvoice} size="sm">
+        <Button onClick={handleCreateInvoice} size="sm" disabled={loading}>
           <FileText className="w-4 h-4 mr-2" />
           Create Invoice
         </Button>

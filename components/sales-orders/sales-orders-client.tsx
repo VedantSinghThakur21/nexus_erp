@@ -19,7 +19,7 @@ interface SalesOrdersClientProps {
 
 const STATUS_TABS = [
   { id: "all", label: "All Sales Orders" },
-  { id: "ready", label: "Ready for Sales Order" }
+  { id: "ready", label: "Ready for Invoice" }
 ] as const
 
 export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrdersClientProps) {
@@ -93,12 +93,12 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-slate-900">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-slate-900 overflow-x-hidden">
       {/* Header */}
       <PageHeader searchPlaceholder="Ask AI anything about your sales orders..." />
 
-      <main className="flex-1 w-full flex flex-col min-w-0 overflow-y-auto custom-scrollbar p-8 bg-white dark:bg-slate-900">
-        <div className="max-w-[1600px] mx-auto w-full">
+      <main className="flex-1 w-full flex flex-col min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar p-8 bg-white dark:bg-slate-900">
+        <div className="max-w-[1600px] mx-auto w-full min-w-0">
           {/* Page Title */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Sales Orders</h1>
@@ -187,8 +187,8 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
                       setCurrentPage(1)
                     }}
                     className={`flex-1 lg:flex-none px-8 py-2.5 text-sm font-semibold rounded-lg transition-all ${activeTab === tab.id
-                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                       }`}
                   >
                     {tab.label} ({count})

@@ -90,8 +90,8 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          <SalesOrderActions 
-            orderId={order.name} 
+          <SalesOrderActions
+            orderId={order.name}
             currentStatus={order.status}
             docStatus={(order as any).docstatus || 0}
             canCreateInvoice={order.status === 'To Bill' || order.status === 'To Deliver and Bill'}
@@ -103,9 +103,6 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             </form>
           )}
           <PrintButton orderId={order.name} />
-          <Badge className={statusColors[order.status] || 'bg-slate-100 text-slate-800'}>
-            {order.status}
-          </Badge>
         </div>
       </div>
 
@@ -118,7 +115,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
           </CardHeader>
           <CardContent>
             <div className="text-lg font-semibold">
-              {order.transaction_date 
+              {order.transaction_date
                 ? new Date(order.transaction_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
                 : 'Not set'}
             </div>
@@ -134,20 +131,20 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             <div className="text-lg font-semibold">
               {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
             </div>
-              {/* Delivery status update form */}
-              <div className="mt-3">
-                <form action={updateDeliveryAction} className="flex items-center gap-2">
-                  <input type="hidden" name="id" value={order.name} />
-                  <select name="delivery_status" defaultValue={order.delivery_status || 'Not Delivered'} className="px-2 py-1 border rounded bg-white dark:bg-slate-900 text-sm">
-                    <option>Not Delivered</option>
-                    <option>Fully Delivered</option>
-                    <option>Partly Delivered</option>
-                    <option>Closed</option>
-                    <option>Not Applicable</option>
-                  </select>
-                  <Button size="sm" type="submit">Update</Button>
-                </form>
-              </div>
+            {/* Delivery status update form */}
+            <div className="mt-3">
+              <form action={updateDeliveryAction} className="flex items-center gap-2">
+                <input type="hidden" name="id" value={order.name} />
+                <select name="delivery_status" defaultValue={order.delivery_status || 'Not Delivered'} className="px-2 py-1 border rounded bg-white dark:bg-slate-900 text-sm">
+                  <option>Not Delivered</option>
+                  <option>Fully Delivered</option>
+                  <option>Partly Delivered</option>
+                  <option>Closed</option>
+                  <option>Not Applicable</option>
+                </select>
+                <Button size="sm" type="submit">Update</Button>
+              </form>
+            </div>
           </CardContent>
         </Card>
 
@@ -160,7 +157,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             <div className="text-lg font-semibold">{order.currency || 'INR'}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-500">Grand Total</CardTitle>
@@ -219,7 +216,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                 </div>
               )}
             </div>
-            
+
             {/* Terms */}
             {order.terms && (
               <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -241,10 +238,10 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             <div className="space-y-4">
               {order.items.map((item: Record<string, any>, idx: number) => {
                 const isRental = item.custom_is_rental || item.is_rental
-                const rentalData = item.custom_rental_data ? 
-                  (typeof item.custom_rental_data === 'string' ? JSON.parse(item.custom_rental_data) : item.custom_rental_data) : 
+                const rentalData = item.custom_rental_data ?
+                  (typeof item.custom_rental_data === 'string' ? JSON.parse(item.custom_rental_data) : item.custom_rental_data) :
                   null
-                
+
                 return (
                   <div key={idx} className="border rounded-lg overflow-hidden">
                     {/* Item Header */}
@@ -301,8 +298,8 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                           <div>
                             <p className="text-xs text-slate-500">Start Date</p>
                             <p className="font-medium">
-                              {item.custom_rental_start_date || item.rental_start_date ? 
-                                new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN') : 
+                              {item.custom_rental_start_date || item.rental_start_date ?
+                                new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN') :
                                 'N/A'}
                               {(item.custom_rental_start_time || item.rental_start_time) && (
                                 <span className="text-xs ml-1">{item.custom_rental_start_time || item.rental_start_time}</span>
@@ -312,8 +309,8 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                           <div>
                             <p className="text-xs text-slate-500">End Date</p>
                             <p className="font-medium">
-                              {item.custom_rental_end_date || item.rental_end_date ? 
-                                new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN') : 
+                              {item.custom_rental_end_date || item.rental_end_date ?
+                                new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN') :
                                 'N/A'}
                               {(item.custom_rental_end_time || item.rental_end_time) && (
                                 <span className="text-xs ml-1">{item.custom_rental_end_time || item.rental_end_time}</span>
@@ -362,7 +359,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                               total_rental_cost: item.custom_total_rental_cost || (rentalData?.totalCost) || item.rate || 0
                             }}
                           />
-                        </div>                        
+                        </div>
                       </div>
                     )}
                   </div>
@@ -408,7 +405,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
           </CardHeader>
           <CardContent className="space-y-2">
             {order.quotation_no && (
-              <Link 
+              <Link
                 href={`/crm/quotations/${encodeURIComponent(order.quotation_no)}`}
                 className="text-blue-600 hover:underline flex items-center gap-2"
               >
@@ -417,7 +414,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
               </Link>
             )}
             {order.opportunity && (
-              <Link 
+              <Link
                 href={`/crm/opportunities/${encodeURIComponent(order.opportunity)}`}
                 className="text-blue-600 hover:underline flex items-center gap-2"
               >
