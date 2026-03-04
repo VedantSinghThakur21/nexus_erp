@@ -96,6 +96,41 @@ export async function GET(request: NextRequest) {
     } catch (e: any) {
         results.territory = `Error: ${e.message}`
     }
+    // 4. Ensure default Modes of Payment exist
+    try {
+        const existingModes = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Mode of Payment',
+            fields: '["name"]',
+            limit_page_length: 5
+        }) as { name: string }[]
+
+        if (existingModes && existingModes.length > 0) {
+            results.modes_of_payment = `Already exists: ${existingModes.map(m => m.name).join(', ')}`
+        } else {
+            const defaultModes = ['Cash', 'Bank Transfer', 'UPI', 'Cheque', 'NEFT', 'RTGS']
+            const created: string[] = []
+            for (const modeName of defaultModes) {
+                try {
+                    await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: {
+                            doctype: 'Mode of Payment',
+                            mode_of_payment: modeName,
+                            type: modeName === 'Cash' ? 'Cash' : 'Bank'
+                        }
+                    })
+                    created.push(modeName)
+                } catch (e: any) {
+                    // Skip if already exists (race condition or partial run)
+                    if (!e.message?.includes('Duplicate')) {
+                        console.warn(`Failed to create Mode of Payment "${modeName}":`, e.message)
+                    }
+                }
+            }
+            results.modes_of_payment = `Created: ${created.join(', ')}`
+        }
+    } catch (e: any) {
+        results.modes_of_payment = `Error: ${e.message}`
+    }
 
     return NextResponse.json({ success: true, results })
 }
