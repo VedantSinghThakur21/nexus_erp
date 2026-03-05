@@ -43,9 +43,9 @@ export async function getPricingRules(): Promise<PricingRule[]> {
         limit_page_length: 999
       }
     );
-    
+
     console.log('[Pricing Rule] Raw response from API:', JSON.stringify(response));
-    
+
     // Handle response as array directly or as { data: [] }
     const dataArray = Array.isArray(response) ? response : (response as any)?.data || [];
     console.log('[Pricing Rule] Parsed pricing rules:', dataArray.length, 'rules found');
@@ -70,7 +70,7 @@ export async function getPricingRule(name: string): Promise<PricingRule | null> 
     );
 
     console.log('[Pricing Rule] Fetched rule response:', JSON.stringify(response));
-    
+
     // Handle response as object directly or as { data: {} }
     const rule = (response as any)?.data || response;
     console.log('[Pricing Rule] Parsed rule:', rule?.name || 'not found');
@@ -128,7 +128,7 @@ export async function createPricingRule(formData: FormData) {
         }
       ];
     }
-    
+
     // For other apply_on types (Item Code, Brand), use their respective child tables
     // These should be populated when items/brands are selected in the UI
     if (applyOn === "Item Code") {
@@ -269,21 +269,17 @@ export async function deletePricingRule(name: string) {
 // Get customer groups for filtering
 export async function getCustomerGroups(): Promise<string[]> {
   try {
-    console.log('[Pricing Rule] Fetching Customer Groups...');
-    const response = await frappeRequest(
-      'frappe.client.get_list',
-      'GET',
-      {
-        doctype: 'Customer Group',
-        fields: JSON.stringify(["name"]),
-        limit_page_length: 999,
-      }
-    );
-
+    const response = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Customer Group',
+      fields: '["name"]',
+      filters: JSON.stringify([['is_group', '=', 0]]),
+      order_by: 'name asc',
+      limit_page_length: 200,
+    });
     const dataArray = Array.isArray(response) ? response : (response as any)?.data || [];
-    return dataArray.map((group: { name: string }) => group.name);
+    return dataArray.map((g: { name: string }) => g.name);
   } catch (error) {
-    console.error("[Pricing Rule] Error fetching customer groups:", error);
+    console.error('[Pricing Rule] Error fetching customer groups:', error);
     return [];
   }
 }
@@ -291,21 +287,17 @@ export async function getCustomerGroups(): Promise<string[]> {
 // Get territories for filtering
 export async function getTerritories(): Promise<string[]> {
   try {
-    console.log('[Pricing Rule] Fetching Territories...');
-    const response = await frappeRequest(
-      'frappe.client.get_list',
-      'GET',
-      {
-        doctype: 'Territory',
-        fields: JSON.stringify(["name"]),
-        limit_page_length: 999,
-      }
-    );
-
+    const response = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Territory',
+      fields: '["name"]',
+      filters: JSON.stringify([['is_group', '=', 0]]),
+      order_by: 'name asc',
+      limit_page_length: 200,
+    });
     const dataArray = Array.isArray(response) ? response : (response as any)?.data || [];
-    return dataArray.map((territory: { name: string }) => territory.name);
+    return dataArray.map((t: { name: string }) => t.name);
   } catch (error) {
-    console.error("[Pricing Rule] Error fetching territories:", error);
+    console.error('[Pricing Rule] Error fetching territories:', error);
     return [];
   }
 }
@@ -313,28 +305,17 @@ export async function getTerritories(): Promise<string[]> {
 // Get item groups for filtering
 export async function getItemGroups(): Promise<string[]> {
   try {
-    console.log('[Pricing Rule] Fetching Item Groups...');
-    const response = await frappeRequest(
-      'frappe.client.get_list',
-      'GET',
-      {
-        doctype: 'Item Group',
-        fields: JSON.stringify(["name"]),
-        limit_page_length: 999,
-      }
-    );
-
-    console.log('[Pricing Rule] Item Groups raw response:', JSON.stringify(response));
-    
-    // Handle response as array directly or as { data: [] }
+    const response = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Item Group',
+      fields: '["name"]',
+      filters: JSON.stringify([['is_group', '=', 0]]),
+      order_by: 'name asc',
+      limit_page_length: 200,
+    });
     const dataArray = Array.isArray(response) ? response : (response as any)?.data || [];
-    console.log('[Pricing Rule] Item Groups array:', dataArray);
-    
-    const groups = dataArray.map((group: { name: string }) => group.name);
-    console.log('[Pricing Rule] Item Groups mapped:', groups);
-    return groups;
+    return dataArray.map((g: { name: string }) => g.name);
   } catch (error) {
-    console.error("[Pricing Rule] Error fetching item groups:", error);
+    console.error('[Pricing Rule] Error fetching item groups:', error);
     return [];
   }
 }
