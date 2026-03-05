@@ -148,5 +148,101 @@ export async function GET(request: NextRequest) {
         results.modes_of_payment = `Error: ${e.message}`
     }
 
+    // 5. Ensure default Customer Groups exist
+    try {
+        const existingGroups = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Customer Group',
+            fields: '["name"]',
+            filters: JSON.stringify([['is_group', '=', 0]]),
+            limit_page_length: 5
+        }) as { name: string }[]
+
+        if (existingGroups && existingGroups.length > 0) {
+            results.customer_groups = `Already exists: ${existingGroups.map(g => g.name).join(', ')}`
+        } else {
+            // Ensure root group exists first
+            let rootGroup = 'All Customer Groups'
+            try {
+                const roots = await frappeRequest('frappe.client.get_list', 'GET', {
+                    doctype: 'Customer Group',
+                    fields: '["name"]',
+                    filters: JSON.stringify([['is_group', '=', 1]]),
+                    limit_page_length: 1
+                }) as { name: string }[]
+                if (roots?.[0]?.name) rootGroup = roots[0].name
+                else {
+                    const r = await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: { doctype: 'Customer Group', customer_group_name: 'All Customer Groups', is_group: 1 }
+                    }) as { name: string }
+                    rootGroup = r.name
+                }
+            } catch (e) { /* root may already exist */ }
+
+            const leafGroups = ['Commercial', 'Individual', 'Retail']
+            const created: string[] = []
+            for (const groupName of leafGroups) {
+                try {
+                    await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: { doctype: 'Customer Group', customer_group_name: groupName, parent_customer_group: rootGroup, is_group: 0 }
+                    })
+                    created.push(groupName)
+                } catch (e: any) {
+                    if (!e.message?.includes('Duplicate')) console.warn(`Customer Group "${groupName}":`, e.message)
+                }
+            }
+            results.customer_groups = `Created: ${created.join(', ')}`
+        }
+    } catch (e: any) {
+        results.customer_groups = `Error: ${e.message}`
+    }
+
+    // 6. Ensure default Item Groups exist
+    try {
+        const existingItemGroups = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Item Group',
+            fields: '["name"]',
+            filters: JSON.stringify([['is_group', '=', 0]]),
+            limit_page_length: 5
+        }) as { name: string }[]
+
+        if (existingItemGroups && existingItemGroups.length > 0) {
+            results.item_groups = `Already exists: ${existingItemGroups.map(g => g.name).join(', ')}`
+        } else {
+            // Ensure root group exists
+            let rootGroup = 'All Item Groups'
+            try {
+                const roots = await frappeRequest('frappe.client.get_list', 'GET', {
+                    doctype: 'Item Group',
+                    fields: '["name"]',
+                    filters: JSON.stringify([['is_group', '=', 1]]),
+                    limit_page_length: 1
+                }) as { name: string }[]
+                if (roots?.[0]?.name) rootGroup = roots[0].name
+                else {
+                    const r = await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: { doctype: 'Item Group', item_group_name: 'All Item Groups', is_group: 1 }
+                    }) as { name: string }
+                    rootGroup = r.name
+                }
+            } catch (e) { /* root may already exist */ }
+
+            const leafGroups = ['Crane', 'Service', 'Spare Parts', 'Equipment', 'Consumables']
+            const created: string[] = []
+            for (const groupName of leafGroups) {
+                try {
+                    await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: { doctype: 'Item Group', item_group_name: groupName, parent_item_group: rootGroup, is_group: 0 }
+                    })
+                    created.push(groupName)
+                } catch (e: any) {
+                    if (!e.message?.includes('Duplicate')) console.warn(`Item Group "${groupName}":`, e.message)
+                }
+            }
+            results.item_groups = `Created: ${created.join(', ')}`
+        }
+    } catch (e: any) {
+        results.item_groups = `Error: ${e.message}`
+    }
+
     return NextResponse.json({ success: true, results })
 }
