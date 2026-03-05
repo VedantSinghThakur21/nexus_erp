@@ -327,6 +327,7 @@ export async function createBankAccount(data: {
 
     const doc = {
       doctype: 'Bank Account',
+      account_name: data.bank_account_no, // Required — becomes part of the doc name
       bank: data.bank,
       bank_account_no: data.bank_account_no,
       branch_code: data.branch_code || '',
