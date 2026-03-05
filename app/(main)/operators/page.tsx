@@ -10,7 +10,6 @@ export default function OperatorsPage() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("All Roles");
   const [statusFilter, setStatusFilter] = useState("Availability Status");
 
   useEffect(() => {
@@ -49,11 +48,7 @@ export default function OperatorsPage() {
       const matchesSearch =
         searchTerm === "" ||
         operator.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        operator.designation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         operator.bio?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesRole =
-        roleFilter === "All Roles" || operator.designation === roleFilter;
 
       const matchesStatus =
         statusFilter === "Availability Status" ||
@@ -61,9 +56,9 @@ export default function OperatorsPage() {
         (statusFilter === "On Project" && operator.status === "Active") ||
         (statusFilter === "On Leave" && operator.status !== "Active");
 
-      return matchesSearch && matchesRole && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [operators, searchTerm, roleFilter, statusFilter]);
+  }, [operators, searchTerm, statusFilter]);
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
@@ -233,17 +228,6 @@ export default function OperatorsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <select
-                    className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg text-sm py-2.5 px-4 focus:ring-primary focus:border-primary dark:text-white min-w-[160px]"
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value)}
-                  >
-                    <option>All Roles</option>
-                    <option>Driver</option>
-                    <option>Rigger</option>
-                    <option>Foreman</option>
-                    <option>Operator</option>
-                  </select>
-                  <select
                     className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg text-sm py-2.5 px-4 focus:ring-primary focus:border-primary dark:text-white min-w-[180px]"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -311,7 +295,6 @@ export default function OperatorsPage() {
                               <h3 className="font-semibold text-lg text-slate-900 dark:text-white">
                                 {operator.employee_name}
                               </h3>
-                              <p className="text-sm text-slate-500">{operator.designation}</p>
                             </div>
                           </div>
                           <span className="px-2.5 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-full text-xs font-semibold">
