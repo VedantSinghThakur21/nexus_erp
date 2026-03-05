@@ -168,9 +168,11 @@ export async function applyPricingRules(params: {
 
         if (rule.rate_or_discount === "Discount Percentage" && rule.discount_percentage) {
           discountPercentage = rule.discount_percentage;
+          newRate = item.rate * (1 - rule.discount_percentage / 100);
           ruleMatch.discount_percentage = rule.discount_percentage;
         } else if (rule.rate_or_discount === "Discount Amount" && rule.discount_amount) {
           discountAmount = rule.discount_amount;
+          newRate = Math.max(0, item.rate - rule.discount_amount);
           ruleMatch.discount_amount = rule.discount_amount;
         } else if (rule.rate_or_discount === "Rate" && rule.rate) {
           newRate = rule.rate;

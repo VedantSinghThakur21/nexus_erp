@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -248,10 +248,17 @@ export default function NewQuotationPage() {
     }))
   }
 
-  // Auto-apply pricing rules when items or customer changes
+  // Auto-apply pricing rules when items, customer, or rates change
+  const lastAppliedKey = useRef('')
   useEffect(() => {
+    const itemsKey = items.map(i => `${i.item_code}-${i.qty}-${i.rate}`).join(',')
+    const fullKey = `${partyName}|${transactionDate}|${itemsKey}`
+
+    // Prevent infinite loops — skip if we just applied rules and nothing changed
+    if (fullKey === lastAppliedKey.current) return
+
     const applyRules = async () => {
-      if (!transactionDate || items.length === 0 || !items.some(i => i.item_code)) {
+      if (!transactionDate || items.length === 0 || !items.some(i => i.item_code && i.rate > 0)) {
         setAppliedPricingRules([])
         return
       }
@@ -270,44 +277,40 @@ export default function NewQuotationPage() {
         })
 
         if (result.applied_rules.length > 0) {
-          // Update items with pricing rule adjustments
+          // Update items with server-computed discounted rates
           const updatedItems = items.map(item => {
             const ruleItem = result.items.find(ri => ri.item_code === item.item_code)
-            if (ruleItem && ruleItem.pricing_rule) {
-              const originalRate = item.rate
-              let finalRate = ruleItem.rate
-
-              // Apply discount if specified
-              if (ruleItem.discount_percentage) {
-                finalRate = originalRate * (1 - ruleItem.discount_percentage / 100)
-              } else if (ruleItem.discount_amount) {
-                finalRate = originalRate - ruleItem.discount_amount
-              }
-
+            if (ruleItem && ruleItem.pricing_rule && ruleItem.rate !== item.rate) {
               return {
                 ...item,
-                rate: finalRate,
-                amount: calculateRowAmount(item.qty, finalRate),
+                rate: ruleItem.rate,
+                amount: calculateRowAmount(item.qty, ruleItem.rate),
               }
             }
             return item
           })
+
+          // Set the key BEFORE updating items to prevent re-trigger
+          const newItemsKey = updatedItems.map(i => `${i.item_code}-${i.qty}-${i.rate}`).join(',')
+          lastAppliedKey.current = `${partyName}|${transactionDate}|${newItemsKey}`
           setItems(updatedItems)
 
           // Track applied rules for display
           const appliedRulesDisplay = result.applied_rules.map(rule => {
-            const item = items.find(i => i.item_code === result.items.find(ri => ri.pricing_rule === rule.rule_name)?.item_code)
             const ruleItem = result.items.find(ri => ri.pricing_rule === rule.rule_name)
+            const item = items.find(i => i.item_code === ruleItem?.item_code)
+            const originalRate = item?.rate || 0
+            const finalRate = ruleItem?.rate || originalRate
             return {
               rule_name: rule.rule_name,
-              rule_title: rule.rule_title,
+              rule_title: rule.rule_title || rule.rule_name,
               item_code: item?.item_code || '',
               item_name: item?.item_name || '',
-              original_rate: item?.rate || 0,
-              final_rate: ruleItem?.rate || item?.rate || 0,
+              original_rate: originalRate,
+              final_rate: finalRate,
               discount_percentage: rule.discount_percentage,
               discount_amount: rule.discount_amount,
-              savings: item ? (item.rate - (ruleItem?.rate || item.rate)) * item.qty : 0,
+              savings: (originalRate - finalRate) * (item?.qty || 1),
             }
           })
           setAppliedPricingRules(appliedRulesDisplay)
@@ -319,8 +322,10 @@ export default function NewQuotationPage() {
       }
     }
 
-    applyRules()
-  }, [partyName, transactionDate, items.map(i => `${i.item_code}-${i.qty}`).join(',')])
+    // Debounce to avoid firing on every keystroke
+    const timer = setTimeout(applyRules, 500)
+    return () => clearTimeout(timer)
+  }, [partyName, transactionDate, items.map(i => `${i.item_code}-${i.qty}-${i.rate}`).join(',')])
 
   const addItem = () => {
     const newId = Math.max(...items.map(i => i.id), 0) + 1
