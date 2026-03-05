@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileText, RefreshCw } from "lucide-react"
+import { FileText, RefreshCw, Truck } from "lucide-react"
 import { cancelSalesOrder } from "@/app/actions/sales-orders"
 import { DeleteSalesOrderButton } from "./delete-sales-order-button"
 
@@ -54,12 +54,17 @@ export function SalesOrderActions({ orderId, currentStatus, docStatus, canCreate
     router.push(`/invoices/new?sales_order=${encodeURIComponent(orderId)}`)
   }
 
+  const handleManageBooking = () => {
+    router.push(`/bookings/${encodeURIComponent(orderId)}`)
+  }
+
   const isReadyForInvoice = canCreateInvoice && docStatus === 1 && (
     currentStatus === 'To Bill' ||
     currentStatus === 'To Deliver and Bill'
   )
 
   const canCancel = docStatus === 1 && currentStatus !== 'Cancelled' && currentStatus !== 'Completed'
+  const canManageBooking = docStatus === 1 && currentStatus !== 'Cancelled'
 
   return (
     <div className="flex gap-3 items-center">
@@ -86,6 +91,14 @@ export function SalesOrderActions({ orderId, currentStatus, docStatus, canCreate
           Cancel Order
         </Button>
       ) : null}
+
+      {/* Manage Booking — connects to operational workflow */}
+      {canManageBooking && (
+        <Button variant="outline" size="sm" onClick={handleManageBooking} disabled={loading}>
+          <Truck className="w-4 h-4 mr-2" />
+          Manage Booking
+        </Button>
+      )}
 
       {/* Create Invoice */}
       {isReadyForInvoice && (

@@ -244,7 +244,36 @@ export async function GET(request: NextRequest) {
         results.item_groups = `Error: ${e.message}`
     }
 
-    // 7. Ensure the API user has all required roles
+    // 7. Provision default Employee Designations
+    try {
+        const defaultDesignations = ['Operator', 'Senior Operator', 'Supervisor', 'Technician', 'Site Engineer']
+        const existingDesignations = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Designation',
+            fields: '["name"]',
+            limit_page_length: 100
+        }) as { name: string }[]
+        const existingNames = (existingDesignations || []).map(d => d.name)
+        const created: string[] = []
+        for (const desig of defaultDesignations) {
+            if (!existingNames.includes(desig)) {
+                try {
+                    await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: { doctype: 'Designation', designation: desig }
+                    })
+                    created.push(desig)
+                } catch (e: any) {
+                    if (!e.message?.includes('Duplicate') && !e.message?.includes('already exists')) {
+                        console.warn(`Designation "${desig}":`, e.message)
+                    }
+                }
+            }
+        }
+        results.designations = created.length > 0 ? `Created: ${created.join(', ')}` : 'All designations already exist'
+    } catch (e: any) {
+        results.designations = `Error: ${e.message}`
+    }
+
+    // 8. Ensure the API user has all required roles
     try {
         // Get current user
         const currentUser = await frappeRequest('frappe.auth.get_logged_user', 'GET', {}) as string
