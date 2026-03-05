@@ -1337,14 +1337,14 @@ export async function getCompanyDetails() {
   try {
     const companies = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Company',
-      fields: '["name", "tax_id"]',
+      fields: '["name", "company_name", "tax_id"]',
       limit_page_length: 1
     }) as any[];
 
     if (!companies || companies.length === 0) return null;
 
     const company = companies[0];
-    return { name: company.name, gstin: company.tax_id }
+    return { name: company.company_name || company.name, gstin: company.tax_id }
   } catch (e) {
     console.error('Failed to fetch company details:', e);
     return null

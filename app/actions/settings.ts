@@ -19,26 +19,26 @@ export async function getProfile() {
     // Get logged-in user email from cookies (set by Frappe during login)
     const cookieStore = await cookies()
     const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
-    
+
     if (!userEmail) {
       console.error('No logged-in user found in cookies')
       return null
     }
-    
+
     console.log('Getting profile for user:', userEmail)
-    
+
     // Use frappe.client.get (whitelisted) to fetch single user document
     const user = await userRequest('frappe.client.get', 'GET', {
       doctype: 'User',
       name: userEmail,
       fields: JSON.stringify(['name', 'full_name', 'email', 'first_name', 'role_profile_name', 'enabled'])
     })
-    
+
     if (!user) {
       console.error('User not found:', userEmail)
       return null
     }
-    
+
     console.log('User profile:', user)
     return user as User
   } catch (e) {
@@ -51,8 +51,8 @@ export async function getProfile() {
 export async function getTeam() {
   try {
     const users = await frappeRequest(
-      'frappe.client.get_list', 
-      'GET', 
+      'frappe.client.get_list',
+      'GET',
       {
         doctype: 'User',
         fields: '["name", "full_name", "email", "role_profile_name", "enabled", "first_name"]',
@@ -186,12 +186,12 @@ export async function getTaxAccounts(company: string) {
       {
         doctype: 'Account',
         fields: '["name", "account_name"]',
-        filters: `[["company", "=", "${company}"], ["account_type", "in", ["Tax", "Chargeable"]]]`,
+        filters: `[["company", "=", "${company}"], ["account_type", "in", ["Tax", "Chargeable"]], ["is_group", "=", 0]]`,
         order_by: 'name',
         limit_page_length: 100
       }
     )
-    return accounts as Array<{name: string, account_name: string}>
+    return accounts as Array<{ name: string, account_name: string }>
   } catch (error) {
     console.error("Failed to fetch tax accounts:", error)
     return []
