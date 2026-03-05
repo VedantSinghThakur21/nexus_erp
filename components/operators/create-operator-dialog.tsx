@@ -59,6 +59,21 @@ export function CreateOperatorDialog() {
              </div>
           </div>
           
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>Gender <span className="text-red-500">*</span></Label>
+              <select name="gender" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Date of Birth <span className="text-red-500">*</span></Label>
+              <Input name="date_of_birth" type="date" required />
+            </div>
+          </div>
+          
           <div className="grid gap-2">
             <Label>Mobile Number</Label>
             <Input name="phone" required placeholder="+91 9876543210" />

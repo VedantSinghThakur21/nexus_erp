@@ -43,6 +43,8 @@ export async function createOperator(formData: FormData) {
     const lastName = formData.get('last_name')?.toString() || ''
     const email = formData.get('email')?.toString() || ''
     const phone = formData.get('phone')?.toString() || ''
+    const gender = formData.get('gender')?.toString() || 'Male'
+    const dateOfBirth = formData.get('date_of_birth')?.toString() || ''
     const licenseNumber = formData.get('license_number')?.toString() || ''
     const licenseExpiry = formData.get('license_expiry')?.toString() || ''
     const dateOfJoining = formData.get('date_of_joining')?.toString() || new Date().toISOString().split('T')[0]
@@ -51,6 +53,9 @@ export async function createOperator(formData: FormData) {
     if (!firstName.trim()) {
       throw new Error('First name is required')
     }
+    if (!dateOfBirth) {
+      throw new Error('Date of birth is required')
+    }
 
     // Build operator data for ERPNext Employee doctype
     const operatorData = {
@@ -58,15 +63,15 @@ export async function createOperator(formData: FormData) {
       first_name: firstName,
       last_name: lastName,
       employee_name: `${firstName} ${lastName}`.trim(),
+      gender: gender,
+      date_of_birth: dateOfBirth,
       date_of_joining: dateOfJoining,
       status: 'Active',
       cell_number: phone,
       email: email,
       
-      // Mapping License Data to standard fields (MVP approach)
-      // Note: Custom fields 'license_number', 'license_expiry' should be added to Employee doctype in ERPNext
-      bio: licenseNumber ? `License: ${licenseNumber}` : '', 
-      date_of_birth: licenseExpiry || null // Using DOB field as placeholder for Expiry date
+      // Store license info in bio field
+      bio: licenseNumber ? `License: ${licenseNumber}${licenseExpiry ? ` | Expires: ${licenseExpiry}` : ''}` : ''
     }
 
     console.log('Creating operator with data:', operatorData)

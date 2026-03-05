@@ -12,6 +12,8 @@ export default function NewOperatorPage() {
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
+    gender: "Male",
+    date_of_birth: "",
     phone: "",
     email: "",
     license_number: "",
@@ -29,11 +31,16 @@ export default function NewOperatorPage() {
       if (!formData.first_name.trim()) {
         throw new Error("First name is required");
       }
+      if (!formData.date_of_birth) {
+        throw new Error("Date of birth is required");
+      }
 
       // Create FormData object for server action
       const fd = new FormData();
       fd.append("first_name", formData.first_name);
       fd.append("last_name", formData.last_name);
+      fd.append("gender", formData.gender);
+      fd.append("date_of_birth", formData.date_of_birth);
       fd.append("phone", formData.phone);
       fd.append("email", formData.email);
       fd.append("license_number", formData.license_number);
@@ -175,6 +182,41 @@ export default function NewOperatorPage() {
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-slate-500 transition-all"
                     />
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Gender <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
+                      required
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Date of Birth <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="date_of_birth"
+                      value={formData.date_of_birth}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                       Date of Joining
