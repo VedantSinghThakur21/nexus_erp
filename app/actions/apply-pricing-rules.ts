@@ -33,38 +33,64 @@ type PricingRuleDoc = {
 
 async function fetchActivePricingRules(): Promise<PricingRuleDoc[]> {
   try {
-    const list = await frappeRequest(
+    const rules = await frappeRequest(
       "frappe.client.get_list",
       "GET",
       {
         doctype: "Pricing Rule",
-        fields: JSON.stringify(["name"]),
+        fields: '["name","title","apply_on","rate_or_discount","discount_percentage","discount_amount","rate","customer","customer_group","territory","min_qty","max_qty","valid_from","valid_upto","priority","disable"]',
         filters: JSON.stringify([["disable", "=", 0]]),
         limit_page_length: 200,
       }
     );
 
-    if (!Array.isArray(list)) return [];
+    if (!Array.isArray(rules)) return [];
 
-    const rules = await Promise.all(
-      list.map(async (entry) => {
-        try {
-          return await frappeRequest("frappe.client.get", "GET", {
-            doctype: "Pricing Rule",
-            name: entry.name,
-          });
-        } catch (err) {
-          console.error(`Failed to fetch pricing rule ${entry.name}:`, err);
-          return null;
+    // For Item Group rules, we need to fetch the child table item_groups
+    const enriched = await Promise.all(
+      rules.map(async (rule: any) => {
+        if (rule.apply_on === "Item Group") {
+          try {
+            const full = await frappeRequest("frappe.client.get", "GET", {
+              doctype: "Pricing Rule",
+              name: rule.name,
+            }) as any;
+            return { ...rule, item_group: full?.item_groups?.[0]?.item_group || full?.item_group };
+          } catch {
+            return rule;
+          }
         }
+        return rule;
       })
     );
 
-    return rules.filter((rule): rule is PricingRuleDoc => Boolean(rule));
+    return enriched;
   } catch (error) {
     console.error("Failed to fetch pricing rules list:", error);
     return [];
   }
+}
+
+// Fetch item_group for each item_code from ERPNext
+async function getItemGroupMap(itemCodes: string[]): Promise<Record<string, string>> {
+  const map: Record<string, string> = {};
+  if (itemCodes.length === 0) return map;
+
+  try {
+    const items = await frappeRequest("frappe.client.get_list", "GET", {
+      doctype: "Item",
+      fields: '["name","item_group"]',
+      filters: JSON.stringify([["name", "in", itemCodes]]),
+      limit_page_length: 200,
+    }) as { name: string; item_group: string }[];
+
+    if (Array.isArray(items)) {
+      items.forEach(item => { map[item.name] = item.item_group; });
+    }
+  } catch (err) {
+    console.error("Failed to fetch item groups for items:", err);
+  }
+  return map;
 }
 
 // Apply pricing rules to quotation items
@@ -91,13 +117,20 @@ export async function applyPricingRules(params: {
 }> {
   try {
     const rules = await fetchActivePricingRules();
+
+    // Fetch item_group for each item_code so Item Group rules can match
+    const itemCodes = params.items.map(i => i.item_code).filter(Boolean);
+    const itemGroupMap = await getItemGroupMap(itemCodes);
+
     const appliedRules: PricingRuleMatch[] = [];
     const processedItems = params.items.map((item) => {
+      const itemGroup = item.item_group || itemGroupMap[item.item_code];
+
       // Find matching rules for this item
       const matchingRules = rules.filter((rule) => {
         // Check if rule applies to this item
         if (rule.apply_on === "Item Group" && rule.item_group) {
-          if (rule.item_group !== item.item_group) return false;
+          if (rule.item_group !== itemGroup) return false;
         }
 
         // Check customer conditions
@@ -122,7 +155,7 @@ export async function applyPricingRules(params: {
       // Apply the highest priority rule
       if (matchingRules.length > 0) {
         const rule = matchingRules[0];
-        
+
         const ruleMatch: PricingRuleMatch = {
           rule_name: rule.name,
           rule_title: rule.title,
@@ -187,7 +220,7 @@ export async function getApplicablePricingRules(params: {
 }): Promise<PricingRuleMatch[]> {
   try {
     const rules = await fetchActivePricingRules();
-    
+
     return rules
       .filter((rule) => {
         // Check customer conditions
