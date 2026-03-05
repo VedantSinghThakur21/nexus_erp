@@ -305,6 +305,26 @@ export async function createBankAccount(data: {
     }
     const companyName = companies[0].name
 
+    // Ensure the Bank record exists (bank field is a Link to Bank doctype)
+    try {
+      const existingBanks = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Bank',
+        fields: '["name"]',
+        filters: JSON.stringify([['name', '=', data.bank]]),
+        limit_page_length: 1
+      }) as any[]
+      if (!existingBanks || existingBanks.length === 0) {
+        await frappeRequest('frappe.client.insert', 'POST', {
+          doc: { doctype: 'Bank', bank_name: data.bank }
+        })
+      }
+    } catch (e: any) {
+      // Ignore duplicate errors — bank already exists
+      if (!e.message?.includes('Duplicate') && !e.message?.includes('already exists')) {
+        console.warn('Could not create Bank record:', e.message)
+      }
+    }
+
     const doc = {
       doctype: 'Bank Account',
       bank: data.bank,
