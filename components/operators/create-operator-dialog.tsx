@@ -23,10 +23,10 @@ export function CreateOperatorDialog() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
-    
+
     const formData = new FormData(e.currentTarget)
     const res = await createOperator(formData)
-    
+
     if (res.success) {
       setOpen(false)
       router.refresh()
@@ -40,7 +40,7 @@ export function CreateOperatorDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-            <Plus className="h-4 w-4" /> Add Operator
+          <Plus className="h-4 w-4" /> Add Operator
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
@@ -49,31 +49,23 @@ export function CreateOperatorDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
-             <div className="grid gap-2">
-                <Label>First Name</Label>
-                <Input name="first_name" required />
-             </div>
-             <div className="grid gap-2">
-                <Label>Last Name</Label>
-                <Input name="last_name" required />
-             </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Gender <span className="text-red-500">*</span></Label>
-              <select name="gender" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+              <Label>First Name</Label>
+              <Input name="first_name" required />
             </div>
+            <div className="grid gap-2">
+              <Label>Last Name</Label>
+              <Input name="last_name" required />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
             <div className="grid gap-2">
               <Label>Date of Birth <span className="text-red-500">*</span></Label>
               <Input name="date_of_birth" type="date" required />
             </div>
           </div>
-          
+
           <div className="grid gap-2">
             <Label>Mobile Number</Label>
             <Input name="phone" required placeholder="+91 9876543210" />
@@ -81,15 +73,15 @@ export function CreateOperatorDialog() {
 
           <div className="grid grid-cols-2 gap-4 pt-2 border-t mt-2">
             <div className="grid gap-2">
-                <Label>License Number</Label>
-                <Input name="license_number" required placeholder="DL-123456789" />
+              <Label>License Number</Label>
+              <Input name="license_number" required placeholder="DL-123456789" />
             </div>
             <div className="grid gap-2">
-                <Label>License Expiry</Label>
-                <Input name="license_expiry" type="date" required />
+              <Label>License Expiry</Label>
+              <Input name="license_expiry" type="date" required />
             </div>
           </div>
-          
+
           <Button type="submit" disabled={loading} className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Record

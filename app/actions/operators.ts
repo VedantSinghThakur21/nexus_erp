@@ -17,8 +17,8 @@ export interface Operator {
 export async function getOperators() {
   try {
     const response = await frappeRequest(
-      'frappe.client.get_list', 
-      'GET', 
+      'frappe.client.get_list',
+      'GET',
       {
         doctype: 'Employee',
         // Fetching 'bio' (License No) and 'date_of_birth' (Expiry)
@@ -43,7 +43,6 @@ export async function createOperator(formData: FormData) {
     const lastName = formData.get('last_name')?.toString() || ''
     const email = formData.get('email')?.toString() || ''
     const phone = formData.get('phone')?.toString() || ''
-    const gender = formData.get('gender')?.toString() || 'Male'
     const dateOfBirth = formData.get('date_of_birth')?.toString() || ''
     const licenseNumber = formData.get('license_number')?.toString() || ''
     const licenseExpiry = formData.get('license_expiry')?.toString() || ''
@@ -63,13 +62,12 @@ export async function createOperator(formData: FormData) {
       first_name: firstName,
       last_name: lastName,
       employee_name: `${firstName} ${lastName}`.trim(),
-      gender: gender,
       date_of_birth: dateOfBirth,
       date_of_joining: dateOfJoining,
       status: 'Active',
       cell_number: phone,
       email: email,
-      
+
       // Store license info in bio field
       bio: licenseNumber ? `License: ${licenseNumber}${licenseExpiry ? ` | Expires: ${licenseExpiry}` : ''}` : ''
     }
@@ -77,7 +75,7 @@ export async function createOperator(formData: FormData) {
     console.log('Creating operator with data:', operatorData)
 
     const response = await frappeRequest('frappe.client.insert', 'POST', { doc: operatorData })
-    
+
     console.log('Operator created successfully:', response)
 
     revalidatePath('/operators')

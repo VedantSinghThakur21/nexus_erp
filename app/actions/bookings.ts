@@ -14,15 +14,15 @@ export interface Booking {
   po_no: string
   items: any[]
   docstatus: number
-  per_delivered: number 
+  per_delivered: number
 }
 
 // 1. READ: List
 export async function getBookings() {
   try {
     const response = await frappeRequest(
-      'frappe.client.get_list', 
-      'GET', 
+      'frappe.client.get_list',
+      'GET',
       {
         doctype: 'Sales Order',
         fields: '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]',
@@ -42,8 +42,8 @@ export async function getBookings() {
 export async function getCustomerBookingHistory(customerName: string) {
   try {
     const bookings = await frappeRequest(
-      'frappe.client.get_list', 
-      'GET', 
+      'frappe.client.get_list',
+      'GET',
       {
         doctype: 'Sales Order',
         fields: '["name", "transaction_date", "delivery_date", "grand_total", "status", "po_no"]',
@@ -52,12 +52,12 @@ export async function getCustomerBookingHistory(customerName: string) {
         limit_page_length: 10
       }
     ) as any[]
-    
+
     // Calculate total bookings and total spent
     const totalBookings = bookings.length
     const totalSpent = bookings.reduce((sum: number, booking: any) => sum + booking.grand_total, 0)
     const completedBookings = bookings.filter((b: any) => b.status === 'Completed').length
-    
+
     return {
       bookings,
       stats: {
@@ -84,8 +84,8 @@ export async function getItemRentalAnalytics(itemCode: string) {
   try {
     // Get all Sales Orders with this item
     const salesOrders = await frappeRequest(
-      'frappe.client.get_list', 
-      'GET', 
+      'frappe.client.get_list',
+      'GET',
       {
         doctype: 'Sales Order',
         fields: '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status"]',
@@ -93,7 +93,7 @@ export async function getItemRentalAnalytics(itemCode: string) {
         order_by: 'creation desc',
       }
     ) as any[]
-    
+
     const totalRentals = salesOrders.length
     const totalRevenue = salesOrders.reduce((sum: number, order: any) => sum + order.grand_total, 0)
     const averageRentalDays = salesOrders.reduce((sum: number, order: any) => {
@@ -102,7 +102,7 @@ export async function getItemRentalAnalytics(itemCode: string) {
       const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
       return sum + days
     }, 0) / (totalRentals || 1)
-    
+
     return {
       totalRentals,
       totalRevenue,
@@ -154,11 +154,11 @@ export async function createBooking(formData: FormData) {
     // Check for date overlaps
     const start = new Date(startDate)
     const end = new Date(endDate)
-    
+
     for (const booking of existingBookings) {
       const bookingStart = new Date(booking.transaction_date)
       const bookingEnd = new Date(booking.delivery_date)
-      
+
       // Check if dates overlap
       if (start <= bookingEnd && end >= bookingStart) {
         throw new Error(`${itemCode} is already booked from ${booking.transaction_date} to ${booking.delivery_date}. Please choose different dates.`)
@@ -173,27 +173,27 @@ export async function createBooking(formData: FormData) {
     const uniquePO = `RENT-${itemCode}-${timestamp}`
 
     const bookingDoc = {
-        doctype: 'Sales Order',
-        customer: customer,
-        transaction_date: startDate,
-        delivery_date: endDate, 
-        po_no: uniquePO,
-        project: projectName || undefined,
-        
-        items: [{
-            item_code: itemCode, 
-            description: `Rental of ${itemCode} from ${startDate} to ${endDate} (${days} days)${projectName ? ` - ${projectName}` : ''}`,
-            qty: days,
-            rate: rate,
-            delivery_date: endDate
-        }],
-        
-        remarks: `Equipment rental booking for ${days} days`,
-        status: 'Draft'
+      doctype: 'Sales Order',
+      customer: customer,
+      transaction_date: startDate,
+      delivery_date: endDate,
+      po_no: uniquePO,
+      project: projectName || undefined,
+
+      items: [{
+        item_code: itemCode,
+        description: `Rental of ${itemCode} from ${startDate} to ${endDate} (${days} days)${projectName ? ` - ${projectName}` : ''}`,
+        qty: days,
+        rate: rate,
+        delivery_date: endDate
+      }],
+
+      remarks: `Equipment rental booking for ${days} days`,
+      status: 'Draft'
     }
 
     const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc }) as { name: string }
-    
+
     revalidatePath('/bookings')
     revalidatePath('/catalogue')
     return { success: true, bookingId: createdBooking.name }
@@ -228,12 +228,17 @@ export async function mobilizeAsset(formData: FormData) {
 
     // Get Serial Number from the items - could be in serial_no field or extracted from po_no
     let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
-    
+
     // Fallback: try to extract from po_no if it exists and follows RENT- pattern
     if (!assetId && booking.po_no && booking.po_no.startsWith('RENT-')) {
       assetId = booking.po_no.replace('RENT-', '')
     }
-    
+
+    // Final fallback: Use item code + booking id
+    if (!assetId) {
+      assetId = `${booking.items[0].item_code}-${booking.name}`
+    }
+
     if (!assetId) throw new Error("Could not determine asset serial number for this booking")
 
     // 1. Check Asset Status & Location
@@ -242,63 +247,63 @@ export async function mobilizeAsset(formData: FormData) {
 
     // Self-Healing Inventory Logic
     if (!sourceWarehouse) {
-        const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Warehouse', 
-            filters: '[["is_group", "=", 0]]', 
-            limit_page_length: 1
-        }) as any[];
-        const defaultWh = warehouses[0]?.name || "Stores - ERP - A";
-        
-        await frappeRequest('frappe.client.insert', 'POST', {
-            doc: {
-                doctype: 'Stock Entry',
-                stock_entry_type: 'Material Receipt',
-                to_warehouse: defaultWh,
-                items: [{
-                    item_code: booking.items[0].item_code,
-                    qty: 1,
-                    serial_no: assetId,
-                    basic_rate: 1000
-                }],
-                docstatus: 1
-            }
-        });
-        sourceWarehouse = defaultWh;
+      const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Warehouse',
+        filters: '[["is_group", "=", 0]]',
+        limit_page_length: 1
+      }) as any[];
+      const defaultWh = warehouses[0]?.name || "Stores - ERP - A";
+
+      await frappeRequest('frappe.client.insert', 'POST', {
+        doc: {
+          doctype: 'Stock Entry',
+          stock_entry_type: 'Material Receipt',
+          to_warehouse: defaultWh,
+          items: [{
+            item_code: booking.items[0].item_code,
+            qty: 1,
+            serial_no: assetId,
+            basic_rate: 1000
+          }],
+          docstatus: 1
+        }
+      });
+      sourceWarehouse = defaultWh;
     }
 
     // 2. Create Delivery Note (With Operator Info)
     const deliveryDoc = {
-        doctype: 'Delivery Note',
-        customer: booking.customer,
-        // We add the operator to the instructions field so it appears on the printed document
-        instructions: `Mobilized with Operator: ${operatorName || 'None assigned'}`,
-        items: booking.items.map((item: any) => ({
-            item_code: item.item_code,
-            qty: item.qty,
-            so_detail: item.name,
-            against_sales_order: booking.name,
-            serial_no: assetId,
-            warehouse: sourceWarehouse
-        })),
-        docstatus: 1 // Submit immediately
+      doctype: 'Delivery Note',
+      customer: booking.customer,
+      // We add the operator to the instructions field so it appears on the printed document
+      instructions: `Mobilized with Operator: ${operatorName || 'None assigned'}`,
+      items: booking.items.map((item: any) => ({
+        item_code: item.item_code,
+        qty: item.qty,
+        so_detail: item.name,
+        against_sales_order: booking.name,
+        serial_no: assetId,
+        warehouse: sourceWarehouse
+      })),
+      docstatus: 1 // Submit immediately
     }
 
     const deliveryNote = await frappeRequest('frappe.client.insert', 'POST', { doc: deliveryDoc }) as { name: string }
 
     // 3. Update Asset Status to "Issued" (indicating it's been mobilized/delivered to customer)
     await frappeRequest('frappe.client.set_value', 'PUT', {
-        doctype: 'Serial No',
-        name: assetId,
-        fieldname: 'status',
-        value: 'Issued' 
+      doctype: 'Serial No',
+      name: assetId,
+      fieldname: 'status',
+      value: 'Issued'
     })
 
     // 4. Update Sales Order (Booking) status to reflect mobilization
     await frappeRequest('frappe.client.set_value', 'PUT', {
-        doctype: 'Sales Order',
-        name: booking.name,
-        fieldname: 'status',
-        value: 'To Bill'
+      doctype: 'Sales Order',
+      name: booking.name,
+      fieldname: 'status',
+      value: 'To Bill'
     })
 
     revalidatePath(`/bookings/${bookingId}`)
@@ -315,86 +320,91 @@ export async function returnAsset(bookingId: string) {
     const booking = await getBooking(bookingId)
     if (!booking) throw new Error("Booking not found")
     if (!booking.items || booking.items.length === 0) throw new Error("Booking has no items")
-    
+
     // Get Serial Number from the items - same logic as mobilize
     let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
-    
+
     // Fallback: try to extract from po_no if it exists and follows RENT- pattern
     if (!assetId && booking.po_no && booking.po_no.startsWith('RENT-')) {
       assetId = booking.po_no.replace('RENT-', '')
     }
-    
+
+    // Final fallback: Use item code + booking id
+    if (!assetId) {
+      assetId = `${booking.items[0].item_code}-${booking.name}`
+    }
+
     if (!assetId) throw new Error("Could not determine asset serial number for this booking")
 
     // Check current asset status
     let asset;
     try {
-        asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string };
+      asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string };
     } catch (e) {
-        throw new Error("Asset not found in system");
+      throw new Error("Asset not found in system");
     }
 
     // Only create Material Receipt if asset is NOT already in a warehouse
     if (!asset.warehouse) {
-        const itemCode = booking.items[0].item_code;
-        
-        // Find a warehouse to return to
-        let targetWarehouse = "Stores - ERP - A";
-        try {
-            const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
-                doctype: 'Warehouse',
-                filters: '[["is_group", "=", 0]]',
-                limit_page_length: 1
-            }) as any[];
-            if (warehouses.length > 0) targetWarehouse = warehouses[0].name;
-        } catch (e) {}
+      const itemCode = booking.items[0].item_code;
 
-        // Create Material Receipt to add asset back to warehouse
-        const stockEntry = {
-            doctype: 'Stock Entry',
-            stock_entry_type: 'Material Receipt',
-            to_warehouse: targetWarehouse,
-            items: [{
-                item_code: itemCode,
-                qty: 1,
-                serial_no: assetId,
-                basic_rate: 1000
-            }],
-            docstatus: 1
-        }
-        
-        await frappeRequest('frappe.client.insert', 'POST', { doc: stockEntry })
-        
-        // Update Serial No with warehouse
-        await frappeRequest('frappe.client.set_value', 'PUT', {
-            doctype: 'Serial No',
-            name: assetId,
-            fieldname: 'warehouse',
-            value: targetWarehouse
-        })
+      // Find a warehouse to return to
+      let targetWarehouse = "Stores - ERP - A";
+      try {
+        const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Warehouse',
+          filters: '[["is_group", "=", 0]]',
+          limit_page_length: 1
+        }) as any[];
+        if (warehouses.length > 0) targetWarehouse = warehouses[0].name;
+      } catch (e) { }
+
+      // Create Material Receipt to add asset back to warehouse
+      const stockEntry = {
+        doctype: 'Stock Entry',
+        stock_entry_type: 'Material Receipt',
+        to_warehouse: targetWarehouse,
+        items: [{
+          item_code: itemCode,
+          qty: 1,
+          serial_no: assetId,
+          basic_rate: 1000
+        }],
+        docstatus: 1
+      }
+
+      await frappeRequest('frappe.client.insert', 'POST', { doc: stockEntry })
+
+      // Update Serial No with warehouse
+      await frappeRequest('frappe.client.set_value', 'PUT', {
+        doctype: 'Serial No',
+        name: assetId,
+        fieldname: 'warehouse',
+        value: targetWarehouse
+      })
     }
 
     // Always update Serial No status to Active
     await frappeRequest('frappe.client.set_value', 'PUT', {
-        doctype: 'Serial No',
-        name: assetId,
-        fieldname: 'status',
-        value: 'Active'
+      doctype: 'Serial No',
+      name: assetId,
+      fieldname: 'status',
+      value: 'Active'
     })
 
     // Properly close the Sales Order by updating both status and per_delivered
     await frappeRequest('frappe.client.set_value', 'PUT', {
-        doctype: 'Sales Order',
-        name: bookingId,
-        fieldname: 'status',
-        value: 'Completed'
+      doctype: 'Sales Order',
+      name: bookingId,
+      fieldname: 'status',
+      value: 'Completed'
     })
-    
+
     await frappeRequest('frappe.client.set_value', 'PUT', {
-        doctype: 'Sales Order',
-        name: bookingId,
-        fieldname: 'per_delivered',
-        value: 100
+      doctype: 'Sales Order',
+      name: bookingId,
+      fieldname: 'per_delivered',
+      value: 100
     })
 
     revalidatePath(`/bookings/${bookingId}`)
