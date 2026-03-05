@@ -224,9 +224,17 @@ export async function mobilizeAsset(formData: FormData) {
   try {
     const booking = await getBooking(bookingId)
     if (!booking) throw new Error("Booking not found")
-    if (!booking.po_no) throw new Error("Booking is missing PO number")
+    if (!booking.items || booking.items.length === 0) throw new Error("Booking has no items")
 
-    const assetId = booking.po_no.replace('RENT-', '')
+    // Get Serial Number from the items - could be in serial_no field or extracted from po_no
+    let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
+    
+    // Fallback: try to extract from po_no if it exists and follows RENT- pattern
+    if (!assetId && booking.po_no && booking.po_no.startsWith('RENT-')) {
+      assetId = booking.po_no.replace('RENT-', '')
+    }
+    
+    if (!assetId) throw new Error("Could not determine asset serial number for this booking")
 
     // 1. Check Asset Status & Location
     let asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
@@ -306,9 +314,17 @@ export async function returnAsset(bookingId: string) {
   try {
     const booking = await getBooking(bookingId)
     if (!booking) throw new Error("Booking not found")
+    if (!booking.items || booking.items.length === 0) throw new Error("Booking has no items")
     
-    if (!booking.po_no || !booking.po_no.startsWith('RENT-')) throw new Error("Invalid Rental Booking ID")
-    const assetId = booking.po_no.replace('RENT-', '')
+    // Get Serial Number from the items - same logic as mobilize
+    let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
+    
+    // Fallback: try to extract from po_no if it exists and follows RENT- pattern
+    if (!assetId && booking.po_no && booking.po_no.startsWith('RENT-')) {
+      assetId = booking.po_no.replace('RENT-', '')
+    }
+    
+    if (!assetId) throw new Error("Could not determine asset serial number for this booking")
 
     // Check current asset status
     let asset;
