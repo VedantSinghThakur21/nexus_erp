@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     })
 
     const searchUrl = `${BASE_URL}/api/method/frappe.client.get_list?${searchParams}`
-    
+
     const findResponse = await fetch(searchUrl, {
       method: 'GET',
       headers: {
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     if (shouldCreateRecord) {
       // CREATE: Tenant record doesn't exist, create it now
       console.log(`🆕 Creating new SaaS Tenant record for subdomain: ${tenantName}`)
-      
+
       const createEndpoint = `${BASE_URL}/api/resource/SaaS Tenant`
       const createResponse = await fetch(createEndpoint, {
         method: 'POST',
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       if (!createResponse.ok) {
         const errorData = await createResponse.json()
         console.error('❌ Failed to create tenant record:', errorData)
-        
+
         // Don't fail provisioning just because metadata creation failed
         return NextResponse.json({
           success: true,
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     } else {
       // UPDATE: Tenant record exists, update with API credentials
       const updateEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantRecordName}`
-      
+
       console.log(`🔄 Updating tenant ${tenantRecordName} with API credentials...`)
 
       const updateResponse = await fetch(updateEndpoint, {
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       if (!updateResponse.ok) {
         const errorData = await updateResponse.json()
         console.error('❌ Failed to update tenant:', errorData)
-        
+
         // Don't fail provisioning just because metadata update failed
         return NextResponse.json({
           success: true,
@@ -148,6 +148,32 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`✅ Tenant ${tenantRecordName} API credentials updated successfully`)
+    }
+
+    // ─── STEP 3: Auto-run setup/init on the tenant site to seed default data ────
+    // This provisions: Price List, Territories, Modes of Payment, Customer Groups, Item Groups
+    try {
+      const initUrl = `${siteUrl}/api/setup/init`
+      console.log(`🌱 Seeding default data for new tenant: ${initUrl}`)
+      const initResponse = await fetch(initUrl, {
+        method: 'GET',
+        headers: {
+          // Pass tenant API credentials so frappeRequest uses the right site
+          'x-tenant-api-key': apiKey,
+          'x-tenant-api-secret': apiSecret,
+        },
+        // Don't hang the response — fire and check quickly
+        signal: AbortSignal.timeout(30000)
+      })
+      if (initResponse.ok) {
+        const initData = await initResponse.json()
+        console.log(`✅ Tenant data seeded:`, initData.results)
+      } else {
+        console.warn(`⚠️ setup/init returned ${initResponse.status} for ${tenantName}`)
+      }
+    } catch (initErr: any) {
+      // Non-fatal — tenant works fine, init can be re-run manually
+      console.warn(`⚠️ Auto-init failed for ${tenantName} (can be run manually):`, initErr.message)
     }
 
     return NextResponse.json({
