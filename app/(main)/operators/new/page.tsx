@@ -90,17 +90,6 @@ export default function NewOperatorPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400">Create a new crew member</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
-          <div className="text-right">
-            <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-              Alex Thompson
-            </p>
-            <p className="text-[11px] text-slate-500 font-medium">Sales Admin</p>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
-            AT
-          </div>
-        </div>
       </header>
 
       {/* Main Content */}

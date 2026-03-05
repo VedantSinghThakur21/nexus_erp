@@ -224,6 +224,7 @@ export async function mobilizeAsset(formData: FormData) {
   try {
     const booking = await getBooking(bookingId)
     if (!booking) throw new Error("Booking not found")
+    if (!booking.po_no) throw new Error("Booking is missing PO number")
 
     const assetId = booking.po_no.replace('RENT-', '')
 
