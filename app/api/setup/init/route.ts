@@ -273,6 +273,35 @@ export async function GET(request: NextRequest) {
         results.designations = `Error: ${e.message}`
     }
 
+    // 7a. Provision default Gender values (required for Employee doctype)
+    try {
+        const defaultGenders = ['Male', 'Female', 'Other']
+        const existingGenders = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Gender',
+            fields: '["name"]',
+            limit_page_length: 100
+        }) as { name: string }[]
+        const existingNames = (existingGenders || []).map(g => g.name)
+        const created: string[] = []
+        for (const gender of defaultGenders) {
+            if (!existingNames.includes(gender)) {
+                try {
+                    await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: { doctype: 'Gender', gender: gender }
+                    })
+                    created.push(gender)
+                } catch (e: any) {
+                    if (!e.message?.includes('Duplicate') && !e.message?.includes('already exists')) {
+                        console.warn(`Gender "${gender}":`, e.message)
+                    }
+                }
+            }
+        }
+        results.genders = created.length > 0 ? `Created: ${created.join(', ')}` : 'All genders already exist'
+    } catch (e: any) {
+        results.genders = `Error: ${e.message}`
+    }
+
     // 8. Ensure the API user has all required roles
     try {
         // Get current user
