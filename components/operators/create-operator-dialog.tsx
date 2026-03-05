@@ -60,10 +60,6 @@ export function CreateOperatorDialog() {
           </div>
           
           <div className="grid gap-2">
-            <Label>Designation</Label>
-            <Input name="designation" defaultValue="Heavy Equipment Operator" />
-          </div>
-          <div className="grid gap-2">
             <Label>Mobile Number</Label>
             <Input name="phone" required placeholder="+91 9876543210" />
           </div>

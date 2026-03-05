@@ -12,7 +12,6 @@ export default function NewOperatorPage() {
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
-    designation: "Operator",
     phone: "",
     email: "",
     license_number: "",
@@ -30,15 +29,11 @@ export default function NewOperatorPage() {
       if (!formData.first_name.trim()) {
         throw new Error("First name is required");
       }
-      if (!formData.designation) {
-        throw new Error("Designation is required");
-      }
 
       // Create FormData object for server action
       const fd = new FormData();
       fd.append("first_name", formData.first_name);
       fd.append("last_name", formData.last_name);
-      fd.append("designation", formData.designation);
       fd.append("phone", formData.phone);
       fd.append("email", formData.email);
       fd.append("license_number", formData.license_number);
@@ -191,24 +186,6 @@ export default function NewOperatorPage() {
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                      Designation <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="designation"
-                      value={formData.designation}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
-                      required
-                    >
-                      <option value="Operator">Operator</option>
-                      <option value="Driver">Driver</option>
-                      <option value="Rigger">Rigger</option>
-                      <option value="Foreman">Foreman</option>
-                      <option value="Technician">Technician</option>
-                    </select>
                   </div>
                 </div>
               </div>

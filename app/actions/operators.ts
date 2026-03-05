@@ -7,7 +7,6 @@ export interface Operator {
   name: string
   employee_name: string
   status: string
-  designation: string
   date_of_joining: string
   cell_number?: string
   bio?: string // Storing License Number here for MVP
@@ -23,7 +22,7 @@ export async function getOperators() {
       {
         doctype: 'Employee',
         // Fetching 'bio' (License No) and 'date_of_birth' (Expiry)
-        fields: '["name", "employee_name", "status", "designation", "date_of_joining", "cell_number", "bio", "date_of_birth"]',
+        fields: '["name", "employee_name", "status", "date_of_joining", "cell_number", "bio", "date_of_birth"]',
         filters: '[["status", "=", "Active"]]',
         order_by: 'creation desc',
         limit_page_length: 50
@@ -44,7 +43,6 @@ export async function createOperator(formData: FormData) {
     const lastName = formData.get('last_name')?.toString() || ''
     const email = formData.get('email')?.toString() || ''
     const phone = formData.get('phone')?.toString() || ''
-    const designation = formData.get('designation')?.toString() || 'Operator'
     const licenseNumber = formData.get('license_number')?.toString() || ''
     const licenseExpiry = formData.get('license_expiry')?.toString() || ''
     const dateOfJoining = formData.get('date_of_joining')?.toString() || new Date().toISOString().split('T')[0]
@@ -60,8 +58,6 @@ export async function createOperator(formData: FormData) {
       first_name: firstName,
       last_name: lastName,
       employee_name: `${firstName} ${lastName}`.trim(),
-      designation: designation,
-      gender: 'Male', // Can be extended to form input
       date_of_joining: dateOfJoining,
       status: 'Active',
       cell_number: phone,
