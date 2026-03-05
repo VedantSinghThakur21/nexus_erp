@@ -244,5 +244,63 @@ export async function GET(request: NextRequest) {
         results.item_groups = `Error: ${e.message}`
     }
 
+    // 7. Ensure the API user has all required roles
+    try {
+        // Get current user
+        const currentUser = await frappeRequest('frappe.auth.get_logged_user', 'GET', {}) as string
+        if (currentUser && currentUser !== 'Administrator' && currentUser !== 'Guest') {
+            const requiredRoles = [
+                'System Manager',
+                'Sales Manager', 'Sales User',
+                'Stock Manager', 'Stock User',
+                'Accounts Manager', 'Accounts User',
+                'Projects Manager', 'Projects User',
+                'HR Manager', 'HR User',
+                'Quality Manager',
+                'Manufacturing Manager', 'Manufacturing User',
+            ]
+
+            // Get user's existing roles
+            let existingRoles: string[] = []
+            try {
+                const user = await frappeRequest('frappe.client.get', 'GET', {
+                    doctype: 'User',
+                    name: currentUser,
+                }) as any
+                existingRoles = (user?.roles || []).map((r: any) => r.role)
+            } catch { /* ignore */ }
+
+            const missingRoles = requiredRoles.filter(r => !existingRoles.includes(r))
+            if (missingRoles.length === 0) {
+                results.user_roles = `All roles already assigned to ${currentUser}`
+            } else {
+                // Add missing roles
+                for (const role of missingRoles) {
+                    try {
+                        await frappeRequest('frappe.client.insert', 'POST', {
+                            doc: {
+                                doctype: 'Has Role',
+                                parent: currentUser,
+                                parenttype: 'User',
+                                parentfield: 'roles',
+                                role: role
+                            }
+                        })
+                    } catch (e: any) {
+                        // Ignore duplicate errors
+                        if (!e.message?.includes('Duplicate') && !e.message?.includes('already exists')) {
+                            console.warn(`Role "${role}":`, e.message)
+                        }
+                    }
+                }
+                results.user_roles = `Added roles to ${currentUser}: ${missingRoles.join(', ')}`
+            }
+        } else {
+            results.user_roles = `Skipped: user is ${currentUser}`
+        }
+    } catch (e: any) {
+        results.user_roles = `Error: ${e.message}`
+    }
+
     return NextResponse.json({ success: true, results })
 }
