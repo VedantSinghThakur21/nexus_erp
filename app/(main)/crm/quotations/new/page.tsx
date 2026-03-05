@@ -37,6 +37,7 @@ interface QuotationItem {
   // Standard pricing
   qty: number
   rate: number
+  discount_percentage?: number
   amount: number
 
   // Rental pricing fields
@@ -233,14 +234,17 @@ export default function NewQuotationPage() {
   }, [opportunityId])
 
   // Calculations
-  const calculateRowAmount = (qty: number, rate: number) => qty * rate
+  const calculateRowAmount = (qty: number, rate: number, discount?: number) => {
+    const disc = discount || 0
+    return qty * rate * (1 - disc / 100)
+  }
 
   const updateItem = (id: number, field: keyof QuotationItem, value: any) => {
     setItems(items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value }
-        if (field === 'qty' || field === 'rate') {
-          updatedItem.amount = calculateRowAmount(updatedItem.qty, updatedItem.rate)
+        if (field === 'qty' || field === 'rate' || field === 'discount_percentage') {
+          updatedItem.amount = calculateRowAmount(updatedItem.qty, updatedItem.rate, updatedItem.discount_percentage)
         }
         return updatedItem
       }
@@ -277,15 +281,20 @@ export default function NewQuotationPage() {
         })
 
         if (result.applied_rules.length > 0) {
-          // Update items with server-computed discounted rates
+          // Update items with discount percentage (keep original rate)
           const updatedItems = items.map(item => {
             const ruleItem = result.items.find(ri => ri.item_code === item.item_code)
-            if (ruleItem && ruleItem.pricing_rule && ruleItem.rate !== item.rate) {
+            if (ruleItem && ruleItem.pricing_rule) {
+              const disc = ruleItem.discount_percentage || 0
               return {
                 ...item,
-                rate: ruleItem.rate,
-                amount: calculateRowAmount(item.qty, ruleItem.rate),
+                discount_percentage: disc,
+                amount: calculateRowAmount(item.qty, item.rate, disc),
               }
+            }
+            // Clear discount if no rule matches
+            if (item.discount_percentage) {
+              return { ...item, discount_percentage: 0, amount: calculateRowAmount(item.qty, item.rate, 0) }
             }
             return item
           })
@@ -402,6 +411,7 @@ export default function NewQuotationPage() {
             description: item.description || item.item_name || item.item_code,
             qty: item.qty,
             rate: item.rate,
+            discount_percentage: item.discount_percentage || 0,
             amount: item.amount
           }
 
@@ -667,9 +677,10 @@ export default function NewQuotationPage() {
                 {/* Header Row */}
                 <div suppressHydrationWarning className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b">
                   <div suppressHydrationWarning className="col-span-1 text-center">#</div>
-                  <div suppressHydrationWarning className="col-span-4">Item / Description</div>
+                  <div suppressHydrationWarning className="col-span-3">Item / Description</div>
                   <div suppressHydrationWarning className="col-span-1 text-right">Qty *</div>
                   <div suppressHydrationWarning className="col-span-2 text-right">Rate *</div>
+                  <div suppressHydrationWarning className="col-span-1 text-right">Disc %</div>
                   <div suppressHydrationWarning className="col-span-2 text-right">Amount</div>
                   <div suppressHydrationWarning className="col-span-2"></div>
                 </div>
@@ -687,7 +698,7 @@ export default function NewQuotationPage() {
                             onClick={() => removeItem(item.id)}
                           />
                         </div>
-                        <div className="col-span-4 space-y-1">
+                        <div className="col-span-3 space-y-1">
                           <div className="h-8">
                             <ItemSearch
                               value={item.item_code}
@@ -731,6 +742,15 @@ export default function NewQuotationPage() {
                             disabled={isRentalMode && item.is_rental}
                             required
                           />
+                        </div>
+                        <div className="col-span-1">
+                          {item.discount_percentage ? (
+                            <div className="h-8 flex items-center justify-end">
+                              <span className="text-xs font-medium text-green-600 dark:text-green-400">{item.discount_percentage}%</span>
+                            </div>
+                          ) : (
+                            <div className="h-8" />
+                          )}
                         </div>
                         <div className="col-span-2 pt-2 text-right text-sm font-medium">
                           ₹{item.amount.toLocaleString('en-IN')}
