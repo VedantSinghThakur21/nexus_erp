@@ -332,7 +332,6 @@ export async function createBankAccount(data: {
       branch_code: data.branch_code || '',
       company: companyName,
       is_default: data.is_default ? 1 : 0,
-      account_type: 'Bank',
       is_company_account: 1
     }
 
