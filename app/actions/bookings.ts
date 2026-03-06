@@ -226,6 +226,30 @@ export async function mobilizeAsset(formData: FormData) {
     if (!booking) throw new Error("Booking not found")
     if (!booking.items || booking.items.length === 0) throw new Error("Booking has no items")
 
+    const itemCode = booking.items[0].item_code
+
+    // 0. Ensure Item has serial number tracking enabled
+    try {
+      const existingItem = await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Item',
+        name: itemCode,
+        fields: JSON.stringify(['has_serial_no'])
+      }) as any
+
+      if (!existingItem.has_serial_no) {
+        console.log(`Item ${itemCode} doesn't have serial tracking, enabling it`)
+        await frappeRequest('frappe.client.set_value', 'PUT', {
+          doctype: 'Item',
+          name: itemCode,
+          fieldname: 'has_serial_no',
+          value: 1
+        })
+      }
+    } catch (itemErr: any) {
+      console.error(`Failed to check/update item ${itemCode}:`, itemErr)
+      throw new Error(`Item ${itemCode} configuration error. Please ensure the item exists and has serial number tracking enabled.`)
+    }
+
     // Get Serial Number from the items - could be in serial_no field or extracted from po_no
     let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
 
@@ -236,7 +260,7 @@ export async function mobilizeAsset(formData: FormData) {
 
     // Final fallback: Use item code + booking id
     if (!assetId) {
-      assetId = `${booking.items[0].item_code}-${booking.name}`
+      assetId = `${itemCode}-${booking.name}`
     }
 
     if (!assetId) throw new Error("Could not determine asset serial number for this booking")
@@ -341,6 +365,30 @@ export async function returnAsset(bookingId: string) {
     if (!booking) throw new Error("Booking not found")
     if (!booking.items || booking.items.length === 0) throw new Error("Booking has no items")
 
+    const itemCode = booking.items[0].item_code
+
+    // 0. Ensure Item has serial number tracking enabled
+    try {
+      const existingItem = await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Item',
+        name: itemCode,
+        fields: JSON.stringify(['has_serial_no'])
+      }) as any
+
+      if (!existingItem.has_serial_no) {
+        console.log(`Item ${itemCode} doesn't have serial tracking, enabling it`)
+        await frappeRequest('frappe.client.set_value', 'PUT', {
+          doctype: 'Item',
+          name: itemCode,
+          fieldname: 'has_serial_no',
+          value: 1
+        })
+      }
+    } catch (itemErr: any) {
+      console.error(`Failed to check/update item ${itemCode}:`, itemErr)
+      throw new Error(`Item ${itemCode} configuration error. Please ensure the item exists and has serial number tracking enabled.`)
+    }
+
     // Get Serial Number from the items - same logic as mobilize
     let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
 
@@ -351,7 +399,7 @@ export async function returnAsset(bookingId: string) {
 
     // Final fallback: Use item code + booking id
     if (!assetId) {
-      assetId = `${booking.items[0].item_code}-${booking.name}`
+      assetId = `${itemCode}-${booking.name}`
     }
 
     if (!assetId) throw new Error("Could not determine asset serial number for this booking")
