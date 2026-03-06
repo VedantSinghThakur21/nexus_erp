@@ -44,13 +44,13 @@ export async function createInspection(formData: FormData) {
 
     const machineValue = formData.get('machine') as string
 
-    // Resolve reference: the form sends an item_code, but Quality Inspection needs a Serial No.
-    // Try to find a Serial No for this item; fall back to no reference if none exists.
-    let referenceType: string | undefined
-    let referenceName: string | undefined
+    // Resolve reference_type and reference_name (both mandatory in ERPNext Quality Inspection).
+    // The form sends an item_code; try to find a matching Serial No, otherwise fall back to Item.
+    let referenceType = 'Item'
+    let referenceName = machineValue
 
     try {
-      // First check if the value itself is a valid Serial No
+      // Check if the value itself is a valid Serial No
       await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Serial No',
         name: machineValue,
@@ -72,26 +72,24 @@ export async function createInspection(formData: FormData) {
           referenceType = 'Serial No'
           referenceName = serialNos[0].name
         }
-        // If no serial nos found, leave reference undefined (non-serial-tracked item)
+        // Otherwise keep referenceType = 'Item', referenceName = machineValue
       } catch (e) {
         console.warn('Could not look up Serial No for item:', machineValue)
       }
     }
 
-    // Prepare Document
+    // Prepare Document — reference_type, reference_name, and sample_size are all mandatory
     const inspectionDoc: Record<string, any> = {
         doctype: 'Quality Inspection',
         inspection_type: formData.get('type'),
+        reference_type: referenceType,
+        reference_name: referenceName,
+        item_code: machineValue,
+        sample_size: 1,
         report_date: new Date().toISOString().split('T')[0],
         status: formData.get('status'),
         remarks: formData.get('notes'),
         inspected_by: currentUser,
-        item_code: machineValue,
-    }
-
-    if (referenceType && referenceName) {
-      inspectionDoc.reference_type = referenceType
-      inspectionDoc.reference_name = referenceName
     }
 
     await frappeRequest('frappe.client.insert', 'POST', { doc: inspectionDoc })
