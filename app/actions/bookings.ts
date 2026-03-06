@@ -241,11 +241,18 @@ export async function mobilizeAsset(formData: FormData) {
 
     if (!assetId) throw new Error("Could not determine asset serial number for this booking")
 
-    // 1. Check Asset Status & Location
-    let asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
-    let sourceWarehouse = asset.warehouse;
+    // 1. Check if Serial No exists, create if it doesn't
+    let asset: any = {}
+    let sourceWarehouse = ""
+    try {
+      asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
+      sourceWarehouse = asset.warehouse || ""
+    } catch (e: any) {
+      // If it doesn't exist, we'll create it via the Stock Entry below
+      console.log(`Serial No ${assetId} not found, will create via Stock Entry`)
+    }
 
-    // Self-Healing Inventory Logic
+    // Self-Healing Inventory Logic: If no warehouse (or it didn't exist), we must receipt it first
     if (!sourceWarehouse) {
       const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Warehouse',
@@ -254,6 +261,7 @@ export async function mobilizeAsset(formData: FormData) {
       }) as any[];
       const defaultWh = warehouses[0]?.name || "Stores - ERP - A";
 
+      // Creating a Stock Entry with a new serial_no will automatically create the Serial No record
       await frappeRequest('frappe.client.insert', 'POST', {
         doc: {
           doctype: 'Stock Entry',
@@ -337,11 +345,11 @@ export async function returnAsset(bookingId: string) {
     if (!assetId) throw new Error("Could not determine asset serial number for this booking")
 
     // Check current asset status
-    let asset;
+    let asset: any = {}
     try {
       asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string };
     } catch (e) {
-      throw new Error("Asset not found in system");
+      console.log(`Serial No ${assetId} not found in system during return, will create via Stock Entry`);
     }
 
     // Only create Material Receipt if asset is NOT already in a warehouse
