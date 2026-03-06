@@ -354,6 +354,8 @@ export async function mobilizeAsset(formData: FormData) {
       items: booking.items.map((item: any) => ({
         item_code: item.item_code,
         qty: item.qty,
+        uom: item.uom || item.stock_uom || 'Nos',
+        stock_uom: item.stock_uom || item.uom || 'Nos',
         so_detail: item.name,
         against_sales_order: booking.name,
         ...(hasSerialNo && assetId ? { serial_no: assetId } : {}),
