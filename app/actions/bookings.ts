@@ -19,19 +19,36 @@ export interface Booking {
 
 // 1. READ: List
 export async function getBookings() {
+  const baseFields = '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]'
   try {
-    const response = await frappeRequest(
+    // Try filtering to rental bookings by po_no prefix first
+    const rentalBookings = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
         doctype: 'Sales Order',
-        fields: '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]',
+        fields: baseFields,
         filters: '[["po_no", "like", "RENT-%"]]',
         order_by: 'creation desc',
         limit_page_length: 100
       }
-    )
-    return response as Booking[]
+    ) as Booking[]
+
+    if (rentalBookings && rentalBookings.length > 0) return rentalBookings
+
+    // Fallback: return all Sales Orders if no RENT-% bookings found
+    // (handles cases where po_no wasn't saved or order was created outside the app)
+    const allBookings = await frappeRequest(
+      'frappe.client.get_list',
+      'GET',
+      {
+        doctype: 'Sales Order',
+        fields: baseFields,
+        order_by: 'creation desc',
+        limit_page_length: 100
+      }
+    ) as Booking[]
+    return allBookings || []
   } catch (error) {
     console.error("Failed to fetch bookings:", error)
     return []

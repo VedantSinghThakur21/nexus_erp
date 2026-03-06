@@ -10,6 +10,8 @@ import Link from "next/link"
 import { MobilizeDialog } from "@/components/bookings/mobilize-dialog"
 import { BookingActions } from "@/components/bookings/booking-actions"
 
+export const dynamic = 'force-dynamic'
+
 export default async function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
 
@@ -19,7 +21,15 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     if (!booking) return <div className="p-8">Booking not found</div>
 
     const assetName = booking.po_no?.replace('RENT-', '') || booking.items?.[0]?.item_code || ''
-    const itemCode = booking.items?.[0]?.item_code || ''
+
+    // Derive item_code: prefer from items child table; fall back to stripping timestamp from po_no
+    // po_no format is "RENT-{itemCode}-{timestamp}" so strip prefix + suffix
+    let itemCode = booking.items?.[0]?.item_code || ''
+    if (!itemCode && booking.po_no?.startsWith('RENT-')) {
+        const stripped = booking.po_no.replace(/^RENT-/, '')
+        // Remove trailing -timestamp (13-digit epoch)
+        itemCode = stripped.replace(/-\d{13}$/, '')
+    }
 
     // Fetch linked inspections for this item
     let inspections: any[] = []
@@ -235,7 +245,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                             Inspections
                         </CardTitle>
                         {!isCompleted && (
-                            <Link href={`/inspections/new?booking=${booking.name}&asset=${encodeURIComponent(assetName)}`}>
+                            <Link href={`/inspections/new?booking=${booking.name}&asset=${encodeURIComponent(itemCode || assetName)}`}>
                                 <Button variant="outline" size="sm">
                                     <ClipboardCheck className="h-4 w-4 mr-2" />
                                     New Inspection

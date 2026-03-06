@@ -134,6 +134,7 @@ export async function createInspection(formData: FormData) {
     await frappeRequest('frappe.client.insert', 'POST', { doc: inspectionDoc })
 
     revalidatePath('/inspections')
+    revalidatePath('/bookings')
     return { success: true }
   } catch (error: any) {
     console.error("Create inspection error:", error)
@@ -177,13 +178,14 @@ export async function updateInspection(inspectionId: string, formData: FormData)
 // 5. GET: Get Inspections for an Asset (by item_code)
 export async function getAssetInspections(itemCode: string) {
   try {
+    const code = decodeURIComponent(itemCode)
     const response = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
         doctype: 'Quality Inspection',
-        fields: '["name", "inspection_type", "status", "report_date", "inspected_by", "remarks", "reference_type", "reference_name"]',
-        filters: `[["item_code", "=", "${decodeURIComponent(itemCode)}"]]`,
+        fields: JSON.stringify(['name', 'inspection_type', 'status', 'report_date', 'inspected_by', 'remarks', 'reference_type', 'reference_name']),
+        filters: JSON.stringify([['item_code', '=', code]]),
         order_by: 'report_date desc',
         limit_page_length: 20
       }
