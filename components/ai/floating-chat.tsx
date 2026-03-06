@@ -29,8 +29,8 @@ export function FloatingAIChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Hide on /agents page to avoid double chat
-  if (pathname === '/agents') {
+  // Hide on /agents page to avoid double chat, and on /bookings to avoid obscuring content
+  if (pathname === '/agents' || pathname === '/bookings' || pathname.startsWith('/bookings/')) {
     return null
   }
 

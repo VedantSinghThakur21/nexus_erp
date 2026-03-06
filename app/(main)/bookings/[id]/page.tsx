@@ -165,7 +165,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                         </div>
                         <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
                             <span className="text-slate-500">Start Date</span>
-                            <span className="font-medium">{booking.delivery_date}</span>
+                            <span className="font-medium">{booking.transaction_date}</span>
                         </div>
                         {booking.items?.[0] && (
                             <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">

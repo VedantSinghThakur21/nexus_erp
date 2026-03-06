@@ -360,7 +360,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                 }
 
                 return (
-                  <div key={booking.name} className="bg-white dark:bg-[#1a2332] rounded-lg border border-slate-200 dark:border-slate-800/50 p-4 hover:border-blue-400 transition-all">
+                  <Link key={booking.name} href={`/bookings/${booking.name}`} className="block">
+                  <div className="bg-white dark:bg-[#1a2332] rounded-lg border border-slate-200 dark:border-slate-800/50 p-4 hover:border-blue-400 transition-all cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -395,17 +396,15 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                           <div className="text-xl font-bold text-slate-900 dark:text-white">₹{booking.grand_total.toLocaleString('en-IN')}</div>
                           <div className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">GRAND TOTAL</div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 rounded text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                            Edit
-                          </button>
-                          <button className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                            <span className="material-icons-round text-lg">more_vert</span>
-                          </button>
+                        <div className="flex items-center gap-2" onClick={e => e.preventDefault()}>
+                          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 rounded text-xs font-medium">
+                            View
+                          </span>
                         </div>
                       </div>
                     </div>
                   </div>
+                  </Link>
                 )
               })
             )}
