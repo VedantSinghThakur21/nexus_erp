@@ -12,7 +12,8 @@ const navigationConfig = [
     category: 'Main',
     items: [
       { name: 'Dashboard', icon: 'dashboard', href: '/dashboard', module: 'dashboard' },
-      { name: 'Leads', icon: 'group', href: '/crm', module: 'crm' },
+      { name: 'CRM', icon: 'leaderboard', href: '/crm', module: 'crm' },
+      { name: 'Leads', icon: 'group', href: '/crm/leads', module: 'crm' },
       { name: 'Opportunities', icon: 'trending_up', href: '/crm/opportunities', module: 'crm' },
     ]
   },
