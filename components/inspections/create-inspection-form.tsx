@@ -69,6 +69,8 @@ export function CreateInspectionForm({ machines, defaultMachine, bookingId }: { 
                             <input type="hidden" name="machine" value={machine} />
                             {bookingId && <input type="hidden" name="booking_id" value={bookingId} />}
                         </div>
+
+                        <div className="grid gap-2">
                             <Label>Inspection Type</Label>
                             <Select value={type} onValueChange={setType}>
                                 <SelectTrigger>
