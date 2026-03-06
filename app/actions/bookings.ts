@@ -248,8 +248,20 @@ export async function mobilizeAsset(formData: FormData) {
       asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
       sourceWarehouse = asset.warehouse || ""
     } catch (e: any) {
-      // If it doesn't exist, we'll create it via the Stock Entry below
-      console.log(`Serial No ${assetId} not found, will create via Stock Entry`)
+      // If it doesn't exist, we must create the Serial No explicitly first
+      console.log(`Serial No ${assetId} not found, explicitly creating it`)
+      try {
+        await frappeRequest('frappe.client.insert', 'POST', {
+          doc: {
+            doctype: 'Serial No',
+            item_code: booking.items[0].item_code,
+            serial_no: assetId,
+            status: 'Active'
+          }
+        })
+      } catch (err) {
+        console.error('Failed to create missing Serial No:', err)
+      }
     }
 
     // Self-Healing Inventory Logic: If no warehouse (or it didn't exist), we must receipt it first
@@ -349,7 +361,19 @@ export async function returnAsset(bookingId: string) {
     try {
       asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string };
     } catch (e) {
-      console.log(`Serial No ${assetId} not found in system during return, will create via Stock Entry`);
+      console.log(`Serial No ${assetId} not found in system during return, explicitly creating it`);
+      try {
+        await frappeRequest('frappe.client.insert', 'POST', {
+          doc: {
+            doctype: 'Serial No',
+            item_code: booking.items[0].item_code,
+            serial_no: assetId,
+            status: 'Active'
+          }
+        })
+      } catch (err) {
+        console.error('Failed to create missing Serial No:', err)
+      }
     }
 
     // Only create Material Receipt if asset is NOT already in a warehouse
