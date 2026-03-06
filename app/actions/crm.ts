@@ -100,6 +100,7 @@ export interface Lead {
   territory?: string
   source?: string
   industry?: string
+  creation?: string
 }
 
 export interface Opportunity {
@@ -277,9 +278,9 @@ export async function getLeads() {
       'GET',
       {
         doctype: 'Lead',
-        fields: '["name", "lead_name", "email_id", "mobile_no", "status", "company_name", "job_title", "territory"]',
+        fields: '["name", "lead_name", "email_id", "mobile_no", "status", "company_name", "job_title", "territory", "source", "creation"]',
         order_by: 'creation desc',
-        limit_page_length: 50
+        limit_page_length: 100
       }
     )
     return response as Lead[]

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { updateLeadStatus } from "@/app/actions/crm"
+import type { Opportunity } from "@/app/actions/crm"
 import { PageHeader } from "@/components/page-header"
 
 interface Lead {
@@ -21,22 +21,17 @@ interface Lead {
 
 interface LeadsDashboardProps {
   leads: Lead[]
+  opportunities: Opportunity[]
 }
 
-// Mock AI score calculation
-function calculateAIScore(lead: Lead): number {
-  let score = 50
-  if (lead.email_id) score += 10
-  if (lead.mobile_no) score += 10
-  if (lead.company_name) score += 15
-  if (lead.job_title) score += 10
-  if (lead.status === "Interested") score += 20
-  if (lead.status === "Replied") score += 15
-  if (lead.status === "Opportunity") score += 25
-  return Math.min(100, score + Math.floor(Math.random() * 10))
+// Helper: format amount in Indian rupees (short form for lakhs/crores)
+function formatINR(amount: number): string {
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`
+  if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`
+  return `₹${amount.toLocaleString('en-IN')}`
 }
 
-// Helper to get initials
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -46,68 +41,67 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-// Helper to get stage badge color
-function getStageColor(stage: string): string {
+function getSalesStageColor(stage: string): string {
   const colors: Record<string, string> = {
-    'Lead': 'bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400',
-    'Open': 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    'Replied': 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
-    'Interested': 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    'Opportunity': 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    'Quotation': 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    'Lost Quotation': 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400',
-    'Converted': 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    'Do Not Contact': 'bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400'
+    'Prospecting': 'bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400',
+    'Qualification': 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    'Proposal': 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    'Presentation': 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    'Negotiation': 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400',
+    'Won': 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    'Lost': 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400',
   }
   return colors[stage] || 'bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400'
 }
 
-// Helper to get confidence bar color
 function getConfidenceColor(confidence: number): string {
   if (confidence >= 75) return 'bg-emerald-500'
   if (confidence >= 50) return 'bg-primary'
   return 'bg-amber-400'
 }
 
-// Helper to get confidence text color
 function getConfidenceTextColor(confidence: number): string {
   if (confidence >= 75) return 'text-emerald-500'
   if (confidence >= 50) return 'text-primary'
   return 'text-amber-500'
 }
 
-export function LeadsDashboard({ leads }: LeadsDashboardProps) {
+export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Enrich leads with AI scores
-  const leadsWithScores = useMemo(() => {
-    return leads.map(lead => ({
-      ...lead,
-      aiScore: calculateAIScore(lead)
-    }))
-  }, [leads])
-
-  // Filter high-probability opportunities (score >= 70, status = Opportunity or Quotation)
+  // High-probability opportunities: real Opportunity records with probability >= 70
   const highProbOpportunities = useMemo(() => {
-    return leadsWithScores
-      .filter(l => (l.status === "Opportunity" || l.status === "Quotation") && l.aiScore >= 70)
-      .slice(0, 3)
-  }, [leadsWithScores])
+    return opportunities
+      .filter(o => o.probability >= 70 && (o.status === "Open" || o.status === "Quotation"))
+      .sort((a, b) => b.probability - a.probability)
+      .slice(0, 5)
+  }, [opportunities])
 
-  // Calculate KPIs
+  // Calculate KPIs from real data
   const kpis = useMemo(() => {
-    const totalLeads = leads.length
-    const convertedLeads = leads.filter(l => l.status === "Converted").length
-    const winRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : "0.0"
+    const totalOpportunities = opportunities.length
+    const wonOpportunities = opportunities.filter(
+      o => o.status === "Converted" || o.sales_stage === "Won"
+    ).length
+    const winRate = totalOpportunities > 0
+      ? ((wonOpportunities / totalOpportunities) * 100).toFixed(1)
+      : "0.0"
 
-    // Pipeline value (mock calculation based on high-confidence opportunities)
-    const pipelineValue = (highProbOpportunities.length * 315000).toLocaleString()
+    const pipelineAmount = opportunities
+      .filter(o => o.status === "Open" || o.status === "Quotation")
+      .reduce((sum, o) => sum + (o.opportunity_amount || 0), 0)
 
-    // Revenue MTD (mock)
-    const revenueMTD = "2.45M"
+    const now = new Date()
+    const revenueMTDAmount = opportunities
+      .filter(o => {
+        if (o.sales_stage !== "Won" && o.status !== "Converted") return false
+        if (!o.expected_closing) return false
+        const d = new Date(o.expected_closing)
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+      })
+      .reduce((sum, o) => sum + (o.opportunity_amount || 0), 0)
 
-    // Active leads count
     const activeLeads = leads.filter(l =>
       l.status !== "Converted" &&
       l.status !== "Do Not Contact" &&
@@ -116,52 +110,65 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
 
     return {
       winRate: `${winRate}%`,
-      pipelineValue: `$${pipelineValue}`,
-      revenueMTD: `$${revenueMTD}`,
+      pipelineValue: formatINR(pipelineAmount),
+      revenueMTD: formatINR(revenueMTDAmount),
       activeLeads: activeLeads.toLocaleString()
     }
-  }, [leads, highProbOpportunities])
+  }, [leads, opportunities])
 
-  // Sales funnel data
+  // Sales funnel data from real opportunity stages
   const funnelData = useMemo(() => {
-    const discovery = leads.filter(l => l.status === "Open" || l.status === "Lead").length
-    const proposal = leads.filter(l => l.status === "Replied" || l.status === "Interested").length
-    const negotiation = leads.filter(l => l.status === "Opportunity" || l.status === "Quotation").length
+    const discovery = opportunities.filter(o =>
+      o.sales_stage === "Prospecting" || o.sales_stage === "Qualification"
+    )
+    const proposal = opportunities.filter(o =>
+      o.sales_stage === "Proposal" || o.sales_stage === "Presentation"
+    )
+    const negotiation = opportunities.filter(o =>
+      o.sales_stage === "Negotiation"
+    )
 
-    const maxCount = Math.max(discovery, proposal, negotiation, 1)
+    const discoveryCount = discovery.length
+    const proposalCount = proposal.length
+    const negotiationCount = negotiation.length
+    const maxCount = Math.max(discoveryCount, proposalCount, negotiationCount, 1)
 
     return [
       {
         stage: "Discovery",
-        value: "$4.2M",
-        count: discovery,
+        value: formatINR(discovery.reduce((s, o) => s + (o.opportunity_amount || 0), 0)),
+        count: discoveryCount,
         width: 100
       },
       {
         stage: "Proposal",
-        value: "$3.1M",
-        count: proposal,
-        width: Math.round((proposal / maxCount) * 66)
+        value: formatINR(proposal.reduce((s, o) => s + (o.opportunity_amount || 0), 0)),
+        count: proposalCount,
+        width: Math.round((proposalCount / maxCount) * 66)
       },
       {
         stage: "Negotiation",
-        value: "$2.8M",
-        count: negotiation,
-        width: Math.round((negotiation / maxCount) * 41)
+        value: formatINR(negotiation.reduce((s, o) => s + (o.opportunity_amount || 0), 0)),
+        count: negotiationCount,
+        width: Math.round((negotiationCount / maxCount) * 41)
       }
     ]
-  }, [leads])
+  }, [opportunities])
 
-  // Lead source data (mock distribution)
+  // Lead source data from real leads.source field
   const leadSourceData = useMemo(() => {
-    const totalLeads = leads.length
-    const direct = Math.round(totalLeads * 0.65)
-    const referral = Math.round(totalLeads * 0.20)
-
+    const total = leads.length
+    const counts: Record<string, number> = {}
+    leads.forEach(l => {
+      if (l.source) counts[l.source] = (counts[l.source] || 0) + 1
+    })
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
+    const top1 = sorted[0] ?? ["Direct", 0]
+    const top2 = sorted[1] ?? ["Referral", 0]
     return {
-      total: totalLeads,
-      direct: { count: direct, percent: 65 },
-      referral: { count: referral, percent: 20 }
+      total,
+      direct: { name: top1[0], count: top1[1], percent: total > 0 ? Math.round((top1[1] / total) * 100) : 0 },
+      referral: { name: top2[0], count: top2[1], percent: total > 0 ? Math.round((top2[1] / total) * 100) : 0 }
     }
   }, [leads])
 
@@ -208,6 +215,12 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       >
+        <Link href="/crm/leads">
+          <button className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition">
+            <span className="material-symbols-outlined text-lg">list</span>
+            Leads List
+          </button>
+        </Link>
         <Link href="/crm/new">
           <button className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition">
             <span className="material-symbols-outlined text-lg">add</span>
@@ -312,7 +325,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                   <h4 className="text-lg font-bold text-slate-800 dark:text-white">
                     High-Probability Opportunities
                   </h4>
-                  <Link href="/crm">
+                  <Link href="/crm/opportunities">
                     <button className="text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider transition-colors">
                       Full Pipeline
                     </button>
@@ -336,37 +349,37 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                           </td>
                         </tr>
                       ) : (
-                        highProbOpportunities.map((lead) => (
+                        highProbOpportunities.map((opp) => (
                           <tr
-                            key={lead.name}
+                            key={opp.name}
                             className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-                            onClick={() => router.push(`/crm/${lead.name}`)}
+                            onClick={() => router.push(`/crm/opportunities/${encodeURIComponent(opp.name)}`)}
                           >
                             <td className="px-8 py-5 flex items-center gap-4">
                               <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[11px] font-bold">
-                                {getInitials(lead.company_name || lead.lead_name)}
+                                {getInitials(opp.customer_name || opp.party_name || "?")}
                               </div>
                               <span className="text-[15px] font-semibold">
-                                {lead.company_name || lead.lead_name}
+                                {opp.customer_name || opp.party_name}
                               </span>
                             </td>
                             <td className="px-8 py-5">
-                              <span className={`px-2.5 py-1 ${getStageColor(lead.status)} text-[10px] font-bold rounded-md uppercase`}>
-                                {lead.status}
+                              <span className={`px-2.5 py-1 ${getSalesStageColor(opp.sales_stage)} text-[10px] font-bold rounded-md uppercase`}>
+                                {opp.sales_stage}
                               </span>
                             </td>
                             <td className="px-8 py-5 font-semibold text-slate-700 dark:text-slate-300">
-                              ${(Math.random() * 500000 + 300000).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                              {formatINR(opp.opportunity_amount || 0)}
                             </td>
                             <td className="px-8 py-5">
                               <div className="flex items-center justify-end gap-4">
-                                <span className={`text-sm font-bold ${getConfidenceTextColor(lead.aiScore)}`}>
-                                  {lead.aiScore}%
+                                <span className={`text-sm font-bold ${getConfidenceTextColor(opp.probability)}`}>
+                                  {opp.probability}%
                                 </span>
                                 <div className="w-32 bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                                   <div
-                                    className={`${getConfidenceColor(lead.aiScore)} h-full`}
-                                    style={{ width: `${lead.aiScore}%` }}
+                                    className={`${getConfidenceColor(opp.probability)} h-full`}
+                                    style={{ width: `${opp.probability}%` }}
                                   ></div>
                                 </div>
                               </div>
@@ -434,8 +447,9 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                       <div
                         className="w-full h-full rounded-full"
                         style={{
-                          background:
-                            'conic-gradient(#3f51b5 0% 65%, #10b981 65% 85%, #e2e8f0 85% 100%)'
+                          background: leadSourceData.total > 0
+                            ? `conic-gradient(#3f51b5 0% ${leadSourceData.direct.percent}%, #10b981 ${leadSourceData.direct.percent}% ${leadSourceData.direct.percent + leadSourceData.referral.percent}%, #e2e8f0 ${leadSourceData.direct.percent + leadSourceData.referral.percent}% 100%)`
+                            : 'conic-gradient(#e2e8f0 0% 100%)'
                         }}
                       ></div>
                       <div className="absolute inset-5 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center">
@@ -451,7 +465,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                         <span className="w-3 h-3 rounded-full bg-primary"></span>
                         <div className="flex flex-col">
                           <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
-                            Direct
+                            {leadSourceData.direct.name}
                           </span>
                           <span className="text-[10px] font-semibold text-slate-400">
                             {leadSourceData.direct.percent}% ({leadSourceData.direct.count})
@@ -462,7 +476,7 @@ export function LeadsDashboard({ leads }: LeadsDashboardProps) {
                         <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
                         <div className="flex flex-col">
                           <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
-                            Referral
+                            {leadSourceData.referral.name}
                           </span>
                           <span className="text-[10px] font-semibold text-slate-400">
                             {leadSourceData.referral.percent}% ({leadSourceData.referral.count})
