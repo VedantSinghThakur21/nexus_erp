@@ -174,16 +174,16 @@ export async function updateInspection(inspectionId: string, formData: FormData)
   }
 }
 
-// 5. GET: Get Inspections for an Asset
-export async function getAssetInspections(assetId: string) {
+// 5. GET: Get Inspections for an Asset (by item_code)
+export async function getAssetInspections(itemCode: string) {
   try {
     const response = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
         doctype: 'Quality Inspection',
-        fields: '["name", "inspection_type", "status", "report_date", "inspected_by", "remarks"]',
-        filters: `[["reference_name", "=", "${decodeURIComponent(assetId)}"]]`,
+        fields: '["name", "inspection_type", "status", "report_date", "inspected_by", "remarks", "reference_type", "reference_name"]',
+        filters: `[["item_code", "=", "${decodeURIComponent(itemCode)}"]]`,
         order_by: 'report_date desc',
         limit_page_length: 20
       }

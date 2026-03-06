@@ -28,7 +28,7 @@ export async function getBookings() {
         fields: '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]',
         filters: '[["po_no", "like", "RENT-%"]]',
         order_by: 'creation desc',
-        limit_page_length: 0
+        limit_page_length: 100
       }
     )
     return response as Booking[]

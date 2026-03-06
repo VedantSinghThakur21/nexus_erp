@@ -19,12 +19,13 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     if (!booking) return <div className="p-8">Booking not found</div>
 
     const assetName = booking.po_no?.replace('RENT-', '') || booking.items?.[0]?.item_code || ''
+    const itemCode = booking.items?.[0]?.item_code || ''
 
-    // Fetch linked inspections for this asset
+    // Fetch linked inspections for this item
     let inspections: any[] = []
-    if (assetName) {
+    if (itemCode) {
         try {
-            inspections = await getAssetInspections(assetName)
+            inspections = await getAssetInspections(itemCode)
         } catch { /* ignore */ }
     }
 
