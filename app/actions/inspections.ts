@@ -23,8 +23,7 @@ export async function getInspections() {
       'GET', 
       {
         doctype: 'Quality Inspection',
-        fields: '["name", "reference_name", "inspection_type", "status", "inspected_by", "report_date"]',
-        filters: '[["reference_type", "=", "Serial No"]]',
+        fields: '["name", "item_code", "reference_name", "reference_type", "inspection_type", "status", "inspected_by", "report_date"]',
         order_by: 'creation desc',
         limit_page_length: 50
       }
@@ -43,16 +42,56 @@ export async function createInspection(formData: FormData) {
     const cookieStore = await cookies()
     const currentUser = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
 
+    const machineValue = formData.get('machine') as string
+
+    // Resolve reference: the form sends an item_code, but Quality Inspection needs a Serial No.
+    // Try to find a Serial No for this item; fall back to no reference if none exists.
+    let referenceType: string | undefined
+    let referenceName: string | undefined
+
+    try {
+      // First check if the value itself is a valid Serial No
+      await frappeRequest('frappe.client.get', 'GET', {
+        doctype: 'Serial No',
+        name: machineValue,
+        fields: JSON.stringify(['name'])
+      })
+      referenceType = 'Serial No'
+      referenceName = machineValue
+    } catch {
+      // Not a Serial No — look up by item_code
+      try {
+        const serialNos = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Serial No',
+          filters: JSON.stringify([['item_code', '=', machineValue]]),
+          fields: JSON.stringify(['name']),
+          limit_page_length: 1
+        }) as any[]
+
+        if (serialNos && serialNos.length > 0) {
+          referenceType = 'Serial No'
+          referenceName = serialNos[0].name
+        }
+        // If no serial nos found, leave reference undefined (non-serial-tracked item)
+      } catch (e) {
+        console.warn('Could not look up Serial No for item:', machineValue)
+      }
+    }
+
     // Prepare Document
-    const inspectionDoc = {
+    const inspectionDoc: Record<string, any> = {
         doctype: 'Quality Inspection',
         inspection_type: formData.get('type'),
-        reference_type: 'Serial No',
-        reference_name: formData.get('machine'),
         report_date: new Date().toISOString().split('T')[0],
         status: formData.get('status'),
         remarks: formData.get('notes'),
-        inspected_by: currentUser // FIX: Assign the logged-in user
+        inspected_by: currentUser,
+        item_code: machineValue,
+    }
+
+    if (referenceType && referenceName) {
+      inspectionDoc.reference_type = referenceType
+      inspectionDoc.reference_name = referenceName
     }
 
     await frappeRequest('frappe.client.insert', 'POST', { doc: inspectionDoc })
