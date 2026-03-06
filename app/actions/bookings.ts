@@ -228,119 +228,155 @@ export async function mobilizeAsset(formData: FormData) {
 
     const itemCode = booking.items[0].item_code
 
-    // 0. Ensure Item has serial number tracking enabled
+    // 0. Check if item has serial number tracking
+    let hasSerialNo = false
     try {
       const existingItem = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Item',
         name: itemCode,
         fields: JSON.stringify(['has_serial_no'])
       }) as any
-
-      if (!existingItem.has_serial_no) {
-        console.log(`Item ${itemCode} doesn't have serial tracking, enabling it`)
-        await frappeRequest('frappe.client.set_value', 'PUT', {
-          doctype: 'Item',
-          name: itemCode,
-          fieldname: 'has_serial_no',
-          value: 1
-        })
-      }
+      hasSerialNo = !!existingItem.has_serial_no
     } catch (itemErr: any) {
-      console.error(`Failed to check/update item ${itemCode}:`, itemErr)
-      throw new Error(`Item ${itemCode} configuration error. Please ensure the item exists and has serial number tracking enabled.`)
+      console.warn(`Could not fetch item ${itemCode}, proceeding without serial tracking:`, itemErr.message)
     }
 
-    // Get Serial Number from the items - could be in serial_no field or extracted from po_no
-    let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
-
-    // Fallback: try to extract from po_no if it exists and follows RENT- pattern
-    if (!assetId && booking.po_no && booking.po_no.startsWith('RENT-')) {
-      assetId = booking.po_no.replace('RENT-', '')
-    }
-
-    // Final fallback: Use item code + booking id
-    if (!assetId) {
-      assetId = `${itemCode}-${booking.name}`
-    }
-
-    if (!assetId) throw new Error("Could not determine asset serial number for this booking")
-
-    // 1. Check if Serial No exists, create if it doesn't
-    let asset: any = {}
+    let assetId = ""
     let sourceWarehouse = ""
-    try {
-      asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
-      sourceWarehouse = asset.warehouse || ""
-    } catch (e: any) {
-      // If it doesn't exist, we must create the Serial No explicitly first
-      console.log(`Serial No ${assetId} not found, explicitly creating it`)
+
+    if (hasSerialNo) {
+      // --- Serial-tracked item flow ---
+      assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
+
+      if (!assetId && booking.po_no && booking.po_no.startsWith('RENT-')) {
+        assetId = booking.po_no.replace('RENT-', '')
+      }
+      if (!assetId) {
+        assetId = `${itemCode}-${booking.name}`
+      }
+
+      // 1. Check if Serial No exists, create if it doesn't
+      let asset: any = {}
       try {
+        asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
+        sourceWarehouse = asset.warehouse || ""
+      } catch (e: any) {
+        console.log(`Serial No ${assetId} not found, explicitly creating it`)
+        try {
+          await frappeRequest('frappe.client.insert', 'POST', {
+            doc: {
+              doctype: 'Serial No',
+              item_code: itemCode,
+              serial_no: assetId,
+              status: 'Active'
+            }
+          })
+        } catch (err) {
+          console.error('Failed to create missing Serial No:', err)
+        }
+      }
+
+      // Self-Healing: If no warehouse, receipt it first
+      if (!sourceWarehouse) {
+        const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Warehouse',
+          filters: '[["is_group", "=", 0]]',
+          limit_page_length: 1
+        }) as any[]
+        const defaultWh = warehouses[0]?.name || "Stores - ERP - A"
+
         await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
-            doctype: 'Serial No',
-            item_code: booking.items[0].item_code,
-            serial_no: assetId,
-            status: 'Active'
+            doctype: 'Stock Entry',
+            stock_entry_type: 'Material Receipt',
+            to_warehouse: defaultWh,
+            items: [{
+              item_code: itemCode,
+              qty: 1,
+              serial_no: assetId,
+              basic_rate: 1000
+            }],
+            docstatus: 1
           }
         })
-      } catch (err) {
-        console.error('Failed to create missing Serial No:', err)
+        sourceWarehouse = defaultWh
       }
-    }
-
-    // Self-Healing Inventory Logic: If no warehouse (or it didn't exist), we must receipt it first
-    if (!sourceWarehouse) {
+    } else {
+      // --- Non-serial item flow: ensure stock exists in a warehouse ---
       const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Warehouse',
         filters: '[["is_group", "=", 0]]',
         limit_page_length: 1
-      }) as any[];
-      const defaultWh = warehouses[0]?.name || "Stores - ERP - A";
+      }) as any[]
+      const defaultWh = warehouses[0]?.name || "Stores - ERP - A"
 
-      // Creating a Stock Entry with a new serial_no will automatically create the Serial No record
-      await frappeRequest('frappe.client.insert', 'POST', {
-        doc: {
-          doctype: 'Stock Entry',
-          stock_entry_type: 'Material Receipt',
-          to_warehouse: defaultWh,
-          items: [{
-            item_code: booking.items[0].item_code,
-            qty: 1,
-            serial_no: assetId,
-            basic_rate: 1000
-          }],
-          docstatus: 1
+      // Check current stock level
+      let hasStock = false
+      try {
+        const bins = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Bin',
+          filters: JSON.stringify([['item_code', '=', itemCode], ['warehouse', '=', defaultWh]]),
+          fields: JSON.stringify(['actual_qty']),
+          limit_page_length: 1
+        }) as any[]
+        hasStock = bins.length > 0 && bins[0].actual_qty > 0
+      } catch (e) {
+        console.warn('Could not check stock level, will attempt receipt')
+      }
+
+      if (!hasStock) {
+        try {
+          await frappeRequest('frappe.client.insert', 'POST', {
+            doc: {
+              doctype: 'Stock Entry',
+              stock_entry_type: 'Material Receipt',
+              to_warehouse: defaultWh,
+              items: [{
+                item_code: itemCode,
+                qty: booking.items[0].qty || 1,
+                basic_rate: 1000
+              }],
+              docstatus: 1
+            }
+          })
+        } catch (stockErr: any) {
+          console.warn('Stock receipt failed, proceeding:', stockErr.message)
         }
-      });
-      sourceWarehouse = defaultWh;
+      }
+      sourceWarehouse = defaultWh
     }
 
     // 2. Create Delivery Note (With Operator Info)
     const deliveryDoc = {
       doctype: 'Delivery Note',
       customer: booking.customer,
-      // We add the operator to the instructions field so it appears on the printed document
       instructions: `Mobilized with Operator: ${operatorName || 'None assigned'}`,
       items: booking.items.map((item: any) => ({
         item_code: item.item_code,
         qty: item.qty,
         so_detail: item.name,
         against_sales_order: booking.name,
-        serial_no: assetId,
+        ...(hasSerialNo && assetId ? { serial_no: assetId } : {}),
         warehouse: sourceWarehouse
       })),
-      docstatus: 1 // Submit immediately
+      docstatus: 1
     }
 
-    const deliveryNote = await frappeRequest('frappe.client.insert', 'POST', { doc: deliveryDoc }) as { name: string }
+    await frappeRequest('frappe.client.insert', 'POST', { doc: deliveryDoc }) as { name: string }
 
-    // 3. Update Asset Status to "Issued" (indicating it's been mobilized/delivered to customer)
-    await frappeRequest('frappe.client.set_value', 'PUT', {
-      doctype: 'Serial No',
-      name: assetId,
-      fieldname: 'status',
-      value: 'Issued'
-    })
+    // 3. Update Asset Status to "Issued" (only for serial-tracked items)
+    if (hasSerialNo && assetId) {
+      try {
+        await frappeRequest('frappe.client.set_value', 'PUT', {
+          doctype: 'Serial No',
+          name: assetId,
+          fieldname: 'status',
+          value: 'Issued'
+        })
+      } catch (e) {
+        console.warn('Could not update serial no status:', e)
+      }
+    }
 
     // 4. Update Sales Order (Booking) status to reflect mobilization
     await frappeRequest('frappe.client.set_value', 'PUT', {
@@ -367,110 +403,110 @@ export async function returnAsset(bookingId: string) {
 
     const itemCode = booking.items[0].item_code
 
-    // 0. Ensure Item has serial number tracking enabled
+    // 0. Check if item has serial number tracking
+    let hasSerialNo = false
     try {
       const existingItem = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Item',
         name: itemCode,
         fields: JSON.stringify(['has_serial_no'])
       }) as any
-
-      if (!existingItem.has_serial_no) {
-        console.log(`Item ${itemCode} doesn't have serial tracking, enabling it`)
-        await frappeRequest('frappe.client.set_value', 'PUT', {
-          doctype: 'Item',
-          name: itemCode,
-          fieldname: 'has_serial_no',
-          value: 1
-        })
-      }
+      hasSerialNo = !!existingItem.has_serial_no
     } catch (itemErr: any) {
-      console.error(`Failed to check/update item ${itemCode}:`, itemErr)
-      throw new Error(`Item ${itemCode} configuration error. Please ensure the item exists and has serial number tracking enabled.`)
+      console.warn(`Could not fetch item ${itemCode}, proceeding without serial tracking:`, itemErr.message)
     }
 
-    // Get Serial Number from the items - same logic as mobilize
-    let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
-
-    // Fallback: try to extract from po_no if it exists and follows RENT- pattern
-    if (!assetId && booking.po_no && booking.po_no.startsWith('RENT-')) {
-      assetId = booking.po_no.replace('RENT-', '')
-    }
-
-    // Final fallback: Use item code + booking id
-    if (!assetId) {
-      assetId = `${itemCode}-${booking.name}`
-    }
-
-    if (!assetId) throw new Error("Could not determine asset serial number for this booking")
-
-    // Check current asset status
-    let asset: any = {}
+    // Find a warehouse
+    let targetWarehouse = "Stores - ERP - A"
     try {
-      asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string };
-    } catch (e) {
-      console.log(`Serial No ${assetId} not found in system during return, explicitly creating it`);
+      const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Warehouse',
+        filters: '[["is_group", "=", 0]]',
+        limit_page_length: 1
+      }) as any[]
+      if (warehouses.length > 0) targetWarehouse = warehouses[0].name
+    } catch (e) { }
+
+    if (hasSerialNo) {
+      // --- Serial-tracked item flow ---
+      let assetId = booking.items[0].serial_no || booking.items[0].serial_and_batch_bundle
+
+      if (!assetId && booking.po_no && booking.po_no.startsWith('RENT-')) {
+        assetId = booking.po_no.replace('RENT-', '')
+      }
+      if (!assetId) {
+        assetId = `${itemCode}-${booking.name}`
+      }
+
+      // Check current asset status
+      let asset: any = {}
+      try {
+        asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
+      } catch (e) {
+        console.log(`Serial No ${assetId} not found in system during return, explicitly creating it`)
+        try {
+          await frappeRequest('frappe.client.insert', 'POST', {
+            doc: {
+              doctype: 'Serial No',
+              item_code: itemCode,
+              serial_no: assetId,
+              status: 'Active'
+            }
+          })
+        } catch (err) {
+          console.error('Failed to create missing Serial No:', err)
+        }
+      }
+
+      // Only create Material Receipt if asset is NOT already in a warehouse
+      if (!asset.warehouse) {
+        const stockEntry = {
+          doctype: 'Stock Entry',
+          stock_entry_type: 'Material Receipt',
+          to_warehouse: targetWarehouse,
+          items: [{
+            item_code: itemCode,
+            qty: 1,
+            serial_no: assetId,
+            basic_rate: 1000
+          }],
+          docstatus: 1
+        }
+
+        await frappeRequest('frappe.client.insert', 'POST', { doc: stockEntry })
+      }
+
+      // Update Serial No status to Active
+      try {
+        await frappeRequest('frappe.client.set_value', 'PUT', {
+          doctype: 'Serial No',
+          name: assetId,
+          fieldname: 'status',
+          value: 'Active'
+        })
+      } catch (e) {
+        console.warn('Could not update serial no status:', e)
+      }
+    } else {
+      // --- Non-serial item flow: receipt stock back ---
       try {
         await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
-            doctype: 'Serial No',
-            item_code: booking.items[0].item_code,
-            serial_no: assetId,
-            status: 'Active'
+            doctype: 'Stock Entry',
+            stock_entry_type: 'Material Receipt',
+            to_warehouse: targetWarehouse,
+            items: [{
+              item_code: itemCode,
+              qty: booking.items[0].qty || 1,
+              basic_rate: 1000
+            }],
+            docstatus: 1
           }
         })
-      } catch (err) {
-        console.error('Failed to create missing Serial No:', err)
+      } catch (stockErr: any) {
+        console.warn('Stock receipt on return failed, proceeding:', stockErr.message)
       }
     }
-
-    // Only create Material Receipt if asset is NOT already in a warehouse
-    if (!asset.warehouse) {
-      const itemCode = booking.items[0].item_code;
-
-      // Find a warehouse to return to
-      let targetWarehouse = "Stores - ERP - A";
-      try {
-        const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Warehouse',
-          filters: '[["is_group", "=", 0]]',
-          limit_page_length: 1
-        }) as any[];
-        if (warehouses.length > 0) targetWarehouse = warehouses[0].name;
-      } catch (e) { }
-
-      // Create Material Receipt to add asset back to warehouse
-      const stockEntry = {
-        doctype: 'Stock Entry',
-        stock_entry_type: 'Material Receipt',
-        to_warehouse: targetWarehouse,
-        items: [{
-          item_code: itemCode,
-          qty: 1,
-          serial_no: assetId,
-          basic_rate: 1000
-        }],
-        docstatus: 1
-      }
-
-      await frappeRequest('frappe.client.insert', 'POST', { doc: stockEntry })
-
-      // Update Serial No with warehouse
-      await frappeRequest('frappe.client.set_value', 'PUT', {
-        doctype: 'Serial No',
-        name: assetId,
-        fieldname: 'warehouse',
-        value: targetWarehouse
-      })
-    }
-
-    // Always update Serial No status to Active
-    await frappeRequest('frappe.client.set_value', 'PUT', {
-      doctype: 'Serial No',
-      name: assetId,
-      fieldname: 'status',
-      value: 'Active'
-    })
 
     // Properly close the Sales Order by updating both status and per_delivered
     await frappeRequest('frappe.client.set_value', 'PUT', {
