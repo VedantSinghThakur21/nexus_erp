@@ -44,22 +44,21 @@ export async function createInspection(formData: FormData) {
 
     const machineValue = formData.get('machine') as string
 
-    // Resolve reference_type and reference_name (both mandatory in ERPNext Quality Inspection).
-    // The form sends an item_code; try to find a matching Serial No, otherwise fall back to Item.
-    let referenceType = 'Item'
-    let referenceName = machineValue
+    // Resolve a Serial No to use as reference_type/reference_name.
+    // Quality Inspection requires reference_type + reference_name (both mandatory).
+    // Strategy: find or create a Serial No for this item.
+    let serialNoName: string | null = null
 
+    // Step 1: check if machineValue is itself a Serial No name
     try {
-      // Check if the value itself is a valid Serial No
       await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Serial No',
         name: machineValue,
         fields: JSON.stringify(['name'])
       })
-      referenceType = 'Serial No'
-      referenceName = machineValue
+      serialNoName = machineValue
     } catch {
-      // Not a Serial No — look up by item_code
+      // Step 2: look up by item_code
       try {
         const serialNos = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Serial No',
@@ -67,14 +66,64 @@ export async function createInspection(formData: FormData) {
           fields: JSON.stringify(['name']),
           limit_page_length: 1
         }) as any[]
-
         if (serialNos && serialNos.length > 0) {
-          referenceType = 'Serial No'
-          referenceName = serialNos[0].name
+          serialNoName = serialNos[0].name
         }
-        // Otherwise keep referenceType = 'Item', referenceName = machineValue
       } catch (e) {
         console.warn('Could not look up Serial No for item:', machineValue)
+      }
+    }
+
+    // Step 3: create a Serial No if none found (bare creation works in ERPNext without stock entry)
+    if (!serialNoName) {
+      console.log(`No Serial No found for ${machineValue}, creating one`)
+      try {
+        const created = await frappeRequest('frappe.client.insert', 'POST', {
+          doc: {
+            doctype: 'Serial No',
+            item_code: machineValue,
+            serial_no: machineValue,
+            status: 'Active'
+          }
+        }) as any
+        serialNoName = created.name || machineValue
+      } catch (createErr: any) {
+        console.warn('Could not create Serial No, will try Delivery Note fallback:', createErr.message)
+      }
+    }
+
+    // Step 4: if still no Serial No, fall back to a Delivery Note linked to this item
+    let referenceType = 'Serial No'
+    let referenceName = serialNoName || machineValue
+
+    if (!serialNoName) {
+      try {
+        const dns = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Delivery Note',
+          fields: JSON.stringify(['name']),
+          filters: JSON.stringify([['Delivery Note Item', 'item_code', '=', machineValue]]),
+          order_by: 'creation desc',
+          limit_page_length: 1
+        }) as any[]
+        if (dns && dns.length > 0) {
+          referenceType = 'Delivery Note'
+          referenceName = dns[0].name
+        } else {
+          // Last resort: Stock Entry
+          const stes = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Stock Entry',
+            fields: JSON.stringify(['name']),
+            filters: JSON.stringify([['Stock Entry Detail', 'item_code', '=', machineValue]]),
+            order_by: 'creation desc',
+            limit_page_length: 1
+          }) as any[]
+          if (stes && stes.length > 0) {
+            referenceType = 'Stock Entry'
+            referenceName = stes[0].name
+          }
+        }
+      } catch (e) {
+        console.warn('Could not find fallback reference document for inspection')
       }
     }
 
