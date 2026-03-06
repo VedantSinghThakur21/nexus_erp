@@ -115,6 +115,13 @@ export async function createInspection(formData: FormData) {
     }
 
     // Build doc — only include reference fields when we have a valid pair
+    const bookingId = (formData.get('booking_id') as string) || ''
+    const userRemarks = (formData.get('notes') as string) || ''
+    // Append booking reference to remarks so we can look it up later
+    const fullRemarks = bookingId
+      ? `${userRemarks}${userRemarks ? '\n' : ''}Booking: ${bookingId}`
+      : userRemarks
+
     const inspectionDoc: Record<string, any> = {
       doctype: 'Quality Inspection',
       inspection_type: formData.get('type'),
@@ -122,7 +129,7 @@ export async function createInspection(formData: FormData) {
       sample_size: 1,
       report_date: new Date().toISOString().split('T')[0],
       status: formData.get('status'),
-      remarks: formData.get('notes'),
+      remarks: fullRemarks || null,
       inspected_by: currentUser,
     }
 
@@ -135,7 +142,8 @@ export async function createInspection(formData: FormData) {
 
     revalidatePath('/inspections')
     revalidatePath('/bookings')
-    return { success: true }
+    if (bookingId) revalidatePath(`/bookings/${bookingId}`)
+    return { success: true, bookingId }
   } catch (error: any) {
     console.error("Create inspection error:", error)
     return { error: error.message || 'Failed to create inspection' }
@@ -175,24 +183,72 @@ export async function updateInspection(inspectionId: string, formData: FormData)
   }
 }
 
-// 5. GET: Get Inspections for an Asset (by item_code)
-export async function getAssetInspections(itemCode: string) {
-  try {
-    const code = decodeURIComponent(itemCode)
-    const response = await frappeRequest(
-      'frappe.client.get_list',
-      'GET',
-      {
-        doctype: 'Quality Inspection',
-        fields: JSON.stringify(['name', 'inspection_type', 'status', 'report_date', 'inspected_by', 'remarks', 'reference_type', 'reference_name']),
-        filters: JSON.stringify([['item_code', '=', code]]),
-        order_by: 'report_date desc',
-        limit_page_length: 20
-      }
-    )
-    return response as Inspection[]
-  } catch (error) {
-    console.error('Failed to fetch asset inspections:', error)
-    return []
+// 5. GET: Get Inspections for a booking / asset using multiple lookup strategies
+export async function getAssetInspections(itemCode: string, salesOrderId?: string) {
+  const inspectionFields = JSON.stringify([
+    'name', 'item_code', 'inspection_type', 'status',
+    'report_date', 'inspected_by', 'remarks', 'reference_type', 'reference_name'
+  ])
+  const seen = new Set<string>()
+  const results: Inspection[] = []
+
+  const absorb = (list: any[]) => {
+    for (const i of list || []) {
+      if (i?.name && !seen.has(i.name)) { seen.add(i.name); results.push(i as Inspection) }
+    }
   }
+
+  // Strategy 1: filter by item_code directly
+  if (itemCode) {
+    try {
+      const code = decodeURIComponent(itemCode)
+      absorb(await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Quality Inspection',
+        fields: inspectionFields,
+        filters: JSON.stringify([['item_code', '=', code]]),
+        order_by: 'creation desc',
+        limit_page_length: 50
+      }) as any[])
+    } catch {}
+  }
+
+  // Strategy 2: look up Delivery Notes for this Sales Order, then inspections referencing those DNs
+  if (salesOrderId) {
+    try {
+      const dns = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Delivery Note',
+        fields: JSON.stringify(['name']),
+        filters: JSON.stringify([['Delivery Note Item', 'against_sales_order', '=', salesOrderId]]),
+        order_by: 'creation desc',
+        limit_page_length: 10
+      }) as any[]
+
+      for (const dn of dns || []) {
+        try {
+          absorb(await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Quality Inspection',
+            fields: inspectionFields,
+            filters: JSON.stringify([['reference_name', '=', dn.name]]),
+            order_by: 'creation desc',
+            limit_page_length: 10
+          }) as any[])
+        } catch {}
+      }
+    } catch {}
+
+    // Strategy 3: inspections whose remarks contain the Sales Order ID (set by createInspection)
+    try {
+      absorb(await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Quality Inspection',
+        fields: inspectionFields,
+        filters: JSON.stringify([['remarks', 'like', `%${salesOrderId}%`]]),
+        order_by: 'creation desc',
+        limit_page_length: 20
+      }) as any[])
+    } catch {}
+  }
+
+  return results.sort((a: any, b: any) =>
+    (b.report_date || '').localeCompare(a.report_date || '')
+  )
 }

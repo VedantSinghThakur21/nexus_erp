@@ -31,13 +31,11 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         itemCode = stripped.replace(/-\d{13}$/, '')
     }
 
-    // Fetch linked inspections for this item
+    // Fetch linked inspections: by item_code AND by delivery notes for this sales order
     let inspections: any[] = []
-    if (itemCode) {
-        try {
-            inspections = await getAssetInspections(itemCode)
-        } catch { /* ignore */ }
-    }
+    try {
+        inspections = await getAssetInspections(itemCode, booking.name)
+    } catch { /* ignore */ }
 
     // Extract operator from delivery note
     let assignedOperator = "";

@@ -31,7 +31,12 @@ export function CreateInspectionForm({ machines, defaultMachine, bookingId }: { 
         const res = await createInspection(formData)
 
         if (res.success) {
-            router.push('/inspections')
+            // Go back to the booking if this inspection was created from one
+            if (res.bookingId) {
+                router.push(`/bookings/${res.bookingId}`)
+            } else {
+                router.push('/inspections')
+            }
             router.refresh()
         } else {
             alert("Error: " + res.error)
@@ -62,9 +67,8 @@ export function CreateInspectionForm({ machines, defaultMachine, bookingId }: { 
                                 </SelectContent>
                             </Select>
                             <input type="hidden" name="machine" value={machine} />
+                            {bookingId && <input type="hidden" name="booking_id" value={bookingId} />}
                         </div>
-
-                        <div className="grid gap-2">
                             <Label>Inspection Type</Label>
                             <Select value={type} onValueChange={setType}>
                                 <SelectTrigger>
