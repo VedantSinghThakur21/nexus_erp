@@ -12,7 +12,7 @@ export async function inviteTeamMember(data: {
   email: string
   fullName: string
   role: string
-}): Promise<{ success: boolean; error?: string; limitReached?: boolean; currentUsage?: number; limit?: number | 'unlimited' }> {
+}): Promise<{ success: boolean; error?: string; limitReached?: boolean; currentUsage?: number; limit?: number | 'unlimited'; tempPassword?: string }> {
   try {
     // Check usage limits first
     const headersList = await headers()
@@ -48,24 +48,32 @@ export async function inviteTeamMember(data: {
         }
       }
       // Previously removed (disabled) — re-enable and update their role
+      // Generate a fresh temp password so the admin can share access again
+      const resetPassword = generateTempPassword()
       await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'User', name: existing.email, fieldname: 'enabled', value: 1
       })
       await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'User', name: existing.email, fieldname: 'role_profile_name', value: getRoleProfile(data.role)
       })
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'User', name: existing.email, fieldname: 'new_password', value: resetPassword
+      })
       if (subdomain) await incrementUsage(subdomain, 'usage_users')
-      return { success: true }
+      return { success: true, tempPassword: resetPassword }
     }
     
-    // Create user in ERPNext — no new_password so Frappe sends the welcome email
-    // with a password-setup link to the invited user's inbox
+    // Create user in ERPNext.
+    // Always set a temp password so the admin has credentials to share immediately
+    // (Frappe's send_welcome_email only works when SMTP is configured).
+    const tempPassword = generateTempPassword()
     const userData = {
       doctype: 'User',
       email: data.email,
       first_name: data.fullName,
       enabled: 1,
-      send_welcome_email: 1,
+      send_welcome_email: 1,  // best-effort: sends if SMTP is configured
+      new_password: tempPassword,
       role_profile_name: getRoleProfile(data.role),
       roles: [
         { role: 'System Manager' }, // Base role
@@ -82,10 +90,7 @@ export async function inviteTeamMember(data: {
       await incrementUsage(subdomain, 'usage_users')
     }
     
-    // TODO: Send invitation email with login instructions
-    // This would be handled by ERPNext's send_welcome_email feature
-    
-    return { success: true }
+    return { success: true, tempPassword }
   } catch (error: any) {
     console.error('Invite team member error:', error)
     return {
@@ -178,7 +183,22 @@ export async function updateTeamMemberRole(
   }
 }
 
-// Helper functions
+// Helpers
+
+function generateTempPassword(): string {
+  // 12-char readable password (no ambiguous chars like 0/O/1/l)
+  const upper = 'ABCDEFGHJKMNPQRSTUVWXYZ'
+  const lower = 'abcdefghjkmnpqrstuvwxyz'
+  const digits = '23456789'
+  const all = upper + lower + digits
+  const rand = (set: string) => set[Math.floor(Math.random() * set.length)]
+  // Guarantee at least one of each group, pad to 12
+  const base = rand(upper) + rand(upper) + rand(lower) + rand(lower) + rand(digits) + rand(digits)
+  const rest = Array.from({ length: 6 }, () => rand(all)).join('')
+  // Shuffle
+  return (base + rest).split('').sort(() => Math.random() - 0.5).join('')
+}
+
 function getRoleProfile(roleType: string): string {
   const profiles: Record<string, string> = {
     'admin': 'Administrator',

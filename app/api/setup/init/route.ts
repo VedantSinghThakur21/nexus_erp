@@ -404,5 +404,60 @@ export async function GET(request: NextRequest) {
         results.user_roles = `Error: ${e.message}`
     }
 
+    // 9. Configure outbound email account for this tenant site
+    // Uses a single shared SMTP account (env vars) — standard SaaS pattern.
+    // Required env vars:
+    //   SMTP_HOST          e.g. smtp.sendgrid.net or smtp.gmail.com
+    //   SMTP_PORT          e.g. 587 (TLS) or 465 (SSL)
+    //   SMTP_USE_TLS       "1" for yes
+    //   SMTP_EMAIL         the "from" address, e.g. no-reply@avariq.in
+    //   SMTP_PASSWORD      SMTP password or app password
+    //   SMTP_DISPLAY_NAME  e.g. "Avariq ERP"  (optional, defaults to SMTP_EMAIL)
+    const smtpHost = process.env.SMTP_HOST
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10)
+    const smtpEmail = process.env.SMTP_EMAIL
+    const smtpPassword = process.env.SMTP_PASSWORD
+    const smtpTls = process.env.SMTP_USE_TLS !== '0'
+    const smtpDisplayName = process.env.SMTP_DISPLAY_NAME || smtpEmail
+
+    if (!smtpHost || !smtpEmail || !smtpPassword) {
+        results.email = 'Skipped: SMTP_HOST / SMTP_EMAIL / SMTP_PASSWORD not set in environment'
+    } else {
+        try {
+            // Check if an outbound email account already exists
+            const existingEmail = await frappeRequest('frappe.client.get_list', 'GET', {
+                doctype: 'Email Account',
+                filters: JSON.stringify([['enable_outgoing', '=', 1]]),
+                fields: '["name"]',
+                limit_page_length: 1
+            }) as { name: string }[]
+
+            if (existingEmail && existingEmail.length > 0) {
+                results.email = `Already configured: ${existingEmail[0].name}`
+            } else {
+                await frappeRequest('frappe.client.insert', 'POST', {
+                    doc: {
+                        doctype: 'Email Account',
+                        email_account_name: smtpDisplayName,
+                        email_id: smtpEmail,
+                        // Outgoing
+                        enable_outgoing: 1,
+                        smtp_server: smtpHost,
+                        smtp_port: smtpPort,
+                        use_tls: smtpTls ? 1 : 0,
+                        password: smtpPassword,
+                        // Mark as default so Frappe uses it for all system emails
+                        default_outgoing: 1,
+                        // Incoming disabled — we only need outbound
+                        enable_incoming: 0,
+                    }
+                })
+                results.email = `Configured outgoing SMTP: ${smtpEmail} via ${smtpHost}:${smtpPort}`
+            }
+        } catch (e: any) {
+            results.email = `Error configuring email: ${e.message}`
+        }
+    }
+
     return NextResponse.json({ success: true, results })
 }
