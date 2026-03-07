@@ -16,6 +16,14 @@ interface TeamMember {
   creation: string;
   last_login?: string;
   user_type: string;
+  role_profile_name?: string;
+}
+
+function getRoleBadgeLabel(roleProfile?: string): string {
+  if (!roleProfile) return 'Member';
+  if (roleProfile === 'Administrator') return 'Admin';
+  // Strip " User" or " Manager" suffix for a compact label
+  return roleProfile.replace(' Manager', ' Mgr').replace(' User', '');
 }
 
 export default function TeamPage() {
@@ -314,7 +322,8 @@ export default function TeamPage() {
                   ) : (
                     filteredMembers.map((member) => {
                       const aiInsight = getAIInsight(member);
-                      const isAdmin = member.user_type === "System User";
+                      const isAdmin = member.role_profile_name === 'Administrator';
+                      const roleLabel = getRoleBadgeLabel(member.role_profile_name);
                       const isProtected =
                         member.email === "Administrator" ||
                         member.email === "administrator@example.com";
@@ -332,12 +341,12 @@ export default function TeamPage() {
                                 </span>
                                 {isAdmin && (
                                   <span className="px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold rounded-full uppercase tracking-wide">
-                                    Admin
+                                    {roleLabel}
                                   </span>
                                 )}
                                 {!isAdmin && (
                                   <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded-full uppercase tracking-wide">
-                                    Member
+                                    {roleLabel}
                                   </span>
                                 )}
                                 {aiInsight && (

@@ -45,17 +45,14 @@ export async function inviteTeamMember(data: {
       }
     }
     
-    // Generate a temporary password
-    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase()
-    
-    // Create user in ERPNext
+    // Create user in ERPNext — no new_password so Frappe sends the welcome email
+    // with a password-setup link to the invited user's inbox
     const userData = {
       doctype: 'User',
       email: data.email,
       first_name: data.fullName,
       enabled: 1,
       send_welcome_email: 1,
-      new_password: tempPassword,
       role_profile_name: getRoleProfile(data.role),
       roles: [
         { role: 'System Manager' }, // Base role
@@ -93,7 +90,7 @@ export async function getTeamMembers(): Promise<any[]> {
     const users = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'User',
       filters: `[["enabled", "=", 1], ["name", "!=", "Administrator"], ["name", "!=", "Guest"]]`,
-      fields: '["name", "email", "first_name", "last_name", "enabled", "creation", "last_login", "user_type"]',
+      fields: '["name", "email", "first_name", "last_name", "enabled", "creation", "last_login", "user_type", "role_profile_name"]',
       limit_page_length: 100
     }) as any[]
     
