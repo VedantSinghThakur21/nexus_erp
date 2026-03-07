@@ -12,66 +12,73 @@ export async function getDashboardStats() {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0]
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0]
 
-    // 1. Win Rate Calculation
-    // Get won deals this month
-    const dealsWonMTD = await frappeRequest('frappe.client.get_count', 'GET', {
-      doctype: 'Opportunity',
-      filters: `[["status", "=", "Converted"], ["modified", ">=", "${monthStart}"]]`
+    // 1. Win Rate Calculation (Quotations Converted to Sales Orders vs Lost)
+    const quotationsWonMTD = await frappeRequest('frappe.client.get_count', 'GET', {
+      doctype: 'Quotation',
+      filters: `[["status", "=", "Ordered"], ["modified", ">=", "${monthStart}"]]`
     })
 
-    // Get lost deals this month
-    const dealsLostMTD = await frappeRequest('frappe.client.get_count', 'GET', {
-      doctype: 'Opportunity',
+    const quotationsLostMTD = await frappeRequest('frappe.client.get_count', 'GET', {
+      doctype: 'Quotation',
       filters: `[["status", "=", "Lost"], ["modified", ">=", "${monthStart}"]]`
     })
 
-    const totalClosedMTD = (typeof dealsWonMTD === 'number' ? dealsWonMTD : 0) + (typeof dealsLostMTD === 'number' ? dealsLostMTD : 0)
-    const winRate = totalClosedMTD > 0 ? ((typeof dealsWonMTD === 'number' ? dealsWonMTD : 0) / totalClosedMTD) * 100 : 0
+    const totalClosedMTD = (typeof quotationsWonMTD === 'number' ? quotationsWonMTD : 0) + (typeof quotationsLostMTD === 'number' ? quotationsLostMTD : 0)
+    const winRate = totalClosedMTD > 0 ? ((typeof quotationsWonMTD === 'number' ? quotationsWonMTD : 0) / totalClosedMTD) * 100 : 0
 
-    // Get last month's win rate for comparison
-    const dealsWonLastMonth = await frappeRequest('frappe.client.get_count', 'GET', {
-      doctype: 'Opportunity',
-      filters: `[["status", "=", "Converted"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
+    const quotationsWonLastMonth = await frappeRequest('frappe.client.get_count', 'GET', {
+      doctype: 'Quotation',
+      filters: `[["status", "=", "Ordered"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
     })
 
-    const dealsLostLastMonth = await frappeRequest('frappe.client.get_count', 'GET', {
-      doctype: 'Opportunity',
+    const quotationsLostLastMonth = await frappeRequest('frappe.client.get_count', 'GET', {
+      doctype: 'Quotation',
       filters: `[["status", "=", "Lost"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
     })
 
-    const totalClosedLastMonth = (typeof dealsWonLastMonth === 'number' ? dealsWonLastMonth : 0) + (typeof dealsLostLastMonth === 'number' ? dealsLostLastMonth : 0)
-    const lastMonthWinRate = totalClosedLastMonth > 0 ? ((typeof dealsWonLastMonth === 'number' ? dealsWonLastMonth : 0) / totalClosedLastMonth) * 100 : 0
+    const totalClosedLastMonth = (typeof quotationsWonLastMonth === 'number' ? quotationsWonLastMonth : 0) + (typeof quotationsLostLastMonth === 'number' ? quotationsLostLastMonth : 0)
+    const lastMonthWinRate = totalClosedLastMonth > 0 ? ((typeof quotationsWonLastMonth === 'number' ? quotationsWonLastMonth : 0) / totalClosedLastMonth) * 100 : 0
     const winRateChange = winRate - lastMonthWinRate
 
-    // 2. Pipeline Value (Sum of all open opportunities)
-    const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["opportunity_amount"]',
-      filters: '[["status", "in", ["Open", "Quotation"]]]',
+    // 2. Pipeline Value (Sum of all open Quotations + Open Sales Orders)
+    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Quotation',
+      fields: '["base_grand_total"]',
+      filters: '[["status", "=", "Open"]]',
       limit_page_length: 1000
     })
-    const pipelineValue = Array.isArray(opportunities)
-      ? opportunities.reduce((sum: number, opp: any) => sum + (opp.opportunity_amount || 0), 0)
-      : 0
-
-    // 3. Revenue MTD (from converted opportunities this month)
-    const revenueOpps = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["opportunity_amount"]',
-      filters: `[["status", "=", "Converted"], ["modified", ">=", "${monthStart}"]]`,
+    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      fields: '["base_grand_total"]',
+      filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
       limit_page_length: 1000
     })
-    const revenue = Array.isArray(revenueOpps)
-      ? revenueOpps.reduce((sum: number, opp: any) => sum + (opp.opportunity_amount || 0), 0)
+
+    let pipelineValue = 0;
+    if (Array.isArray(quotes)) {
+      pipelineValue += quotes.reduce((sum: number, q: any) => sum + (q.base_grand_total || 0), 0)
+    }
+    if (Array.isArray(orders)) {
+      pipelineValue += orders.reduce((sum: number, o: any) => sum + (o.base_grand_total || 0), 0)
+    }
+
+    // 3. Revenue MTD (from Paid Sales Invoices this month)
+    const revenueInvoices = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Invoice',
+      fields: '["base_grand_total"]',
+      filters: `[["status", "in", ["Paid", "Partly Paid"]], ["posting_date", ">=", "${monthStart}"]]`,
+      limit_page_length: 1000
+    })
+    const revenue = Array.isArray(revenueInvoices)
+      ? revenueInvoices.reduce((sum: number, inv: any) => sum + (inv.base_grand_total || 0), 0)
       : 0
 
-    // 4. Active Leads Count
+    // 4. Active Leads Wait we can use CRM Leads if they use them, but if they use Quotations directly:
     const activeLeads = await frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Lead',
       filters: '[["status", "in", ["Open", "Replied", "Interested"]]]'
     })
 
-    // Get last month's active leads for comparison
     const lastMonthLeads = await frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Lead',
       filters: `[["status", "in", ["Open", "Replied", "Interested"]], ["creation", ">=", "${lastMonthStart}"], ["creation", "<=", "${lastMonthEnd}"]]`
@@ -82,12 +89,12 @@ export async function getDashboardStats() {
     const leadsChange = lastLeadCount > 0 ? ((currentLeadCount - lastLeadCount) / lastLeadCount) * 100 : 0
 
     return {
-      pipelineValue: typeof pipelineValue === 'number' ? pipelineValue : 0,
-      revenue: typeof revenue === 'number' ? revenue : 0,
+      pipelineValue,
+      revenue,
       openOpportunities: currentLeadCount,
-      winRate: typeof winRate === 'number' ? winRate : 0,
-      winRateChange: typeof winRateChange === 'number' ? winRateChange : 0,
-      leadsChange: typeof leadsChange === 'number' ? leadsChange : 0,
+      winRate,
+      winRateChange,
+      leadsChange,
     }
 
   } catch (error) {
@@ -103,31 +110,31 @@ export async function getDashboardStats() {
   }
 }
 
-// Get high-probability opportunities for the main table
+// Get high-probability opportunities for the main table (using Quotations now)
 export async function getOpportunities() {
   try {
-    const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["name", "customer_name", "party_name", "sales_stage", "opportunity_amount", "probability", "status", "modified"]',
-      filters: '[["status", "in", ["Open", "Quotation"]]]',
-      order_by: 'probability desc, modified desc',
+    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Quotation',
+      fields: '["name", "customer_name", "party_name", "base_grand_total", "status", "modified"]',
+      filters: '[["status", "in", ["Open"]]]',
+      order_by: 'modified desc',
       limit_page_length: 100
     })
 
-    if (!Array.isArray(opportunities)) {
-      console.error("getOpportunities: opportunities is not an array:", opportunities)
+    if (!Array.isArray(quotes)) {
       return []
     }
 
-    return opportunities.map((opp: any) => ({
-      name: opp.name || '',
-      customer_name: opp.customer_name || opp.party_name || 'Unknown',
-      party_name: opp.party_name || opp.customer_name || 'Unknown',
-      sales_stage: opp.sales_stage || 'Proposal',
-      opportunity_amount: typeof opp.opportunity_amount === 'number' ? opp.opportunity_amount : 0,
-      probability: typeof opp.probability === 'number' ? opp.probability : 0,
-      status: opp.status || 'Open',
-      modified: opp.modified || new Date().toISOString(),
+    return quotes.map((q: any) => ({
+      name: q.name || '',
+      customer_name: q.customer_name || q.party_name || 'Unknown',
+      party_name: q.party_name || q.customer_name || 'Unknown',
+      sales_stage: 'Proposal/Price Quote',
+      opportunity_amount: typeof q.base_grand_total === 'number' ? q.base_grand_total : 0,
+      // For quotations, we consider them 75% probable by default if open
+      probability: 75,
+      status: q.status || 'Open',
+      modified: q.modified || new Date().toISOString(),
     }))
   } catch (error) {
     console.error("Get Opportunities Error:", error)
@@ -146,12 +153,12 @@ export async function getRecentActivities() {
       timestamp: Date;
     }> = []
 
-    // 1. Fetch Recent Closed Deals (Converted Opportunities)
+    // 1. Fetch Recent Closed Deals (Sales Invoices Paid / SOs Created)
     try {
       const closedDeals = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Opportunity',
-        fields: '["name", "customer_name", "party_name", "modified", "owner"]',
-        filters: '[["status", "=", "Converted"]]',
+        doctype: 'Sales Order',
+        fields: '["name", "customer_name", "modified", "owner"]',
+        filters: '[["status", "in", ["To Deliver and Bill", "To Bill", "Completed"]]]',
         order_by: 'modified desc',
         limit_page_length: 5
       })
@@ -161,7 +168,7 @@ export async function getRecentActivities() {
           allActivities.push({
             type: 'closed-deal',
             owner: deal.owner || 'Team Member',
-            company: deal.customer_name || deal.party_name || 'Unknown Company',
+            company: deal.customer_name || 'Unknown Company',
             time: getTimeAgo(new Date(deal.modified)),
             timestamp: new Date(deal.modified)
           })
@@ -171,64 +178,36 @@ export async function getRecentActivities() {
       console.error("Error fetching closed deals:", error)
     }
 
-    // 2. Fetch Recent New Leads
+    // 2. Fetch Recent New Quotes
     try {
-      const newLeads = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Lead',
-        fields: '["name", "lead_name", "company_name", "creation", "owner"]',
-        filters: '[["status", "in", ["Open", "Lead"]]]',
+      const newQuotes = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Quotation',
+        fields: '["name", "customer_name", "creation", "owner"]',
+        filters: '[["status", "in", ["Open", "Draft"]]]',
         order_by: 'creation desc',
         limit_page_length: 5
       })
 
-      if (Array.isArray(newLeads)) {
-        newLeads.forEach((lead: any) => {
+      if (Array.isArray(newQuotes)) {
+        newQuotes.forEach((quote: any) => {
           allActivities.push({
             type: 'new-lead',
-            owner: lead.owner || 'Team Member',
-            company: lead.company_name || lead.lead_name || 'Unknown Company',
-            time: getTimeAgo(new Date(lead.creation)),
-            timestamp: new Date(lead.creation)
+            owner: quote.owner || 'Team Member',
+            company: quote.customer_name || 'Unknown Company',
+            time: getTimeAgo(new Date(quote.creation)),
+            timestamp: new Date(quote.creation)
           })
         })
       }
     } catch (error) {
-      console.error("Error fetching new leads:", error)
+      console.error("Error fetching new quotes:", error)
     }
-
-    // 3. Fetch Recent Communications (Outbound)
-    try {
-      const communications = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Communication',
-        fields: '["name", "subject", "reference_name", "reference_doctype", "creation", "sender"]',
-        filters: '[["reference_doctype", "in", ["Opportunity", "Lead"]], ["sent_or_received", "=", "Sent"]]',
-        order_by: 'creation desc',
-        limit_page_length: 5
-      })
-
-      if (Array.isArray(communications)) {
-        communications.forEach((comm: any) => {
-          allActivities.push({
-            type: 'outbound',
-            owner: comm.sender || 'Team Member',
-            company: comm.subject || comm.reference_name || 'Client',
-            time: getTimeAgo(new Date(comm.creation)),
-            timestamp: new Date(comm.creation)
-          })
-        })
-      }
-    } catch (error) {
-      console.error("Error fetching communications:", error)
-    }
-
-    // NOTE: Booking DocType query removed - it doesn't exist on tenant sites yet.
-    // Re-enable this section once a Booking DocType is created in nexus_core.
 
     // Sort all activities by timestamp (most recent first) and return top 4
     const sortedActivities = allActivities
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, 4)
-      .map(({ timestamp, ...activity }) => activity) // Remove timestamp from final result
+      .map(({ timestamp, ...activity }) => activity)
 
     return sortedActivities
   } catch (error) {
@@ -240,36 +219,33 @@ export async function getRecentActivities() {
 // Get deals at risk (for Intelligence Hub)
 export async function getAtRiskDeals() {
   try {
-    // Get opportunities with low probability or stagnant
-    const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["name", "customer_name", "party_name", "probability", "modified"]',
-      filters: '[["status", "in", ["Open", "Quotation"]], ["probability", "<=", 50]]',
-      order_by: 'probability asc, modified asc',
+    // Get stagnant quotations
+    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Quotation',
+      fields: '["name", "customer_name", "party_name", "modified"]',
+      filters: '[["status", "in", ["Open"]]]',
+      order_by: 'modified asc',
       limit_page_length: 3
     })
 
-    if (!Array.isArray(opportunities)) {
-      console.error("getAtRiskDeals: opportunities is not an array:", opportunities)
+    if (!Array.isArray(quotes)) {
       return []
     }
 
-    return opportunities.map((opp: any) => {
-      const modifiedDate = new Date(opp.modified);
+    return quotes.map((q: any) => {
+      const modifiedDate = new Date(q.modified);
       const daysSinceActivity = Math.floor((Date.now() - modifiedDate.getTime()) / (1000 * 60 * 60 * 24));
 
       let reason = '';
-      if (daysSinceActivity > 7) {
-        reason = `No activity for ${daysSinceActivity} days. Requires immediate attention.`;
-      } else if (opp.probability < 30) {
-        reason = 'Low confidence score. Competitive threat detected.';
+      if (daysSinceActivity > 14) {
+        reason = `No activity for ${daysSinceActivity} days. Quote may be going cold.`;
       } else {
-        reason = `Deal stagnating with ${opp.probability}% probability.`;
+        reason = `Quote is pending customer follow-up.`;
       }
 
       return {
-        name: opp.name,
-        customer_name: opp.customer_name || opp.party_name || 'Unknown',
+        name: q.name,
+        customer_name: q.customer_name || q.party_name || 'Unknown',
         days_since_activity: daysSinceActivity,
         reason: reason,
       };
@@ -283,49 +259,59 @@ export async function getAtRiskDeals() {
 // Get Sales Pipeline Funnel Data
 export async function getSalesPipelineFunnel() {
   try {
-    // Get leads count
+    // Get Leads
     const leadsCount = await frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Lead',
       filters: '[["status", "in", ["Open", "Replied", "Interested"]]]'
     })
 
-    // Get opportunities by sales stage with their values
-    const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["sales_stage", "opportunity_amount"]',
-      filters: '[["status", "in", ["Open", "Quotation"]]]',
+    // Get Quotes
+    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Quotation',
+      fields: '["base_grand_total", "status"]',
+      filters: '[["status", "in", ["Draft", "Open"]]]',
       limit_page_length: 1000
     })
 
-    // Validate opportunities is an array
-    if (!Array.isArray(opportunities)) {
-      console.error("getSalesPipelineFunnel: opportunities is not an array:", opportunities)
-      return []
-    }
-
-    // Group by stage
-    const stages: Record<string, { count: number, value: number }> = {
-      'Lead': { count: typeof leadsCount === 'number' ? leadsCount : 0, value: (typeof leadsCount === 'number' ? leadsCount : 0) * 100000 },
-      'Prospecting': { count: 0, value: 0 },
-      'Qualification': { count: 0, value: 0 },
-      'Proposal': { count: 0, value: 0 },
-      'Negotiation': { count: 0, value: 0 }
-    }
-
-    opportunities.forEach((opp: any) => {
-      const stage = opp.sales_stage || 'Prospecting'
-      if (stages[stage]) {
-        stages[stage].count++
-        stages[stage].value += opp.opportunity_amount || 0
-      }
+    // Get Orders
+    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Sales Order',
+      fields: '["base_grand_total", "status"]',
+      filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
+      limit_page_length: 1000
     })
 
+    const stages = {
+      'Lead': { count: typeof leadsCount === 'number' ? leadsCount : 0, value: (typeof leadsCount === 'number' ? leadsCount : 0) * 100000 },
+      'Draft Quote': { count: 0, value: 0 },
+      'Open Quote': { count: 0, value: 0 },
+      'Sales Order': { count: 0, value: 0 },
+    }
+
+    if (Array.isArray(quotes)) {
+      quotes.forEach((q: any) => {
+        if (q.status === 'Draft') {
+          stages['Draft Quote'].count++
+          stages['Draft Quote'].value += q.base_grand_total || 0
+        } else {
+          stages['Open Quote'].count++
+          stages['Open Quote'].value += q.base_grand_total || 0
+        }
+      })
+    }
+
+    if (Array.isArray(orders)) {
+      orders.forEach((o: any) => {
+        stages['Sales Order'].count++
+        stages['Sales Order'].value += o.base_grand_total || 0
+      })
+    }
+
     return [
-      { stage: 'Lead', count: stages.Lead.count, value: stages.Lead.value },
-      { stage: 'Prospecting', count: stages.Prospecting.count, value: stages.Prospecting.value },
-      { stage: 'Qualification', count: stages.Qualification.count, value: stages.Qualification.value },
-      { stage: 'Proposal', count: stages.Proposal.count, value: stages.Proposal.value },
-      { stage: 'Negotiation', count: stages.Negotiation.count, value: stages.Negotiation.value }
+      { stage: 'Lead', count: stages['Lead'].count, value: stages['Lead'].value },
+      { stage: 'Draft Quote', count: stages['Draft Quote'].count, value: stages['Draft Quote'].value },
+      { stage: 'Open Quote', count: stages['Open Quote'].count, value: stages['Open Quote'].value },
+      { stage: 'Sales Order', count: stages['Sales Order'].count, value: stages['Sales Order'].value },
     ]
   } catch (error) {
     console.error("Pipeline Funnel Error:", error)
@@ -333,52 +319,41 @@ export async function getSalesPipelineFunnel() {
   }
 }
 
-// Get Deals by Stage (for bar chart)
+// Get Deals by Stage (for bar chart if we use it)
 export async function getDealsByStage() {
   try {
-    const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Opportunity',
-      fields: '["sales_stage"]',
-      filters: '[["status", "in", ["Open", "Quotation"]]]',
+    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Quotation',
+      fields: '["status"]',
+      filters: '[["status", "in", ["Draft", "Open"]]]',
       limit_page_length: 1000
     })
 
-    // Validate opportunities is an array
-    if (!Array.isArray(opportunities)) {
-      console.error("getDealsByStage: opportunities is not an array:", opportunities)
-      return []
-    }
-
     const stages: Record<string, number> = {
-      'PROSP': 0,  // Prospecting
-      'QUAL': 0,   // Qualification  
-      'ANALY': 0,  // Analysis/Needs Analysis
-      'PROP': 0,   // Proposal
-      'WON': 0     // Won
+      'DRAFT': 0,
+      'OPEN': 0,
+      'WON': 0
     }
 
-    opportunities.forEach((opp: any) => {
-      const stage = opp.sales_stage
-      if (stage === 'Prospecting') stages.PROSP++
-      else if (stage === 'Qualification') stages.QUAL++
-      else if (stage === 'Needs Analysis') stages.ANALY++
-      else if (stage === 'Proposal' || stage === 'Negotiation') stages.PROP++
-    })
+    if (Array.isArray(quotes)) {
+      quotes.forEach((q: any) => {
+        if (q.status === 'Draft') stages.DRAFT++
+        else if (q.status === 'Open') stages.OPEN++
+      })
+    }
 
     // Get won this month
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
     const wonCount = await frappeRequest('frappe.client.get_count', 'GET', {
-      doctype: 'Opportunity',
-      filters: `[["status", "=", "Converted"], ["modified", ">=", "${monthStart}"]]`
+      doctype: 'Quotation',
+      filters: `[["status", "=", "Ordered"], ["modified", ">=", "${monthStart}"]]`
     })
     stages.WON = typeof wonCount === 'number' ? wonCount : 0
 
     return [
-      { stage: 'PROSP', count: stages.PROSP },
-      { stage: 'QUAL', count: stages.QUAL },
-      { stage: 'ANALY', count: stages.ANALY },
-      { stage: 'PROP', count: stages.PROP },
+      { stage: 'DRAFT', count: stages.DRAFT },
+      { stage: 'OPEN', count: stages.OPEN },
       { stage: 'WON', count: stages.WON }
     ]
   } catch (error) {

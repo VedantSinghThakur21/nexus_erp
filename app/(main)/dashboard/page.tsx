@@ -10,6 +10,7 @@ import {
   getRecentActivities,
   getAtRiskDeals,
   getLeadsBySource,
+  getSalesPipelineFunnel,
 } from "@/app/actions/dashboard";
 import { formatIndianCurrency } from "@/lib/currency";
 
@@ -136,6 +137,7 @@ export default function DashboardPage() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [atRiskDeal, setAtRiskDeal] = useState<AtRiskDeal | null>(null);
   const [leadSources, setLeadSources] = useState<any[]>([]);
+  const [funnelData, setFunnelData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -152,12 +154,14 @@ export default function DashboardPage() {
         activitiesData,
         atRiskData,
         leadSourcesData,
+        funnelDataResult,
       ] = await Promise.all([
         getDashboardStats(),
         getOpportunities(),
         getRecentActivities(),
         getAtRiskDeals(),
         getLeadsBySource(),
+        getSalesPipelineFunnel(),
       ]);
 
       setStats({
@@ -174,6 +178,16 @@ export default function DashboardPage() {
         setAtRiskDeal(atRiskData[0]);
       }
       setLeadSources(leadSourcesData);
+
+      const maxCount = Math.max(...funnelDataResult.map((s: any) => s.count), 1);
+      setFunnelData(
+        funnelDataResult.map((item: any, index: number) => ({
+          ...item,
+          value: formatIndianCurrency(item.value),
+          width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - (index * 10))),
+        }))
+      );
+
       setLoading(false);
     } catch (err) {
       console.error("Dashboard load error:", err);
@@ -187,53 +201,7 @@ export default function DashboardPage() {
     .sort((a: Opportunity, b: Opportunity) => b.probability - a.probability)
     .slice(0, 3);
 
-  // Calculate Sales Funnel data from opportunities using actual stages
-  const funnelData = (() => {
-    const stageGroups: Record<string, { count: number; value: number }> = {};
 
-    opportunities
-      .filter((opp: Opportunity) => opp.status === "Open")
-      .forEach((opp: Opportunity) => {
-        const stage = opp.sales_stage || "Other";
-        if (!stageGroups[stage]) {
-          stageGroups[stage] = { count: 0, value: 0 };
-        }
-        stageGroups[stage].count += 1;
-        stageGroups[stage].value += opp.opportunity_amount || 0;
-      });
-
-    // Define stage order and display names
-    const stageOrder = [
-      "Prospecting",
-      "Qualification",
-      "Qualified",
-      "Proposal/Price Quote",
-      "Negotiation/Review",
-      "Negotiation",
-      "Other"
-    ];
-
-    const result = stageOrder
-      .filter((stageName) => stageGroups[stageName])
-      .map((stageName) => {
-        const stageData = stageGroups[stageName];
-        return {
-          stage: stageName,
-          value: formatIndianCurrency(stageData.value),
-          count: stageData.count,
-        };
-      });
-
-    if (result.length === 0) {
-      return [];
-    }
-
-    const maxCount = Math.max(...result.map((s) => s.count), 1);
-    return result.map((item, index) => ({
-      ...item,
-      width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - index * 15)),
-    }));
-  })();
 
   // Lead source data - calculate from actual API data
   const leadSourceData = (() => {
@@ -523,10 +491,10 @@ export default function DashboardPage() {
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-9 rounded-xl overflow-hidden relative">
                           <div
                             className={`absolute inset-y-0 left-0 flex items-center px-4 text-white text-[11px] font-bold ${index === 0
-                                ? "bg-gradient-to-r from-blue-700 to-blue-600"
-                                : index === 1
-                                  ? "bg-gradient-to-r from-blue-600 to-blue-500"
-                                  : "bg-gradient-to-r from-blue-500 to-blue-400"
+                              ? "bg-gradient-to-r from-blue-700 to-blue-600"
+                              : index === 1
+                                ? "bg-gradient-to-r from-blue-600 to-blue-500"
+                                : "bg-gradient-to-r from-blue-500 to-blue-400"
                               }`}
                             style={{ width: `${item.width}%` }}
                           >
