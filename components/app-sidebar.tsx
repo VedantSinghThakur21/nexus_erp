@@ -12,7 +12,6 @@ const navigationConfig = [
     category: 'Main',
     items: [
       { name: 'Dashboard', icon: 'dashboard', href: '/dashboard', module: 'dashboard' },
-      { name: 'CRM', icon: 'leaderboard', href: '/crm', module: 'crm' },
       { name: 'Leads', icon: 'group', href: '/crm/leads', module: 'crm' },
       { name: 'Opportunities', icon: 'trending_up', href: '/crm/opportunities', module: 'crm' },
     ]
@@ -62,7 +61,7 @@ function SidebarContent() {
 
     return navigationConfig.map(section => ({
       ...section,
-      items: section.items.filter(item => 
+      items: section.items.filter(item =>
         canAccessModule(item.module, roles)
       )
     })).filter(section => section.items.length > 0) // Remove empty sections
@@ -114,8 +113,8 @@ function SidebarContent() {
                       {isActive && (
                         <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#3B82F6]"></span>
                       )}
-                      
-                      <span 
+
+                      <span
                         className="material-symbols-outlined text-[20px]"
                         style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24" }}
                       >
