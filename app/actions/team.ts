@@ -31,18 +31,31 @@ export async function inviteTeamMember(data: {
       }
     }
     
-    // Check if user already exists
+    // Check if user already exists (including disabled/removed users)
     const existingUsers = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'User',
       filters: `[["email", "=", "${data.email}"]]`,
+      fields: '["name", "email", "enabled"]',
       limit_page_length: 1
     }) as any[]
     
     if (existingUsers && existingUsers.length > 0) {
-      return {
-        success: false,
-        error: 'A user with this email already exists in your organization'
+      const existing = existingUsers[0]
+      if (existing.enabled) {
+        return {
+          success: false,
+          error: 'A user with this email already exists in your organization'
+        }
       }
+      // Previously removed (disabled) — re-enable and update their role
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'User', name: existing.email, fieldname: 'enabled', value: 1
+      })
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'User', name: existing.email, fieldname: 'role_profile_name', value: getRoleProfile(data.role)
+      })
+      if (subdomain) await incrementUsage(subdomain, 'usage_users')
+      return { success: true }
     }
     
     // Create user in ERPNext — no new_password so Frappe sends the welcome email

@@ -66,10 +66,12 @@ async function getTenantContext(): Promise<TenantContext> {
         : `${subdomain}.localhost`
     }
 
-    // 4. Get User/Tenant Credentials (still from cookies/db)
-    // These are for AUTHORIZATION, not IDENTIFICATION
-    const tenantApiKey = cookieStore.get('tenant_api_key')?.value
-    const tenantApiSecret = cookieStore.get('tenant_api_secret')?.value
+    // 4. Get credentials — header-based keys (passed by provisioning service with admin
+    //    tokens) take priority over cookie-based user credentials.
+    const headerApiKey = headersList.get('x-tenant-api-key')
+    const headerApiSecret = headersList.get('x-tenant-api-secret')
+    const tenantApiKey = headerApiKey || cookieStore.get('tenant_api_key')?.value
+    const tenantApiSecret = headerApiSecret || cookieStore.get('tenant_api_secret')?.value
 
     return {
       isTenant,

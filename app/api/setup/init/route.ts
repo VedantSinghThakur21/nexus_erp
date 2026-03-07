@@ -8,17 +8,6 @@ import { frappeRequest } from '@/app/lib/api'
  * Hit this once per tenant: GET /api/setup/init
  */
 export async function GET(request: NextRequest) {
-    // Compute the tenant site name so privileged frappeRequest calls can target it
-    // with master credentials (init sets up system master data the tenant user can't create)
-    const tenantId = request.headers.get('x-tenant-id')
-    const subdomain = (tenantId && tenantId !== 'master') ? tenantId : null
-    const isProd = process.env.NODE_ENV === 'production'
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-    const tenantSite = subdomain
-        ? (isProd ? `${subdomain}.${rootDomain}` : `${subdomain}.localhost`)
-        : (process.env.FRAPPE_SITE_NAME || 'erp.localhost')
-    const adminOpts = { useMasterCredentials: true as const, siteOverride: tenantSite }
-
     const results: Record<string, string> = {}
 
     // 1. Check if Price List already exists
@@ -160,14 +149,13 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Ensure default Customer Groups exist
-    // Uses adminOpts (master credentials) because Customer Group is a privileged DocType
     try {
         const existingGroups = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Customer Group',
             fields: '["name"]',
             filters: JSON.stringify([['is_group', '=', 0]]),
             limit_page_length: 5
-        }, adminOpts) as { name: string }[]
+        }) as { name: string }[]
 
         if (existingGroups && existingGroups.length > 0) {
             results.customer_groups = `Already exists: ${existingGroups.map(g => g.name).join(', ')}`
@@ -180,12 +168,12 @@ export async function GET(request: NextRequest) {
                     fields: '["name"]',
                     filters: JSON.stringify([['is_group', '=', 1]]),
                     limit_page_length: 1
-                }, adminOpts) as { name: string }[]
+                }) as { name: string }[]
                 if (roots?.[0]?.name) rootGroup = roots[0].name
                 else {
                     const r = await frappeRequest('frappe.client.insert', 'POST', {
                         doc: { doctype: 'Customer Group', customer_group_name: 'All Customer Groups', is_group: 1 }
-                    }, adminOpts) as { name: string }
+                    }) as { name: string }
                     rootGroup = r.name
                 }
             } catch (e) { /* root may already exist */ }
@@ -196,7 +184,7 @@ export async function GET(request: NextRequest) {
                 try {
                     await frappeRequest('frappe.client.insert', 'POST', {
                         doc: { doctype: 'Customer Group', customer_group_name: groupName, parent_customer_group: rootGroup, is_group: 0 }
-                    }, adminOpts)
+                    })
                     created.push(groupName)
                 } catch (e: any) {
                     if (!e.message?.includes('Duplicate')) console.warn(`Customer Group "${groupName}":`, e.message)

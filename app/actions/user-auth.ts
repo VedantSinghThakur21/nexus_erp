@@ -108,6 +108,7 @@ export async function userRequest(
  * Tenant data structure from Frappe API
  */
 interface TenantData {
+  name: string
   subdomain: string
   site_url: string
   site_config?: string
@@ -244,7 +245,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       const results = await masterRequest('frappe.client.get_list', 'POST', {
         doctype: 'SaaS Tenant',
         filters: { owner_email: email },
-        fields: ['subdomain', 'site_url', 'status'],
+        fields: ['name', 'subdomain', 'site_url', 'status'],
         limit_page_length: 1,
         ignore_permissions: true
       }) as any[]
@@ -263,7 +264,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         const results = await masterRequest('frappe.client.get_list', 'POST', {
           doctype: 'SaaS Tenant',
           filters: { owner_email: userEmail },
-          fields: ['subdomain', 'site_url', 'status'],
+          fields: ['name', 'subdomain', 'site_url', 'status'],
           limit_page_length: 1,
           ignore_permissions: true
         }) as any[]
@@ -509,13 +510,34 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             domain: cookieDomain,
           })
 
-          console.log('✅ Tenant API credentials stored')
+          console.log('✅ Tenant API credentials stored in cookies')
+
+          // Sync fresh credentials back to SaaS Tenant master record so the
+          // provisioning service + /api/setup/init always have current keys.
+          try {
+            const tenantRecordName = tenant.name || tenant.subdomain
+            await masterRequest('frappe.client.set_value', 'POST', {
+              doctype: 'SaaS Tenant',
+              name: tenantRecordName,
+              fieldname: 'api_key',
+              value: apiKey
+            })
+            await masterRequest('frappe.client.set_value', 'POST', {
+              doctype: 'SaaS Tenant',
+              name: tenantRecordName,
+              fieldname: 'api_secret',
+              value: apiSecret
+            })
+            console.log('✅ SaaS Tenant record synced with fresh API credentials')
+          } catch (syncErr: any) {
+            console.warn('⚠️ Could not sync API key to SaaS Tenant record:', syncErr.message)
+          }
         } else {
-          console.warn('⚠️ No API keys found for tenant user - will need to generate them')
+          console.warn('⚠️ API key generation failed — credentials not stored. User may need to log in again.')
         }
       } catch (apiError) {
-        console.error('Failed to fetch API keys:', apiError)
-        // Continue anyway - user can still use the app, just might have issues
+        console.error('Failed to generate API keys:', apiError)
+        // Continue — user can still use the app via session cookie (sid)
       }
 
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
