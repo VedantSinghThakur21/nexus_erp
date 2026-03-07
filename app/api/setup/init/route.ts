@@ -273,6 +273,50 @@ export async function GET(request: NextRequest) {
         results.designations = `Error: ${e.message}`
     }
 
+    // 7a. Provision default Role Profiles
+    try {
+        const defaultRoleProfiles = [
+            { name: 'Administrator', roles: ['System Manager', 'All'] },
+            { name: 'Standard User', roles: ['Employee'] },
+            { name: 'Sales User', roles: ['Employee', 'Sales User'] },
+            { name: 'Sales Manager', roles: ['Employee', 'Sales Manager', 'Sales User'] },
+            { name: 'Projects User', roles: ['Employee', 'Projects User'] },
+            { name: 'Projects Manager', roles: ['Employee', 'Projects Manager', 'Projects User'] },
+            { name: 'Accounts User', roles: ['Employee', 'Accounts User'] },
+            { name: 'Accounts Manager', roles: ['Employee', 'Accounts Manager', 'Accounts User'] }
+        ]
+
+        const existingProfiles = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Role Profile',
+            fields: '["name"]',
+            limit_page_length: 100
+        }) as { name: string }[]
+        const existingNames = (existingProfiles || []).map(p => p.name)
+
+        const created: string[] = []
+        for (const profile of defaultRoleProfiles) {
+            if (!existingNames.includes(profile.name)) {
+                try {
+                    await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: {
+                            doctype: 'Role Profile',
+                            role_profile: profile.name,
+                            roles: profile.roles.map(r => ({ role: r }))
+                        }
+                    })
+                    created.push(profile.name)
+                } catch (e: any) {
+                    if (!e.message?.includes('Duplicate') && !e.message?.includes('already exists')) {
+                        console.warn(`Role Profile "${profile.name}":`, e.message)
+                    }
+                }
+            }
+        }
+        results.role_profiles = created.length > 0 ? `Created: ${created.join(', ')}` : 'All Role Profiles already exist'
+    } catch (e: any) {
+        results.role_profiles = `Error: ${e.message}`
+    }
+
     // 7a. Provision default Gender values (required for Employee doctype)
     try {
         const defaultGenders = ['Male', 'Female', 'Other']
