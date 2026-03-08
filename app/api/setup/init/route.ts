@@ -104,6 +104,10 @@ export async function GET(request: NextRequest) {
             } catch (createErr: any) {
                 if (createErr.message?.includes('Duplicate') || createErr.message?.includes('already exists')) {
                     results.territory = 'Already exists (checked via create)'
+                } else if (createErr.message?.includes('PermissionError') || createErr.message?.includes('not permitted') || createErr.message?.includes('Insufficient Permission')) {
+                    // Territory seeding requires System Manager. The provisioning service handles
+                    // this with ignore_permissions=True. Skip gracefully here.
+                    results.territory = `Skipped: insufficient permissions (will be seeded by provisioning service)`
                 } else {
                     results.territory = `Error creating: ${createErr.message}`
                 }
@@ -160,8 +164,8 @@ export async function GET(request: NextRequest) {
         if (existingGroups && existingGroups.length > 0) {
             results.customer_groups = `Already exists: ${existingGroups.map(g => g.name).join(', ')}`
         } else {
-            // Ensure root group exists first
-            let rootGroup = 'All Customer Groups'
+            // Ensure root group exists first before attempting children.
+            let rootGroup: string | null = null
             try {
                 const roots = await frappeRequest('frappe.client.get_list', 'GET', {
                     doctype: 'Customer Group',
@@ -169,28 +173,40 @@ export async function GET(request: NextRequest) {
                     filters: JSON.stringify([['is_group', '=', 1]]),
                     limit_page_length: 1
                 }) as { name: string }[]
-                if (roots?.[0]?.name) rootGroup = roots[0].name
-                else {
+                if (roots?.[0]?.name) {
+                    rootGroup = roots[0].name
+                } else {
+                    // Try to create the root
                     const r = await frappeRequest('frappe.client.insert', 'POST', {
                         doc: { doctype: 'Customer Group', customer_group_name: 'All Customer Groups', is_group: 1 }
                     }) as { name: string }
                     rootGroup = r.name
                 }
-            } catch (e) { /* root may already exist */ }
-
-            const leafGroups = ['Commercial', 'Individual', 'Retail']
-            const created: string[] = []
-            for (const groupName of leafGroups) {
-                try {
-                    await frappeRequest('frappe.client.insert', 'POST', {
-                        doc: { doctype: 'Customer Group', customer_group_name: groupName, parent_customer_group: rootGroup, is_group: 0 }
-                    })
-                    created.push(groupName)
-                } catch (e: any) {
-                    if (!e.message?.includes('Duplicate')) console.warn(`Customer Group "${groupName}":`, e.message)
+            } catch (rootErr: any) {
+                // 403 = insufficient permissions; provisioning service handles this
+                if (rootErr.message?.includes('PermissionError') || rootErr.message?.includes('Insufficient Permission') || rootErr.message?.includes('not permitted')) {
+                    results.customer_groups = `Skipped: insufficient permissions (will be seeded by provisioning service)`
+                } else {
+                    results.customer_groups = `Error establishing root: ${rootErr.message}`
                 }
             }
-            results.customer_groups = `Created: ${created.join(', ')}`
+
+            // Only create children when we have a confirmed root
+            if (rootGroup) {
+                const leafGroups = ['Commercial', 'Individual', 'Retail']
+                const created: string[] = []
+                for (const groupName of leafGroups) {
+                    try {
+                        await frappeRequest('frappe.client.insert', 'POST', {
+                            doc: { doctype: 'Customer Group', customer_group_name: groupName, parent_customer_group: rootGroup, is_group: 0 }
+                        })
+                        created.push(groupName)
+                    } catch (e: any) {
+                        if (!e.message?.includes('Duplicate')) console.warn(`Customer Group "${groupName}":`, e.message)
+                    }
+                }
+                results.customer_groups = `Created: ${created.join(', ')}`
+            }
         }
     } catch (e: any) {
         results.customer_groups = `Error: ${e.message}`
@@ -450,6 +466,9 @@ export async function GET(request: NextRequest) {
                         default_outgoing: 1,
                         // Incoming disabled — we only need outbound
                         enable_incoming: 0,
+                        // Frappe validates SMTP on insert. If the host is unreachable from
+                        // Frappe's container at provisioning time, this will fail with 417.
+                        // The error is caught below and does not block other init steps.
                     }
                 })
                 results.email = `Configured outgoing SMTP: ${smtpEmail} via ${smtpHost}:${smtpPort}`

@@ -617,6 +617,50 @@ if not selling_settings.selling_price_list:
     selling_settings.save(ignore_permissions=True)
     print("DEBUG: Set Standard Selling as default price list")
 
+# 7. Create Territory tree (All Territories → India)
+#    Required before customers can be created.
+territory_root = frappe.get_all("Territory", filters={{"parent_territory": ""}}, fields=["name"], limit=1)
+if not territory_root:
+    if not frappe.db.exists("Territory", "All Territories"):
+        frappe.get_doc({{
+            "doctype": "Territory",
+            "territory_name": "All Territories",
+            "is_group": 1,
+        }}).insert(ignore_permissions=True)
+        print("DEBUG: Created Territory root 'All Territories'")
+    if not frappe.db.exists("Territory", "India"):
+        frappe.get_doc({{
+            "doctype": "Territory",
+            "territory_name": "India",
+            "parent_territory": "All Territories",
+            "is_group": 0,
+        }}).insert(ignore_permissions=True)
+        print("DEBUG: Created Territory 'India'")
+else:
+    print(f"DEBUG: Territory already seeded: {{territory_root[0].get('name')}}")
+
+# 8. Create Customer Group tree (All Customer Groups → Commercial / Individual / Retail)
+cg_root_list = frappe.get_all("Customer Group", filters={{"parent_customer_group": ""}}, fields=["name"], limit=1)
+if not cg_root_list:
+    if not frappe.db.exists("Customer Group", "All Customer Groups"):
+        frappe.get_doc({{
+            "doctype": "Customer Group",
+            "customer_group_name": "All Customer Groups",
+            "is_group": 1,
+        }}).insert(ignore_permissions=True)
+        print("DEBUG: Created Customer Group root 'All Customer Groups'")
+    for cg_name in ["Commercial", "Individual", "Retail"]:
+        if not frappe.db.exists("Customer Group", cg_name):
+            frappe.get_doc({{
+                "doctype": "Customer Group",
+                "customer_group_name": cg_name,
+                "parent_customer_group": "All Customer Groups",
+                "is_group": 0,
+            }}).insert(ignore_permissions=True)
+            print(f"DEBUG: Created Customer Group '{{cg_name}}'")
+else:
+    print(f"DEBUG: Customer Group already seeded: {{cg_root_list[0].get('name')}}")
+
 frappe.db.commit()
 print(json.dumps({{"initialized": True}}))
 """
