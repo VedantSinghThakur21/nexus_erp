@@ -484,7 +484,11 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             })
           })
           const keyData = await keyResponse.json()
-          apiKey = keyData.message?.api_key
+          console.log('Get api_key response:', JSON.stringify(keyData))
+          // frappe.client.get_value with a single string fieldname returns
+          // { message: "<raw_value>" } — NOT { message: { api_key: "..." } }.
+          // Fall back to the raw message string when the object shape is absent.
+          apiKey = keyData.message?.api_key ?? keyData.message
         }
 
         if (apiKey && apiSecret) {
