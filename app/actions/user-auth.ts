@@ -467,7 +467,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         let apiKey = generateData.message?.api_key
         const apiSecret = generateData.message?.api_secret
 
-        // If generate_keys didn't return api_key, fetch it separately
+        // If generate_keys didn't return api_key, fetch it separately.
+        // frappe.client.get_value signature: get_value(doctype, filters, fieldname)
+        // The second positional param is `filters` (not `name`).
         if (!apiKey && apiSecret) {
           const keyResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
             method: 'POST',
@@ -479,16 +481,14 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             },
             body: JSON.stringify({
               doctype: 'User',
-              name: userEmail,
+              filters: userEmail,   // correct param name — was wrongly 'name' before
               fieldname: 'api_key'
             })
           })
           const keyData = await keyResponse.json()
           console.log('Get api_key response:', JSON.stringify(keyData))
-          // frappe.client.get_value with a single string fieldname returns
-          // { message: "<raw_value>" } — NOT { message: { api_key: "..." } }.
-          // Fall back to the raw message string when the object shape is absent.
-          apiKey = keyData.message?.api_key ?? keyData.message
+          // frappe.client.get_value returns { message: { <fieldname>: value } }
+          apiKey = keyData.message?.api_key || null
         }
 
         if (apiKey && apiSecret) {
@@ -518,14 +518,17 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
           // Sync fresh credentials back to SaaS Tenant master record so the
           // provisioning service + /api/setup/init always have current keys.
+          // Only sync api_key when we actually have one (skip if still null).
           try {
             const tenantRecordName = tenant.name || tenant.subdomain
-            await masterRequest('frappe.client.set_value', 'POST', {
-              doctype: 'SaaS Tenant',
-              name: tenantRecordName,
-              fieldname: 'api_key',
-              value: apiKey
-            })
+            if (apiKey) {
+              await masterRequest('frappe.client.set_value', 'POST', {
+                doctype: 'SaaS Tenant',
+                name: tenantRecordName,
+                fieldname: 'api_key',
+                value: apiKey
+              })
+            }
             await masterRequest('frappe.client.set_value', 'POST', {
               doctype: 'SaaS Tenant',
               name: tenantRecordName,
