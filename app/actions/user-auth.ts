@@ -352,52 +352,60 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     const siteName = tenant.site_url.replace(/^https?:\/\//, '')
     console.log('Authenticating against tenant site:', siteName)
 
-    const response = await fetch(`${masterUrl}/api/method/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Frappe-Site-Name': siteName, // Tell Frappe which site to auth against
-        'Host': siteName, // CRITICAL: Also set Host header so nginx routes to correct site
-      },
-      body: new URLSearchParams({
-        usr: usernameOrEmail,
-        pwd: password
-      })
-    })
-
+    // Retry helper — Frappe may throw OperationalError(1020) if a concurrent
+    // request (e.g. provisioning service generating API keys) modified the User
+    // doc between read and write during session creation.
+    const MAX_LOGIN_ATTEMPTS = 3
+    let response!: Response
     let data: any
-    const responseText = await response.text()
 
-    try {
-      data = JSON.parse(responseText)
+    for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
+      response = await fetch(`${masterUrl}/api/method/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Frappe-Site-Name': siteName,
+          'Host': siteName,
+        },
+        body: new URLSearchParams({
+          usr: usernameOrEmail,
+          pwd: password
+        })
+      })
+
+      const responseText = await response.text()
+
+      try {
+        data = JSON.parse(responseText)
+      } catch (e) {
+        console.error('❌ Failed to parse login response as JSON')
+        console.error('Response status:', response.status, response.statusText)
+
+        if (response.status === 404) {
+          return { success: false, error: 'Workspace not found. Please check your site URL and try again.' }
+        }
+        if (response.status === 403 || response.status === 401) {
+          return { success: false, error: 'Invalid credentials or access denied.' }
+        }
+        if (response.status >= 500) {
+          return { success: false, error: 'Server error. Please try again later.' }
+        }
+        return { success: false, error: 'Unable to connect to your workspace. Please ensure your site is properly configured.' }
+      }
+
+      // Check for OperationalError (MySQL row changed during login session creation)
+      const isOperationalError =
+        data.exc_type === 'OperationalError' ||
+        (typeof data.exception === 'string' && data.exception.includes('OperationalError'))
+
+      if (isOperationalError && attempt < MAX_LOGIN_ATTEMPTS) {
+        console.warn(`⚠️ Login OperationalError (attempt ${attempt}/${MAX_LOGIN_ATTEMPTS}) — retrying after delay...`)
+        await new Promise(r => setTimeout(r, 1000 * attempt))
+        continue
+      }
+
       console.log('Login response:', data)
-    } catch (e) {
-      console.error('❌ Failed to parse login response as JSON')
-      console.error('Response status:', response.status, response.statusText)
-
-      if (response.status === 404) {
-        return {
-          success: false,
-          error: 'Workspace not found. Please check your site URL and try again.'
-        }
-      }
-      if (response.status === 403 || response.status === 401) {
-        return {
-          success: false,
-          error: 'Invalid credentials or access denied.'
-        }
-      }
-      if (response.status >= 500) {
-        return {
-          success: false,
-          error: 'Server error. Please try again later.'
-        }
-      }
-
-      return {
-        success: false,
-        error: 'Unable to connect to your workspace. Please ensure your site is properly configured.'
-      }
+      break
     }
 
     if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {

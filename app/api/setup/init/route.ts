@@ -378,42 +378,44 @@ export async function GET(request: NextRequest) {
     if (!smtpHost || !smtpEmail || !smtpPassword) {
         results.email = 'Skipped: SMTP_HOST / SMTP_EMAIL / SMTP_PASSWORD not set in environment'
     } else {
-        try {
-            // Check if an outbound email account already exists
-            const existingEmail = await frappeRequest('frappe.client.get_list', 'GET', {
-                doctype: 'Email Account',
-                filters: JSON.stringify([['enable_outgoing', '=', 1]]),
-                fields: '["name"]',
-                limit_page_length: 1
-            }) as { name: string }[]
+        // Email Account doctype requires System Manager. When setup/init is
+        // triggered by a non-admin tenant user's cookies (rather than the
+        // admin-key headers from update-credentials), this will always 403.
+        // Check for admin-level headers that update-credentials passes.
+        const hasAdminHeaders = request.headers.get('x-tenant-api-key') && request.headers.get('x-tenant-api-secret')
+        if (!hasAdminHeaders) {
+            results.email = 'Skipped: requires admin credentials (run via provisioning)'
+        } else {
+            try {
+                const existingEmail = await frappeRequest('frappe.client.get_list', 'GET', {
+                    doctype: 'Email Account',
+                    filters: JSON.stringify([['enable_outgoing', '=', 1]]),
+                    fields: '["name"]',
+                    limit_page_length: 1
+                }) as { name: string }[]
 
-            if (existingEmail && existingEmail.length > 0) {
-                results.email = `Already configured: ${existingEmail[0].name}`
-            } else {
-                await frappeRequest('frappe.client.insert', 'POST', {
-                    doc: {
-                        doctype: 'Email Account',
-                        email_account_name: smtpDisplayName,
-                        email_id: smtpEmail,
-                        // Outgoing
-                        enable_outgoing: 1,
-                        smtp_server: smtpHost,
-                        smtp_port: smtpPort,
-                        use_tls: smtpTls ? 1 : 0,
-                        password: smtpPassword,
-                        // Mark as default so Frappe uses it for all system emails
-                        default_outgoing: 1,
-                        // Incoming disabled — we only need outbound
-                        enable_incoming: 0,
-                        // Frappe validates SMTP on insert. If the host is unreachable from
-                        // Frappe's container at provisioning time, this will fail with 417.
-                        // The error is caught below and does not block other init steps.
-                    }
-                })
-                results.email = `Configured outgoing SMTP: ${smtpEmail} via ${smtpHost}:${smtpPort}`
+                if (existingEmail && existingEmail.length > 0) {
+                    results.email = `Already configured: ${existingEmail[0].name}`
+                } else {
+                    await frappeRequest('frappe.client.insert', 'POST', {
+                        doc: {
+                            doctype: 'Email Account',
+                            email_account_name: smtpDisplayName,
+                            email_id: smtpEmail,
+                            enable_outgoing: 1,
+                            smtp_server: smtpHost,
+                            smtp_port: smtpPort,
+                            use_tls: smtpTls ? 1 : 0,
+                            password: smtpPassword,
+                            default_outgoing: 1,
+                            enable_incoming: 0,
+                        }
+                    })
+                    results.email = `Configured outgoing SMTP: ${smtpEmail} via ${smtpHost}:${smtpPort}`
+                }
+            } catch (e: any) {
+                results.email = `Error configuring email: ${e.message}`
             }
-        } catch (e: any) {
-            results.email = `Error configuring email: ${e.message}`
         }
     }
 
