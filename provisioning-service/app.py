@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Optional
 from enum import Enum
 
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header, Request
 from pydantic import BaseModel, EmailStr, field_validator
 import uvicorn
 
