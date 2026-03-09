@@ -167,6 +167,25 @@ export async function seedTenantDefaults(subdomain: string): Promise<{
 }
 
 /**
+ * Generate API key + secret for any user on a tenant site.
+ * Bypasses Frappe's System Manager restriction via ignore_permissions=True.
+ * Called during login when the generate_keys RPC fails with PermissionError.
+ */
+export async function generateUserApiKeys(
+  subdomain: string,
+  userEmail: string,
+): Promise<{ success: boolean; api_key: string; api_secret: string }> {
+  return serviceRequest(
+    `/api/v1/generate-user-keys/${encodeURIComponent(subdomain)}`,
+    {
+      method: 'POST',
+      body: { user_email: userEmail },
+      timeout: 30_000,
+    },
+  )
+}
+
+/**
  * Deprovision (delete) a tenant site. Destructive operation.
  */
 export async function deprovisionTenantSite(subdomain: string): Promise<{ success: boolean; message: string }> {

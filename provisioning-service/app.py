@@ -945,6 +945,54 @@ print(json.dumps(result))
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/v1/generate-user-keys/{subdomain}")
+async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool = Depends(verify_api_secret)):
+    """
+    Generate API key + secret for any user on a tenant site.
+    Uses ignore_permissions=True so it works even for non-System Manager users.
+    Called during login when the generate_keys RPC fails with PermissionError.
+    """
+    body = await request.json()
+    user_email = body.get("user_email", "").strip()
+    if not user_email:
+        raise HTTPException(status_code=400, detail="user_email is required")
+
+    site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+
+    # We embed the email safely via json.dumps — no shell injection risk because
+    # run_frappe_code passes the code via stdin to `bench execute`.
+    safe_email = json.dumps(user_email)
+    gen_code = f"""import json
+import frappe
+
+user_email = {safe_email}
+try:
+    user = frappe.get_doc("User", user_email)
+    api_key = frappe.generate_hash(length=15)
+    api_secret_val = frappe.generate_hash(length=15)
+    user.api_key = api_key
+    user.api_secret = api_secret_val
+    user.save(ignore_permissions=True)
+    frappe.db.commit()
+    print(json.dumps({{"api_key": api_key, "api_secret": api_secret_val}}))
+except Exception as exc:
+    print(json.dumps({{"error": str(exc)}}))
+"""
+
+    try:
+        output = run_frappe_code(site_name, gen_code)
+        result = _parse_json_output(output)
+        if result.get("error"):
+            raise HTTPException(status_code=404, detail=f"Could not generate keys: {result['error']}")
+        logger.info(f"generate-user-keys: keys generated for {user_email} on {site_name}")
+        return {"success": True, "api_key": result["api_key"], "api_secret": result["api_secret"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"generate-user-keys failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/api/v1/deprovision/{subdomain}")
 async def deprovision_tenant(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """Remove a tenant site (destructive — for cleanup/testing)."""

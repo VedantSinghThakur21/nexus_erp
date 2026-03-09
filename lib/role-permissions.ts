@@ -182,3 +182,96 @@ export function getPrimaryRole(userRoles: string[]): string {
 
   return 'Guest'
 }
+
+// ============================================================================
+// Action-level permissions
+// ============================================================================
+
+/**
+ * Per-module action permissions.
+ * Roles listed in each action can perform that action.
+ * System Manager always has all permissions (handled in canPerformAction).
+ */
+export const ACTION_PERMISSIONS: Record<string, Record<string, string[]>> = {
+  crm: {
+    create: ['Sales Manager'],
+    edit:   ['Sales Manager'],
+    delete: ['Sales Manager'],
+    convert: ['Sales Manager'],
+  },
+  quotations: {
+    create: ['Sales Manager'],
+    edit:   ['Sales Manager'],
+    delete: ['Sales Manager'],
+  },
+  'sales-orders': {
+    create: ['Sales Manager', 'Accounts Manager'],
+    edit:   ['Sales Manager', 'Accounts Manager'],
+    delete: ['Sales Manager'],
+  },
+  invoices: {
+    create: ['Sales Manager', 'Accounts Manager'],
+    edit:   ['Sales Manager', 'Accounts Manager'],
+    delete: ['Accounts Manager'],
+  },
+  payments: {
+    create: ['Accounts Manager'],
+    edit:   ['Accounts Manager'],
+    delete: ['Accounts Manager'],
+  },
+  projects: {
+    create: ['Projects Manager'],
+    edit:   ['Projects Manager', 'Sales Manager'],
+    delete: ['Projects Manager'],
+  },
+  bookings: {
+    create: ['Sales Manager', 'Projects Manager'],
+    edit:   ['Sales Manager', 'Projects Manager'],
+    delete: ['Sales Manager', 'Projects Manager'],
+  },
+  catalogue: {
+    create: ['Sales Manager', 'Stock Manager'],
+    edit:   ['Sales Manager', 'Stock Manager'],
+    delete: ['Stock Manager'],
+  },
+  operators: {
+    create: ['Projects Manager', 'Stock Manager'],
+    edit:   ['Projects Manager', 'Stock Manager'],
+    delete: ['Projects Manager', 'Stock Manager'],
+  },
+  agents: {
+    create: ['Projects Manager', 'Stock Manager'],
+    edit:   ['Projects Manager', 'Stock Manager'],
+    delete: ['Projects Manager', 'Stock Manager'],
+  },
+  inspections: {
+    create: ['Projects Manager', 'Stock Manager'],
+    edit:   ['Projects Manager', 'Stock Manager'],
+    delete: ['Projects Manager'],
+  },
+  'pricing-rules': {
+    create: ['Sales Manager', 'Accounts Manager'],
+    edit:   ['Sales Manager', 'Accounts Manager'],
+    delete: ['Accounts Manager'],
+  },
+  team: {
+    create: ['Sales Manager', 'Projects Manager', 'Stock Manager'],
+    edit:   ['Sales Manager', 'Projects Manager', 'Stock Manager'],
+    delete: ['Sales Manager', 'Projects Manager', 'Stock Manager'],
+  },
+}
+
+/**
+ * Check whether a user with the given roles can perform an action on a module.
+ * System Manager can always perform any action.
+ */
+export function canPerformAction(
+  module: string,
+  action: string,
+  userRoles: string[],
+): boolean {
+  if (userRoles.includes('System Manager')) return true
+
+  const allowedRoles = ACTION_PERMISSIONS[module]?.[action] ?? []
+  return userRoles.some((role) => allowedRoles.includes(role))
+}

@@ -1,7 +1,7 @@
 'use server'
 
 import { cookies, headers } from 'next/headers'
-import { provisionTenantSite } from '@/lib/provisioning-client'
+import { provisionTenantSite, generateUserApiKeys } from '@/lib/provisioning-client'
 
 /**
  * Enhanced Frappe API request helper with proper multi-tenancy support
@@ -458,6 +458,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // NOTE: We MUST use generate_keys instead of get_value because Frappe masks
       // Password-type fields (api_secret) with '***' when read via get_value.
       // generate_keys returns the actual unmasked secret.
+      // For non-System Manager users, generate_keys returns PermissionError — in that
+      // case we fall back to the provisioning service which uses ignore_permissions=True.
       console.log('Generating API keys for tenant user...')
       try {
         const sessionCookie = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
@@ -478,33 +480,49 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         const generateData = await generateResponse.json()
         console.log('Generate API keys response:', generateData)
 
-        // generate_keys returns { api_secret: 'actual_secret' }
-        // We also need the api_key which is on the User doc
-        let apiKey = generateData.message?.api_key
-        const apiSecret = generateData.message?.api_secret
+        let apiKey: string | null = null
+        let apiSecret: string | null = null
 
-        // If generate_keys didn't return api_key, fetch it separately.
-        // frappe.client.get_value signature: get_value(doctype, filters, fieldname)
-        // The second positional param is `filters` (not `name`).
-        if (!apiKey && apiSecret) {
-          const keyResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Cookie': `sid=${sessionCookie}`,
-              'X-Frappe-Site-Name': siteName,
-              'Host': siteName,
-            },
-            body: JSON.stringify({
-              doctype: 'User',
-              filters: userEmail,   // correct param name — was wrongly 'name' before
-              fieldname: 'api_key'
+        if (!generateResponse.ok || generateData.exc_type === 'PermissionError') {
+          // Non-System Manager user — delegate to provisioning service
+          console.warn('⚠️ generate_keys permission denied — falling back to provisioning service')
+          try {
+            const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail)
+            apiKey = provKeys.api_key
+            apiSecret = provKeys.api_secret
+            console.log('✅ API keys generated via provisioning service')
+          } catch (provErr: any) {
+            console.error('Provisioning service key generation failed:', provErr.message)
+          }
+        } else {
+          // generate_keys returns { api_secret: 'actual_secret' }
+          // We also need the api_key which is on the User doc
+          apiKey = generateData.message?.api_key
+          apiSecret = generateData.message?.api_secret
+
+          // If generate_keys didn't return api_key, fetch it separately.
+          // frappe.client.get_value signature: get_value(doctype, filters, fieldname)
+          // The second positional param is `filters` (not `name`).
+          if (!apiKey && apiSecret) {
+            const keyResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cookie': `sid=${sessionCookie}`,
+                'X-Frappe-Site-Name': siteName,
+                'Host': siteName,
+              },
+              body: JSON.stringify({
+                doctype: 'User',
+                filters: userEmail,   // correct param name — was wrongly 'name' before
+                fieldname: 'api_key'
+              })
             })
-          })
-          const keyData = await keyResponse.json()
-          console.log('Get api_key response:', JSON.stringify(keyData))
-          // frappe.client.get_value returns { message: { <fieldname>: value } }
-          apiKey = keyData.message?.api_key || null
+            const keyData = await keyResponse.json()
+            console.log('Get api_key response:', JSON.stringify(keyData))
+            // frappe.client.get_value returns { message: { <fieldname>: value } }
+            apiKey = keyData.message?.api_key || null
+          }
         }
 
         if (apiKey && apiSecret) {
