@@ -99,6 +99,7 @@ export function InviteTeamMemberDialog() {
               </DialogTitle>
               <DialogDescription>
                 <strong>{invited.email}</strong> has been added to your organization.
+                An invitation email with login instructions has been sent to them.
               </DialogDescription>
             </DialogHeader>
 
@@ -109,8 +110,8 @@ export function InviteTeamMemberDialog() {
                   Temporary Password
                 </p>
                 <p className="text-xs text-amber-700 dark:text-amber-400">
-                  Share this password with the new member. They can change it after logging in.
-                  {' '}Email delivery depends on your Frappe SMTP configuration.
+                  An invitation email has been sent. Share this password as a backup in case they
+                  don&apos;t receive it. They can change it after their first login.
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-700 rounded px-3 py-2 text-sm font-mono tracking-wider select-all">
@@ -128,9 +129,9 @@ export function InviteTeamMemberDialog() {
                 </div>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-xs text-slate-500 dark:text-slate-400">
-                <strong>Login URL:</strong> {typeof window !== 'undefined' ? window.location.origin : 'Your site URL'}<br />
-                <strong>Email:</strong> {invited.email}
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                <div><strong>Login URL:</strong> {typeof window !== 'undefined' ? window.location.origin + '/login' : 'Your site URL'}</div>
+                <div><strong>Email:</strong> {invited.email}</div>
               </div>
             </div>
 

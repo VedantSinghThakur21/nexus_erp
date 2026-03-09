@@ -2,7 +2,8 @@
 
 import { frappeRequest } from '@/app/lib/api'
 import { canInviteUser, incrementUsage } from './usage-limits'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
+import { sendInviteEmail } from '@/lib/email'
 
 /**
  * Invite a team member to the current tenant
@@ -16,8 +17,34 @@ export async function inviteTeamMember(data: {
   try {
     // Check usage limits first
     const headersList = await headers()
-    const subdomain = headersList.get('X-Subdomain')
-    
+    const subdomain = headersList.get('x-tenant-id') || headersList.get('X-Subdomain')
+
+    // Resolve inviter name + org name for the email (best-effort)
+    let inviterName = 'Your team admin'
+    let organizationName = 'your organization'
+    let loginUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://avariq.in'
+    try {
+      const cookieStore = await cookies()
+      const inviterEmail = cookieStore.get('user_email')?.value
+      if (inviterEmail) {
+        const inviterData = await frappeRequest('frappe.client.get_value', 'GET', {
+          doctype: 'User', filters: inviterEmail, fieldname: 'full_name'
+        }) as { full_name?: string }
+        if (inviterData?.full_name) inviterName = inviterData.full_name
+      }
+      const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Company', fields: '["company_name"]', limit_page_length: 1
+      }) as { company_name: string }[]
+      if (companies?.[0]?.company_name) organizationName = companies[0].company_name
+      if (subdomain) {
+        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+        loginUrl = process.env.NODE_ENV === 'production'
+          ? `https://${subdomain}.${rootDomain}/login`
+          : `http://${subdomain}.localhost:3000/login`
+      }
+    } catch {
+      // Non-fatal — fall back to defaults above
+    }
     if (subdomain) {
       const usageCheck = await canInviteUser(subdomain)
       if (!usageCheck.allowed) {
@@ -60,19 +87,36 @@ export async function inviteTeamMember(data: {
         doctype: 'User', name: existing.email, fieldname: 'new_password', value: resetPassword
       })
       if (subdomain) await incrementUsage(subdomain, 'usage_users')
+
+      // Send invite email (non-fatal)
+      try {
+        await sendInviteEmail({
+          inviteeName: data.fullName,
+          inviteeEmail: data.email,
+          organizationName,
+          inviterName,
+          role: data.role,
+          loginUrl,
+          tempPassword: resetPassword,
+        })
+      } catch (emailErr: any) {
+        console.warn('[inviteTeamMember] Email delivery failed (non-fatal):', emailErr.message)
+      }
+
       return { success: true, tempPassword: resetPassword }
     }
     
     // Create user in ERPNext.
-    // Always set a temp password so the admin has credentials to share immediately
-    // (Frappe's send_welcome_email only works when SMTP is configured).
+    // We generate a temp password and return it to the admin to share manually.
+    // Frappe's send_welcome_email is disabled because its email link points to the
+    // raw Frappe backend URL (127.0.0.1:8000), not our Next.js app.
     const tempPassword = generateTempPassword()
     const userData = {
       doctype: 'User',
       email: data.email,
       first_name: data.fullName,
       enabled: 1,
-      send_welcome_email: 1,  // best-effort: sends if SMTP is configured
+      send_welcome_email: 0,
       new_password: tempPassword,
       role_profile_name: getRoleProfile(data.role),
       roles: [
@@ -89,7 +133,22 @@ export async function inviteTeamMember(data: {
     if (subdomain) {
       await incrementUsage(subdomain, 'usage_users')
     }
-    
+
+    // Send invite email (non-fatal — temp password is also shown in the UI)
+    try {
+      await sendInviteEmail({
+        inviteeName: data.fullName,
+        inviteeEmail: data.email,
+        organizationName,
+        inviterName,
+        role: data.role,
+        loginUrl,
+        tempPassword,
+      })
+    } catch (emailErr: any) {
+      console.warn('[inviteTeamMember] Email delivery failed (non-fatal):', emailErr.message)
+    }
+
     return { success: true, tempPassword }
   } catch (error: any) {
     console.error('Invite team member error:', error)
