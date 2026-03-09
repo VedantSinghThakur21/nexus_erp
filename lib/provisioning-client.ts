@@ -186,6 +186,25 @@ export async function generateUserApiKeys(
 }
 
 /**
+ * Assign roles to a user on a tenant site via ignore_permissions.
+ * Replaces existing roles with the provided set.
+ */
+export async function assignUserRoles(
+  subdomain: string,
+  userEmail: string,
+  roles: string[],
+): Promise<{ success: boolean; assigned: string[] }> {
+  return serviceRequest(
+    `/api/v1/assign-user-roles/${encodeURIComponent(subdomain)}`,
+    {
+      method: 'POST',
+      body: { user_email: userEmail, roles },
+      timeout: 30_000,
+    },
+  )
+}
+
+/**
  * Deprovision (delete) a tenant site. Destructive operation.
  */
 export async function deprovisionTenantSite(subdomain: string): Promise<{ success: boolean; message: string }> {

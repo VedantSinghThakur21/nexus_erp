@@ -12,47 +12,52 @@ export async function getDashboardStats() {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0]
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0]
 
+    // Helper: safely fetch, returning fallback on 403/error
+    async function safeFetch<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+      try { return await fn() } catch { return fallback }
+    }
+
     // 1. Win Rate Calculation (Quotations Converted to Sales Orders vs Lost)
-    const quotationsWonMTD = await frappeRequest('frappe.client.get_count', 'GET', {
+    const quotationsWonMTD = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Quotation',
       filters: `[["status", "=", "Ordered"], ["modified", ">=", "${monthStart}"]]`
-    })
+    }), 0) as number
 
-    const quotationsLostMTD = await frappeRequest('frappe.client.get_count', 'GET', {
+    const quotationsLostMTD = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Quotation',
       filters: `[["status", "=", "Lost"], ["modified", ">=", "${monthStart}"]]`
-    })
+    }), 0) as number
 
     const totalClosedMTD = (typeof quotationsWonMTD === 'number' ? quotationsWonMTD : 0) + (typeof quotationsLostMTD === 'number' ? quotationsLostMTD : 0)
     const winRate = totalClosedMTD > 0 ? ((typeof quotationsWonMTD === 'number' ? quotationsWonMTD : 0) / totalClosedMTD) * 100 : 0
 
-    const quotationsWonLastMonth = await frappeRequest('frappe.client.get_count', 'GET', {
+    const quotationsWonLastMonth = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Quotation',
       filters: `[["status", "=", "Ordered"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
-    })
+    }), 0) as number
 
-    const quotationsLostLastMonth = await frappeRequest('frappe.client.get_count', 'GET', {
+    const quotationsLostLastMonth = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Quotation',
       filters: `[["status", "=", "Lost"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
-    })
+    }), 0) as number
 
     const totalClosedLastMonth = (typeof quotationsWonLastMonth === 'number' ? quotationsWonLastMonth : 0) + (typeof quotationsLostLastMonth === 'number' ? quotationsLostLastMonth : 0)
     const lastMonthWinRate = totalClosedLastMonth > 0 ? ((typeof quotationsWonLastMonth === 'number' ? quotationsWonLastMonth : 0) / totalClosedLastMonth) * 100 : 0
     const winRateChange = winRate - lastMonthWinRate
 
     // 2. Pipeline Value (Sum of all open Quotations + Open Sales Orders)
-    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+    const quotes = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Quotation',
       fields: '["base_grand_total"]',
       filters: '[["status", "=", "Open"]]',
       limit_page_length: 1000
-    })
-    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
+    }), []) as any[]
+    const orders = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       fields: '["base_grand_total"]',
       filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
       limit_page_length: 1000
-    })
+    }), []) as any[]
 
     let pipelineValue = 0;
     if (Array.isArray(quotes)) {
@@ -63,26 +68,26 @@ export async function getDashboardStats() {
     }
 
     // 3. Revenue MTD (from Paid Sales Invoices this month)
-    const revenueInvoices = await frappeRequest('frappe.client.get_list', 'GET', {
+    const revenueInvoices = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Invoice',
       fields: '["base_grand_total"]',
       filters: `[["status", "in", ["Paid", "Partly Paid"]], ["posting_date", ">=", "${monthStart}"]]`,
       limit_page_length: 1000
-    })
+    }), []) as any[]
     const revenue = Array.isArray(revenueInvoices)
       ? revenueInvoices.reduce((sum: number, inv: any) => sum + (inv.base_grand_total || 0), 0)
       : 0
 
-    // 4. Active Leads Wait we can use CRM Leads if they use them, but if they use Quotations directly:
-    const activeLeads = await frappeRequest('frappe.client.get_count', 'GET', {
+    // 4. Active Leads
+    const activeLeads = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Lead',
       filters: '[["status", "in", ["Open", "Replied", "Interested"]]]'
-    })
+    }), 0) as number
 
-    const lastMonthLeads = await frappeRequest('frappe.client.get_count', 'GET', {
+    const lastMonthLeads = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
       doctype: 'Lead',
       filters: `[["status", "in", ["Open", "Replied", "Interested"]], ["creation", ">=", "${lastMonthStart}"], ["creation", "<=", "${lastMonthEnd}"]]`
-    })
+    }), 0) as number
 
     const currentLeadCount = typeof activeLeads === 'number' ? activeLeads : 0
     const lastLeadCount = typeof lastMonthLeads === 'number' ? lastMonthLeads : 0

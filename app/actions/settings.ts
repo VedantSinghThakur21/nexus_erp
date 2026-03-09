@@ -70,14 +70,24 @@ export async function getTeam() {
 
 // 3. Create New Team Member
 export async function inviteUser(formData: FormData) {
+  const roleType = (formData.get('role') as string) || 'member'
+  const ROLE_SETS: Record<string, string[]> = {
+    admin: ['System Manager'],
+    member: ['Employee'],
+    sales: ['Sales Manager', 'Sales User'],
+    projects: ['Projects Manager', 'Projects User'],
+    accounts: ['Accounts Manager', 'Accounts User'],
+  }
+  const roles = (ROLE_SETS[roleType] || ROLE_SETS.member).map(r => ({ role: r }))
+
   const userData = {
     doctype: 'User',
     email: formData.get('email'),
     first_name: formData.get('first_name'),
     last_name: formData.get('last_name'),
-    role_profile_name: formData.get('role'), // e.g. "Sales User"
+    roles,
     enabled: 1,
-    send_welcome_email: 0 // Set to 1 if email is configured
+    send_welcome_email: 0
   }
 
   try {

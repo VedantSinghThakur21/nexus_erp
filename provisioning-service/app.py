@@ -993,6 +993,62 @@ except Exception as exc:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/v1/assign-user-roles/{subdomain}")
+async def assign_user_roles(subdomain: str, request: Request, _auth: bool = Depends(verify_api_secret)):
+    """
+    Replace a user's roles on a tenant site.
+    Body: { "user_email": "...", "roles": ["Sales Manager", "Sales User"] }
+    Uses ignore_permissions=True so the Next.js app doesn't need System Manager.
+    """
+    body = await request.json()
+    user_email = body.get("user_email", "").strip()
+    roles = body.get("roles", [])
+    if not user_email or not roles:
+        raise HTTPException(status_code=400, detail="user_email and roles are required")
+
+    site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+
+    safe_email = json.dumps(user_email)
+    safe_roles = json.dumps(roles)
+    role_code = f"""import json
+import frappe
+
+user_email = {safe_email}
+desired_roles = {safe_roles}
+
+try:
+    user = frappe.get_doc("User", user_email)
+    # Remove role profile so it doesn't override explicit roles
+    user.role_profile_name = None
+
+    # Clear existing roles (keep 'All' which Frappe requires)
+    user.roles = []
+    for role_name in desired_roles:
+        if frappe.db.exists("Role", role_name):
+            user.append("roles", {{"role": role_name, "doctype": "Has Role"}})
+
+    user.save(ignore_permissions=True)
+    frappe.db.commit()
+    assigned = [r.role for r in user.roles]
+    print(json.dumps({{"assigned": assigned}}))
+except Exception as exc:
+    print(json.dumps({{"error": str(exc)}}))
+"""
+
+    try:
+        output = run_frappe_code(site_name, role_code)
+        result = _parse_json_output(output)
+        if result.get("error"):
+            raise HTTPException(status_code=404, detail=f"Could not assign roles: {result['error']}")
+        logger.info(f"assign-user-roles: {result.get('assigned')} for {user_email} on {site_name}")
+        return {"success": True, "assigned": result.get("assigned", [])}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"assign-user-roles failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/api/v1/deprovision/{subdomain}")
 async def deprovision_tenant(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """Remove a tenant site (destructive — for cleanup/testing)."""

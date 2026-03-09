@@ -81,11 +81,16 @@ export async function inviteTeamMember(data: {
         doctype: 'User', name: existing.email, fieldname: 'enabled', value: 1
       })
       await frappeRequest('frappe.client.set_value', 'POST', {
-        doctype: 'User', name: existing.email, fieldname: 'role_profile_name', value: getRoleProfile(data.role)
-      })
-      await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'User', name: existing.email, fieldname: 'new_password', value: resetPassword
       })
+      // Re-assign proper roles via provisioning service (ignore_permissions)
+      try {
+        const { assignUserRoles } = await import('@/lib/provisioning-client')
+        const roleNames = (ROLE_SETS[data.role] || ROLE_SETS.member)
+        await assignUserRoles(subdomain!, existing.email, roleNames)
+      } catch (roleErr: any) {
+        console.warn('[inviteTeamMember] Role assignment via provisioning failed (non-fatal):', roleErr.message)
+      }
       if (subdomain) await incrementUsage(subdomain, 'usage_users')
 
       // Send invite email (non-fatal)
@@ -118,11 +123,7 @@ export async function inviteTeamMember(data: {
       enabled: 1,
       send_welcome_email: 0,
       new_password: tempPassword,
-      role_profile_name: getRoleProfile(data.role),
-      roles: [
-        { role: 'System Manager' }, // Base role
-        { role: getRoleForType(data.role) }
-      ]
+      roles: getRolesForType(data.role),
     }
     
     await frappeRequest('frappe.client.insert', 'POST', {
@@ -225,13 +226,17 @@ export async function updateTeamMemberRole(
   role: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await frappeRequest('frappe.client.set_value', 'POST', {
-      doctype: 'User',
-      name: email,
-      fieldname: 'role_profile_name',
-      value: getRoleProfile(role)
-    })
-    
+    const headersList = await headers()
+    const subdomain = headersList.get('x-tenant-id') || headersList.get('X-Subdomain')
+    if (!subdomain) {
+      return { success: false, error: 'Could not determine tenant' }
+    }
+
+    // Use provisioning service to assign roles with ignore_permissions
+    const { assignUserRoles } = await import('@/lib/provisioning-client')
+    const roleNames = (ROLE_SETS[role] || ROLE_SETS.member)
+    await assignUserRoles(subdomain, email, roleNames)
+
     return { success: true }
   } catch (error: any) {
     console.error('Update role error:', error)
@@ -258,26 +263,27 @@ function generateTempPassword(): string {
   return (base + rest).split('').sort(() => Math.random() - 0.5).join('')
 }
 
-function getRoleProfile(roleType: string): string {
-  const profiles: Record<string, string> = {
-    'admin': 'Administrator',
-    'member': 'Standard User',
-    'sales': 'Sales User',
-    'projects': 'Projects User',
-    'accounts': 'Accounts User'
-  }
-  
-  return profiles[roleType] || 'Standard User'
+/**
+ * Maps each invitation role type to the full set of Frappe roles
+ * the user needs on the tenant site.
+ *
+ * NOTE: We intentionally do NOT use role_profile_name because Frappe
+ * silently overrides explicit roles when a profile is set.
+ */
+const ROLE_SETS: Record<string, string[]> = {
+  admin:    ['System Manager'],
+  member:   ['Employee'],
+  sales:    ['Sales Manager', 'Sales User'],
+  projects: ['Projects Manager', 'Projects User'],
+  accounts: ['Accounts Manager', 'Accounts User'],
 }
 
-function getRoleForType(roleType: string): string {
-  const roles: Record<string, string> = {
-    'admin': 'System Manager',
-    'member': 'Employee',
-    'sales': 'Sales Manager',
-    'projects': 'Projects Manager',
-    'accounts': 'Accounts Manager'
-  }
-  
-  return roles[roleType] || 'Employee'
+function getRolesForType(roleType: string): { role: string }[] {
+  const roles = ROLE_SETS[roleType] || ROLE_SETS.member
+  return roles.map(r => ({ role: r }))
+}
+
+/** Primary display role for a type (for updateTeamMemberRole convenience) */
+function getPrimaryRoleForType(roleType: string): string {
+  return (ROLE_SETS[roleType] || ROLE_SETS.member)[0]
 }
