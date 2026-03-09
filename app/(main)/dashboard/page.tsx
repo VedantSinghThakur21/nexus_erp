@@ -12,6 +12,7 @@ import {
   getLeadsBySource,
   getSalesPipelineFunnel,
 } from "@/app/actions/dashboard";
+import { useUser } from "@/contexts/user-context";
 import { formatIndianCurrency } from "@/lib/currency";
 
 type Opportunity = {
@@ -140,10 +141,13 @@ export default function DashboardPage() {
   const [funnelData, setFunnelData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { accessibleModules, loading: userLoading } = useUser();
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (!userLoading) {
+      loadDashboardData();
+    }
+  }, [userLoading]);
 
   async function loadDashboardData() {
     try {
@@ -156,12 +160,12 @@ export default function DashboardPage() {
         leadSourcesData,
         funnelDataResult,
       ] = await Promise.all([
-        getDashboardStats(),
-        getOpportunities(),
-        getRecentActivities(),
-        getAtRiskDeals(),
-        getLeadsBySource(),
-        getSalesPipelineFunnel(),
+        getDashboardStats(accessibleModules),
+        getOpportunities(accessibleModules),
+        getRecentActivities(accessibleModules),
+        getAtRiskDeals(accessibleModules),
+        getLeadsBySource(accessibleModules),
+        getSalesPipelineFunnel(accessibleModules),
       ]);
 
       setStats({
@@ -258,13 +262,13 @@ export default function DashboardPage() {
     return `conic-gradient(${gradientStops.join(', ')})`;
   })();
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-background-dark flex items-center justify-center">
         <div className="text-center">
           <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Loading dashboard...
+            {userLoading ? "Loading user permissions..." : "Loading dashboard..."}
           </p>
         </div>
       </div>
@@ -332,28 +336,30 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Revenue MTD */}
-            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50 w-full">
-              <div className="flex items-start justify-between">
-                <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-                  Revenue MTD
-                </p>
-                <span className="material-symbols-outlined text-slate-400 text-2xl">
-                  insights
-                </span>
-              </div>
-              <div className="mt-4">
-                <h3 className="text-[32px] font-bold text-white leading-tight">
-                  {formatIndianCurrency(stats.revenue)}
-                </h3>
-                <div className="mt-3 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-                  <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-                  <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-                  <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            {/* Revenue MTD (Only visible if they have invoices access) */}
+            {accessibleModules.includes('invoices') && (
+              <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50 w-full">
+                <div className="flex items-start justify-between">
+                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.1em]">
+                    Revenue MTD
+                  </p>
+                  <span className="material-symbols-outlined text-slate-400 text-2xl">
+                    insights
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-[32px] font-bold text-white leading-tight">
+                    {formatIndianCurrency(stats.revenue)}
+                  </h3>
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                    <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                    <span className="w-2 h-2 rounded-full bg-slate-700"></span>
+                    <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Active Leads */}
             <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50 w-full">
@@ -601,11 +607,13 @@ export default function DashboardPage() {
                         check_circle
                       </span>
                       <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest">
-                        ALL DEALS ON TRACK
+                        {accessibleModules.includes('quotations') ? "ALL DEALS ON TRACK" : "AI INSIGHTS UNAVAILABLE"}
                       </span>
                     </div>
                     <p className="text-[12px] text-slate-400 leading-relaxed">
-                      No at-risk deals detected. All opportunities are progressing well.
+                      {accessibleModules.includes('quotations')
+                        ? "No at-risk deals detected. All opportunities are progressing well."
+                        : "You do not have the required permissions to view at-risk deals."}
                     </p>
                   </div>
                 )}
