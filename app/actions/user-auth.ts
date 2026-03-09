@@ -236,12 +236,28 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
     console.log('Attempting login for:', usernameOrEmail)
 
-    // Step 1: Check if this is a tenant user (use masterRequest for proper headers/auth)
+    // Step 1: Resolve tenant — prefer the current subdomain from middleware (allows
+    // invited team members who are NOT the owner to log in), falling back to
+    // owner_email lookup for root-domain logins.
     let tenantData: any[] = []
 
     const { masterRequest } = await import('@/app/lib/api')
+    const headersList = await headers()
+    const currentSubdomain = headersList.get('x-tenant-id')
 
-    if (email) {
+    if (currentSubdomain && currentSubdomain !== 'master') {
+      // User is logging in from a tenant subdomain (e.g. vfixit.avariq.in/login).
+      // Look up the tenant by subdomain — works for both owners AND invited members.
+      const results = await masterRequest('frappe.client.get_list', 'POST', {
+        doctype: 'SaaS Tenant',
+        filters: { subdomain: currentSubdomain },
+        fields: ['name', 'subdomain', 'site_url', 'status'],
+        limit_page_length: 1,
+        ignore_permissions: true
+      }) as any[]
+      tenantData = results || []
+    } else if (email) {
+      // Root-domain login: look up the tenant the user owns.
       const results = await masterRequest('frappe.client.get_list', 'POST', {
         doctype: 'SaaS Tenant',
         filters: { owner_email: email },
