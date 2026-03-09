@@ -151,6 +151,22 @@ export async function provisionTenantSite(req: ProvisionRequest): Promise<Provis
 }
 
 /**
+ * Seed tree defaults (Territory, Customer Group) for an existing tenant.
+ * Uses ignore_permissions=True in Frappe so the regular tenant user doesn't need System Manager.
+ * Idempotent — safe to call multiple times.
+ */
+export async function seedTenantDefaults(subdomain: string): Promise<{
+  success: boolean
+  site: string
+  result: { territory: string; customer_group: string }
+}> {
+  return serviceRequest(
+    `/api/v1/seed-defaults/${encodeURIComponent(subdomain)}`,
+    { method: 'POST', timeout: 60_000 },
+  )
+}
+
+/**
  * Deprovision (delete) a tenant site. Destructive operation.
  */
 export async function deprovisionTenantSite(subdomain: string): Promise<{ success: boolean; message: string }> {

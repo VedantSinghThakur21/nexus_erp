@@ -877,6 +877,74 @@ else:
     )
 
 
+@app.post("/api/v1/seed-defaults/{subdomain}")
+async def seed_tenant_defaults(subdomain: str, _auth: bool = Depends(verify_api_secret)):
+    """
+    Re-seed tree defaults (Territory, Customer Group) for an existing tenant.
+    Uses ignore_permissions=True so regular tenant users don't need System Manager.
+    Idempotent — safe to call multiple times.
+    """
+    site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+
+    seed_code = """import json
+
+result = {"territory": "skipped", "customer_group": "skipped"}
+
+# Territory tree (All Territories → India)
+territory_root = frappe.get_all("Territory", filters={"parent_territory": ""}, fields=["name"], limit=1)
+if not territory_root:
+    if not frappe.db.exists("Territory", "All Territories"):
+        frappe.get_doc({
+            "doctype": "Territory",
+            "territory_name": "All Territories",
+            "is_group": 1,
+        }).insert(ignore_permissions=True)
+    if not frappe.db.exists("Territory", "India"):
+        frappe.get_doc({
+            "doctype": "Territory",
+            "territory_name": "India",
+            "parent_territory": "All Territories",
+            "is_group": 0,
+        }).insert(ignore_permissions=True)
+    result["territory"] = "seeded"
+else:
+    result["territory"] = f"exists: {territory_root[0].get('name')}"
+
+# Customer Group tree (All Customer Groups → Commercial / Individual / Retail)
+cg_root_list = frappe.get_all("Customer Group", filters={"parent_customer_group": ""}, fields=["name"], limit=1)
+if not cg_root_list:
+    if not frappe.db.exists("Customer Group", "All Customer Groups"):
+        frappe.get_doc({
+            "doctype": "Customer Group",
+            "customer_group_name": "All Customer Groups",
+            "is_group": 1,
+        }).insert(ignore_permissions=True)
+    for cg_name in ["Commercial", "Individual", "Retail"]:
+        if not frappe.db.exists("Customer Group", cg_name):
+            frappe.get_doc({
+                "doctype": "Customer Group",
+                "customer_group_name": cg_name,
+                "parent_customer_group": "All Customer Groups",
+                "is_group": 0,
+            }).insert(ignore_permissions=True)
+    result["customer_group"] = "seeded"
+else:
+    result["customer_group"] = f"exists: {cg_root_list[0].get('name')}"
+
+frappe.db.commit()
+print(json.dumps(result))
+"""
+
+    try:
+        output = run_frappe_code(site_name, seed_code)
+        seed_result = _parse_json_output(output)
+        logger.info(f"seed-defaults for {site_name}: {seed_result}")
+        return {"success": True, "site": site_name, "result": seed_result}
+    except Exception as e:
+        logger.error(f"seed-defaults failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/api/v1/deprovision/{subdomain}")
 async def deprovision_tenant(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """Remove a tenant site (destructive — for cleanup/testing)."""

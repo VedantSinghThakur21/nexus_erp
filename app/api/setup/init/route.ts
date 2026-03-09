@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { frappeRequest } from '@/app/lib/api'
+import { getTenant } from '@/lib/tenant'
+import { seedTenantDefaults } from '@/lib/provisioning-client'
 
 /**
  * One-time tenant initialization endpoint.
@@ -62,55 +64,25 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Ensure default Territory tree exists (root + at least one leaf)
+    //    Territory requires System Manager permission to create via REST.
+    //    Delegate to the provisioning service (runs with ignore_permissions=True).
     try {
-        let hasExisting = false
-        try {
-            const existingTerritories = await frappeRequest('frappe.client.get_list', 'GET', {
-                doctype: 'Territory',
-                fields: '["name"]',
-                limit_page_length: 5
-            }) as { name: string }[]
-            hasExisting = existingTerritories && existingTerritories.length > 0
-            if (hasExisting) {
-                results.territory = `Already exists: ${existingTerritories.map(t => t.name).join(', ')}`
-            }
-        } catch (listErr: any) {
-            // If we can't list, try to create anyway
-            console.warn('Territory list check failed, attempting creation:', listErr.message)
-        }
+        const existingTerritories = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Territory',
+            fields: '["name"]',
+            limit_page_length: 5
+        }) as { name: string }[]
 
-        if (!hasExisting) {
+        if (existingTerritories && existingTerritories.length > 0) {
+            results.territory = `Already exists: ${existingTerritories.map(t => t.name).join(', ')}`
+        } else {
+            // Seed via provisioning service (bypasses permission checks)
             try {
-                // Create root group
-                const root = await frappeRequest('frappe.client.insert', 'POST', {
-                    doc: {
-                        doctype: 'Territory',
-                        territory_name: 'All Territories',
-                        is_group: 1
-                    }
-                }) as { name: string }
-
-                // Create a default leaf territory
-                const leaf = await frappeRequest('frappe.client.insert', 'POST', {
-                    doc: {
-                        doctype: 'Territory',
-                        territory_name: 'India',
-                        parent_territory: root.name,
-                        is_group: 0
-                    }
-                }) as { name: string }
-
-                results.territory = `Created: ${root.name} (root) + ${leaf.name} (default)`
-            } catch (createErr: any) {
-                if (createErr.message?.includes('Duplicate') || createErr.message?.includes('already exists')) {
-                    results.territory = 'Already exists (checked via create)'
-                } else if (createErr.message?.includes('PermissionError') || createErr.message?.includes('not permitted') || createErr.message?.includes('Insufficient Permission')) {
-                    // Territory seeding requires System Manager. The provisioning service handles
-                    // this with ignore_permissions=True. Skip gracefully here.
-                    results.territory = `Skipped: insufficient permissions (will be seeded by provisioning service)`
-                } else {
-                    results.territory = `Error creating: ${createErr.message}`
-                }
+                const subdomain = await getTenant()
+                const seedResult = await seedTenantDefaults(subdomain)
+                results.territory = `Seeded: ${seedResult.result.territory}`
+            } catch (seedErr: any) {
+                results.territory = `Missing — provisioning service unavailable: ${seedErr.message}`
             }
         }
     } catch (e: any) {
@@ -153,6 +125,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Ensure default Customer Groups exist
+    //    Customer Group tree requires System Manager permission to create via REST.
+    //    Delegate to the provisioning service (runs with ignore_permissions=True).
     try {
         const existingGroups = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Customer Group',
@@ -164,48 +138,13 @@ export async function GET(request: NextRequest) {
         if (existingGroups && existingGroups.length > 0) {
             results.customer_groups = `Already exists: ${existingGroups.map(g => g.name).join(', ')}`
         } else {
-            // Ensure root group exists first before attempting children.
-            let rootGroup: string | null = null
+            // Seed via provisioning service (bypasses permission checks)
             try {
-                const roots = await frappeRequest('frappe.client.get_list', 'GET', {
-                    doctype: 'Customer Group',
-                    fields: '["name"]',
-                    filters: JSON.stringify([['is_group', '=', 1]]),
-                    limit_page_length: 1
-                }) as { name: string }[]
-                if (roots?.[0]?.name) {
-                    rootGroup = roots[0].name
-                } else {
-                    // Try to create the root
-                    const r = await frappeRequest('frappe.client.insert', 'POST', {
-                        doc: { doctype: 'Customer Group', customer_group_name: 'All Customer Groups', is_group: 1 }
-                    }) as { name: string }
-                    rootGroup = r.name
-                }
-            } catch (rootErr: any) {
-                // 403 = insufficient permissions; provisioning service handles this
-                if (rootErr.message?.includes('PermissionError') || rootErr.message?.includes('Insufficient Permission') || rootErr.message?.includes('not permitted')) {
-                    results.customer_groups = `Skipped: insufficient permissions (will be seeded by provisioning service)`
-                } else {
-                    results.customer_groups = `Error establishing root: ${rootErr.message}`
-                }
-            }
-
-            // Only create children when we have a confirmed root
-            if (rootGroup) {
-                const leafGroups = ['Commercial', 'Individual', 'Retail']
-                const created: string[] = []
-                for (const groupName of leafGroups) {
-                    try {
-                        await frappeRequest('frappe.client.insert', 'POST', {
-                            doc: { doctype: 'Customer Group', customer_group_name: groupName, parent_customer_group: rootGroup, is_group: 0 }
-                        })
-                        created.push(groupName)
-                    } catch (e: any) {
-                        if (!e.message?.includes('Duplicate')) console.warn(`Customer Group "${groupName}":`, e.message)
-                    }
-                }
-                results.customer_groups = `Created: ${created.join(', ')}`
+                const subdomain = await getTenant()
+                const seedResult = await seedTenantDefaults(subdomain)
+                results.customer_groups = `Seeded: ${seedResult.result.customer_group}`
+            } catch (seedErr: any) {
+                results.customer_groups = `Missing — provisioning service unavailable: ${seedErr.message}`
             }
         }
     } catch (e: any) {
