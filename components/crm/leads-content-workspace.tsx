@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToastHelpers } from "@/components/ui/toast"
+import { useUser } from "@/contexts/user-context"
 
 interface Lead {
     name: string
@@ -81,6 +82,13 @@ function getStageColor(stage: string): string {
 
 export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     const router = useRouter()
+    const { canPerform } = useUser()
+
+    const canCreate  = canPerform('crm', 'create')
+    const canEdit    = canPerform('crm', 'edit')
+    const canDelete  = canPerform('crm', 'delete')
+    const canConvert = canPerform('crm', 'convert')
+
     const [viewMode, setViewMode] = useState<"list" | "grid">("list")
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedStages, setSelectedStages] = useState<string[]>(["Lead", "Opportunity"])
@@ -180,8 +188,11 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
 
     // Handle status change
     const handleStatusChange = async (leadName: string, newStatus: string) => {
+        if (!canEdit) return
+
         // Special handling for Opportunity conversion
         if (newStatus === "Opportunity") {
+            if (!canConvert) return
             setPendingConversion({ leadName, newStatus })
             handleConversionDialogOpen(true)
             return
@@ -277,11 +288,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                 <span className="material-symbols-outlined text-lg">dashboard</span> Dashboard
                             </button>
                         </Link>
-                        <Link href="/crm/new">
-                            <button className="bg-[#3b82f6] hover:bg-blue-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-sm shadow-blue-500/20">
-                                <span className="material-symbols-outlined text-lg">add</span> New Lead
-                            </button>
-                        </Link>
+                        {canCreate && (
+                            <Link href="/crm/new">
+                                <button className="bg-[#3b82f6] hover:bg-blue-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-sm shadow-blue-500/20">
+                                    <span className="material-symbols-outlined text-lg">add</span> New Lead
+                                </button>
+                            </Link>
+                        )}
                     </PageHeader>
 
                     {/* Main Content */}
@@ -519,13 +532,13 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                             <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                                 <div className="flex justify-center">
                                                                     <select
-                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-0 transition-colors ${lead.status === "Converted"
+                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-0 transition-colors ${lead.status === "Converted" || !canEdit
                                                                             ? "cursor-not-allowed opacity-60"
                                                                             : "cursor-pointer"
                                                                             } ${getStageColor(lead.status)}`}
                                                                         value={lead.status}
                                                                         onChange={(e) => handleStatusChange(lead.name, e.target.value)}
-                                                                        disabled={lead.status === "Converted"}
+                                                                        disabled={lead.status === "Converted" || !canEdit}
                                                                     >
                                                                         {LEAD_STAGES.map(stage => (
                                                                             <option key={stage} value={stage}>{stage}</option>
@@ -589,13 +602,14 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                                             : { icon: 'ac_unit', color: 'text-slate-400' }
 
                                                                     const isConverted = lead.status === "Converted"
+                                                                    const isDraggable = !isConverted && canEdit
 
                                                                     return (
                                                                         <div
                                                                             key={lead.name}
-                                                                            className={`bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition group ${isConverted ? 'opacity-60 cursor-not-allowed' : 'cursor-move'
+                                                                            className={`bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition group ${isConverted || !canEdit ? 'opacity-60 cursor-not-allowed' : 'cursor-move'
                                                                                 }`}
-                                                                            draggable={!isConverted}
+                                                                            draggable={isDraggable}
                                                                             onDragStart={(e) => handleDragStart(e, lead.name, lead.status)}
                                                                             onClick={(e) => {
                                                                                 // Prevent navigation if dragging

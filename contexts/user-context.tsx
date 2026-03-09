@@ -12,6 +12,7 @@ import {
   getAccessibleModules,
   getPrimaryRole,
   getPermissionLevel,
+  canPerformAction,
   type PermissionLevel,
 } from '@/lib/role-permissions'
 
@@ -22,6 +23,7 @@ interface UserContextType {
   hasRole: (role: string) => boolean
   canAccess: (module: string) => boolean
   getPermission: (module: string) => PermissionLevel
+  canPerform: (module: string, action: string) => boolean
   accessibleModules: string[]
   primaryRole: string
   refreshRoles: () => Promise<void>
@@ -74,6 +76,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     [roles]
   )
 
+  const canPerform = useCallback(
+    (module: string, action: string) => canPerformAction(module, action, roles),
+    [roles]
+  )
+
   const accessibleModules = getAccessibleModules(roles)
   const primaryRole = getPrimaryRole(roles)
 
@@ -84,6 +91,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     hasRole,
     canAccess,
     getPermission,
+    canPerform,
     accessibleModules,
     primaryRole,
     refreshRoles: fetchRoles,
@@ -118,4 +126,13 @@ export function useCanAccessModule(module: string): boolean {
 export function useHasRole(role: string): boolean {
   const { hasRole } = useUser()
   return hasRole(role)
+}
+
+/**
+ * Hook to check if user can perform an action on a module
+ * e.g. useCanPerformAction('crm', 'create')
+ */
+export function useCanPerformAction(module: string, action: string): boolean {
+  const { canPerform } = useUser()
+  return canPerform(module, action)
 }

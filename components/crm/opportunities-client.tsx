@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Search, Filter, Grid, List as ListIcon, ArrowRight, TrendingUp, DollarSign, Zap, CheckCircle, AlertCircle, PauseCircle } from "lucide-react"
 import { updateOpportunitySalesStage } from "@/app/actions/crm"
 import { PageHeader } from "@/components/page-header"
+import { useUser } from "@/contexts/user-context"
 
 interface Opportunity {
   name: string
@@ -34,6 +35,11 @@ const SALES_STAGES = [
 
 export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps) {
   const router = useRouter()
+  const { canPerform } = useUser()
+
+  const canCreate = canPerform('crm', 'create')
+  const canEdit   = canPerform('crm', 'edit')
+
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStage, setSelectedStage] = useState("All Stages")
@@ -113,6 +119,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
 
   // Handle stage change
   const handleStageChange = async (opportunityId: string, newStage: string) => {
+    if (!canEdit) return
     try {
       // Estimate probability based on stage
       const probabilityMap: Record<string, number> = {
@@ -289,9 +296,10 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                       <td className="px-8 py-6" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center space-x-4">
                           <select
-                            className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-extrabold uppercase tracking-wide rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                            className={`px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-extrabold uppercase tracking-wide rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 transition-colors ${canEdit ? "cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700" : "cursor-not-allowed opacity-60"}`}
                             value={opp.sales_stage}
                             onChange={(e) => handleStageChange(opp.name, e.target.value)}
+                            disabled={!canEdit}
                           >
                             {SALES_STAGES.map(stage => (
                               <option key={stage} value={stage}>{stage.split('/')[0]}</option>
