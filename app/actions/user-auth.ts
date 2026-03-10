@@ -468,6 +468,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // generate_keys returns the actual unmasked secret.
       // For non-System Manager users, generate_keys returns PermissionError — in that
       // case we fall back to the provisioning service which uses ignore_permissions=True.
+      let apiKey: string | null = null
+      let apiSecret: string | null = null
+
       console.log('Generating API keys for tenant user...')
       try {
         const sessionCookie = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
@@ -487,9 +490,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
         const generateData = await generateResponse.json()
         console.log('Generate API keys response:', generateData)
-
-        let apiKey: string | null = null
-        let apiSecret: string | null = null
 
         if (!generateResponse.ok || generateData.exc_type === 'PermissionError') {
           // Non-System Manager user — delegate to provisioning service
