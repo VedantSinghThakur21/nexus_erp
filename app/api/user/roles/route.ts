@@ -1,21 +1,43 @@
 /**
  * API Route: /api/user/roles
  * 
- * Fetches current user's roles from Frappe ERPNext backend
+ * Fetches current user's roles from Frappe ERPNext backend.
+ * Uses multiple fallback strategies:
+ *   1. API key auth → frappe.client.get for User doc
+ *   2. role_profile_name mapping
+ *   3. Provisioning service (ignore_permissions) as last resort
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { frappeRequest } from '@/app/lib/api'
+import { cookies } from 'next/headers'
+import { frappeRequest, getTenantContext } from '@/app/lib/api'
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch current logged-in user info using Frappe's auth method
-    const userInfoResponse = await frappeRequest(
-      'frappe.auth.get_logged_user',
-      'GET'
-    ) as any
+    const cookieStore = await cookies()
+    const cookieEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
 
-    const userEmail = userInfoResponse.message || userInfoResponse
+    // Step 1: Determine the user's email
+    let userEmail: string | null = null
+
+    try {
+      const userInfoResponse = await frappeRequest(
+        'frappe.auth.get_logged_user',
+        'GET'
+      ) as any
+      userEmail = userInfoResponse?.message || userInfoResponse || null
+      if (typeof userEmail !== 'string' || !userEmail.includes('@')) {
+        userEmail = null
+      }
+    } catch (authErr: any) {
+      console.warn('[API /user/roles] get_logged_user failed:', authErr.message)
+    }
+
+    // Fallback: use the email stored in cookies during login
+    if (!userEmail && cookieEmail) {
+      console.log('[API /user/roles] Using cookie email fallback:', cookieEmail)
+      userEmail = cookieEmail
+    }
 
     if (!userEmail) {
       throw new Error('No user logged in')
@@ -23,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[API /user/roles] Fetching roles for:', userEmail)
 
-    // Attempt 1: Fetch full user doc with roles
+    // Step 2: Fetch roles from Frappe User doc
     let roles: string[] = []
     let roleProfileName: string | null = null
 
@@ -53,7 +75,7 @@ export async function GET(request: NextRequest) {
       console.warn('[API /user/roles] frappe.client.get failed:', getErr.message)
     }
 
-    // Attempt 2: If roles are empty, try role_profile_name mapping
+    // Step 3: If roles are empty but role_profile_name is set, derive roles
     if (roles.length === 0 && roleProfileName) {
       const PROFILE_ROLES: Record<string, string[]> = {
         'Administrator': ['System Manager'],
@@ -64,40 +86,36 @@ export async function GET(request: NextRequest) {
         'Accounts User': ['Accounts User'],
         'Projects Manager': ['Projects Manager', 'Projects User'],
         'Projects User': ['Projects User'],
-        'Standard User': ['Employee'],
+        'Standard User': ['Employee', 'Sales User'],
       }
       roles = PROFILE_ROLES[roleProfileName] || []
       console.log('[API /user/roles] Derived roles from profile:', roleProfileName, '->', roles)
     }
 
-    // Attempt 3: If still empty, try fetching role_profile_name separately
+    // Step 4: If STILL empty, use provisioning service (ignore_permissions)
     if (roles.length === 0) {
       try {
-        const profileData = await frappeRequest('frappe.client.get_value', 'GET', {
-          doctype: 'User',
-          filters: JSON.stringify({ name: userEmail }),
-          fieldname: 'role_profile_name'
-        }) as any
+        const context = await getTenantContext()
+        if (context.subdomain) {
+          const { getUserRoles } = await import('@/lib/provisioning-client')
+          const provRoleData = await getUserRoles(context.subdomain, userEmail)
+          roles = provRoleData.roles || []
+          roleProfileName = provRoleData.role_profile_name || null
+          console.log('[API /user/roles] Provisioning fallback roles:', roles, 'profile:', roleProfileName)
 
-        const profileName = profileData?.role_profile_name
-        if (profileName) {
-          roleProfileName = profileName
-          const PROFILE_ROLES: Record<string, string[]> = {
-            'Administrator': ['System Manager'],
-            'System Manager': ['System Manager'],
-            'Sales Manager': ['Sales Manager', 'Sales User'],
-            'Sales User': ['Sales User'],
-            'Accounts Manager': ['Accounts Manager', 'Accounts User'],
-            'Accounts User': ['Accounts User'],
-            'Projects Manager': ['Projects Manager', 'Projects User'],
-            'Projects User': ['Projects User'],
-            'Standard User': ['Employee'],
+          // If provisioning returned a profile name but no roles, derive
+          if (roles.length === 0 && roleProfileName) {
+            const PROFILE_ROLES: Record<string, string[]> = {
+              'Administrator': ['System Manager'],
+              'Sales Manager': ['Sales Manager', 'Sales User'],
+              'Sales User': ['Sales User'],
+              'Standard User': ['Employee', 'Sales User'],
+            }
+            roles = PROFILE_ROLES[roleProfileName] || []
           }
-          roles = PROFILE_ROLES[profileName] || []
-          console.log('[API /user/roles] Fallback profile fetch:', profileName, '->', roles)
         }
-      } catch (fallbackErr: any) {
-        console.warn('[API /user/roles] Fallback get_value failed:', fallbackErr.message)
+      } catch (provErr: any) {
+        console.warn('[API /user/roles] Provisioning fallback failed:', provErr.message)
       }
     }
 

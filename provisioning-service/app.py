@@ -1049,6 +1049,48 @@ except Exception as exc:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/v1/get-user-roles/{subdomain}")
+async def get_user_roles(subdomain: str, request: Request, _auth: bool = Depends(verify_api_secret)):
+    """
+    Fetch a user's roles from a tenant site using ignore_permissions.
+    Body: { "user_email": "..." }
+    Returns: { "success": true, "roles": [...], "role_profile_name": "..." | null }
+    """
+    body = await request.json()
+    user_email = body.get("user_email", "").strip()
+    if not user_email:
+        raise HTTPException(status_code=400, detail="user_email is required")
+
+    site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+
+    safe_email = json.dumps(user_email)
+    role_code = f"""import json
+import frappe
+
+user_email = {safe_email}
+try:
+    user = frappe.get_doc("User", user_email)
+    roles = [r.role for r in user.roles if r.role != "All"]
+    profile = user.role_profile_name
+    print(json.dumps({{"roles": roles, "role_profile_name": profile}}))
+except Exception as exc:
+    print(json.dumps({{"error": str(exc)}}))
+"""
+
+    try:
+        output = run_frappe_code(site_name, role_code)
+        result = _parse_json_output(output)
+        if result.get("error"):
+            raise HTTPException(status_code=404, detail=f"Could not fetch roles: {result['error']}")
+        logger.info(f"get-user-roles: {result.get('roles')} for {user_email} on {site_name}")
+        return {"success": True, "roles": result.get("roles", []), "role_profile_name": result.get("role_profile_name")}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"get-user-roles failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/api/v1/deprovision/{subdomain}")
 async def deprovision_tenant(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """Remove a tenant site (destructive — for cleanup/testing)."""

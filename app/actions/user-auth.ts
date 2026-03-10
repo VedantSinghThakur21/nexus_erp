@@ -589,75 +589,69 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         // Continue — user can still use the app via session cookie (sid)
       }
 
-      // ── Normalize roles: clear stale role_profile_name on every login ──
-      // Existing users may have role_profile_name set from old invite code.
-      // Frappe's role_profile_name silently overrides explicit roles, causing
-      // the app to see wrong permissions.  We fetch the user doc via the
-      // provisioning service (ignore_permissions), and if role_profile_name
-      // is set, re-assign the same roles without the profile override.
+      // ── Normalize roles on every login ──
+      // 1. If role_profile_name is set → clear it and assign explicit roles
+      // 2. If user has no module-accessible roles → add minimum roles (Sales User)
+      //    so the user can at least see the dashboard and CRM data.
       if (userEmail) {
         try {
-          const { assignUserRoles } = await import('@/lib/provisioning-client')
-          // Fetch user doc to check role_profile_name and current roles
-          const userDoc = await (() => {
-            // Use a raw fetch with session cookie to get the user doc from the tenant site
-            return fetch(`${masterUrl}/api/method/frappe.client.get`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Cookie': `sid=${setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''}`,
-                'X-Frappe-Site-Name': siteName,
-                'Host': siteName,
-              },
-              body: JSON.stringify({
-                doctype: 'User',
-                name: userEmail,
-                fields: JSON.stringify(['name', 'role_profile_name', 'roles']),
-              }),
-            }).then(r => r.json()).then(d => d.message || d)
-          })()
+          const { assignUserRoles, getUserRoles: fetchUserRoles } = await import('@/lib/provisioning-client')
+          const { getAccessibleModules: getModules } = await import('@/lib/role-permissions')
 
-          const profileName = userDoc?.role_profile_name
+          // Use provisioning service (ignore_permissions) to reliably fetch roles
+          const roleData = await fetchUserRoles(tenant.subdomain, userEmail)
+          const currentRoles = roleData.roles || []
+          const profileName = roleData.role_profile_name
+
+          console.log(`[Login Normalization] User: ${userEmail}, roles: [${currentRoles.join(', ')}], role_profile_name: ${profileName}`)
+
+          const PROFILE_TO_ROLES: Record<string, string[]> = {
+            'Administrator': ['System Manager'],
+            'System Manager': ['System Manager'],
+            'Sales Manager': ['Sales Manager', 'Sales User'],
+            'Sales User': ['Sales Manager', 'Sales User'],
+            'Accounts Manager': ['Accounts Manager', 'Accounts User'],
+            'Accounts User': ['Accounts Manager', 'Accounts User'],
+            'Projects Manager': ['Projects Manager', 'Projects User'],
+            'Projects User': ['Projects Manager', 'Projects User'],
+            'Stock Manager': ['Stock Manager', 'Stock User'],
+            'Stock User': ['Stock Manager', 'Stock User'],
+            'Standard User': ['Employee', 'Sales User'],
+            'Employee': ['Employee', 'Sales User'],
+            // Role type keys (from old invite form)
+            'admin': ['System Manager'],
+            'sales': ['Sales Manager', 'Sales User'],
+            'accounts': ['Accounts Manager', 'Accounts User'],
+            'projects': ['Projects Manager', 'Projects User'],
+            'member': ['Employee', 'Sales User'],
+          }
+
+          let needsUpdate = false
+          let rolesToAssign = currentRoles
+
+          // Step 1: If role_profile_name is set, map it to explicit roles
           if (profileName) {
-            // Map role_profile_name to proper ROLE_SETS.
-            // The roles child table may be empty or auto-managed by the profile,
-            // so we derive the correct roles from the profile name itself.
-            const PROFILE_TO_ROLES: Record<string, string[]> = {
-              'Administrator': ['System Manager'],
-              'System Manager': ['System Manager'],
-              'Sales Manager': ['Sales Manager', 'Sales User'],
-              'Sales User': ['Sales Manager', 'Sales User'],
-              'Accounts Manager': ['Accounts Manager', 'Accounts User'],
-              'Accounts User': ['Accounts Manager', 'Accounts User'],
-              'Projects Manager': ['Projects Manager', 'Projects User'],
-              'Projects User': ['Projects Manager', 'Projects User'],
-              'Stock Manager': ['Stock Manager', 'Stock User'],
-              'Stock User': ['Stock Manager', 'Stock User'],
-              'Standard User': ['Employee'],
-              'Employee': ['Employee'],
-              // Role type keys (from old invite form)
-              'admin': ['System Manager'],
-              'sales': ['Sales Manager', 'Sales User'],
-              'accounts': ['Accounts Manager', 'Accounts User'],
-              'projects': ['Projects Manager', 'Projects User'],
-              'member': ['Employee'],
+            const mapped = PROFILE_TO_ROLES[profileName]
+            if (mapped) {
+              rolesToAssign = mapped
+              needsUpdate = true
+              console.log(`⚠️ User ${userEmail} has role_profile_name="${profileName}" → assigning: ${rolesToAssign.join(', ')}`)
             }
+          }
 
-            // Use mapped roles, or fall back to reading current roles from doc
-            let rolesToAssign = PROFILE_TO_ROLES[profileName]
-            if (!rolesToAssign) {
-              // Unknown profile — read current roles as fallback
-              const currentRoles = (userDoc.roles || [])
-                .map((r: any) => r.role || r.name)
-                .filter((r: string) => r && r !== 'All')
-              if (currentRoles.length > 0) rolesToAssign = currentRoles
-            }
+          // Step 2: Check if user has any module-accessible roles
+          const accessibleModules = getModules(rolesToAssign)
+          if (accessibleModules.length === 0) {
+            // User has no module access — add Sales User for minimum CRM/dashboard access
+            const expanded = [...new Set([...rolesToAssign, 'Sales User'])]
+            console.log(`⚠️ User ${userEmail} has no module access (roles: [${rolesToAssign.join(', ')}]). Adding Sales User.`)
+            rolesToAssign = expanded
+            needsUpdate = true
+          }
 
-            if (rolesToAssign && rolesToAssign.length > 0) {
-              console.log(`⚠️ User ${userEmail} has role_profile_name="${profileName}" — normalizing roles: ${rolesToAssign.join(', ')}`)
-              await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
-              console.log('✅ Roles normalized — role_profile_name cleared')
-            }
+          if (needsUpdate) {
+            await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
+            console.log(`✅ Roles updated for ${userEmail}: [${rolesToAssign.join(', ')}]`)
           }
         } catch (roleNormErr: any) {
           // Non-fatal — role normalization is best-effort

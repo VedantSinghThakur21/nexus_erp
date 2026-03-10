@@ -154,6 +154,7 @@ export const ROLE_DISPLAY_NAMES: Record<string, string> = {
   'Projects User': 'Projects',
   'Stock Manager': 'Stock Manager',
   'Stock User': 'Stock',
+  Employee: 'Team Member',
   Guest: 'Guest',
 }
 
@@ -171,6 +172,7 @@ export function getPrimaryRole(userRoles: string[]): string {
     'Accounts User',
     'Projects User',
     'Stock User',
+    'Employee',
     'Guest',
   ]
 

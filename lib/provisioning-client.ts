@@ -205,6 +205,24 @@ export async function assignUserRoles(
 }
 
 /**
+ * Fetch a user's roles from a tenant site via the provisioning service.
+ * Uses ignore_permissions=True so it works regardless of the caller's Frappe role.
+ */
+export async function getUserRoles(
+  subdomain: string,
+  userEmail: string,
+): Promise<{ success: boolean; roles: string[]; role_profile_name: string | null }> {
+  return serviceRequest(
+    `/api/v1/get-user-roles/${encodeURIComponent(subdomain)}`,
+    {
+      method: 'POST',
+      body: { user_email: userEmail },
+      timeout: 30_000,
+    },
+  )
+}
+
+/**
  * Deprovision (delete) a tenant site. Destructive operation.
  */
 export async function deprovisionTenantSite(subdomain: string): Promise<{ success: boolean; message: string }> {
