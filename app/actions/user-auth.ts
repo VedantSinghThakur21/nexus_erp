@@ -680,8 +680,49 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           }
 
           if (needsUpdate) {
-            await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
-            console.log(`✅ Roles updated for ${userEmail}: [${rolesToAssign.join(', ')}]`)
+            // Use direct frappe.client.save via master credentials — doesn't need provisioning service
+            try {
+              const docResp = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Frappe-Site-Name': siteName,
+                  'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
+                },
+                body: JSON.stringify({ doctype: 'User', name: userEmail }),
+              })
+              const docData = await docResp.json()
+              const userDoc = docData?.message || docData
+
+              if (userDoc?.name) {
+                userDoc.role_profile_name = null
+                userDoc.roles = rolesToAssign.map((role: string) => ({
+                  doctype: 'Has Role',
+                  role,
+                  parent: userEmail,
+                  parenttype: 'User',
+                  parentfield: 'roles',
+                }))
+                await fetch(`${masterUrl}/api/method/frappe.client.save`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Frappe-Site-Name': siteName,
+                    'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
+                  },
+                  body: JSON.stringify({ doc: userDoc }),
+                })
+                console.log(`✅ Roles saved for ${userEmail}: [${rolesToAssign.join(', ')}]`)
+              }
+            } catch (saveErr: any) {
+              // Fallback to provisioning service if direct save fails
+              try {
+                await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
+                console.log(`✅ Roles assigned via provisioning service for ${userEmail}`)
+              } catch (provErr: any) {
+                console.warn(`⚠️ Both role-save methods failed for ${userEmail}:`, provErr.message)
+              }
+            }
           }
         } catch (roleNormErr: any) {
           // Non-fatal — role normalization is best-effort

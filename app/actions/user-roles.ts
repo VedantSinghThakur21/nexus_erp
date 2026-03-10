@@ -10,6 +10,17 @@ import { canAccessModule, getPrimaryRole, getAccessibleModules } from '@/lib/rol
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 
+// Resolve the current tenant's Frappe site name for master-credential operations
+async function getTenantSiteName(): Promise<string | undefined> {
+  const headersList = await headers()
+  const tenantId = headersList.get('x-tenant-id')
+  if (!tenantId || tenantId === 'master') return undefined
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+  return process.env.NODE_ENV === 'production'
+    ? `${tenantId}.${rootDomain}`
+    : `${tenantId}.localhost`
+}
+
 /**
  * Fetch current user's roles from Frappe backend
  */
@@ -87,11 +98,14 @@ export async function isSystemManager(): Promise<boolean> {
  */
 export async function updateUserRoles(email: string, roles: string[]) {
   try {
-    // Step 1: Fetch the full user doc (child tables included when no fields restriction)
+    const siteOverride = await getTenantSiteName()
+    const reqOpts = { useMasterCredentials: true as const, siteOverride }
+
+    // Step 1: Fetch full user doc with master credentials (child tables included)
     const docResponse = await frappeRequest('frappe.client.get', 'POST', {
       doctype: 'User',
       name: email,
-    }) as any
+    }, reqOpts) as any
     const userDoc = docResponse?.message || docResponse
 
     if (!userDoc || !userDoc.name) {
@@ -110,8 +124,8 @@ export async function updateUserRoles(email: string, roles: string[]) {
       parentfield: 'roles',
     }))
 
-    // Step 4: Save the full doc (requires write permission on User — needs System Manager)
-    await frappeRequest('frappe.client.save', 'POST', { doc: userDoc })
+    // Step 4: Save the full doc with master credentials
+    await frappeRequest('frappe.client.save', 'POST', { doc: userDoc }, reqOpts)
 
     console.log(`[updateUserRoles] Saved roles for ${email}:`, roles)
     return { success: true }
@@ -140,11 +154,12 @@ export async function updateUserRoles(email: string, roles: string[]) {
  */
 export async function getUserRolesForUser(email: string): Promise<string[]> {
   try {
-    // Do NOT restrict fields — child tables (roles) are only returned in the full doc
+    const siteOverride = await getTenantSiteName()
+    // Use master credentials so this works regardless of the calling user's role
     const response = await frappeRequest('frappe.client.get', 'POST', {
       doctype: 'User',
       name: email,
-    }) as any
+    }, { useMasterCredentials: true, siteOverride }) as any
 
     const user = response?.message || response
 
