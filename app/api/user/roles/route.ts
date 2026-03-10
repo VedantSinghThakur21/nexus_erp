@@ -119,6 +119,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Step 5: Last resort — user has zero roles somehow (corrupted state).
+    // Give them the minimum Sales User access so the app is usable.
+    // Login normalization will assign proper roles on next login.
+    if (roles.length === 0) {
+      console.warn('[API /user/roles] No roles found for', userEmail, '— assigning minimum Sales User fallback')
+      roles = ['Sales User']
+    }
+
     console.log('[API /user/roles] Final roles:', roles)
 
     return NextResponse.json({

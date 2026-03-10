@@ -598,10 +598,40 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           const { assignUserRoles, getUserRoles: fetchUserRoles } = await import('@/lib/provisioning-client')
           const { getAccessibleModules: getModules } = await import('@/lib/role-permissions')
 
-          // Use provisioning service (ignore_permissions) to reliably fetch roles
-          const roleData = await fetchUserRoles(tenant.subdomain, userEmail)
-          const currentRoles = roleData.roles || []
-          const profileName = roleData.role_profile_name
+          // Fetch user's current roles — try provisioning service first (ignore_permissions),
+          // fall back to direct Frappe API call using the API keys we just generated.
+          let currentRoles: string[] = []
+          let profileName: string | null = null
+
+          try {
+            const roleData = await fetchUserRoles(tenant.subdomain, userEmail)
+            currentRoles = roleData.roles || []
+            profileName = roleData.role_profile_name || null
+          } catch (provFetchErr: any) {
+            // Provisioning service may not have the get-user-roles endpoint yet (old container).
+            // Fall back: direct fetch using the API keys we generated in this same login request.
+            console.warn('[Login Normalization] getUserRoles failed, falling back to direct API:', provFetchErr.message)
+            try {
+              const directResp = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Frappe-Site-Name': siteName,
+                  'Host': siteName,
+                  ...(apiKey && apiSecret
+                    ? { 'Authorization': `token ${apiKey}:${apiSecret}` }
+                    : { 'Cookie': `sid=${setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''}` }),
+                },
+                body: JSON.stringify({ doctype: 'User', name: userEmail }),
+              })
+              const directData = await directResp.json()
+              const userDoc = directData?.message || directData
+              currentRoles = (userDoc?.roles || [])
+                .map((r: any) => r.role || r.name)
+                .filter((r: string) => r && r !== 'All')
+              profileName = userDoc?.role_profile_name || null
+            } catch { /* leave currentRoles empty — module-access check will trigger */ }
+          }
 
           console.log(`[Login Normalization] User: ${userEmail}, roles: [${currentRoles.join(', ')}], role_profile_name: ${profileName}`)
 
