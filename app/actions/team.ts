@@ -255,12 +255,6 @@ export async function getTeamMembers(): Promise<any[]> {
     return []
   }
 }
-    })
-  } catch (error) {
-    console.error('Failed to fetch team members:', error)
-    return []
-  }
-}
 
 /**
  * Remove a team member (disable user)
