@@ -174,39 +174,29 @@ export async function getTeamMembers(): Promise<any[]> {
     
     if (!users || users.length === 0) return []
 
-    // Try to fetch roles for all users via Has Role child table.
-    // This requires blanket User read permission (System Manager), so it may
-    // fail with 403 for non-admin users — fall back to role_profile_name.
-    let userRolesMap: Record<string, string[]> = {}
-    try {
-      const roleEntries = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Has Role',
-        filters: `[["parenttype", "=", "User"], ["role", "!=", "All"]]`,
-        fields: '["parent", "role"]',
-        limit_page_length: 0
-      }) as any[]
-
-      if (Array.isArray(roleEntries)) {
-        for (const entry of roleEntries) {
-          const parent = entry.parent
-          if (!userRolesMap[parent]) userRolesMap[parent] = []
-          userRolesMap[parent].push(entry.role)
-        }
-      }
-    } catch {
-      // 403 expected for non-System Manager users — fall back to role_profile_name
-    }
-
-    // Derive primary role for each user
+    // Derive primary role for each user from role_profile_name
+    // (querying Has Role child table requires System Manager and generates 403 noise)
     const roleHierarchy = [
       'System Manager', 'Sales Manager', 'Accounts Manager',
       'Projects Manager', 'Stock Manager', 'Sales User',
       'Accounts User', 'Projects User', 'Stock User',
     ]
 
+    // Map role_profile_name to the primary display role
+    const PROFILE_PRIMARY: Record<string, string> = {
+      'Administrator': 'System Manager',
+      'System Manager': 'System Manager',
+      'Sales Manager': 'Sales Manager',
+      'Sales User': 'Sales User',
+      'Accounts Manager': 'Accounts Manager',
+      'Accounts User': 'Accounts User',
+      'Projects Manager': 'Projects Manager',
+      'Projects User': 'Projects User',
+      'Standard User': 'Employee',
+    }
+
     return users.map((u: any) => {
-      const roles = userRolesMap[u.name] || userRolesMap[u.email] || []
-      const primaryRole = roleHierarchy.find(r => roles.includes(r)) || u.role_profile_name || null
+      const primaryRole = PROFILE_PRIMARY[u.role_profile_name] || u.role_profile_name || null
       return { ...u, primary_role: primaryRole }
     })
   } catch (error) {
