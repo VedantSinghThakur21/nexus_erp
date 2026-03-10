@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest, getTenantContext } from '@/app/lib/api'
+import { frappeRequest } from '@/app/lib/api'
 import { cookies } from 'next/headers'
 
 export interface UserProfile {
@@ -38,15 +38,12 @@ export async function getUserProfile(): Promise<UserProfile | null> {
         // Fetch user's primary role
         let role = 'User'
         try {
-            const context = await getTenantContext()
-            // Fetch user document with roles to avoid child table permission issues
+            // Fetch user document with roles using user's own tenant credentials.
+            // Users can read their own User doc in Frappe.
             const userDoc = await frappeRequest('frappe.client.get', 'POST', {
                 doctype: 'User',
                 name: userEmail,
                 fields: JSON.stringify(['name', 'roles'])
-            }, {
-                useMasterCredentials: true,
-                siteOverride: context.siteName
             }) as any
 
             const roles = userDoc?.roles || []

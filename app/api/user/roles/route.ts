@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { frappeRequest, getTenantContext } from '@/app/lib/api'
+import { frappeRequest } from '@/app/lib/api'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,10 +21,9 @@ export async function GET(request: NextRequest) {
       throw new Error('No user logged in')
     }
 
-    const context = await getTenantContext()
-
-    // Now fetch full user details with roles using the actual email
-    // Use master credentials to bypass read restrictions on User roles child table
+    // Fetch full user details with roles using the tenant user's own credentials.
+    // Users can read their own User doc in Frappe — no master credentials needed.
+    // Master credentials only work on the master site, not on tenant sites.
     const response = await frappeRequest(
       'frappe.client.get',
       'POST',
@@ -32,10 +31,6 @@ export async function GET(request: NextRequest) {
         doctype: 'User',
         name: userEmail,
         fields: JSON.stringify(['name', 'email', 'full_name', 'roles']),
-      },
-      {
-        useMasterCredentials: true,
-        siteOverride: context.siteName
       }
     ) as any
 
