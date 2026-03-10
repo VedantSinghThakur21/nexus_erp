@@ -18,6 +18,9 @@ interface TeamMember {
   user_type: string;
   role_profile_name?: string;
   primary_role?: string;
+  actual_roles?: string[];
+  modules_count?: number;
+  has_broken_roles?: boolean;
 }
 
 function getRoleBadgeLabel(member: TeamMember): string {
@@ -328,11 +331,13 @@ export default function TeamPage() {
                       const isProtected =
                         member.email === "Administrator" ||
                         member.email === "administrator@example.com";
+                      const hasBrokenAccess = member.has_broken_roles;
+                      const modulesCount = member.modules_count ?? 0;
 
                       return (
                         <div
                           key={member.email}
-                          className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                          className={`p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${hasBrokenAccess ? 'border-l-2 border-amber-400' : ''}`}
                         >
                           <div className="flex flex-wrap items-center justify-between gap-4">
                             <div className="flex-1">
@@ -340,22 +345,32 @@ export default function TeamPage() {
                                 <span className="text-base font-bold text-primary">
                                   {member.first_name} {member.last_name || ""}
                                 </span>
-                                {isAdmin && (
+                                {hasBrokenAccess ? (
+                                  <span className="px-2.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-full uppercase tracking-wide flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">warning</span>
+                                    No Access
+                                  </span>
+                                ) : isAdmin ? (
                                   <span className="px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold rounded-full uppercase tracking-wide">
                                     {roleLabel}
                                   </span>
-                                )}
-                                {!isAdmin && (
+                                ) : (
                                   <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded-full uppercase tracking-wide">
                                     {roleLabel}
                                   </span>
                                 )}
+                                {!hasBrokenAccess && modulesCount > 0 && (
+                                  <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-semibold rounded-full border border-emerald-100 dark:border-emerald-800">
+                                    {modulesCount} module{modulesCount !== 1 ? 's' : ''}
+                                  </span>
+                                )}
                                 {aiInsight && (
                                   <span
-                                    className={`flex items-center gap-1.5 ${aiInsight.color === "purple"
-                                      ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800"
-                                      : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800"
-                                      } px-3 py-1 rounded-full text-[11px] font-semibold border`}
+                                    className={`flex items-center gap-1.5 ${
+                                      aiInsight.color === "purple"
+                                        ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800"
+                                        : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800"
+                                    } px-3 py-1 rounded-full text-[11px] font-semibold border`}
                                   >
                                     <span className="material-symbols-outlined text-[14px]">
                                       {aiInsight.icon}
@@ -366,34 +381,35 @@ export default function TeamPage() {
                               </div>
                               <div className="flex items-center gap-8 text-sm text-slate-500">
                                 <span className="flex items-center gap-2">
-                                  <span className="material-symbols-outlined text-[18px]">
-                                    mail
-                                  </span>
+                                  <span className="material-symbols-outlined text-[18px]">mail</span>
                                   {member.email}
                                 </span>
-                                <span
-                                  className={`flex items-center gap-2 ${!member.last_login
-                                    ? "text-amber-600 font-medium"
-                                    : ""
-                                    }`}
-                                >
-                                  <span className="material-symbols-outlined text-[18px]">
-                                    history
-                                  </span>
+                                <span className={`flex items-center gap-2 ${!member.last_login ? 'text-amber-600 font-medium' : ''}` }>
+                                  <span className="material-symbols-outlined text-[18px]">history</span>
                                   Last login: {formatDate(member.last_login)}
                                 </span>
+                                {hasBrokenAccess && (
+                                  <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium text-xs">
+                                    <span className="material-symbols-outlined text-[14px]">info</span>
+                                    Click &ldquo;Edit Permissions&rdquo; to assign a role
+                                  </span>
+                                )}
                               </div>
                             </div>
 
                             <div className="flex items-center gap-4">
                               <button
                                 onClick={() => handleEditPermissions(member)}
-                                className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors flex items-center gap-2 text-sm font-semibold"
+                                className={`transition-colors flex items-center gap-2 text-sm font-semibold ${
+                                  hasBrokenAccess
+                                    ? 'text-amber-600 dark:text-amber-400 hover:text-amber-700'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-primary'
+                                }`}
                               >
                                 <span className="material-symbols-outlined text-[20px]">
-                                  admin_panel_settings
+                                  {hasBrokenAccess ? 'assignment_ind' : 'admin_panel_settings'}
                                 </span>
-                                Edit Permissions
+                                {hasBrokenAccess ? 'Fix Permissions' : 'Edit Permissions'}
                               </button>
                               {!isProtected && (
                                 <button
@@ -406,9 +422,7 @@ export default function TeamPage() {
                                   disabled={removingEmail === member.email}
                                   className="text-slate-400 hover:text-red-500 transition-colors flex items-center gap-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  <span className="material-symbols-outlined text-[20px]">
-                                    person_remove
-                                  </span>
+                                  <span className="material-symbols-outlined text-[20px]">person_remove</span>
                                   {removingEmail === member.email ? "Removing..." : "Remove"}
                                 </button>
                               )}

@@ -6,8 +6,9 @@
 'use server'
 
 import { frappeRequest } from '@/app/lib/api'
-import { canAccessModule, getPrimaryRole } from '@/lib/role-permissions'
+import { canAccessModule, getPrimaryRole, getAccessibleModules } from '@/lib/role-permissions'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 
 /**
  * Fetch current user's roles from Frappe backend
@@ -79,67 +80,99 @@ export async function isSystemManager(): Promise<boolean> {
 
 /**
  * Update user roles
+ * 
+ * Uses frappe.client.save (requires System Manager) to replace the user's
+ * roles child table and clear role_profile_name so it doesn't override.
+ * Falls back to the provisioning service if direct save fails.
  */
 export async function updateUserRoles(email: string, roles: string[]) {
   try {
-    // 1. Fetch current user to get their ID/Name (usually email for System Users)
-    // We already have email passed in, which is the 'name' of the User doctype
+    // Step 1: Fetch the full user doc (child tables included when no fields restriction)
+    const docResponse = await frappeRequest('frappe.client.get', 'POST', {
+      doctype: 'User',
+      name: email,
+    }) as any
+    const userDoc = docResponse?.message || docResponse
 
-    // 2. Prepare the roles structure for Frappe
-    // Frappe expects a list of dicts: [{"role": "System Manager"}, ...]
-    const rolesList = roles.map(role => ({ role }))
-
-    // 3. Update the user
-    // We use frappe.client.set_value or save logic
-    // But child tables are tricky. It's often better to save the whole doc or use a specific setter.
-    // Let's try writing to the 'roles' child table directly if possible, or updating the doc.
-
-    // Best approach for Frappe API: update the document with the new child table
-    const response = await frappeRequest(
-      'frappe.client.set_value',
-      'POST',
-      {
-        doctype: 'User',
-        name: email,
-        fieldname: 'roles',
-        value: rolesList // Send as object, not string
-      }
-    ) as any
-
-    if (response) {
-      return { success: true }
-    } else {
-      console.error('Failed to update roles', response)
-      return { success: false, error: 'Failed to update roles in backend' }
+    if (!userDoc || !userDoc.name) {
+      throw new Error(`User ${email} not found`)
     }
+
+    // Step 2: Clear role_profile_name so it doesn't silently override explicit roles
+    userDoc.role_profile_name = null
+
+    // Step 3: Replace roles child table with new set
+    userDoc.roles = roles.map(role => ({
+      doctype: 'Has Role',
+      role,
+      parent: email,
+      parenttype: 'User',
+      parentfield: 'roles',
+    }))
+
+    // Step 4: Save the full doc (requires write permission on User — needs System Manager)
+    await frappeRequest('frappe.client.save', 'POST', { doc: userDoc })
+
+    console.log(`[updateUserRoles] Saved roles for ${email}:`, roles)
+    return { success: true }
   } catch (error: any) {
-    console.error('Error updating user roles:', error)
-    return { success: false, error: error.message || 'Failed to update roles' }
+    console.error('[updateUserRoles] Direct save failed, trying provisioning service:', error.message)
+
+    // Fallback: provisioning service (ignore_permissions)
+    try {
+      const headersList = await headers()
+      const subdomain = headersList.get('x-tenant-id')
+      if (!subdomain) throw new Error('No subdomain context')
+
+      const { assignUserRoles } = await import('@/lib/provisioning-client')
+      await assignUserRoles(subdomain, email, roles)
+      console.log(`[updateUserRoles] Provisioning service assigned roles for ${email}`)
+      return { success: true }
+    } catch (provErr: any) {
+      console.error('[updateUserRoles] Both methods failed:', provErr.message)
+      return { success: false, error: `Failed to update roles: ${error.message}` }
+    }
   }
 }
 
 /**
- * Get roles for a specific user
+ * Get roles for a specific user (and their module access count)
  */
 export async function getUserRolesForUser(email: string): Promise<string[]> {
   try {
-    const response = await frappeRequest(
-      'frappe.client.get',
-      'POST',
-      {
-        doctype: 'User',
-        name: email,
-        fields: JSON.stringify(['name', 'roles']),
-      }
-    ) as any
+    // Do NOT restrict fields — child tables (roles) are only returned in the full doc
+    const response = await frappeRequest('frappe.client.get', 'POST', {
+      doctype: 'User',
+      name: email,
+    }) as any
 
-    const user = response.message || response
+    const user = response?.message || response
 
-    return Array.isArray(user.roles)
-      ? user.roles.map((r: any) => r.role || r.name)
-      : []
+    if (Array.isArray(user?.roles) && user.roles.length > 0) {
+      return user.roles
+        .map((r: any) => r.role || r.name)
+        .filter((r: string) => r && r !== 'All')
+    }
+    return []
   } catch (error) {
     console.error(`[getUserRolesForUser] Failed to fetch roles for ${email}:`, error)
     return []
+  }
+}
+
+/**
+ * Get roles + accessible module count for a user (used by team page)
+ */
+export async function getUserAccessSummary(email: string): Promise<{
+  roles: string[]
+  modulesCount: number
+  hasBrokenAccess: boolean
+}> {
+  const roles = await getUserRolesForUser(email)
+  const modules = getAccessibleModules(roles)
+  return {
+    roles,
+    modulesCount: modules.length,
+    hasBrokenAccess: roles.length === 0,
   }
 }
