@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { frappeRequest } from '@/app/lib/api'
+import { frappeRequest, getTenantContext } from '@/app/lib/api'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,12 +16,15 @@ export async function GET(request: NextRequest) {
     ) as any
 
     const userEmail = userInfoResponse.message || userInfoResponse
-    
+
     if (!userEmail) {
       throw new Error('No user logged in')
     }
 
+    const context = await getTenantContext()
+
     // Now fetch full user details with roles using the actual email
+    // Use master credentials to bypass read restrictions on User roles child table
     const response = await frappeRequest(
       'frappe.client.get',
       'POST',
@@ -29,6 +32,10 @@ export async function GET(request: NextRequest) {
         doctype: 'User',
         name: userEmail,
         fields: JSON.stringify(['name', 'email', 'full_name', 'roles']),
+      },
+      {
+        useMasterCredentials: true,
+        siteOverride: context.siteName
       }
     ) as any
 
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('[API /user/roles] Failed to fetch roles:', error)
-    
+
     return NextResponse.json(
       {
         success: false,

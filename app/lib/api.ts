@@ -43,7 +43,7 @@ interface ApiRequestOptions {
  * Read tenant context from headers (injected by middleware)
  * Returns comprehensive tenant information for API routing
  */
-async function getTenantContext(): Promise<TenantContext> {
+export async function getTenantContext(): Promise<TenantContext> {
   try {
     const headersList = await headers()
     const cookieStore = await cookies()
