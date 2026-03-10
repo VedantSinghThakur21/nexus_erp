@@ -17,13 +17,14 @@ interface TeamMember {
   last_login?: string;
   user_type: string;
   role_profile_name?: string;
+  primary_role?: string;
 }
 
-function getRoleBadgeLabel(roleProfile?: string): string {
-  if (!roleProfile) return 'Member';
-  if (roleProfile === 'Administrator') return 'Admin';
-  // Strip " User" or " Manager" suffix for a compact label
-  return roleProfile.replace(' Manager', ' Mgr').replace(' User', '');
+function getRoleBadgeLabel(member: TeamMember): string {
+  const role = member.primary_role || member.role_profile_name
+  if (!role) return 'Member';
+  if (role === 'System Manager' || role === 'Administrator') return 'Admin';
+  return role.replace(' Manager', ' Mgr').replace(' User', '');
 }
 
 export default function TeamPage() {
@@ -322,8 +323,8 @@ export default function TeamPage() {
                   ) : (
                     filteredMembers.map((member) => {
                       const aiInsight = getAIInsight(member);
-                      const isAdmin = member.role_profile_name === 'Administrator';
-                      const roleLabel = getRoleBadgeLabel(member.role_profile_name);
+                      const isAdmin = member.primary_role === 'System Manager' || member.role_profile_name === 'Administrator';
+                      const roleLabel = getRoleBadgeLabel(member);
                       const isProtected =
                         member.email === "Administrator" ||
                         member.email === "administrator@example.com";

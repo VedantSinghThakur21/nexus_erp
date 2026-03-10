@@ -589,6 +589,53 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         // Continue — user can still use the app via session cookie (sid)
       }
 
+      // ── Normalize roles: clear stale role_profile_name on every login ──
+      // Existing users may have role_profile_name set from old invite code.
+      // Frappe's role_profile_name silently overrides explicit roles, causing
+      // the app to see wrong permissions.  We fetch the user doc via the
+      // provisioning service (ignore_permissions), and if role_profile_name
+      // is set, re-assign the same roles without the profile override.
+      if (userEmail) {
+        try {
+          const { assignUserRoles } = await import('@/lib/provisioning-client')
+          // Fetch user doc to check role_profile_name and current roles
+          const userDoc = await (() => {
+            // Use a raw fetch with session cookie to get the user doc from the tenant site
+            return fetch(`${masterUrl}/api/method/frappe.client.get`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cookie': `sid=${setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''}`,
+                'X-Frappe-Site-Name': siteName,
+                'Host': siteName,
+              },
+              body: JSON.stringify({
+                doctype: 'User',
+                name: userEmail,
+                fields: JSON.stringify(['name', 'role_profile_name', 'roles']),
+              }),
+            }).then(r => r.json()).then(d => d.message || d)
+          })()
+
+          const hasRoleProfile = !!(userDoc?.role_profile_name)
+          if (hasRoleProfile) {
+            // Extract current role names (excluding 'All')
+            const currentRoles = (userDoc.roles || [])
+              .map((r: any) => r.role || r.name)
+              .filter((r: string) => r && r !== 'All')
+
+            if (currentRoles.length > 0) {
+              console.log(`⚠️ User ${userEmail} has role_profile_name="${userDoc.role_profile_name}" — normalizing roles: ${currentRoles.join(', ')}`)
+              await assignUserRoles(tenant.subdomain, userEmail, currentRoles)
+              console.log('✅ Roles normalized — role_profile_name cleared')
+            }
+          }
+        } catch (roleNormErr: any) {
+          // Non-fatal — role normalization is best-effort
+          console.warn('⚠️ Role normalization failed (non-fatal):', roleNormErr.message)
+        }
+      }
+
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
       const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'
       const redirectUrl = `${protocol}://${tenant.subdomain}.${baseHost}/dashboard`

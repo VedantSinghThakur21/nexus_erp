@@ -99,7 +99,9 @@ function formatRoleName(role: string): string {
         'Projects Manager': 'Projects Manager',
         'Accounts Manager': 'Finance Manager',
         'HR Manager': 'HR Manager',
-        'Employee': 'Team Member'
+        'Employee': 'Team Member',
+        'User': 'Team Member',
+        'Guest': 'Guest'
     }
     return displayNames[role] || role
 }

@@ -172,7 +172,38 @@ export async function getTeamMembers(): Promise<any[]> {
       limit_page_length: 100
     }) as any[]
     
-    return users || []
+    if (!users || users.length === 0) return []
+
+    // Fetch roles for all users via Has Role child table
+    const roleEntries = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Has Role',
+      filters: `[["parenttype", "=", "User"], ["role", "!=", "All"]]`,
+      fields: '["parent", "role"]',
+      limit_page_length: 0
+    }) as any[]
+
+    // Build a map of user → roles
+    const userRolesMap: Record<string, string[]> = {}
+    if (Array.isArray(roleEntries)) {
+      for (const entry of roleEntries) {
+        const parent = entry.parent
+        if (!userRolesMap[parent]) userRolesMap[parent] = []
+        userRolesMap[parent].push(entry.role)
+      }
+    }
+
+    // Derive primary role for each user
+    const roleHierarchy = [
+      'System Manager', 'Sales Manager', 'Accounts Manager',
+      'Projects Manager', 'Stock Manager', 'Sales User',
+      'Accounts User', 'Projects User', 'Stock User',
+    ]
+
+    return users.map((u: any) => {
+      const roles = userRolesMap[u.name] || userRolesMap[u.email] || []
+      const primaryRole = roleHierarchy.find(r => roles.includes(r)) || u.role_profile_name || null
+      return { ...u, primary_role: primaryRole }
+    })
   } catch (error) {
     console.error('Failed to fetch team members:', error)
     return []
