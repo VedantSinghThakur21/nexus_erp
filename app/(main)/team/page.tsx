@@ -6,6 +6,7 @@ import { InviteTeamMemberDialog } from "@/components/team/invite-team-member-dia
 import { EditPermissionsDialog } from "@/components/team/edit-permissions-dialog";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { useUser } from "@/contexts/user-context";
 
 interface TeamMember {
   name: string;
@@ -31,6 +32,7 @@ function getRoleBadgeLabel(member: TeamMember): string {
 }
 
 export default function TeamPage() {
+  const { canAccess, loading: rolesLoading } = useUser();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -175,6 +177,22 @@ export default function TeamPage() {
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <InviteTeamMemberDialog />
       </PageHeader>
+
+      {/* Access denied guard */}
+      {!rolesLoading && !canAccess('team') && (
+        <main className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center space-y-3">
+            <span className="material-symbols-outlined text-[48px] text-slate-300">lock</span>
+            <p className="text-slate-500 font-medium">You don&apos;t have permission to manage the team.</p>
+            <p className="text-slate-400 text-sm">This page is restricted to System Administrators.</p>
+            <Link href="/dashboard" className="inline-block mt-2 text-sm font-semibold text-primary hover:underline">
+              Back to Dashboard
+            </Link>
+          </div>
+        </main>
+      )}
+
+      {rolesLoading || !canAccess('team') ? null : (<>
 
       {/* Permissions Dialog */}
       <EditPermissionsDialog
@@ -468,6 +486,7 @@ export default function TeamPage() {
         </div>
 
       </main>
+      </>)}
     </div>
   );
 }

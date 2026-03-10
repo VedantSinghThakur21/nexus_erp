@@ -174,38 +174,22 @@ export async function getTeamMembers(): Promise<any[]> {
     
     if (!users || users.length === 0) return []
 
-    const roleHierarchy = [
-      'System Manager', 'Sales Manager', 'Accounts Manager',
-      'Projects Manager', 'Stock Manager', 'Sales User',
-      'Accounts User', 'Projects User', 'Stock User', 'Employee',
-    ]
-
-    // Batch-fetch all Has Role docs for all users at once.
-    // This works when the caller has System Manager (admin on team page).
-    let rolesByEmail: Record<string, string[]> = {}
-    try {
-      const emails = users.map(u => u.name)
-      const emailList = emails.map(e => `"${e}"`).join(',')
-      const hasRoleDocs = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Has Role',
-        filters: `[["parenttype", "=", "User"], ["parent", "in", [${emailList}]]]`,
-        fields: '["parent", "role"]',
-        limit_page_length: 1000
-      }) as any[]
-
-      if (Array.isArray(hasRoleDocs)) {
-        hasRoleDocs.forEach((doc: any) => {
-          if (doc.parent && doc.role && doc.role !== 'All') {
-            if (!rolesByEmail[doc.parent]) rolesByEmail[doc.parent] = []
-            rolesByEmail[doc.parent].push(doc.role)
-          }
-        })
-      }
-    } catch {
-      // Has Role query requires System Manager — silently fall back to profile-based
+    // Map role_profile_name → roles and primary role (avoids querying Has Role child table
+    // which triggers check_parent_permission and causes 403 errors in Frappe v15)
+    const PROFILE_ROLES: Record<string, string[]> = {
+      'Administrator': ['System Manager'],
+      'System Manager': ['System Manager'],
+      'Sales Manager': ['Sales Manager', 'Sales User'],
+      'Sales User': ['Sales User'],
+      'Accounts Manager': ['Accounts Manager', 'Accounts User'],
+      'Accounts User': ['Accounts User'],
+      'Projects Manager': ['Projects Manager', 'Projects User'],
+      'Projects User': ['Projects User'],
+      'Stock Manager': ['Stock Manager', 'Stock User'],
+      'Stock User': ['Stock User'],
+      'Standard User': ['Employee', 'Sales User'],
     }
 
-    // Map role_profile_name → primary role for users whose Has Role fetch returned nothing
     const PROFILE_PRIMARY: Record<string, string> = {
       'Administrator': 'System Manager',
       'System Manager': 'System Manager',
@@ -215,39 +199,26 @@ export async function getTeamMembers(): Promise<any[]> {
       'Accounts User': 'Accounts User',
       'Projects Manager': 'Projects Manager',
       'Projects User': 'Projects User',
+      'Stock Manager': 'Stock Manager',
+      'Stock User': 'Stock User',
       'Standard User': 'Employee',
     }
 
     const { getAccessibleModules } = await import('@/lib/role-permissions')
 
     return users.map((u: any) => {
-      let actualRoles = rolesByEmail[u.name] || []
-      
-      // If no roles from Has Role query, fall back to role_profile_name mapping
-      if (actualRoles.length === 0 && u.role_profile_name) {
-        const PROFILE_ROLES: Record<string, string[]> = {
-          'Administrator': ['System Manager'],
-          'System Manager': ['System Manager'],
-          'Sales Manager': ['Sales Manager', 'Sales User'],
-          'Sales User': ['Sales User'],
-          'Accounts Manager': ['Accounts Manager', 'Accounts User'],
-          'Accounts User': ['Accounts User'],
-          'Projects Manager': ['Projects Manager', 'Projects User'],
-          'Projects User': ['Projects User'],
-          'Standard User': ['Employee', 'Sales User'],
-        }
-        actualRoles = PROFILE_ROLES[u.role_profile_name] || []
-      }
-
-      const primaryRole = roleHierarchy.find(r => actualRoles.includes(r)) || PROFILE_PRIMARY[u.role_profile_name] || null
+      const actualRoles = PROFILE_ROLES[u.role_profile_name] || []
+      const primaryRole = PROFILE_PRIMARY[u.role_profile_name] || null
       const accessibleModules = getAccessibleModules(actualRoles)
+      // A user is "broken" if they have no role profile set (no access will be granted)
+      const hasBrokenRoles = !u.role_profile_name
 
       return {
         ...u,
         primary_role: primaryRole,
         actual_roles: actualRoles,
         modules_count: accessibleModules.length,
-        has_broken_roles: actualRoles.length === 0,
+        has_broken_roles: hasBrokenRoles,
       }
     })
   } catch (error) {

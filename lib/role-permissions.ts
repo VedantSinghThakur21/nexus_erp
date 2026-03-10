@@ -77,7 +77,7 @@ export const MODULE_PERMISSIONS: Record<string, string[]> = {
     'Stock User',
   ],
   'pricing-rules': ['System Manager', 'Sales Manager', 'Accounts Manager'],
-  team: ['System Manager', 'Sales Manager', 'Projects Manager', 'Stock Manager'],
+  team: ['System Manager'],
   'admin-tenants': ['System Manager'],
   settings: ['System Manager'],
 }
