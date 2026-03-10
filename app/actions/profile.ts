@@ -43,26 +43,30 @@ export async function getUserProfile(): Promise<UserProfile | null> {
             const userDoc = await frappeRequest('frappe.client.get', 'POST', {
                 doctype: 'User',
                 name: userEmail,
-                fields: JSON.stringify(['name', 'roles'])
+                fields: JSON.stringify(['name', 'roles', 'role_profile_name'])
             }) as any
 
             const roles = userDoc?.roles || []
-            if (roles && roles.length > 0) {
-                // Priority order for display
-                const roleHierarchy = [
-                    'System Manager',
-                    'Sales Manager',
-                    'Sales User',
-                    'Projects Manager',
-                    'Accounts Manager',
-                    'HR Manager',
-                    'Employee'
-                ]
-                const userRoles = roles
-                    .map((r: any) => r.role)
-                    .filter((r: string) => r !== 'All')
-                const primaryRole = roleHierarchy.find(r => userRoles.includes(r)) || userRoles[0]
+            // Priority order for display
+            const roleHierarchy = [
+                'System Manager',
+                'Sales Manager',
+                'Sales User',
+                'Projects Manager',
+                'Accounts Manager',
+                'HR Manager',
+                'Employee'
+            ]
+            const userRoles = roles
+                .map((r: any) => r.role)
+                .filter((r: string) => r && r !== 'All')
+            const primaryRole = roleHierarchy.find(r => userRoles.includes(r)) || userRoles[0]
+            if (primaryRole) {
                 role = primaryRole
+            } else if (userDoc?.role_profile_name) {
+                // Roles array empty but profile name set — derive role from profile name
+                const profileRole = roleHierarchy.find(r => r === userDoc.role_profile_name) || userDoc.role_profile_name
+                role = profileRole
             }
         } catch {
             // Silently ignore role fetch errors

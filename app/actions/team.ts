@@ -174,22 +174,27 @@ export async function getTeamMembers(): Promise<any[]> {
     
     if (!users || users.length === 0) return []
 
-    // Fetch roles for all users via Has Role child table
-    const roleEntries = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Has Role',
-      filters: `[["parenttype", "=", "User"], ["role", "!=", "All"]]`,
-      fields: '["parent", "role"]',
-      limit_page_length: 0
-    }) as any[]
+    // Try to fetch roles for all users via Has Role child table.
+    // This requires blanket User read permission (System Manager), so it may
+    // fail with 403 for non-admin users — fall back to role_profile_name.
+    let userRolesMap: Record<string, string[]> = {}
+    try {
+      const roleEntries = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Has Role',
+        filters: `[["parenttype", "=", "User"], ["role", "!=", "All"]]`,
+        fields: '["parent", "role"]',
+        limit_page_length: 0
+      }) as any[]
 
-    // Build a map of user → roles
-    const userRolesMap: Record<string, string[]> = {}
-    if (Array.isArray(roleEntries)) {
-      for (const entry of roleEntries) {
-        const parent = entry.parent
-        if (!userRolesMap[parent]) userRolesMap[parent] = []
-        userRolesMap[parent].push(entry.role)
+      if (Array.isArray(roleEntries)) {
+        for (const entry of roleEntries) {
+          const parent = entry.parent
+          if (!userRolesMap[parent]) userRolesMap[parent] = []
+          userRolesMap[parent].push(entry.role)
+        }
       }
+    } catch {
+      // 403 expected for non-System Manager users — fall back to role_profile_name
     }
 
     // Derive primary role for each user

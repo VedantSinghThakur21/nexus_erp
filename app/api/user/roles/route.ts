@@ -37,9 +37,27 @@ export async function GET(request: NextRequest) {
     const user = response.message || response
 
     // Extract role names from the roles array
-    const roles = Array.isArray(user.roles)
-      ? user.roles.map((r: any) => r.role || r.name)
+    let roles = Array.isArray(user.roles)
+      ? user.roles.map((r: any) => r.role || r.name).filter((r: string) => r && r !== 'All')
       : []
+
+    // If user has role_profile_name but roles array is empty/minimal,
+    // derive roles from the profile name as a fallback.
+    // This handles users whose roles are managed by an outdated role profile.
+    if (roles.length === 0 && user.role_profile_name) {
+      const PROFILE_ROLES: Record<string, string[]> = {
+        'Administrator': ['System Manager'],
+        'System Manager': ['System Manager'],
+        'Sales Manager': ['Sales Manager', 'Sales User'],
+        'Sales User': ['Sales User'],
+        'Accounts Manager': ['Accounts Manager', 'Accounts User'],
+        'Accounts User': ['Accounts User'],
+        'Projects Manager': ['Projects Manager', 'Projects User'],
+        'Projects User': ['Projects User'],
+        'Standard User': ['Employee'],
+      }
+      roles = PROFILE_ROLES[user.role_profile_name] || roles
+    }
 
     return NextResponse.json({
       success: true,

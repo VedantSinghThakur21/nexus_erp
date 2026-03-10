@@ -617,16 +617,45 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             }).then(r => r.json()).then(d => d.message || d)
           })()
 
-          const hasRoleProfile = !!(userDoc?.role_profile_name)
-          if (hasRoleProfile) {
-            // Extract current role names (excluding 'All')
-            const currentRoles = (userDoc.roles || [])
-              .map((r: any) => r.role || r.name)
-              .filter((r: string) => r && r !== 'All')
+          const profileName = userDoc?.role_profile_name
+          if (profileName) {
+            // Map role_profile_name to proper ROLE_SETS.
+            // The roles child table may be empty or auto-managed by the profile,
+            // so we derive the correct roles from the profile name itself.
+            const PROFILE_TO_ROLES: Record<string, string[]> = {
+              'Administrator': ['System Manager'],
+              'System Manager': ['System Manager'],
+              'Sales Manager': ['Sales Manager', 'Sales User'],
+              'Sales User': ['Sales Manager', 'Sales User'],
+              'Accounts Manager': ['Accounts Manager', 'Accounts User'],
+              'Accounts User': ['Accounts Manager', 'Accounts User'],
+              'Projects Manager': ['Projects Manager', 'Projects User'],
+              'Projects User': ['Projects Manager', 'Projects User'],
+              'Stock Manager': ['Stock Manager', 'Stock User'],
+              'Stock User': ['Stock Manager', 'Stock User'],
+              'Standard User': ['Employee'],
+              'Employee': ['Employee'],
+              // Role type keys (from old invite form)
+              'admin': ['System Manager'],
+              'sales': ['Sales Manager', 'Sales User'],
+              'accounts': ['Accounts Manager', 'Accounts User'],
+              'projects': ['Projects Manager', 'Projects User'],
+              'member': ['Employee'],
+            }
 
-            if (currentRoles.length > 0) {
-              console.log(`⚠️ User ${userEmail} has role_profile_name="${userDoc.role_profile_name}" — normalizing roles: ${currentRoles.join(', ')}`)
-              await assignUserRoles(tenant.subdomain, userEmail, currentRoles)
+            // Use mapped roles, or fall back to reading current roles from doc
+            let rolesToAssign = PROFILE_TO_ROLES[profileName]
+            if (!rolesToAssign) {
+              // Unknown profile — read current roles as fallback
+              const currentRoles = (userDoc.roles || [])
+                .map((r: any) => r.role || r.name)
+                .filter((r: string) => r && r !== 'All')
+              if (currentRoles.length > 0) rolesToAssign = currentRoles
+            }
+
+            if (rolesToAssign && rolesToAssign.length > 0) {
+              console.log(`⚠️ User ${userEmail} has role_profile_name="${profileName}" — normalizing roles: ${rolesToAssign.join(', ')}`)
+              await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
               console.log('✅ Roles normalized — role_profile_name cleared')
             }
           }
