@@ -607,10 +607,11 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
 
       // Detect first-time login (invited users with temp passwords).
-      // We use Frappe's login_before counter: Frappe increments it during every login.
-      // After the very first login login_before == 1, so we redirect to change-password.
-      // We MUST use the user's own SID here — master credentials (ERP_API_KEY) return 401
-      // on tenant sites, making every login look like a "first login".
+      // Frappe stores the PREVIOUS login time in last_login, so on a brand-new user's
+      // very first login it is still null — perfect signal for "never logged in before".
+      // We MUST use the user's own SID here — master credentials (ERP_API_KEY) return
+      // 401 on tenant sites and would cause last_login to always appear null, making
+      // every login redirect to change-password.
       let requirePasswordChange = false
       if (userEmail) {
         try {
@@ -620,22 +621,25 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             headers: {
               'Content-Type': 'application/json',
               'X-Frappe-Site-Name': siteName,
-              ...(sidForCheck ? { 'Cookie': `sid=${sidForCheck}` } : {}),
+              ...(sidForCheck ? { Cookie: `sid=${sidForCheck}` } : {}),
             },
             body: JSON.stringify({
               doctype: 'User',
               filters: userEmail,
-              fieldname: 'login_before'
+              fieldname: 'last_login',
             })
           })
-          const userInfoData = await userInfo.json()
-          // login_before == 1 means Frappe just incremented it from 0 → this is the first ever login
-          if (userInfo.ok && userInfoData?.message?.login_before === 1) {
-            requirePasswordChange = true
+          if (userInfo.ok) {
+            const userInfoData = await userInfo.json()
+            const lastLogin = userInfoData?.message?.last_login
+            // null/empty = first ever login → prompt to set a real password
+            if (!lastLogin) {
+              requirePasswordChange = true
+            }
           }
-          // If check fails for any reason, default to NOT requiring change (safe default)
+          // If the request fails for any reason, default to NOT requiring change
         } catch {
-          // Non-fatal — don't redirect if detection fails
+          // Non-fatal — don't block login if detection fails
         }
       }
 
