@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
+import { AIFraudCheck } from "@/components/payments/ai-fraud-check"
 
 interface PaymentEntry {
   name: string
@@ -299,9 +300,7 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-bold rounded border ${fraudCheck.color}`}>
-                              <span className="material-symbols-outlined text-[12px] mr-1">{fraudCheck.icon}</span> {fraudCheck.label}
-                            </span>
+                            <AIFraudCheck payment={payment} />
                           </td>
                           <td className="px-6 py-4 text-center">
                             <button

@@ -14,6 +14,23 @@ export async function POST(
         const body = await req.json();
         const { inputs, user } = body;
 
+        // Extract tenant for multi-tenancy
+        const cookieStore = req.cookies;
+        const tenantApiKey = cookieStore.get('tenant_api_key')?.value;
+        const xFrappeSiteName = req.headers.get('x-frappe-site-name');
+        
+        let tenantIdentifier = 'nexus-system';
+        if (tenantApiKey) {
+            // we could decode it or just use the existence to know it's a tenant
+            tenantIdentifier = 'tenant-api-user'; 
+        } 
+        if (xFrappeSiteName) {
+            tenantIdentifier = xFrappeSiteName;
+        }
+
+        // Prefer explicit user > extracted tenant > fallback
+        const difyUser = user || tenantIdentifier;
+
         let apiKey = '';
 
         // Select the correct API Key based on the action
@@ -47,7 +64,7 @@ export async function POST(
             body: JSON.stringify({
                 inputs: inputs || {}, // e.g. { "inspection_data": "..." }
                 response_mode: 'blocking', // Wait for full answer
-                user: user || 'nexus-system',
+                user: difyUser,
             }),
         });
 

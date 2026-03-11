@@ -1,8 +1,8 @@
 "use client"
-
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
+import { Loader2 } from "lucide-react"
 
 interface Booking {
   name: string
@@ -27,10 +27,45 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [statusFilter, setStatusFilter] = useState<string>('All Statuses')
 
+  // AI State
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiForecast, setAiForecast] = useState<any>(null)
+
   const today = new Date()
   const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ]
+
+  // Fetch AI Forecast
+  useEffect(() => {
+    const fetchForecast = async () => {
+      setAiLoading(true)
+      try {
+        const res = await fetch('/api/ai/forecast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             inputs: {
+                bookings_summary: JSON.stringify({
+                   total: bookings.length,
+                   active: bookings.filter(b => b.status === 'To Deliver and Bill' || b.per_delivered > 0).length
+                })
+             }
+          })
+        })
+        if (res.ok) {
+           const data = await res.json()
+           setAiForecast(data.result)
+        }
+      } catch (err) {
+         console.error("Failed to fetch AI forecast", err)
+      } finally {
+         setAiLoading(false)
+      }
+    }
+    
+    fetchForecast()
+  }, [])
 
   // Calculate KPIs
   const totalBookings = bookings.length
@@ -43,8 +78,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
     })
     .reduce((sum, b) => sum + b.grand_total, 0)
 
-  // AI Occupancy Forecast (mock for now)
-  const aiOccupancyForecast = 88
+  // AI Occupancy Forecast (dynamic or fallback)
+  const aiOccupancyForecast = aiForecast?.occupancy_percentage || '--'
 
   // Filter bookings by status
   const filteredBookings = useMemo(() => {
@@ -215,36 +250,53 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
             <div className="text-3xl font-bold text-white">₹{(revenueMTD / 100000).toFixed(1)}L</div>
           </div>
 
-          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50">
-            <div className="flex items-start justify-between mb-3">
+          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50 relative overflow-hidden group">
+            <div className="flex items-start justify-between mb-3 relative z-10">
               <div className="bg-amber-500/10 p-2 rounded-lg">
                 <span className="material-icons-round text-amber-400 text-xl">trending_up</span>
               </div>
-              <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded">AI Predicted</span>
+              <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded flex items-center gap-1">
+                 <span className="material-symbols-outlined text-[12px]">auto_awesome</span>
+                 AI Predicted
+              </span>
             </div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">AI OCCUPANCY FORECAST</div>
-            <div className="text-3xl font-bold text-white">{aiOccupancyForecast}%</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">AI OCCUPANCY FORECAST</div>
+            <div className="text-3xl font-bold text-white relative z-10 flex items-center gap-3">
+                {aiLoading ? <Loader2 className="h-6 w-6 animate-spin text-amber-400" /> : <>{aiOccupancyForecast}{aiOccupancyForecast !== '--' && '%'}</>}
+            </div>
           </div>
         </section>
 
         {/* AI Alert Banner */}
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-5 rounded-xl flex items-center gap-5 shadow-sm">
-          <div className="bg-amber-100 dark:bg-amber-800/40 p-3 rounded-full flex items-center justify-center">
-            <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">auto_awesome</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
-              AI AVAILABILITY ALERT
-              <span className="bg-amber-200 dark:bg-amber-800 text-[10px] px-1.5 py-0.5 rounded uppercase">High Priority</span>
-            </p>
-            <p className="text-sm text-amber-800 dark:text-amber-400/90 mt-0.5">
-              Peak demand predicted for Feb 14-18. 4 potential double-bookings detected. Mitigation plan generated for buffer time adjustment.
-            </p>
-          </div>
-          <button className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-            View Mitigation Plan
-          </button>
-        </div>
+        {aiLoading ? (
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl flex items-center gap-5 shadow-sm animate-pulse">
+                <div className="bg-slate-200 dark:bg-slate-800 h-10 w-10 rounded-full"></div>
+                <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
+                </div>
+            </div>
+        ) : aiForecast?.alert ? (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-5 rounded-xl flex items-center gap-5 shadow-sm">
+              <div className="bg-amber-100 dark:bg-amber-800/40 p-3 rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">auto_awesome</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
+                  AI AVAILABILITY ALERT
+                  <span className="bg-amber-200 dark:bg-amber-800 text-[10px] px-1.5 py-0.5 rounded uppercase">High Priority</span>
+                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-400/90 mt-0.5">
+                  {aiForecast.alert.message}
+                </p>
+              </div>
+              {aiForecast.alert.mitigation_plan && (
+                  <button className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shrink-0">
+                    View Mitigation Plan
+                  </button>
+              )}
+            </div>
+        ) : null}
 
         {/* Calendar Section */}
         <section className="bg-white dark:bg-[#1a2332] rounded-xl border border-slate-200 dark:border-slate-800/50 shadow-sm overflow-hidden">

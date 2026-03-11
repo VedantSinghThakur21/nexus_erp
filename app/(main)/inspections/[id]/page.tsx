@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ClipboardCheck, Calendar, User, FileText, Truck } from "lucide-react"
 import Link from "next/link"
 import { UpdateInspectionDialog } from "@/components/inspections/update-inspection-dialog"
+import { AIRiskScore } from "@/components/inspections/ai-risk-score"
 
 export default async function InspectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -143,6 +144,9 @@ export default async function InspectionDetailPage({ params }: { params: Promise
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Integration */}
+      <AIRiskScore inspection={inspection} />
     </div>
   )
 }
