@@ -129,7 +129,7 @@ export async function checkServiceHealth(): Promise<ServiceHealth> {
 export async function checkSubdomain(subdomain: string): Promise<SubdomainCheckResult> {
   return serviceRequest<SubdomainCheckResult>(
     `/api/v1/check-subdomain/${encodeURIComponent(subdomain)}`,
-    { timeout: 10_000 },
+    { timeout: 30_000 }, // docker exec overhead can add 3-5s; 30s is safe
   )
 }
 
@@ -147,7 +147,7 @@ export async function provisionTenantSite(req: ProvisionRequest): Promise<Provis
     {
       method: 'POST',
       body: req as unknown as Record<string, unknown>,
-      timeout: 300_000, // 5 minutes max for full provisioning
+      timeout: 600_000, // 10 minutes — bench new-site (~3m) + install-app (~5m) + setup
     },
   )
 }

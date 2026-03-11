@@ -387,7 +387,7 @@ print(json.dumps({{"subdomain_exists": bool(subdomain_exists), "email_exists": i
             result = run_bench_command([
                 "--site", site_name,
                 "install-app", app_name,
-            ], timeout=120)
+            ], timeout=480)  # 8 min — erpnext install can take 5-7 min on first run
 
             if result.returncode != 0:
                 if "already installed" in (result.stderr + result.stdout).lower():
