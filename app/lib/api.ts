@@ -150,24 +150,19 @@ function getAuthorizationHeader(
 }
 
 /**
- * Log API request details for debugging
+ * Log API request details (minimal in production)
  */
 function logApiRequest(
-  endpoint: string,
-  method: string,
-  siteName: string,
-  authSource: string,
-  context: TenantContext
+  _endpoint: string,
+  _method: string,
+  _siteName: string,
+  _authSource: string,
+  _context: TenantContext
 ) {
-  console.log(`[API] ─────────────────────────────────────`)
-  console.log(`[API] Request: ${method} ${endpoint}`)
-  console.log(`[API] Site: ${siteName}`)
-  console.log(`[API] Auth: ${authSource}`)
-  console.log(`[API] Is Tenant: ${context.isTenant}`)
-  if (context.isTenant) {
-    console.log(`[API] Subdomain: ${context.subdomain}`)
-    console.log(`[API] Has Credentials: ${context.hasCredentials}`)
-  }
+  // Logging disabled for production — enable in dev by uncommenting below
+  // if (process.env.NODE_ENV === 'development') {
+  //   console.log(`[API] ${_method} ${_endpoint} → ${_siteName}`)
+  // }
 }
 
 /**
@@ -319,7 +314,6 @@ export async function frappeRequest(
       throw new Error(errorMessage)
     }
 
-    console.log(`[API] ✅ Success: ${endpoint}`)
     return data.message ?? data.data ?? data
   } catch (error) {
     if (error instanceof Error && !error.message.includes('not found')) {
@@ -351,10 +345,6 @@ export async function userRequest(
 
   // Get tenant context for site routing
   const context = await getTenantContext()
-
-  console.log(`[API] userRequest: ${method} ${endpoint}`)
-  console.log(`[API] Site: ${context.siteName}`)
-  console.log(`[API] Session: ${sessionCookie.value.substring(0, 20)}...`)
 
   // Build request headers
   const requestHeaders: HeadersInit = {
@@ -408,7 +398,6 @@ export async function userRequest(
       throw new Error(data.message || data._server_messages || 'Request failed')
     }
 
-    console.log(`[API] ✅ userRequest success: ${endpoint}`)
     return data.message ?? data.data ?? data
   } catch (error) {
     if (error instanceof Error) {

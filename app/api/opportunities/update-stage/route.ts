@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateOpportunitySalesStage } from '@/app/actions/crm'
+import { requireAuth } from '@/app/api/_lib/auth'
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response
+
   try {
     const body = await request.json()
     const { opportunityName, sales_stage, probability } = body

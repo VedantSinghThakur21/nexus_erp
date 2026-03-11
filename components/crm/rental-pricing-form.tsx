@@ -42,13 +42,6 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
         item.rental_type
       )
       
-      console.log('Calculated rental duration:', {
-        start: item.rental_start_date,
-        end: item.rental_end_date,
-        type: item.rental_type,
-        duration
-      })
-      
       // Only update if duration actually changed
       if (duration !== item.rental_duration) {
         onChange({ rental_duration: duration })
@@ -245,7 +238,6 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
       <DynamicRentalPricingForm
         components={components}
         onChange={(newComponents) => {
-          console.log('[RentalPricingForm] Received new components from DynamicRentalPricingForm:', newComponents)
           setComponents(newComponents)
           
           // Convert partial to complete for calculation
@@ -262,7 +254,6 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
           }
           
           const totalCost = calculateTotalRentalCost(completeComponents)
-          console.log('[RentalPricingForm] Total cost calculated:', totalCost)
           onChange({ 
             pricing_components: completeComponents,
             total_rental_cost: totalCost,

@@ -34,7 +34,6 @@ export async function completeSocialOnboarding(data: {
   redirectUrl?: string
   error?: string
 }> {
-  console.log(`[SocialOnboarding] Starting for ${data.email}, org="${data.organizationName}"`)
 
   // ── Validate Org Name ──
   if (!data.organizationName || data.organizationName.length < 3) {
@@ -69,7 +68,6 @@ export async function completeSocialOnboarding(data: {
 
     if (existing && existing.length > 0) {
       const existingTenant = existing[0]
-      console.log(`[SocialOnboarding] User already has tenant: ${existingTenant.subdomain}`)
       const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
       const redirectUrl = process.env.NODE_ENV === 'production'
         ? `https://${existingTenant.subdomain}.${rootDomain}/dashboard`
@@ -77,7 +75,6 @@ export async function completeSocialOnboarding(data: {
       return { success: true, redirectUrl }
     }
   } catch (error) {
-    console.warn('[SocialOnboarding] Tenant existence check failed:', error)
   }
 
   // ── Provision the Tenant via Provisioning Service ──
@@ -97,8 +94,6 @@ export async function completeSocialOnboarding(data: {
       return { success: false, error: result.error || 'Workspace creation failed' }
     }
 
-    console.log(`[SocialOnboarding] ✓ Provisioned: ${result.site_name}`)
-    console.log(`[SocialOnboarding]   Steps: ${result.steps_completed?.join(', ')}`)
 
     // ── Store API credentials for the new tenant ──
     if (result.api_key && result.api_secret) {

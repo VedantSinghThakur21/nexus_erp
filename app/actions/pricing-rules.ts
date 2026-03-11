@@ -33,7 +33,6 @@ interface PricingRule {
 // Get all pricing rules
 export async function getPricingRules(): Promise<PricingRule[]> {
   try {
-    console.log('[Pricing Rule] Fetching all pricing rules...');
     const response = await frappeRequest(
       'frappe.client.get_list',
       'GET',
@@ -44,11 +43,9 @@ export async function getPricingRules(): Promise<PricingRule[]> {
       }
     );
 
-    console.log('[Pricing Rule] Raw response from API:', JSON.stringify(response));
 
     // Handle response as array directly or as { data: [] }
     const dataArray = Array.isArray(response) ? response : (response as any)?.data || [];
-    console.log('[Pricing Rule] Parsed pricing rules:', dataArray.length, 'rules found');
     return dataArray;
   } catch (error) {
     console.error("[Pricing Rule] Error fetching pricing rules:", error);
@@ -59,7 +56,6 @@ export async function getPricingRules(): Promise<PricingRule[]> {
 // Get single pricing rule with full details
 export async function getPricingRule(name: string): Promise<PricingRule | null> {
   try {
-    console.log('[Pricing Rule] Fetching pricing rule:', name);
     const response = await frappeRequest(
       'frappe.client.get',
       'GET',
@@ -69,11 +65,9 @@ export async function getPricingRule(name: string): Promise<PricingRule | null> 
       }
     );
 
-    console.log('[Pricing Rule] Fetched rule response:', JSON.stringify(response));
 
     // Handle response as object directly or as { data: {} }
     const rule = (response as any)?.data || response;
-    console.log('[Pricing Rule] Parsed rule:', rule?.name || 'not found');
     return rule || null;
   } catch (error) {
     console.error("[Pricing Rule] Error fetching pricing rule:", error);
@@ -156,13 +150,11 @@ export async function createPricingRule(formData: FormData) {
     if (maxQty) ruleData.max_qty = parseFloat(maxQty);
     if (priority) ruleData.priority = parseInt(priority);
 
-    console.log('[Pricing Rule] Creating with data:', JSON.stringify(ruleData, null, 2));
 
     await frappeRequest('frappe.client.insert', 'POST', {
       doc: ruleData
     });
 
-    console.log('[Pricing Rule] Successfully created:', title);
     revalidatePath("/pricing-rules");
     return { success: true };
   } catch (error) {

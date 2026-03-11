@@ -4,14 +4,22 @@ const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 const API_KEY = process.env.ERP_API_KEY
 const API_SECRET = process.env.ERP_API_SECRET
 const MASTER_SITE_NAME = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
+const PROVISIONING_SECRET = process.env.PROVISIONING_API_SECRET
 
 /**
  * API endpoint for provision script to update tenant API credentials
  * POST /api/tenant/update-credentials
  * Body: { tenantName, apiKey, apiSecret, ownerEmail?, siteUrl? }
+ * Auth: Requires X-Provisioning-Secret header matching PROVISIONING_API_SECRET
  */
 export async function POST(request: NextRequest) {
   try {
+    // Server-to-server auth: verify provisioning secret
+    const providedSecret = request.headers.get('x-provisioning-secret')
+    if (!PROVISIONING_SECRET || !providedSecret || providedSecret !== PROVISIONING_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { tenantName, apiKey, apiSecret, ownerEmail, siteUrl: providedSiteUrl } = await request.json()
 
     if (!tenantName || !apiKey || !apiSecret) {
@@ -31,7 +39,6 @@ export async function POST(request: NextRequest) {
     const authHeader = `token ${API_KEY}:${API_SECRET}`
     const siteUrl = providedSiteUrl || `https://${tenantName}.avariq.in`
 
-    console.log(`🔍 Looking up tenant with subdomain: ${tenantName}`)
 
     // STEP 1: Find the tenant record by subdomain field (NOT by name)
     const searchParams = new URLSearchParams({
@@ -55,25 +62,21 @@ export async function POST(request: NextRequest) {
     let shouldCreateRecord = false
 
     if (!findResponse.ok) {
-      console.warn('⚠️ Search API failed, will attempt to create tenant record')
       shouldCreateRecord = true
     } else {
       const findData = await findResponse.json()
       const tenants = findData.message || []
 
       if (tenants.length === 0) {
-        console.log(`📝 No tenant record found for subdomain '${tenantName}' - will create`)
         shouldCreateRecord = true
       } else {
         tenantRecordName = tenants[0].name
-        console.log(`✅ Found existing tenant record: ${tenantRecordName}`)
       }
     }
 
     // STEP 2: UPSERT Logic - Update existing or Create new
     if (shouldCreateRecord) {
       // CREATE: Tenant record doesn't exist, create it now
-      console.log(`🆕 Creating new SaaS Tenant record for subdomain: ${tenantName}`)
 
       const createEndpoint = `${BASE_URL}/api/resource/SaaS Tenant`
       const createResponse = await fetch(createEndpoint, {
@@ -111,13 +114,11 @@ export async function POST(request: NextRequest) {
 
       const createData = await createResponse.json()
       tenantRecordName = createData.data?.name || tenantName
-      console.log(`✅ Created tenant record: ${tenantRecordName}`)
 
     } else {
       // UPDATE: Tenant record exists, update with API credentials
       const updateEndpoint = `${BASE_URL}/api/resource/SaaS Tenant/${tenantRecordName}`
 
-      console.log(`🔄 Updating tenant ${tenantRecordName} with API credentials...`)
 
       const updateResponse = await fetch(updateEndpoint, {
         method: 'PUT',
@@ -147,14 +148,12 @@ export async function POST(request: NextRequest) {
         }, { status: 207 }) // 207 Multi-Status
       }
 
-      console.log(`✅ Tenant ${tenantRecordName} API credentials updated successfully`)
     }
 
     // ─── STEP 3: Auto-run setup/init on the tenant site to seed default data ────
     // This provisions: Price List, Territories, Modes of Payment, Customer Groups, Item Groups
     try {
       const initUrl = `${siteUrl}/api/setup/init`
-      console.log(`🌱 Seeding default data for new tenant: ${initUrl}`)
       const initResponse = await fetch(initUrl, {
         method: 'GET',
         headers: {
@@ -167,13 +166,10 @@ export async function POST(request: NextRequest) {
       })
       if (initResponse.ok) {
         const initData = await initResponse.json()
-        console.log(`✅ Tenant data seeded:`, initData.results)
       } else {
-        console.warn(`⚠️ setup/init returned ${initResponse.status} for ${tenantName}`)
       }
     } catch (initErr: any) {
       // Non-fatal — tenant works fine, init can be re-run manually
-      console.warn(`⚠️ Auto-init failed for ${tenantName} (can be run manually):`, initErr.message)
     }
 
     return NextResponse.json({

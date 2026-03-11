@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { requireAuth } from '@/app/api/_lib/auth'
 
-/**
- * API endpoint to get current tenant's subscription plan
- */
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response
+
   try {
     const headersList = await headers()
     const subdomain = headersList.get('X-Subdomain')

@@ -33,9 +33,6 @@ export async function checkSystemSetup() {
     results.userError = e.message;
   }
 
-  console.log('--- SYSTEM SETUP CHECK ---');
-  console.log(JSON.stringify(results, null, 2));
-  console.log('--------------------------');
 
   return results;
 }

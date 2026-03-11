@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
+  // Auth check for edge runtime (can't use next/headers cookies())
+  const hasApiKey = req.cookies.get('tenant_api_key')?.value
+  const hasSid = req.cookies.get('sid')?.value
+  const hasSession = req.cookies.get('next-auth.session-token')?.value ||
+    req.cookies.get('__Secure-next-auth.session-token')?.value
+  if (!hasApiKey && !hasSid && !hasSession) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
   try {
     const { messages, conversation_id, user } = await req.json();
 

@@ -2,107 +2,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { provisionTenantSite, generateUserApiKeys } from '@/lib/provisioning-client'
-
-/**
- * Enhanced Frappe API request helper with proper multi-tenancy support
- */
-export async function frappeRequest(
-  method: string,
-  httpMethod: 'GET' | 'POST' = 'POST',
-  params: any = {},
-  options: { useUserSession?: boolean; forceSite?: string } = {}
-) {
-  const cookieStore = await cookies()
-  const userType = cookieStore.get('user_type')?.value
-  const tenantSubdomain = cookieStore.get('tenant_subdomain')?.value
-  const sid = cookieStore.get('sid')?.value
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-
-  // CRITICAL FIX: Add X-Frappe-Site-Name header for tenant users
-  let siteNameToUse: string | undefined
-
-  // New Header-Based Logic
-  const headersList = await import('next/headers').then(mod => mod.headers())
-  const headerTenantId = headersList.get('x-tenant-id')
-
-  if (options.forceSite) {
-    siteNameToUse = options.forceSite
-  } else if (headerTenantId && headerTenantId !== 'master') {
-    // Use full domain format: subdomain.rootdomain
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-    // If running logically on production but header says otherwise, trust the header (from middleware)
-    siteNameToUse = process.env.NODE_ENV === 'production'
-      ? `${headerTenantId}.${rootDomain}`
-      : `${headerTenantId}.localhost`
-  }
-
-  if (siteNameToUse) {
-    headers['X-Frappe-Site-Name'] = siteNameToUse
-    console.log(`[frappeRequest] Targeting site: ${siteNameToUse}`)
-  } else {
-    console.log(`[frappeRequest] Targeting master site`)
-  }
-
-  // Authentication
-  if (options.useUserSession !== false && sid) {
-    // Use session cookie for user-context requests
-    headers['Cookie'] = `sid=${sid}`
-    console.log(`[frappeRequest] Using session auth (sid: ${sid.substring(0, 8)}...)`)
-  } else {
-    // Use API key for admin/system requests
-    const apiKey = process.env.ERP_API_KEY
-    const apiSecret = process.env.ERP_API_SECRET
-    if (apiKey && apiSecret) {
-      headers['Authorization'] = `token ${apiKey}:${apiSecret}`
-      console.log(`[frappeRequest] Using API key auth`)
-    }
-  }
-
-  const baseUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
-  const url = `${baseUrl}/api/method/${method}`
-
-  console.log(`[frappeRequest] ${httpMethod} ${method}`)
-  console.log(`[frappeRequest] Site: ${siteNameToUse || '(master)'}`)
-
-  try {
-    const fetchOptions: RequestInit = {
-      method: httpMethod,
-      headers,
-      credentials: 'include'
-    }
-
-    if (httpMethod === 'POST') {
-      fetchOptions.body = JSON.stringify(params)
-    } else if (httpMethod === 'GET' && Object.keys(params).length > 0) {
-      const queryParams = new URLSearchParams(params).toString()
-      const finalUrl = `${url}?${queryParams}`
-      const response = await fetch(finalUrl, fetchOptions)
-      const data = await response.json()
-      return data.message || data
-    }
-
-    const response = await fetch(url, fetchOptions)
-    const data = await response.json()
-    return data.message || data
-  } catch (error) {
-    console.error(`[frappeRequest] Error:`, error)
-    throw error
-  }
-}
-
-/**
- * User-specific request (always uses session authentication + tenant site)
- */
-export async function userRequest(
-  method: string,
-  httpMethod: 'GET' | 'POST' = 'POST',
-  params: any = {}
-) {
-  return frappeRequest(method, httpMethod, params, { useUserSession: true })
-}
+import { frappeRequest as apiFrappeRequest, masterRequest } from '@/app/lib/api'
 
 /**
  * Tenant data structure from Frappe API
@@ -120,8 +20,8 @@ interface TenantData {
  * Login result type
  */
 type LoginResult =
-  | { success: true; user: string; userType: 'admin'; dashboardUrl: string }
-  | { success: true; user: string; subdomain: string; userType: 'tenant'; redirectUrl: string }
+  | { success: true; user: string; userType: 'admin'; dashboardUrl: string; requirePasswordChange?: boolean }
+  | { success: true; user: string; subdomain: string; userType: 'tenant'; redirectUrl: string; requirePasswordChange?: boolean }
   | { success: false; error: string }
 
 /**
@@ -137,7 +37,6 @@ function isValidEmail(email: string): boolean {
  */
 async function loginToMasterSite(usernameOrEmail: string, password: string, masterUrl: string): Promise<LoginResult> {
   try {
-    console.log('Attempting master site login to:', masterUrl)
     const response = await fetch(`${masterUrl}/api/method/login`, {
       method: 'POST',
       headers: {
@@ -149,9 +48,7 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
       })
     })
 
-    console.log('Master site response status:', response.status)
     const data = await response.json()
-    console.log('Master site login response:', data)
 
     if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
       const cookieStore = await cookies()
@@ -234,8 +131,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     const email = isEmail ? usernameOrEmail : null
     const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL || 'http://127.0.0.1:8080'
 
-    console.log('Attempting login for:', usernameOrEmail)
-
     // Step 1: Resolve tenant — prefer the current subdomain from middleware (allows
     // invited team members who are NOT the owner to log in), falling back to
     // owner_email lookup for root-domain logins.
@@ -288,12 +183,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
     }
 
-    console.log('Tenant lookup response:', { message: tenantData })
-
     const isTenantUser = tenantData && tenantData.length > 0
 
     if (!isTenantUser) {
-      console.log('No tenant found for user:', usernameOrEmail)
       // In the new multi-tenant architecture, root domain login requires a tenant
       return {
         success: false,
@@ -306,13 +198,11 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     // Validate tenant status
     if (tenant.status === 'suspended') {
       if (!tenant.site_config) {
-        console.error('Tenant provisioning incomplete:', tenant.subdomain)
         return {
           success: false,
           error: 'Account setup incomplete. Please try signing up again or contact support.'
         }
       }
-      console.warn('Tenant suspended:', tenant.subdomain)
       return {
         success: false,
         error: 'Your account is suspended. Please contact support to reactivate.'
@@ -320,7 +210,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     }
 
     if (tenant.status === 'cancelled') {
-      console.warn('Tenant cancelled:', tenant.subdomain)
       return {
         success: false,
         error: 'Your account has been cancelled. Contact support to restore access.'
@@ -328,7 +217,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     }
 
     if (tenant.status === 'pending') {
-      console.info('Tenant provisioning in progress:', tenant.subdomain)
       return {
         success: false,
         error: 'Your account is still being set up. This usually takes 2-3 minutes. Please try again shortly.'
@@ -336,7 +224,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     }
 
     if (!tenant.site_url) {
-      console.error('Missing site_url for tenant:', tenant.subdomain)
       return {
         success: false,
         error: 'Account configuration error. Please contact support.'
@@ -345,12 +232,10 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
     if (!tenant.site_url.startsWith('http')) {
       tenant.site_url = `https://${tenant.site_url}`
-      console.log('Normalized site_url:', tenant.site_url)
     }
 
     // Step 2: Authenticate against the tenant's site using X-Frappe-Site-Name
     const siteName = tenant.site_url.replace(/^https?:\/\//, '')
-    console.log('Authenticating against tenant site:', siteName)
 
     // Retry helper — Frappe may throw OperationalError(1020) if a concurrent
     // request (e.g. provisioning service generating API keys) modified the User
@@ -378,9 +263,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       try {
         data = JSON.parse(responseText)
       } catch (e) {
-        console.error('❌ Failed to parse login response as JSON')
-        console.error('Response status:', response.status, response.statusText)
-
         if (response.status === 404) {
           return { success: false, error: 'Workspace not found. Please check your site URL and try again.' }
         }
@@ -404,7 +286,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         continue
       }
 
-      console.log('Login response:', data)
       break
     }
 
@@ -423,7 +304,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             maxAge: 60 * 60 * 24 * 7,
             path: '/'
           })
-          console.log('✅ Session cookie set for user:', email)
+
         }
       }
 
@@ -471,7 +352,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       let apiKey: string | null = null
       let apiSecret: string | null = null
 
-      console.log('Generating API keys for tenant user...')
       try {
         const sessionCookie = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
 
@@ -489,7 +369,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         })
 
         const generateData = await generateResponse.json()
-        console.log('Generate API keys response:', generateData)
 
         if (!generateResponse.ok || generateData.exc_type === 'PermissionError') {
           // Non-System Manager user — delegate to provisioning service
@@ -498,9 +377,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail)
             apiKey = provKeys.api_key
             apiSecret = provKeys.api_secret
-            console.log('✅ API keys generated via provisioning service')
           } catch (provErr: any) {
-            console.error('Provisioning service key generation failed:', provErr.message)
+            console.error('API key generation fallback failed')
           }
         } else {
           // generate_keys returns { api_secret: 'actual_secret' }
@@ -527,7 +405,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
               })
             })
             const keyData = await keyResponse.json()
-            console.log('Get api_key response:', JSON.stringify(keyData))
             // frappe.client.get_value returns { message: { <fieldname>: value } }
             apiKey = keyData.message?.api_key || null
           }
@@ -556,8 +433,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             domain: cookieDomain,
           })
 
-          console.log('✅ Tenant API credentials stored in cookies')
-
           // Sync fresh credentials back to SaaS Tenant master record so the
           // provisioning service + /api/setup/init always have current keys.
           // Only sync api_key when we actually have one (skip if still null).
@@ -577,15 +452,14 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
               fieldname: 'api_secret',
               value: apiSecret
             })
-            console.log('✅ SaaS Tenant record synced with fresh API credentials')
           } catch (syncErr: any) {
-            console.warn('⚠️ Could not sync API key to SaaS Tenant record:', syncErr.message)
+            console.warn('Could not sync API credentials to tenant record')
           }
         } else {
-          console.warn('⚠️ API key generation failed — credentials not stored. User may need to log in again.')
+          console.warn('API key generation incomplete')
         }
       } catch (apiError) {
-        console.error('Failed to generate API keys:', apiError)
+        console.error('API key generation error')
         // Continue — user can still use the app via session cookie (sid)
       }
 
@@ -633,7 +507,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             } catch { /* leave currentRoles empty — module-access check will trigger */ }
           }
 
-          console.log(`[Login Normalization] User: ${userEmail}, roles: [${currentRoles.join(', ')}], role_profile_name: ${profileName}`)
+
 
           const PROFILE_TO_ROLES: Record<string, string[]> = {
             'Administrator': ['System Manager'],
@@ -665,7 +539,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             if (mapped) {
               rolesToAssign = mapped
               needsUpdate = true
-              console.log(`⚠️ User ${userEmail} has role_profile_name="${profileName}" → assigning: ${rolesToAssign.join(', ')}`)
+
             }
           }
 
@@ -674,7 +548,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           if (accessibleModules.length === 0) {
             // User has no module access — add Sales User for minimum CRM/dashboard access
             const expanded = [...new Set([...rolesToAssign, 'Sales User'])]
-            console.log(`⚠️ User ${userEmail} has no module access (roles: [${rolesToAssign.join(', ')}]). Adding Sales User.`)
+
             rolesToAssign = expanded
             needsUpdate = true
           }
@@ -712,34 +586,63 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
                   },
                   body: JSON.stringify({ doc: userDoc }),
                 })
-                console.log(`✅ Roles saved for ${userEmail}: [${rolesToAssign.join(', ')}]`)
+
               }
             } catch (saveErr: any) {
               // Fallback to provisioning service if direct save fails
               try {
                 await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
-                console.log(`✅ Roles assigned via provisioning service for ${userEmail}`)
               } catch (provErr: any) {
-                console.warn(`⚠️ Both role-save methods failed for ${userEmail}:`, provErr.message)
+                console.warn('Role assignment fallback also failed')
               }
             }
           }
         } catch (roleNormErr: any) {
           // Non-fatal — role normalization is best-effort
-          console.warn('⚠️ Role normalization failed (non-fatal):', roleNormErr.message)
+          console.warn('Role normalization failed (non-fatal)')
+        }
+      }
+
+      // Detect first-time login (invited users with temp passwords)
+      // If the user has never logged in before, redirect them to change their password.
+      let requirePasswordChange = false
+      if (userEmail) {
+        try {
+          const userInfo = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Frappe-Site-Name': siteName,
+              'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
+            },
+            body: JSON.stringify({
+              doctype: 'User',
+              filters: userEmail,
+              fieldname: 'last_login'
+            })
+          })
+          const userInfoData = await userInfo.json()
+          const lastLogin = userInfoData?.message?.last_login
+          if (!lastLogin) {
+            requirePasswordChange = true
+          }
+        } catch {
+          // Non-fatal — skip password change prompt if detection fails
         }
       }
 
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
       const baseHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'avariq.in'
-      const redirectUrl = `${protocol}://${tenant.subdomain}.${baseHost}/dashboard`
+      const destination = requirePasswordChange ? '/change-password' : '/dashboard'
+      const redirectUrl = `${protocol}://${tenant.subdomain}.${baseHost}${destination}`
 
       return {
         success: true,
         user: data.full_name || email,
         subdomain: tenant.subdomain,
         userType: 'tenant',
-        redirectUrl
+        redirectUrl,
+        requirePasswordChange
       }
     }
 
@@ -757,7 +660,7 @@ export async function signupUser(data: {
   organizationName: string
 }) {
   try {
-    console.log('Starting SaaS Provisioning for:', data.organizationName)
+
 
     // 1. Validate Password
     const passwordError = validatePassword(data.password)
@@ -777,7 +680,7 @@ export async function signupUser(data: {
       return { success: false, error: 'Provisioning failed: ' + result.error }
     }
 
-    console.log('✅ Provisioning complete:', result)
+
 
     // 3. Auto-Login (Optional - depends if we can immediately log in)
     // For now, let's ask them to login to the new subdomain
@@ -818,21 +721,19 @@ export async function inviteUser(email: string, role: string = 'User') {
   // 1. Check Limits (SaaS Settings)
   // We need to query the *Tenant Site*
   try {
-    // Get Constraints
-    const settings = await frappeRequest('frappe.client.get_single_value', 'POST', {
+    const settings = await apiFrappeRequest('frappe.client.get_single_value', 'POST', {
       doctype: 'SaaS Settings',
       field: 'max_users'
-    }, { forceSite: headersList.get('host') || undefined }) // Explicitly target current host
+    }) as any
 
-    const maxUsers = settings.max_users || 5 // Default to 5
+    const maxUsers = settings?.max_users || 5
 
-    // Get Current Count
-    const userCount = await frappeRequest('frappe.client.get_count', 'POST', {
+    const userCount = await apiFrappeRequest('frappe.client.get_count', 'POST', {
       doctype: 'User',
       filters: { enabled: 1, user_type: 'System User' }
-    }, { forceSite: headersList.get('host') || undefined })
+    }) as number
 
-    console.log(`[Limit Check] ${userCount} / ${maxUsers} users`)
+
 
     if (userCount >= maxUsers) {
       return {
@@ -890,11 +791,9 @@ export async function getCurrentUser() {
     const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
 
     if (!userEmail) {
-      console.log('No user found in cookies')
       return null
     }
 
-    console.log('Current user from cookies:', userEmail)
     return userEmail
   } catch (error) {
     console.error('Get current user error:', error)
@@ -906,38 +805,87 @@ export async function getCurrentUserOrganization() {
   try {
     const user = await getCurrentUser()
     if (!user) {
-      console.log('No user logged in')
       return null
     }
 
-    console.log('Fetching organization for user:', user)
-
-    const orgs = await userRequest('frappe.client.get_list', 'GET', {
+    const orgs = await apiFrappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Organization Member',
       filters: JSON.stringify({ email: user }),
       fields: JSON.stringify(['organization_slug', 'role']),
       limit_page_length: 1
-    })
+    }) as any[]
 
     if (!orgs || orgs.length === 0) {
-      console.log('No organization found for user')
       return null
     }
 
-    const orgList = await userRequest('frappe.client.get_list', 'GET', {
+    const orgList = await apiFrappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Organization',
       filters: JSON.stringify({ slug: orgs[0].organization_slug }),
       fields: JSON.stringify(['*']),
       limit_page_length: 1
-    })
+    }) as any[]
 
     if (!orgList || orgList.length === 0) {
-      console.log('Organization not found')
       return null
     }
 
     return { ...orgList[0], userRole: orgs[0].role }
   } catch (error) {
     return null
+  }
+}
+
+/**
+ * Change user password (used after first login with temp password)
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value
+    const sid = cookieStore.get('sid')?.value
+    const tenantSubdomain = cookieStore.get('tenant_subdomain')?.value
+
+    if (!userEmail || !sid) {
+      return { success: false, error: 'Not authenticated. Please log in again.' }
+    }
+
+    const passwordError = validatePassword(newPassword)
+    if (passwordError) return { success: false, error: passwordError }
+
+    if (currentPassword === newPassword) {
+      return { success: false, error: 'New password must be different from the current password.' }
+    }
+
+    const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL || 'http://127.0.0.1:8080'
+    const headersList = await headers()
+    const siteName = tenantSubdomain
+      ? `${tenantSubdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost'}`
+      : headersList.get('x-tenant-id') || ''
+
+    const response = await fetch(`${masterUrl}/api/method/frappe.client.set_value`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Frappe-Site-Name': siteName,
+        'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
+      },
+      body: JSON.stringify({
+        doctype: 'User',
+        name: userEmail,
+        fieldname: 'new_password',
+        value: newPassword
+      })
+    })
+
+    const data = await response.json()
+    if (!response.ok) {
+      return { success: false, error: data.message || 'Failed to change password.' }
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('Change password error:', error)
+    return { success: false, error: 'An unexpected error occurred.' }
   }
 }

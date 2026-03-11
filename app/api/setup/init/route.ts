@@ -2,14 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { frappeRequest } from '@/app/lib/api'
 import { getTenant } from '@/lib/tenant'
 import { seedTenantDefaults } from '@/lib/provisioning-client'
+import { requireAuth } from '@/app/api/_lib/auth'
 
 /**
  * One-time tenant initialization endpoint.
  * Creates the Standard Selling Price List and sets it as default.
  * 
  * Hit this once per tenant: GET /api/setup/init
+ * Requires authentication (user session or provisioning secret).
  */
 export async function GET(request: NextRequest) {
+    // Allow provisioning service calls with secret header
+    const provSecret = request.headers.get('x-provisioning-secret')
+    const expectedSecret = process.env.PROVISIONING_API_SECRET
+    const hasProvAuth = expectedSecret && provSecret && provSecret === expectedSecret
+
+    // Also allow tenant API key auth (from provisioning auto-init)
+    const hasTenantKey = request.headers.get('x-tenant-api-key')
+
+    if (!hasProvAuth && !hasTenantKey) {
+      const auth = await requireAuth()
+      if (!auth.authenticated) return auth.response
+    }
+
     const results: Record<string, string> = {}
 
     // 1. Check if Price List already exists

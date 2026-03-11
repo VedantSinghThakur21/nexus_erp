@@ -62,7 +62,6 @@ async function resolveValidTerritory(preferredTerritory?: string): Promise<strin
       if (check && check.length > 0) {
         return check[0].name // Confirmed valid
       }
-      console.warn(`[resolveValidTerritory] Territory '${preferredTerritory}' not found in ERPNext, using fallback`)
     }
     // Fall back to the first territory that actually exists
     const all = await frappeRequest('frappe.client.get_list', 'GET', {
@@ -72,7 +71,6 @@ async function resolveValidTerritory(preferredTerritory?: string): Promise<strin
     }) as any[]
     return all && all.length > 0 ? all[0].name : undefined
   } catch (e) {
-    console.warn('[resolveValidTerritory] Could not resolve territory, omitting field:', e)
     return undefined
   }
 }
@@ -164,7 +162,6 @@ export async function createSalesOrder(data: any) {
 
     if (data.customer && data.customer.startsWith('CRM-LEAD-')) {
       const leadId = data.customer
-      console.log('[createSalesOrder] Customer looks like a Lead ID, resolving:', leadId)
 
       try {
         // 1. Fetch the lead to get details
@@ -192,10 +189,8 @@ export async function createSalesOrder(data: any) {
           if (existingCustomers && existingCustomers.length > 0) {
             resolvedCustomer = existingCustomers[0].name
             resolvedCustomerName = existingCustomers[0].customer_name
-            console.log('[createSalesOrder] Found existing customer:', resolvedCustomer)
           } else {
             // 3. No existing customer — create one from this lead
-            console.log('[createSalesOrder] No existing customer found, creating from lead:', leadId)
 
             // Validate territory against ERPNext — the lead's territory value may not exist on this site
             const validTerritory = await resolveValidTerritory(lead.territory)
@@ -216,7 +211,6 @@ export async function createSalesOrder(data: any) {
 
             resolvedCustomer = newCustomer.name
             resolvedCustomerName = newCustomer.customer_name
-            console.log('[createSalesOrder] Created new customer:', resolvedCustomer)
 
             // Update lead status to Converted
             try {
@@ -227,7 +221,6 @@ export async function createSalesOrder(data: any) {
                 value: 'Converted'
               })
             } catch (e) {
-              console.warn('[createSalesOrder] Could not update lead status to Converted:', e)
             }
           }
         }
@@ -249,7 +242,6 @@ export async function createSalesOrder(data: any) {
       }) as any
       defaultWarehouse = stockSettings?.default_warehouse
     } catch (e) {
-      console.warn('[createSalesOrder] Could not fetch default warehouse from Stock Settings:', e)
     }
     if (!defaultWarehouse) {
       try {
@@ -264,10 +256,8 @@ export async function createSalesOrder(data: any) {
           defaultWarehouse = warehouses[0].name
         }
       } catch (e) {
-        console.warn('[createSalesOrder] Could not fetch any warehouse:', e)
       }
     }
-    console.log('[createSalesOrder] Default warehouse:', defaultWarehouse)
     // ────────────────────────────────────────────────────────────────────────
 
     // Process items to preserve rental data if present
@@ -372,7 +362,6 @@ export async function createSalesOrder(data: any) {
       }
     }
 
-    console.log('Creating Sales Order with data:', JSON.stringify(orderData, null, 2))
     const result = await frappeRequest('frappe.client.insert', 'POST', { doc: orderData })
 
     revalidatePath('/sales-orders')
@@ -649,7 +638,6 @@ export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
 // 11. UPDATE: Mark Sales Order as Ready for Invoice
 export async function markSalesOrderReadyForInvoice(orderId: string) {
   try {
-    console.log('[markSalesOrderReadyForInvoice] Marking sales order as ready for invoice:', orderId)
 
     // Fetch current sales order to validate
     const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
@@ -792,7 +780,6 @@ export async function checkSalesOrderInvoiceEligibility(orderId: string): Promis
   }
 }> {
   try {
-    console.log('[checkSalesOrderInvoiceEligibility] Checking SO:', orderId)
 
     const so = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
@@ -907,7 +894,6 @@ export async function refreshSalesOrderStatus(orderId: string): Promise<{
   error?: string
 }> {
   try {
-    console.log('[refreshSalesOrderStatus] Refreshing SO status:', orderId)
 
     // Fetch latest SO to get current per_billed and per_delivered
     const so = await frappeRequest('frappe.client.get', 'GET', {
@@ -922,14 +908,6 @@ export async function refreshSalesOrderStatus(orderId: string): Promise<{
     const perBilled = so.per_billed || 0
     const perDelivered = so.per_delivered || 0
     const deliveryStatus = so.delivery_status || 'Not Delivered'
-
-    // ERPNext automatically calculates status, but we can log it for debugging
-    console.log(`[refreshSalesOrderStatus] SO: ${orderId}`, {
-      status: so.status,
-      per_billed: perBilled,
-      per_delivered: perDelivered,
-      delivery_status: deliveryStatus
-    })
 
     // Determine expected status based on ERPNext logic
     let expectedStatus = 'To Deliver and Bill' // Default
@@ -971,7 +949,6 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
   }
 }> {
   try {
-    console.log('[createInvoiceFromReadySalesOrder] Creating invoice from SO:', orderId)
 
     // 1. Check eligibility first
     const eligibility = await checkSalesOrderInvoiceEligibility(orderId)
@@ -991,13 +968,6 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
       doctype: 'Sales Order',
       name: orderId
     }) as any
-
-    console.log('[createInvoiceFromReadySalesOrder] SO fetched:', {
-      name: so.name,
-      status: so.status,
-      per_billed: so.per_billed,
-      per_delivered: so.per_delivered
-    })
 
     // 3. Use ERPNext's built-in method to generate invoice
     const invoiceDraft = await frappeRequest(
@@ -1026,7 +996,6 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
     // Ensure draft status
     invoiceDoc.docstatus = 0
 
-    console.log('[createInvoiceFromReadySalesOrder] Invoice doc prepared, items:', invoiceDoc.items?.length)
 
     // 5. Save invoice
     const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
@@ -1038,12 +1007,10 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
     }
 
     const invoiceName = savedInvoice.name
-    console.log('[createInvoiceFromReadySalesOrder] Invoice created:', invoiceName)
 
     // 6. Refresh SO status (ERPNext updates per_billed automatically)
     try {
       const statusRefresh = await refreshSalesOrderStatus(orderId)
-      console.log('[createInvoiceFromReadySalesOrder] SO status refreshed:', statusRefresh.newStatus)
     } catch (statusError) {
       console.error('[createInvoiceFromReadySalesOrder] Warning - could not refresh status:', statusError)
       // Don't fail the whole operation

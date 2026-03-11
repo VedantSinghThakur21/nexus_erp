@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateQuotation } from '@/app/actions/crm'
+import { requireAuth } from '@/app/api/_lib/auth'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response
+
   try {
     const { id } = await params
     const quotationName = decodeURIComponent(id)

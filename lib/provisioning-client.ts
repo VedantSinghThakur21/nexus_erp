@@ -10,7 +10,11 @@
  */
 
 const PROVISIONING_SERVICE_URL = process.env.PROVISIONING_SERVICE_URL || 'http://localhost:8001'
-const PROVISIONING_API_SECRET = process.env.PROVISIONING_API_SECRET || 'change-me-in-production'
+const PROVISIONING_API_SECRET = process.env.PROVISIONING_API_SECRET
+
+if (!PROVISIONING_API_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('PROVISIONING_API_SECRET must be set in production')
+}
 
 // ============================================================================
 // Types
@@ -62,8 +66,6 @@ async function serviceRequest<T>(
 ): Promise<T> {
   const { method = 'GET', body, timeout = 120_000 } = options
 
-  console.log(`[ProvisioningClient] Request to: ${PROVISIONING_SERVICE_URL}${path}`)
-
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeout)
 
@@ -72,7 +74,7 @@ async function serviceRequest<T>(
       method,
       headers: {
         'Content-Type': 'application/json',
-        'X-Provisioning-Secret': PROVISIONING_API_SECRET,
+        'X-Provisioning-Secret': PROVISIONING_API_SECRET || '',
       },
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,

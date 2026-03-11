@@ -11,8 +11,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { frappeRequest, getTenantContext } from '@/app/lib/api'
+import { requireAuth } from '@/app/api/_lib/auth'
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response
+
   try {
     const cookieStore = await cookies()
     const cookieEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
@@ -30,12 +34,10 @@ export async function GET(request: NextRequest) {
         userEmail = null
       }
     } catch (authErr: any) {
-      console.warn('[API /user/roles] get_logged_user failed:', authErr.message)
     }
 
     // Fallback: use the email stored in cookies during login
     if (!userEmail && cookieEmail) {
-      console.log('[API /user/roles] Using cookie email fallback:', cookieEmail)
       userEmail = cookieEmail
     }
 
@@ -43,7 +45,6 @@ export async function GET(request: NextRequest) {
       throw new Error('No user logged in')
     }
 
-    console.log('[API /user/roles] Fetching roles for:', userEmail)
 
     // Step 2: Fetch roles from Frappe User doc
     let roles: string[] = []
@@ -62,17 +63,13 @@ export async function GET(request: NextRequest) {
       const user = userDoc?.message || userDoc
       roleProfileName = user?.role_profile_name || null
 
-      console.log('[API /user/roles] User doc fetched. role_profile_name:', roleProfileName)
-      console.log('[API /user/roles] Raw roles count:', user?.roles?.length)
 
       if (Array.isArray(user?.roles)) {
         roles = user.roles
           .map((r: any) => r.role || r.name)
           .filter((r: string) => r && r !== 'All')
-        console.log('[API /user/roles] Extracted roles:', roles)
       }
     } catch (getErr: any) {
-      console.warn('[API /user/roles] frappe.client.get failed:', getErr.message)
     }
 
     // Step 3: If roles are empty but role_profile_name is set, derive roles
@@ -89,7 +86,6 @@ export async function GET(request: NextRequest) {
         'Standard User': ['Employee', 'Sales User'],
       }
       roles = PROFILE_ROLES[roleProfileName] || []
-      console.log('[API /user/roles] Derived roles from profile:', roleProfileName, '->', roles)
     }
 
     // Step 4: If STILL empty, use provisioning service (ignore_permissions)
@@ -101,7 +97,6 @@ export async function GET(request: NextRequest) {
           const provRoleData = await getUserRoles(context.subdomain, userEmail)
           roles = provRoleData.roles || []
           roleProfileName = provRoleData.role_profile_name || null
-          console.log('[API /user/roles] Provisioning fallback roles:', roles, 'profile:', roleProfileName)
 
           // If provisioning returned a profile name but no roles, derive
           if (roles.length === 0 && roleProfileName) {
@@ -115,7 +110,6 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch (provErr: any) {
-        console.warn('[API /user/roles] Provisioning fallback failed:', provErr.message)
       }
     }
 
@@ -123,11 +117,9 @@ export async function GET(request: NextRequest) {
     // Give them the minimum Sales User access so the app is usable.
     // Login normalization will assign proper roles on next login.
     if (roles.length === 0) {
-      console.warn('[API /user/roles] No roles found for', userEmail, '— assigning minimum Sales User fallback')
       roles = ['Sales User']
     }
 
-    console.log('[API /user/roles] Final roles:', roles)
 
     return NextResponse.json({
       success: true,

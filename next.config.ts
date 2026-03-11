@@ -1,23 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  
-  // Increase timeout for server actions (provisioning takes ~3 minutes)
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
-      // CRITICAL: Provisioning takes 2-5 minutes, needs extended timeout
-      allowedOrigins: ['localhost:3000', '127.0.0.1:3000'],
+      allowedOrigins: (process.env.ALLOWED_ORIGINS || 'localhost:3000').split(','),
     },
   },
-  
-  // Note: For deployment timeout configuration (long-running operations):
-  // - Vercel: Add maxDuration to vercel.json
-  // - Self-hosted: PM2 handles this via ecosystem.config.js
-  // - Nginx: proxy_read_timeout should be set to 300s or more
-  // - Nginx: proxy_read_timeout should be set to 300s or more
-  
+
   // Security headers for production
   async headers() {
     return [
@@ -51,6 +41,20 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.avariq.in wss://*.avariq.in",
+              "frame-ancestors 'self'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; ')
           }
         ]
       }

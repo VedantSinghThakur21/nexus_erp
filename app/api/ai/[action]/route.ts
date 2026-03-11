@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/app/api/_lib/auth';
 
-/**
- * Generic AI Action Router
- * Routes requests to specific Dify Workflow/Completion Apps based on the 'action' parameter.
- */
 export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ action: string }> }
 ) {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
     const { action } = await params;
 
     try {

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createQuotation } from '@/app/actions/crm'
+import { requireAuth } from '@/app/api/_lib/auth'
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response
+
   try {
     const body = await request.json()
     
@@ -35,13 +39,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Log items for debugging
-    console.log('=== API Route: Items received ===')
     items.forEach((item: any) => {
       if (item.is_rental) {
-        console.log('Rental item:', item.item_code)
-        console.log('  rental_type:', item.rental_type)
-        console.log('  rental_duration:', item.rental_duration)
-        console.log('  pricing_components:', item.pricing_components)
       }
     })
 

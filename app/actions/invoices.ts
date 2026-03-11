@@ -179,7 +179,6 @@ export async function getInvoices() {
 // 1.5 READ: Get Sales Orders Ready for Invoice (for pane display)
 export async function getSalesOrdersReadyForInvoicePane() {
   try {
-    console.log('[getSalesOrdersReadyForInvoicePane] Fetching eligible sales orders')
 
     const soList = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
@@ -218,7 +217,6 @@ export async function getSalesOrdersReadyForInvoicePane() {
       })
     )
 
-    console.log('[getSalesOrdersReadyForInvoicePane] Found', enrichedList.length, 'orders')
     return enrichedList
 
   } catch (error: any) {
@@ -266,7 +264,6 @@ async function createTaxAccount(accountName: string, company: string) {
       }
     }) as { name: string };
 
-    console.log(`✅ Created tax account: ${accountName} for ${company}`);
     return newAccount.name;
   } catch (error) {
     console.error(`Failed to create tax account ${accountName}:`, error);
@@ -288,7 +285,6 @@ async function getTaxAccount(search: string, company: string) {
     }
 
     // If not found, create it
-    console.log(`Tax account ${search} not found for ${company}, creating...`);
     return await createTaxAccount(search, company);
   } catch (e) {
     console.error(`Error finding tax account ${search}:`, e);
@@ -306,7 +302,6 @@ async function ensureTaxTemplate(templateName: string) {
     });
     return templateName;
   } catch (e) {
-    console.log(`Creating missing Tax Template: ${templateName}`);
     try {
       // Get company first
       const companies = await frappeRequest('frappe.client.get_list', 'GET', {
@@ -383,7 +378,6 @@ export async function createInvoice(data: any) {
   // Validate Sales Order if provided (implementing "ready for quotation" workflow for invoices)
   if (data.sales_order) {
     try {
-      console.log('[createInvoice] Validating sales order:', data.sales_order)
 
       const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Sales Order',
@@ -420,7 +414,6 @@ export async function createInvoice(data: any) {
         }
       }
 
-      console.log('[createInvoice] Sales order validation passed')
     } catch (validationError: any) {
       console.error('[createInvoice] Sales order validation error:', validationError)
       return { error: `Sales Order validation failed: ${validationError.message}` }
@@ -648,7 +641,6 @@ export async function searchItems(query: string, itemGroup?: string) {
       }
     }
 
-    console.log('[searchItems] Fetching with filters:', filters)
 
     const items = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Item',
@@ -658,7 +650,6 @@ export async function searchItems(query: string, itemGroup?: string) {
       order_by: 'item_group asc, item_code asc'
     }) as any[]
 
-    console.log('[searchItems] Found items:', items.length, items)
 
     // Fetch actual stock quantities from Bin doctype for stock items
     // actual_qty is not a stored field on Item — it's aggregated from Bin
@@ -682,7 +673,6 @@ export async function searchItems(query: string, itemGroup?: string) {
           stockQtyMap[bin.item_code] = (stockQtyMap[bin.item_code] || 0) + (bin.actual_qty || 0)
         }
       } catch (binError) {
-        console.warn('[searchItems] Could not fetch Bin stock data:', binError)
       }
     }
 
@@ -694,7 +684,6 @@ export async function searchItems(query: string, itemGroup?: string) {
       return { ...item, stock_qty: null, available: true } // Services always available
     })
 
-    console.log('[searchItems] Returning enhanced items:', enhancedItems.length)
     return enhancedItems as ({
       item_code: string
       item_name: string
@@ -742,7 +731,6 @@ export async function ensureItemGroups() {
         rootGroup = rootGroups[0].name
       }
     } catch (e) {
-      console.warn('[ensureItemGroups] Could not find root item group, using default:', rootGroup)
     }
 
     const requiredGroups = [
@@ -770,10 +758,8 @@ export async function ensureItemGroups() {
               is_group: 0
             }
           })
-          console.log(`✅ Created Item Group: ${group.name} (parent: ${group.parent})`)
         }
       } catch (e: any) {
-        console.warn(`[ensureItemGroups] Could not create group "${group.name}":`, e.message)
       }
     }
     return { success: true }
@@ -958,7 +944,6 @@ export async function createPaymentEntry(data: {
       }) as any[]
       paidToAccount = bankAccounts[0]?.account
     } catch (e) {
-      console.log('No default bank account found, will use company default')
     }
 
     // If no bank account, try to find default cash account
@@ -1057,7 +1042,6 @@ export async function getPaymentEntry(id: string): Promise<PaymentEntry | null> 
 // 15. CREATE INVOICE FROM SALES ORDER (Ready for Quotation workflow)
 export async function createInvoiceFromOrder(salesOrderId: string, postingDate?: string, dueDate?: string) {
   try {
-    console.log('[createInvoiceFromOrder] Starting invoice creation from sales order:', salesOrderId)
 
     // 1. Fetch and validate Sales Order
     const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
@@ -1069,7 +1053,6 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
       return { error: 'Sales Order not found' }
     }
 
-    console.log('[createInvoiceFromOrder] Sales Order fetched:', salesOrder.name, 'Status:', salesOrder.status, 'DocStatus:', salesOrder.docstatus)
 
     // 2. Validate Sales Order is submitted (not draft)
     if (salesOrder.docstatus !== 1) {
@@ -1107,7 +1090,6 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
       }
     }
 
-    console.log('[createInvoiceFromOrder] Validation passed, creating invoice...')
 
     // 6. Use ERPNext's built-in method to create sales invoice from sales order
     const invoiceDraft = await frappeRequest(
@@ -1133,7 +1115,6 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
     // 8. Ensure invoice is created as draft (docstatus = 0)
     invoiceDoc.docstatus = 0
 
-    console.log('[createInvoiceFromOrder] Invoice draft created, saving...')
 
     // 9. Save the invoice
     const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
@@ -1145,7 +1126,6 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
     }
 
     const invoiceId = savedInvoice.name
-    console.log('[createInvoiceFromOrder] Invoice created successfully:', invoiceId)
 
     // 10. Update Sales Order status based on billing progress
     try {
@@ -1173,7 +1153,6 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
         })
       }
 
-      console.log('[createInvoiceFromOrder] Sales Order status updated')
     } catch (statusError) {
       console.error('[createInvoiceFromOrder] Error updating Sales Order status:', statusError)
       // Don't fail the invoice creation if status update fails
@@ -1185,7 +1164,6 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${salesOrderId}`)
 
-    console.log('[createInvoiceFromOrder] Invoice creation completed successfully')
     return {
       success: true,
       invoiceId,
@@ -1237,7 +1215,6 @@ export async function createInvoiceFromSalesOrderProdReady(
     const headersList = await headers()
     const subdomain = headersList.get('X-Subdomain')
 
-    console.log('[createInvoiceFromSalesOrderProdReady] Starting invoice creation from SO:', salesOrderId)
 
     // 1. Check usage limits
     if (subdomain) {
@@ -1281,12 +1258,6 @@ export async function createInvoiceFromSalesOrderProdReady(
       }
     }
 
-    console.log('[createInvoiceFromSalesOrderProdReady] SO validation passed:', {
-      status: so.status,
-      per_billed: so.per_billed,
-      per_delivered: so.per_delivered
-    })
-
     // 4. Generate invoice from SO using ERPNext method
     const invoiceDraft = await frappeRequest(
       'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
@@ -1319,7 +1290,6 @@ export async function createInvoiceFromSalesOrderProdReady(
 
     invoiceDoc.docstatus = 0 // Draft
 
-    console.log('[createInvoiceFromSalesOrderProdReady] Invoice doc prepared, items:', invoiceDoc.items?.length)
 
     // 6. Save invoice
     const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
@@ -1360,7 +1330,6 @@ export async function createInvoiceFromSalesOrderProdReady(
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${salesOrderId}`)
 
-    console.log('[createInvoiceFromSalesOrderProdReady] Invoice created successfully:', invoiceName)
 
     return {
       success: true,

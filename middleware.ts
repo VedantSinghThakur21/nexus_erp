@@ -111,7 +111,7 @@ export function middleware(request: NextRequest) {
 
   // ── 6. Tenant Auth Protection ──
   // Public tenant paths that don't require auth
-  const publicTenantPaths = ['/login', '/signup', '/join', '/provisioning']
+  const publicTenantPaths = ['/login', '/signup', '/join', '/provisioning', '/change-password']
   const isPublicPath = publicTenantPaths.some(p => pathname.startsWith(p)) || pathname === '/'
 
   if (!isPublicPath) {

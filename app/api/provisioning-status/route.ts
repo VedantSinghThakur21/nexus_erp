@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { frappeRequest } from '@/app/lib/api'
+import { requireAuth } from '@/app/api/_lib/auth'
 
-/**
- * Check provisioning status for a tenant
- * GET /api/provisioning-status?tenant=<subdomain>
- */
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response
+
   try {
     const searchParams = request.nextUrl.searchParams
     const tenant = searchParams.get('tenant')

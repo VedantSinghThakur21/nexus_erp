@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { frappeRequest } from '@/app/lib/api'
+import { requireAuth } from '@/app/api/_lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,8 +19,10 @@ const DEFAULT_SALES_STAGES = [
 ]
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.authenticated) return auth.response
+
   try {
-    console.log('[CRM Setup] Starting CRM master data setup...')
     
     const results = {
       opportunityTypes: { created: 0, existing: 0, failed: 0 },
@@ -36,7 +39,6 @@ export async function POST(req: NextRequest) {
         }) as any[]
 
         if (existing && existing.length > 0) {
-          console.log(`[CRM Setup] Opportunity Type "${typeName}" already exists`)
           results.opportunityTypes.existing++
           continue
         }
@@ -48,7 +50,6 @@ export async function POST(req: NextRequest) {
           }
         })
         
-        console.log(`[CRM Setup] Created Opportunity Type: ${typeName}`)
         results.opportunityTypes.created++
       } catch (error: any) {
         console.error(`[CRM Setup] Failed to create Opportunity Type "${typeName}":`, error.message)
@@ -66,7 +67,6 @@ export async function POST(req: NextRequest) {
         }) as any[]
 
         if (existing && existing.length > 0) {
-          console.log(`[CRM Setup] Sales Stage "${stageName}" already exists`)
           results.salesStages.existing++
           continue
         }
@@ -78,7 +78,6 @@ export async function POST(req: NextRequest) {
           }
         })
         
-        console.log(`[CRM Setup] Created Sales Stage: ${stageName}`)
         results.salesStages.created++
       } catch (error: any) {
         console.error(`[CRM Setup] Failed to create Sales Stage "${stageName}":`, error.message)
@@ -86,7 +85,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.log('[CRM Setup] Setup complete:', results)
 
     return NextResponse.json({
       success: true,

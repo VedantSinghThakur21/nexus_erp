@@ -21,7 +21,6 @@ async function resolveValidTerritory(preferredTerritory?: string): Promise<strin
         limit_page_length: 1
       }) as any[]
       if (check && check.length > 0) return check[0].name
-      console.warn(`[resolveValidTerritory] '${preferredTerritory}' not found in ERPNext, using fallback`)
     }
     const all = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Territory',
@@ -30,7 +29,6 @@ async function resolveValidTerritory(preferredTerritory?: string): Promise<strin
     }) as any[]
     return all && all.length > 0 ? all[0].name : undefined
   } catch (e) {
-    console.warn('[resolveValidTerritory] Could not resolve territory, omitting field:', e)
     return undefined
   }
 }
@@ -162,25 +160,20 @@ async function getTenantSiteName(): Promise<string> {
     // First check cookies
     const cookieTenant = cookieStore.get('tenant_subdomain')?.value
     if (cookieTenant) {
-      console.log(`[DEBUG] Tenant from cookie: ${cookieTenant}`)
       return makeSiteName(cookieTenant)
     }
 
     // Then check X-Subdomain header (set by middleware)
     const headerSubdomain = headersList.get('X-Subdomain')
     if (headerSubdomain) {
-      console.log(`[DEBUG] Tenant from header: ${headerSubdomain}`)
       return makeSiteName(headerSubdomain)
     }
 
     // Check x-tenant-id header (injected by middleware for all routes incl. API)
     const tenantHeader = headersList.get('x-tenant-id')
     if (tenantHeader && tenantHeader !== 'master') {
-      console.log(`[DEBUG] Tenant from x-tenant-id: ${tenantHeader}`)
       return makeSiteName(tenantHeader)
     }
-
-    console.log(`[DEBUG] No tenant context found, using master site`)
     return MASTER_SITE
   } catch (error) {
     console.error('[DEBUG] Error getting tenant site name:', error)
@@ -342,7 +335,6 @@ export async function createLead(data: any) {
         defaultCompany = companies[0].name;
       } else if (data.company_name) {
         // 3. No company exists - create one from lead's company_name
-        console.log(`[createLead] No company exists, creating from lead: ${data.company_name}`);
 
         // Generate abbreviation from company name
         const abbr = data.company_name
@@ -359,13 +351,11 @@ export async function createLead(data: any) {
               fieldname: 'name'
             }) as { name?: string };
             if (!transitType || !transitType.name) {
-              console.log('[createLead] Creating missing Warehouse Type: Transit');
               await frappeRequest('frappe.client.insert', 'POST', {
                 doc: { doctype: 'Warehouse Type', name: 'Transit' }
               });
             }
           } catch (e) {
-            console.warn('[createLead] Failed to check/create Warehouse Type Transit:', e);
           }
 
           const newCompany = await frappeRequest('frappe.client.insert', 'POST', {
@@ -388,9 +378,7 @@ export async function createLead(data: any) {
               fieldname: 'default_company',
               value: defaultCompany
             });
-            console.log(`[createLead] Created and set default company: ${defaultCompany}`);
           } catch (e) {
-            console.warn('[createLead] Failed to set default company:', e);
           }
         } catch (e) {
           console.error('[createLead] Failed to create company:', e);
@@ -402,7 +390,6 @@ export async function createLead(data: any) {
       leadData.company = defaultCompany;
     }
   } catch (e) {
-    console.warn('[createLead] Failed to fetch/create default company:', e);
   }
 
 
@@ -427,9 +414,7 @@ export async function createLead(data: any) {
       }) as any[];
       if (similar && similar.length > 0) return similar[0].name;
     } catch (e) {
-      console.warn(`[createLead] Failed to validate ${doctype} value '${value}':`, e);
     }
-    console.warn(`[createLead] Invalid value for ${doctype}: '${value}'. Skipping.`);
     return undefined;
   };
 
@@ -613,9 +598,6 @@ export async function convertLeadToOpportunity(
   salesStage: string = 'Qualification'
 ) {
   try {
-    console.log('[convertLeadToOpportunity] Starting conversion for lead:', leadId)
-
-
     // 1. Fetch Lead details (needed for organization_slug)
     const lead = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Lead',
@@ -625,16 +607,12 @@ export async function convertLeadToOpportunity(
     if (!lead) {
       throw new Error("Lead not found")
     }
-    console.log('[convertLeadToOpportunity] Lead fetched:', lead.name, lead.lead_name)
-
     // 2. Optionally create customer first if conversion source should be Customer
     if (createCustomer) {
-      console.log('[convertLeadToOpportunity] Creating customer from lead...')
       const customerResult = await convertLeadToCustomer(leadId)
       if (customerResult.error) {
         throw new Error(`Customer creation failed: ${customerResult.error}`)
       }
-      console.log('[convertLeadToOpportunity] Customer created:', customerResult.customerId)
     }
 
     // 3. Ensure a Contact exists for this lead (by email or name)
@@ -674,7 +652,6 @@ export async function convertLeadToOpportunity(
       };
       const createdContact = await frappeRequest('frappe.client.insert', 'POST', { doc: contactDoc }) as { name: string };
       contactPersonName = createdContact.name;
-      console.log('[convertLeadToOpportunity] Created new Contact:', contactPersonName);
     }
 
 
@@ -698,13 +675,10 @@ export async function convertLeadToOpportunity(
         } else {
           // Use first available type as fallback
           validOpportunityType = types[0].name;
-          console.log(`[convertLeadToOpportunity] Using first available Opportunity Type: ${validOpportunityType}`);
         }
       } else {
-        console.warn('[convertLeadToOpportunity] No Opportunity Types found in system - field will be omitted.');
       }
     } catch (e) {
-      console.warn('[convertLeadToOpportunity] Failed to fetch Opportunity Types:', e);
     }
 
     // Always fetch available stages from database to validate
@@ -723,13 +697,10 @@ export async function convertLeadToOpportunity(
         } else {
           // Use first available stage as fallback
           validSalesStage = stages[0].name;
-          console.log(`[convertLeadToOpportunity] Using first available Sales Stage: ${validSalesStage}`);
         }
       } else {
-        console.warn('[convertLeadToOpportunity] No Sales Stages found in system - field will be omitted.');
       }
     } catch (e) {
-      console.warn('[convertLeadToOpportunity] Failed to fetch Sales Stages:', e);
     }
 
     // 4.5 Fetch Default Company
@@ -757,9 +728,7 @@ export async function convertLeadToOpportunity(
     }
 
     if (!defaultCompany) {
-      console.warn('[convertLeadToOpportunity] No Company found in system. This might fail if Company is mandatory.');
     } else {
-      console.log('[convertLeadToOpportunity] Using Company:', defaultCompany);
     }
 
 
@@ -799,31 +768,23 @@ export async function convertLeadToOpportunity(
     // 5. Add organization_slug from the source lead for multi-tenancy
     if (lead.organization_slug) {
       opportunityDoc.organization_slug = lead.organization_slug
-      console.log('[convertLeadToOpportunity] Set organization_slug:', lead.organization_slug)
     }
 
     // 6. If customer was created, update the opportunity_from to Customer
     if (createCustomer) {
       opportunityDoc.opportunity_from = 'Customer'
       // party_name should already be set to customer by make_opportunity if customer exists
-      console.log('[convertLeadToOpportunity] Updated to Customer source opportunity')
     }
 
     // 7. Save the Opportunity
-    console.log('[convertLeadToOpportunity] Opportunity doc to be inserted:', JSON.stringify(opportunityDoc, null, 2))
     const savedOpportunity = await frappeRequest('frappe.client.insert', 'POST', {
       doc: opportunityDoc
     }) as { name?: string }
-
-    console.log('[convertLeadToOpportunity] Saved opportunity response:', JSON.stringify(savedOpportunity, null, 2))
-
     if (!savedOpportunity || !savedOpportunity.name) {
       throw new Error("Failed to save opportunity - no name returned")
     }
 
     const opportunityId = savedOpportunity.name
-    console.log('[convertLeadToOpportunity] Opportunity created successfully:', opportunityId)
-
     // 8. Update Lead status to "Converted"
     await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Lead',
@@ -831,16 +792,12 @@ export async function convertLeadToOpportunity(
       fieldname: 'status',
       value: 'Converted'
     })
-    console.log('[convertLeadToOpportunity] Lead status updated to "Converted"')
-
     // 9. Revalidate paths to refresh UI
     revalidatePath('/crm')
     revalidatePath('/crm/leads')
     revalidatePath(`/crm/leads/${leadId}`)
     revalidatePath('/crm/opportunities')
     revalidatePath(`/crm/opportunities/${opportunityId}`)
-
-    console.log('[convertLeadToOpportunity] Conversion completed successfully')
     return { success: true, opportunityId }
 
   } catch (error: any) {
@@ -860,8 +817,6 @@ export async function convertLeadToOpportunity(
 // 1. CREATE: Generate Quotation from Opportunity
 export async function createQuotationFromOpportunity(opportunityId: string) {
   try {
-    console.log('[createQuotationFromOpportunity] Starting quotation creation from opportunity:', opportunityId)
-
     // 1. Fetch Opportunity to get organization_slug for multi-tenancy
     const opportunity = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Opportunity',
@@ -871,17 +826,12 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
     if (!opportunity) {
       throw new Error("Opportunity not found")
     }
-    console.log('[createQuotationFromOpportunity] Opportunity fetched, organization_slug:', opportunity.organization_slug)
-
     // 2. Use ERPNext's built-in server method to get quotation template from opportunity
     const draftQuotation = await frappeRequest(
       'erpnext.crm.doctype.opportunity.opportunity.make_quotation',
       'POST',
       { source_name: opportunityId }
     ) as { message?: any } | any
-
-    console.log('[createQuotationFromOpportunity] make_quotation draft response:', JSON.stringify(draftQuotation, null, 2))
-
     if (!draftQuotation) {
       throw new Error("Failed to create quotation template from opportunity")
     }
@@ -897,24 +847,17 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
     // 4. Add organization_slug from the source opportunity for multi-tenancy
     if (opportunity.organization_slug) {
       quotationDoc.organization_slug = opportunity.organization_slug
-      console.log('[createQuotationFromOpportunity] Set organization_slug:', opportunity.organization_slug)
     }
 
     // 5. Insert the document to create the actual quotation
     const savedQuotation = await frappeRequest('frappe.client.insert', 'POST', {
       doc: quotationDoc
     }) as { name?: string }
-
-    console.log('[createQuotationFromOpportunity] Saved quotation response:', JSON.stringify(savedQuotation, null, 2))
-
     if (!savedQuotation || !savedQuotation.name) {
       throw new Error("Failed to save quotation - no name returned")
     }
 
     const quotationId = savedQuotation.name
-    console.log('[createQuotationFromOpportunity] Quotation created successfully:', quotationId)
-
-
     // (Removed: Do NOT update Opportunity status to "Converted" here. Only explicit user action should mark as won.)
 
     // 7. Revalidate paths to refresh UI
@@ -923,8 +866,6 @@ export async function createQuotationFromOpportunity(opportunityId: string) {
     revalidatePath(`/crm/opportunities/${opportunityId}`)
     revalidatePath('/crm/quotations')
     revalidatePath(`/crm/quotations/${quotationId}`)
-
-    console.log('[createQuotationFromOpportunity] Quotation creation completed successfully')
     return savedQuotation
   } catch (error: any) {
     console.error('[createQuotationFromOpportunity] Error:', {
@@ -1394,7 +1335,6 @@ export async function markOpportunityAsWon(opportunityId: string, createCustomer
     if (createCustomer && opportunity.opportunity_from === 'Lead') {
       const customerResult = await convertOpportunityToCustomer(opportunityId)
       if (customerResult.error) {
-        console.warn('Customer creation failed, but continuing to mark as won:', customerResult.error)
       }
     }
 
@@ -1449,7 +1389,6 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
         mobile = lead.mobile_no
         territory = lead.territory || undefined
       } catch (e) {
-        console.warn('Could not fetch lead details:', e)
       }
     }
 
@@ -1498,7 +1437,6 @@ export async function convertOpportunityToCustomer(opportunityId: string) {
           value: 'Converted'
         })
       } catch (e) {
-        console.warn('Could not update lead status:', e)
       }
     }
 
@@ -1549,7 +1487,6 @@ export async function reopenOpportunity(opportunityId: string) {
         validSalesStage = stages[0].name;
       }
     } catch (e) {
-      console.warn('[reopenOpportunity] Failed to fetch Sales Stages:', e);
     }
 
     const updateFields: any = {
@@ -1607,8 +1544,6 @@ export async function updateOpportunity(opportunityId: string, data: {
 // 1. CREATE: Generate Sales Order from Quotation (Quotation -> Sales Order workflow)
 export async function createOrderFromQuotation(quotationId: string) {
   try {
-    console.log('[createOrderFromQuotation] Starting sales order creation from quotation:', quotationId)
-
     // 1. Fetch the Quotation to verify it's submitted and get organization_slug
     const quotation = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
@@ -1618,9 +1553,6 @@ export async function createOrderFromQuotation(quotationId: string) {
     if (!quotation) {
       throw new Error("Quotation not found")
     }
-
-    console.log('[createOrderFromQuotation] Quotation fetched - docstatus:', quotation.docstatus, 'status:', quotation.status, 'organization_slug:', quotation.organization_slug)
-
     // 2. Require quotation to be submitted (docstatus = 1)
     if (quotation.docstatus !== 1) {
       throw new Error('Quotation must be submitted before creating a Sales Order. Please submit the quotation first.')
@@ -1637,9 +1569,6 @@ export async function createOrderFromQuotation(quotationId: string) {
       'POST',
       { source_name: quotationId }
     ) as { message?: any } | any
-
-    console.log('[createOrderFromQuotation] make_sales_order draft response:', JSON.stringify(draftOrder, null, 2))
-
     if (!draftOrder) {
       throw new Error("Failed to create sales order template from quotation")
     }
@@ -1654,38 +1583,28 @@ export async function createOrderFromQuotation(quotationId: string) {
     // 6. Add organization_slug from the source quotation for multi-tenancy
     if (quotation.organization_slug) {
       orderDoc.organization_slug = quotation.organization_slug
-      console.log('[createOrderFromQuotation] Set organization_slug:', quotation.organization_slug)
     }
 
     // 7. Save the Sales Order
     const savedOrder = await frappeRequest('frappe.client.insert', 'POST', {
       doc: orderDoc
     }) as { name?: string }
-
-    console.log('[createOrderFromQuotation] Saved order response:', JSON.stringify(savedOrder, null, 2))
-
     if (!savedOrder || !savedOrder.name) {
       throw new Error("Failed to save sales order - no name returned")
     }
 
     const orderId = savedOrder.name
-    console.log('[createOrderFromQuotation] Sales order created successfully:', orderId)
-
     // 8. Submit the Sales Order (docstatus=1) so it can be invoiced
     const submittedOrder = await frappeRequest('frappe.client.submit', 'POST', {
       doctype: 'Sales Order',
       name: orderId
     })
-    console.log('[createOrderFromQuotation] Sales order submitted:', JSON.stringify(submittedOrder, null, 2))
-
     // 9. Revalidate paths
     revalidatePath('/crm')
     revalidatePath('/crm/quotations')
     revalidatePath(`/crm/quotations/${quotationId}`)
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${orderId}`)
-
-    console.log('[createOrderFromQuotation] Sales order creation and submission completed successfully')
     return { success: true, orderId }
   } catch (error: any) {
     console.error('[createOrderFromQuotation] Error:', {
@@ -1736,8 +1655,6 @@ export async function getSalesOrder(id: string): Promise<any | null> {
 // 1. CREATE: Generate Sales Invoice from Sales Order (Sales Order -> Sales Invoice workflow)
 export async function createInvoiceFromOrder(orderId: string) {
   try {
-    console.log('[createInvoiceFromOrder] Starting invoice creation from sales order:', orderId)
-
     // 1. Fetch the Sales Order to verify it exists and get organization_slug
     const order = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
@@ -1747,9 +1664,6 @@ export async function createInvoiceFromOrder(orderId: string) {
     if (!order) {
       throw new Error("Sales Order not found")
     }
-
-    console.log('[createInvoiceFromOrder] Sales order fetched - docstatus:', order.docstatus, 'status:', order.status, 'organization_slug:', order.organization_slug)
-
     // Only allow invoicing if SO is submitted and status is correct
     if (order.docstatus !== 1) {
       throw new Error('Sales Order must be submitted before creating a Sales Invoice. Please submit the Sales Order first.')
@@ -1764,9 +1678,6 @@ export async function createInvoiceFromOrder(orderId: string) {
       'POST',
       { source_name: orderId }
     ) as { message?: any } | any
-
-    console.log('[createInvoiceFromOrder] make_sales_invoice draft response:', JSON.stringify(draftInvoice, null, 2))
-
     if (!draftInvoice) {
       throw new Error("Failed to create sales invoice template from sales order")
     }
@@ -1781,31 +1692,23 @@ export async function createInvoiceFromOrder(orderId: string) {
     // 4. Add organization_slug from the source sales order for multi-tenancy
     if (order.organization_slug) {
       invoiceDoc.organization_slug = order.organization_slug
-      console.log('[createInvoiceFromOrder] Set organization_slug:', order.organization_slug)
     }
 
     // 5. Save the Sales Invoice
     const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
       doc: invoiceDoc
     }) as { name?: string }
-
-    console.log('[createInvoiceFromOrder] Saved invoice response:', JSON.stringify(savedInvoice, null, 2))
-
     if (!savedInvoice || !savedInvoice.name) {
       throw new Error("Failed to save sales invoice - no name returned")
     }
 
     const invoiceId = savedInvoice.name
-    console.log('[createInvoiceFromOrder] Sales invoice created successfully:', invoiceId)
-
     // 6. Revalidate paths
     revalidatePath('/crm')
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${orderId}`)
     revalidatePath('/invoices')
     revalidatePath(`/invoices/${invoiceId}`)
-
-    console.log('[createInvoiceFromOrder] Sales invoice creation completed successfully')
     return { success: true, invoiceId }
   } catch (error: any) {
     console.error('[createInvoiceFromOrder] Error:', {
@@ -1856,8 +1759,6 @@ export async function getSalesInvoice(id: string): Promise<any | null> {
 // 1. MOBILIZE: Create Delivery Note from Sales Order and link Serial Number
 export async function mobilizeAsset(orderId: string, serialNo: string) {
   try {
-    console.log('[mobilizeAsset] Starting asset mobilization - Order:', orderId, 'Serial:', serialNo)
-
     // 1. Fetch the Sales Order
     const order = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
@@ -1867,18 +1768,12 @@ export async function mobilizeAsset(orderId: string, serialNo: string) {
     if (!order) {
       throw new Error("Sales Order not found")
     }
-
-    console.log('[mobilizeAsset] Sales order fetched')
-
     // 2. Use ERPNext's make_delivery_note server method
     const draftDeliveryNote = await frappeRequest(
       'erpnext.selling.doctype.sales_order.sales_order.make_delivery_note',
       'POST',
       { source_name: orderId }
     ) as { message?: any } | any
-
-    console.log('[mobilizeAsset] make_delivery_note draft response:', JSON.stringify(draftDeliveryNote, null, 2))
-
     if (!draftDeliveryNote) {
       throw new Error("Failed to create delivery note template from sales order")
     }
@@ -1894,23 +1789,17 @@ export async function mobilizeAsset(orderId: string, serialNo: string) {
     if (deliveryNoteDoc.items && deliveryNoteDoc.items.length > 0) {
       // For the first item, add the serial number
       deliveryNoteDoc.items[0].serial_no = serialNo
-      console.log('[mobilizeAsset] Serial number linked to delivery note item:', serialNo)
     }
 
     // 5. Save the Delivery Note
     const savedDeliveryNote = await frappeRequest('frappe.client.insert', 'POST', {
       doc: deliveryNoteDoc
     }) as { name?: string }
-
-    console.log('[mobilizeAsset] Saved delivery note response:', JSON.stringify(savedDeliveryNote, null, 2))
-
     if (!savedDeliveryNote || !savedDeliveryNote.name) {
       throw new Error("Failed to save delivery note - no name returned")
     }
 
     const deliveryNoteId = savedDeliveryNote.name
-    console.log('[mobilizeAsset] Delivery note created successfully:', deliveryNoteId)
-
     // 6. Update Serial Number (Asset) status to "Issued"
     try {
       const serialNoDoc = await frappeRequest('frappe.client.get', 'GET', {
@@ -1925,10 +1814,8 @@ export async function mobilizeAsset(orderId: string, serialNo: string) {
           fieldname: 'status',
           value: 'Issued'
         })
-        console.log('[mobilizeAsset] Serial number status updated to "Issued":', serialNo)
       }
     } catch (serialError) {
-      console.warn('[mobilizeAsset] Could not update serial number status:', serialError)
       // Don't fail the entire operation if serial number update fails
     }
 
@@ -1937,8 +1824,6 @@ export async function mobilizeAsset(orderId: string, serialNo: string) {
     revalidatePath('/fleet')
     revalidatePath('/sales-orders')
     revalidatePath(`/sales-orders/${orderId}`)
-
-    console.log('[mobilizeAsset] Asset mobilization completed successfully')
     return { success: true, deliveryNoteId }
   } catch (error: any) {
     console.error('[mobilizeAsset] Error:', {
@@ -1953,8 +1838,6 @@ export async function mobilizeAsset(orderId: string, serialNo: string) {
 // 2. RETURN: Create Stock Entry (Material Receipt) to return asset and update Serial Number status
 export async function returnAsset(serialNo: string, orderId?: string) {
   try {
-    console.log('[returnAsset] Starting asset return - Serial:', serialNo, 'Order:', orderId)
-
     // 1. Fetch the Serial Number (Asset) details
     const asset = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Serial No',
@@ -1964,9 +1847,6 @@ export async function returnAsset(serialNo: string, orderId?: string) {
     if (!asset) {
       throw new Error("Serial Number (Asset) not found")
     }
-
-    console.log('[returnAsset] Serial number fetched:', asset.name, 'Item:', asset.item_code)
-
     // 2. Create Stock Entry (Material Receipt type) to bring machine back
     const stockEntryDoc = {
       doctype: 'Stock Entry',
@@ -1989,23 +1869,15 @@ export async function returnAsset(serialNo: string, orderId?: string) {
       from_bom: 0,
       inspection_required: 0
     }
-
-    console.log('[returnAsset] Creating stock entry:', JSON.stringify(stockEntryDoc, null, 2))
-
     // 3. Save the Stock Entry
     const savedStockEntry = await frappeRequest('frappe.client.insert', 'POST', {
       doc: stockEntryDoc
     }) as { name?: string }
-
-    console.log('[returnAsset] Saved stock entry response:', JSON.stringify(savedStockEntry, null, 2))
-
     if (!savedStockEntry || !savedStockEntry.name) {
       throw new Error("Failed to save stock entry - no name returned")
     }
 
     const stockEntryId = savedStockEntry.name
-    console.log('[returnAsset] Stock entry created successfully:', stockEntryId)
-
     // 4. Update Serial Number (Asset) status back to "Active"
     try {
       await frappeRequest('frappe.client.set_value', 'POST', {
@@ -2014,9 +1886,7 @@ export async function returnAsset(serialNo: string, orderId?: string) {
         fieldname: 'status',
         value: 'Active'
       })
-      console.log('[returnAsset] Serial number status updated to "Active":', serialNo)
     } catch (serialError) {
-      console.warn('[returnAsset] Could not update serial number status:', serialError)
       // Don't fail the entire operation if serial number update fails
     }
 
@@ -2024,8 +1894,6 @@ export async function returnAsset(serialNo: string, orderId?: string) {
     revalidatePath('/crm')
     revalidatePath('/fleet')
     revalidatePath('/sales-orders')
-
-    console.log('[returnAsset] Asset return completed successfully')
     return { success: true, stockEntryId }
   } catch (error: any) {
     console.error('[returnAsset] Error:', {

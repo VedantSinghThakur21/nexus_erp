@@ -138,29 +138,12 @@ export default function SalesOrderForm() {
   useEffect(() => {
     const fetchQuotation = async () => {
       if (!quotationParam) {
-        console.log('No quotation parameter found')
         return
       }
 
-      console.log('Fetching quotation:', quotationParam)
       setFetchingQuotation(true)
       try {
         const quotation = await getQuotation(quotationParam)
-        console.log('Fetched quotation:', quotation)
-        console.log('Quotation items:', quotation?.items)
-        console.log('Quotation taxes_and_charges:', (quotation as any)?.taxes_and_charges)
-        if (quotation?.items && quotation.items.length > 0) {
-          quotation.items.forEach((item: any, idx: number) => {
-            console.log(`Item ${idx}:`, {
-              item_code: item.item_code,
-              custom_rental_type: item.custom_rental_type,
-              custom_rental_duration: item.custom_rental_duration,
-              custom_base_rental_cost: item.custom_base_rental_cost,
-              custom_accommodation_charges: item.custom_accommodation_charges
-            })
-          })
-        }
-
         if (quotation) {
           // Determine correct customer ID based on quotation_to
           const customerId = (quotation as any).quotation_to === 'Customer'
