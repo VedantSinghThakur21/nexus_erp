@@ -520,14 +520,14 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             'Projects User': ['Projects Manager', 'Projects User'],
             'Stock Manager': ['Stock Manager', 'Stock User'],
             'Stock User': ['Stock Manager', 'Stock User'],
-            'Standard User': ['Employee', 'Sales User'],
-            'Employee': ['Employee', 'Sales User'],
+            'Standard User': ['Employee', 'Sales User', 'Accounts User'],
+            'Employee': ['Employee', 'Sales User', 'Accounts User'],
             // Role type keys (from old invite form)
             'admin': ['System Manager'],
-            'sales': ['Sales Manager', 'Sales User'],
-            'accounts': ['Accounts Manager', 'Accounts User'],
-            'projects': ['Projects Manager', 'Projects User'],
-            'member': ['Employee', 'Sales User'],
+            'sales': ['Sales Manager', 'Sales User', 'Accounts User', 'Employee'],
+            'accounts': ['Accounts Manager', 'Accounts User', 'Sales User', 'Employee'],
+            'projects': ['Projects Manager', 'Projects User', 'Sales User', 'Accounts User', 'Employee'],
+            'member': ['Employee', 'Sales User', 'Accounts User'],
           }
 
           let needsUpdate = false
@@ -546,8 +546,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           // Step 2: Check if user has any module-accessible roles
           const accessibleModules = getModules(rolesToAssign)
           if (accessibleModules.length === 0) {
-            // User has no module access — add Sales User for minimum CRM/dashboard access
-            const expanded = [...new Set([...rolesToAssign, 'Sales User'])]
+            // User has no module access — add base roles for CRM/Sales/Accounts access
+            const expanded = [...new Set([...rolesToAssign, 'Sales User', 'Accounts User'])]
 
             rolesToAssign = expanded
             needsUpdate = true
@@ -890,6 +890,27 @@ export async function changePassword(currentPassword: string, newPassword: strin
         msg = data.message
       }
       return { success: false, error: msg }
+    }
+
+    // Update last_login so the forced-password-change detection on next login
+    // doesn't redirect them back to this page again.
+    try {
+      await fetch(`${masterUrl}/api/method/frappe.client.set_value`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Frappe-Site-Name': siteName,
+          'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
+        },
+        body: JSON.stringify({
+          doctype: 'User',
+          name: userEmail,
+          fieldname: 'last_login',
+          value: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        })
+      })
+    } catch {
+      // Non-fatal — user still gets to dashboard, next login may re-prompt
     }
 
     return { success: true }
