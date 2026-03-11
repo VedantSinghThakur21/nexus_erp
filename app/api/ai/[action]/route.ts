@@ -76,18 +76,54 @@ export async function POST(
         const responseData = await response.json();
 
         // Extract the result from the workflow output
-        // Dify workflows return data in: { data: { outputs: { result: ... } } }
-        let result = responseData?.data?.outputs?.result || responseData?.data?.outputs || responseData?.answer;
+        let resultRaw = responseData?.data?.outputs;
+        let resultStr = null;
+
+        if (resultRaw) {
+            // Find the property that holds the JSON string. Usually users map it to 'text', 'output', 'result', etc.
+            if (typeof resultRaw === 'string') {
+                resultStr = resultRaw;
+            } else if (resultRaw.result && typeof resultRaw.result === 'string') {
+                resultStr = resultRaw.result;
+            } else if (resultRaw.text && typeof resultRaw.text === 'string') {
+                resultStr = resultRaw.text;
+            } else if (resultRaw.output && typeof resultRaw.output === 'string') {
+                resultStr = resultRaw.output;
+            } else {
+                // Just grab the first string property available
+                const stringKeys = Object.keys(resultRaw).filter(k => typeof resultRaw[k] === 'string');
+                if (stringKeys.length > 0) {
+                    resultStr = resultRaw[stringKeys[0]];
+                } else if (Object.keys(resultRaw).length > 0) {
+                    // It might already be a pure object map!
+                    resultStr = resultRaw;
+                }
+            }
+        } else if (responseData?.answer) {
+             resultStr = responseData.answer;
+        }
+
+        let parsedResult = resultStr;
         
         try {
-            if (typeof result === 'string' && (result.trim().startsWith('{') || result.trim().startsWith('['))) {
-                result = JSON.parse(result);
+            if (typeof resultStr === 'string') {
+                // Strip markdown formatting like ```json ... ``` if the LLM added it
+                let cleanStr = resultStr.trim();
+                if (cleanStr.startsWith('```json')) cleanStr = cleanStr.replace(/^```json/, '');
+                if (cleanStr.startsWith('```')) cleanStr = cleanStr.replace(/^```/, '');
+                if (cleanStr.endsWith('```')) cleanStr = cleanStr.replace(/```$/, '');
+                cleanStr = cleanStr.trim();
+                
+                if (cleanStr.startsWith('{') || cleanStr.startsWith('[')) {
+                    parsedResult = JSON.parse(cleanStr);
+                }
             }
         } catch (e) {
+            console.warn("Failed to parse AI output as JSON:", resultStr);
             // Keep as string if parsing fails
         }
 
-        return NextResponse.json({ result });
+        return NextResponse.json({ result: parsedResult });
 
     } catch (error: any) {
         console.error(`AI Action Error [${action}]:`, error);

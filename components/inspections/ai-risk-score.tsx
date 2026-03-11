@@ -113,20 +113,22 @@ export function AIRiskScore({ inspection }: { inspection: any }) {
                 </Button>
             </div>
             
-            {result?.analysis && (
-              <div className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm text-sm text-slate-700 dark:text-slate-300">
-                 <p className="whitespace-pre-wrap">{result.analysis}</p>
+            {result?.recommendation && (
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-center">
+                 {result.recommendation}
               </div>
             )}
             
-            {result?.mitigation_steps && result.mitigation_steps.length > 0 && (
+            {result?.critical_issues && result.critical_issues.length > 0 && (
                 <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2 px-1">Recommended Actions</h4>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2 px-1 text-red-600 dark:text-red-400 flex items-center gap-2">
+                       <AlertTriangle className="w-4 h-4" /> Detected Risk Factors
+                    </h4>
                     <ul className="space-y-2">
-                        {result.mitigation_steps.map((step: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
-                                <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
-                                {step}
+                        {result.critical_issues.map((issue: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300 bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-3 rounded-lg">
+                                <span className="bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
+                                {issue}
                             </li>
                         ))}
                     </ul>
