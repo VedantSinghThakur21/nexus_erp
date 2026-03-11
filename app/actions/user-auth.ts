@@ -343,6 +343,46 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         maxAge: 60 * 60 * 24 * 7
       })
 
+      // Detect the user's role type (admin/member/sales/accounts/projects) and store
+      // it in a cookie so the self-heal path in frappeRequest can assign the correct
+      // ROLE_SET rather than blindly adding base roles to everyone.
+      // We check if they're System Manager first (fast path), then map other roles.
+      try {
+        const isSysMgr = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Frappe-Site-Name': siteName,
+            ...(setCookieHeader?.match(/sid=([^;]+)/)?.[1]
+              ? { Cookie: `sid=${setCookieHeader.match(/sid=([^;]+)/)?.[1]}` }
+              : {}),
+          },
+          body: JSON.stringify({ doctype: 'User', filters: userEmail, fieldname: 'roles' }),
+        })
+        if (isSysMgr.ok) {
+          const rolesData = await isSysMgr.json()
+          const roles: string[] = (rolesData?.message?.roles || [])
+            .map((r: any) => r.role || r).filter(Boolean)
+          let roleType = 'member'
+          if (roles.includes('System Manager')) roleType = 'admin'
+          else if (roles.includes('Accounts Manager')) roleType = 'accounts'
+          else if (roles.includes('Projects Manager')) roleType = 'projects'
+          else if (roles.includes('Sales Manager')) roleType = 'sales'
+          const cookieDomain = process.env.NODE_ENV === 'production'
+            ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
+          cookieStore.set('tenant_role_type', roleType, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7,
+            path: '/',
+            ...(cookieDomain ? { domain: cookieDomain } : {}),
+          })
+        }
+      } catch {
+        // Non-fatal — role type detection is best-effort
+      }
+
       // Generate fresh API keys on every login
       // NOTE: We MUST use generate_keys instead of get_value because Frappe masks
       // Password-type fields (api_secret) with '***' when read via get_value.
@@ -509,47 +549,42 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
 
 
-          const PROFILE_TO_ROLES: Record<string, string[]> = {
-            'Administrator': ['System Manager'],
-            'System Manager': ['System Manager'],
-            'Sales Manager': ['Sales Manager', 'Sales User'],
-            'Sales User': ['Sales Manager', 'Sales User'],
-            'Accounts Manager': ['Accounts Manager', 'Accounts User'],
-            'Accounts User': ['Accounts Manager', 'Accounts User'],
-            'Projects Manager': ['Projects Manager', 'Projects User'],
-            'Projects User': ['Projects Manager', 'Projects User'],
-            'Stock Manager': ['Stock Manager', 'Stock User'],
-            'Stock User': ['Stock Manager', 'Stock User'],
-            'Standard User': ['Employee', 'Sales User', 'Accounts User'],
-            'Employee': ['Employee', 'Sales User', 'Accounts User'],
-            // Role type keys (from old invite form)
-            'admin': ['System Manager'],
-            'sales': ['Sales Manager', 'Sales User', 'Accounts User', 'Employee'],
-            'accounts': ['Accounts Manager', 'Accounts User', 'Sales User', 'Employee'],
-            'projects': ['Projects Manager', 'Projects User', 'Sales User', 'Accounts User', 'Employee'],
-            'member': ['Employee', 'Sales User', 'Accounts User'],
+          const { ROLE_SETS: ROLE_SETS_MAP } = await import('@/lib/role-sets')
+
+          // Map legacy Frappe role_profile_name values to our canonical ROLE_SETS.
+          // Also handles old invite-form role type strings ('member', 'sales', etc.)
+          const PROFILE_TO_ROLE_TYPE: Record<string, string> = {
+            'Administrator': 'admin', 'System Manager': 'admin',
+            'Sales Manager': 'sales', 'Sales User': 'sales',
+            'Accounts Manager': 'accounts', 'Accounts User': 'accounts',
+            'Projects Manager': 'projects', 'Projects User': 'projects',
+            'Stock Manager': 'projects', 'Stock User': 'projects',
+            'Standard User': 'member', 'Employee': 'member',
+            // Old invite-form role type keys pass through directly
+            'admin': 'admin', 'sales': 'sales',
+            'accounts': 'accounts', 'projects': 'projects', 'member': 'member',
           }
 
           let needsUpdate = false
           let rolesToAssign = currentRoles
 
-          // Step 1: If role_profile_name is set, map it to explicit roles
+          // Step 1: If role_profile_name is set, map it to explicit roles via ROLE_SETS
           if (profileName) {
-            const mapped = PROFILE_TO_ROLES[profileName]
-            if (mapped) {
-              rolesToAssign = mapped
+            const roleType = PROFILE_TO_ROLE_TYPE[profileName]
+            if (roleType) {
+              rolesToAssign = ROLE_SETS_MAP[roleType] || ROLE_SETS_MAP.member
               needsUpdate = true
-
             }
           }
 
           // Step 2: Check if user has any module-accessible roles
           const accessibleModules = getModules(rolesToAssign)
           if (accessibleModules.length === 0) {
-            // User has no module access — add base roles for CRM/Sales/Accounts access
-            const expanded = [...new Set([...rolesToAssign, 'Sales User', 'Accounts User'])]
+            // User has no module access at all — assign the 'member' ROLE_SET as a
+            // safe baseline (Employee + Sales User + Accounts User). The repair path
+            // in frappeRequest will later upgrade to the correct role type if needed.
+            rolesToAssign = ROLE_SETS_MAP.member
 
-            rolesToAssign = expanded
             needsUpdate = true
           }
 

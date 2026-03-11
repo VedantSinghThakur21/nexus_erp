@@ -29,6 +29,7 @@ interface ApiRequestOptions {
   body?: Record<string, unknown> | null
   useMasterCredentials?: boolean // Force use of master credentials
   siteOverride?: string // Override the target site name (use with useMasterCredentials for tenant admin ops)
+  hasRoleRepairAttempted?: boolean
 }
 
 // ============================================================================
@@ -234,6 +235,42 @@ function parseErrorMessage(data: Record<string, unknown>): string {
   return 'Request failed'
 }
 
+function isDoctypeRolePermissionError(data: Record<string, unknown>): boolean {
+  if (data.exc_type !== 'PermissionError') return false
+  return parseErrorMessage(data).includes('does not have doctype access via role permission')
+}
+
+async function tryRepairTenantRoles(
+  context: TenantContext,
+  errorData: Record<string, unknown>
+): Promise<boolean> {
+  if (!context.isTenant || !context.subdomain || !isDoctypeRolePermissionError(errorData)) {
+    return false
+  }
+
+  const cookieStore = await cookies()
+  const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+  if (!userEmail) return false
+
+  try {
+    const { assignUserRoles } = await import('@/lib/provisioning-client')
+    const { ROLE_SETS } = await import('@/lib/role-sets')
+
+    // Use the role type stored at login so we assign the correct ROLE_SET,
+    // not a hardcoded minimum — otherwise we'd defeat per-role RBAC.
+    // Default to 'member' (most restrictive non-admin set) if cookie is missing.
+    const roleType = cookieStore.get('tenant_role_type')?.value || 'member'
+    const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
+
+    await assignUserRoles(context.subdomain, userEmail, rolesToAssign)
+    console.warn(`[API] Auto-repaired roles for ${userEmail} (${roleType}): ${rolesToAssign.join(', ')}`)
+    return true
+  } catch (error) {
+    console.warn('[API] Automatic tenant role repair failed:', error)
+    return false
+  }
+}
+
 // ============================================================================
 // MAIN API FUNCTION
 // ============================================================================
@@ -251,7 +288,7 @@ export async function frappeRequest(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null,
-  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'siteOverride'> = {}
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'siteOverride' | 'hasRoleRepairAttempted'> = {}
 ): Promise<unknown> {
   // Get tenant context from cookies/headers
   const context = await getTenantContext()
@@ -309,6 +346,18 @@ export async function frappeRequest(
     const data = await response.json()
 
     if (!response.ok) {
+      if (
+        response.status === 403 &&
+        !options.useMasterCredentials &&
+        !options.hasRoleRepairAttempted &&
+        await tryRepairTenantRoles(context, data)
+      ) {
+        return frappeRequest(endpoint, method, body, {
+          ...options,
+          hasRoleRepairAttempted: true,
+        })
+      }
+
       logApiError(endpoint, response.status, siteName, authSource, data)
       const errorMessage = parseErrorMessage(data)
       throw new Error(errorMessage)

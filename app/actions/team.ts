@@ -318,26 +318,6 @@ function generateTempPassword(): string {
  * NOTE: We intentionally do NOT use role_profile_name because Frappe
  * silently overrides explicit roles when a profile is set.
  */
-// Base roles every non-admin user needs to read standard ERPNext doctypes
-// (Sales Invoice, Sales Order, CRM leads/opportunities, etc.)
-const BASE_ROLES = ['Employee', 'Sales User', 'Accounts User']
-
-const ROLE_SETS: Record<string, string[]> = {
-  admin:    ['System Manager'],
-  member:   [...BASE_ROLES],
-  sales:    [...BASE_ROLES, 'Sales Manager'],
-  projects: [...BASE_ROLES, 'Projects Manager', 'Projects User'],
-  accounts: [...BASE_ROLES, 'Accounts Manager'],
-}
-
-function getRolesForType(roleType: string): { role: string }[] {
-  const roles = ROLE_SETS[roleType] || ROLE_SETS.member
-  return roles.map(r => ({ role: r }))
-}
-
-/** Primary display role for a type (for updateTeamMemberRole convenience) */
-function getPrimaryRoleForType(roleType: string): string {
-  return (ROLE_SETS[roleType] || ROLE_SETS.member)[0]
-}
+import { ROLE_SETS, getRolesForType, getPrimaryRoleForType } from '@/lib/role-sets'
 
 
