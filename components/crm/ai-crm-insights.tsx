@@ -65,11 +65,17 @@ export function AICrmInsights({
         })
       });
 
-      if (!response.ok) {
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        // Fallback if not JSON
         throw new Error(`Failed to generate insights: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to generate insights: ${response.statusText}`);
+      }
       
       if (data.error) {
         throw new Error(data.error);
