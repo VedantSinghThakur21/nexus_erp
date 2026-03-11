@@ -107,12 +107,24 @@ export async function POST(
         
         try {
             if (typeof resultStr === 'string') {
-                // Strip markdown formatting like ```json ... ``` if the LLM added it
                 let cleanStr = resultStr.trim();
-                if (cleanStr.startsWith('```json')) cleanStr = cleanStr.replace(/^```json/, '');
-                if (cleanStr.startsWith('```')) cleanStr = cleanStr.replace(/^```/, '');
-                if (cleanStr.endsWith('```')) cleanStr = cleanStr.replace(/```$/, '');
-                cleanStr = cleanStr.trim();
+                
+                // Try to extract JSON from markdown block
+                const jsonMatch = cleanStr.match(/```json\s*([\s\S]*?)\s*```/);
+                const genericMatch = cleanStr.match(/```\s*(\{[\s\S]*?\})\s*```/);
+                
+                if (jsonMatch && jsonMatch[1]) {
+                    cleanStr = jsonMatch[1].trim();
+                } else if (genericMatch && genericMatch[1]) {
+                    cleanStr = genericMatch[1].trim();
+                } else {
+                    // Fallback to extracting the first '{' to the last '}'
+                    const firstBrace = cleanStr.indexOf('{');
+                    const lastBrace = cleanStr.lastIndexOf('}');
+                    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                        cleanStr = cleanStr.substring(firstBrace, lastBrace + 1).trim();
+                    }
+                }
                 
                 if (cleanStr.startsWith('{') || cleanStr.startsWith('[')) {
                     parsedResult = JSON.parse(cleanStr);
