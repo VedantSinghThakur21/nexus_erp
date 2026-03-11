@@ -2,7 +2,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { provisionTenantSite, generateUserApiKeys } from '@/lib/provisioning-client'
-import { frappeRequest as apiFrappeRequest, masterRequest } from '@/app/lib/api'
+import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest } from '@/app/lib/api'
 
 /**
  * Tenant data structure from Frappe API
@@ -843,10 +843,8 @@ export async function changePassword(currentPassword: string, newPassword: strin
   try {
     const cookieStore = await cookies()
     const userEmail = cookieStore.get('user_email')?.value
-    const sid = cookieStore.get('sid')?.value
-    const tenantSubdomain = cookieStore.get('tenant_subdomain')?.value
 
-    if (!userEmail || !sid) {
+    if (!userEmail) {
       return { success: false, error: 'Not authenticated. Please log in again.' }
     }
 
@@ -857,35 +855,18 @@ export async function changePassword(currentPassword: string, newPassword: strin
       return { success: false, error: 'New password must be different from the current password.' }
     }
 
-    const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL || 'http://127.0.0.1:8080'
-    const headersList = await headers()
-    const siteName = tenantSubdomain
-      ? `${tenantSubdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost'}`
-      : headersList.get('x-tenant-id') || ''
-
-    const response = await fetch(`${masterUrl}/api/method/frappe.client.set_value`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Frappe-Site-Name': siteName,
-        'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
-      },
-      body: JSON.stringify({
-        doctype: 'User',
-        name: userEmail,
-        fieldname: 'new_password',
-        value: newPassword
-      })
+    // Use tenantAdminRequest — master credentials on the current tenant site
+    // frappe.client.set_value with new_password is Frappe's standard way to change a user's password
+    await tenantAdminRequest('frappe.client.set_value', 'POST', {
+      doctype: 'User',
+      name: userEmail,
+      fieldname: 'new_password',
+      value: newPassword
     })
-
-    const data = await response.json()
-    if (!response.ok) {
-      return { success: false, error: data.message || 'Failed to change password.' }
-    }
 
     return { success: true }
   } catch (error: any) {
     console.error('Change password error:', error)
-    return { success: false, error: 'An unexpected error occurred.' }
+    return { success: false, error: error.message || 'Failed to change password.' }
   }
 }
