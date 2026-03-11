@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest } from "@/app/lib/api"
+import { tenantAdminRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 
 export interface Quotation {
@@ -38,7 +38,7 @@ export interface QuotationItem {
 // 1. READ: Get All Quotations
 export async function getQuotations() {
   try {
-    const response = await frappeRequest(
+    const response = await tenantAdminRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -58,7 +58,7 @@ export async function getQuotations() {
 // 2. READ: Get Single Quotation
 export async function getQuotation(id: string) {
   try {
-    const quotation = await frappeRequest('frappe.client.get', 'GET', {
+    const quotation = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
       name: decodeURIComponent(id)
     })
@@ -88,7 +88,7 @@ export async function createQuotation(data: any) {
     if (data.territory) quotationData.territory = data.territory
     if (data.terms) quotationData.terms = data.terms
 
-    const result = await frappeRequest('frappe.client.insert', 'POST', quotationData)
+    const result = await tenantAdminRequest('frappe.client.insert', 'POST', quotationData)
     
     revalidatePath('/quotations')
     return { success: true, data: result }
@@ -101,7 +101,7 @@ export async function createQuotation(data: any) {
 // 4. UPDATE: Update Quotation
 export async function updateQuotation(id: string, data: any) {
   try {
-    const result = await frappeRequest('frappe.client.set_value', 'POST', {
+    const result = await tenantAdminRequest('frappe.client.set_value', 'POST', {
       doctype: 'Quotation',
       name: id,
       fieldname: data
@@ -119,7 +119,7 @@ export async function updateQuotation(id: string, data: any) {
 // 5. SUBMIT: Submit Quotation (Change from Draft to Sent)
 export async function submitQuotation(id: string) {
   try {
-    await frappeRequest('frappe.client.submit', 'POST', {
+    await tenantAdminRequest('frappe.client.submit', 'POST', {
       doctype: 'Quotation',
       name: id
     })
@@ -136,7 +136,7 @@ export async function submitQuotation(id: string) {
 // 6. CANCEL: Cancel Quotation
 export async function cancelQuotation(id: string) {
   try {
-    await frappeRequest('frappe.client.cancel', 'POST', {
+    await tenantAdminRequest('frappe.client.cancel', 'POST', {
       doctype: 'Quotation',
       name: id
     })
@@ -168,3 +168,5 @@ export async function getQuotationStats() {
     return { draft: 0, sent: 0, accepted: 0, totalValue: 0 }
   }
 }
+
+

@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest } from '@/app/lib/api'
+import { tenantAdminRequest } from '@/app/lib/api'
 import { PLAN_FEATURES, type SubscriptionPlan } from '@/types/tenant'
 
 interface UsageCheck {
@@ -254,3 +254,4 @@ export async function getUsageSummary(subdomain: string) {
     }
   }
 }
+

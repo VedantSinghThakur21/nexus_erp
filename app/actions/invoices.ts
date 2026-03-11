@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest } from "@/app/lib/api"
+import { tenantAdminRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 import { canCreateInvoice, incrementUsage } from "./usage-limits"
 import { headers } from "next/headers"
@@ -55,7 +55,7 @@ export interface PaymentEntry {
 // GET BRANDS
 export async function getBrands() {
   try {
-    const response = await frappeRequest(
+    const response = await tenantAdminRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -81,7 +81,7 @@ export async function createBrand(brandName: string) {
       description: `Brand created from catalogue: ${brandName}`
     }
 
-    const result = await frappeRequest('frappe.client.insert', 'POST', { doc: brandData })
+    const result = await tenantAdminRequest('frappe.client.insert', 'POST', { doc: brandData })
     return { success: true, brand: result }
   } catch (error: any) {
     console.error("Failed to create brand:", error)
@@ -114,7 +114,7 @@ export async function createItem(formData: FormData) {
     if (openingStock) itemData.opening_stock = parseFloat(openingStock)
     if (reorderLevel) itemData.reorder_level = parseFloat(reorderLevel)
 
-    await frappeRequest('frappe.client.insert', 'POST', { doc: itemData })
+    await tenantAdminRequest('frappe.client.insert', 'POST', { doc: itemData })
     revalidatePath('/catalogue')
     return { success: true }
   } catch (error: any) {
@@ -142,7 +142,7 @@ export async function updateItem(itemCode: string, formData: FormData) {
     if (manufacturer) updateData.manufacturer = manufacturer
     if (reorderLevel) updateData.reorder_level = parseFloat(reorderLevel)
 
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    await tenantAdminRequest('frappe.client.set_value', 'POST', {
       doctype: 'Item',
       name: itemCode,
       fieldname: updateData
@@ -159,7 +159,7 @@ export async function updateItem(itemCode: string, formData: FormData) {
 // 1. READ: Fetch list of invoices
 export async function getInvoices() {
   try {
-    const response = await frappeRequest(
+    const response = await tenantAdminRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -180,7 +180,7 @@ export async function getInvoices() {
 export async function getSalesOrdersReadyForInvoicePane() {
   try {
 
-    const soList = await frappeRequest('frappe.client.get_list', 'GET', {
+    const soList = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: JSON.stringify([
         ['docstatus', '=', '1'], // Submitted only
@@ -228,7 +228,7 @@ export async function getSalesOrdersReadyForInvoicePane() {
 // 2. READ: Get single invoice
 export async function getInvoice(invoiceId: string) {
   try {
-    const invoice = await frappeRequest('frappe.client.get', 'GET', {
+    const invoice = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Invoice',
       name: invoiceId
     })
@@ -243,7 +243,7 @@ export async function getInvoice(invoiceId: string) {
 async function createTaxAccount(accountName: string, company: string) {
   try {
     // First, find the parent account (Duties and Taxes)
-    const parentAccounts = await frappeRequest('frappe.client.get_list', 'GET', {
+    const parentAccounts = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Account',
       filters: `[["account_name", "like", "%Duties and Taxes%"], ["is_group", "=", 1], ["company", "=", "${company}"]]`,
       fields: '["name"]',
@@ -253,7 +253,7 @@ async function createTaxAccount(accountName: string, company: string) {
     const parentAccount = parentAccounts[0]?.name || `Duties and Taxes - ${company}`;
 
     // Create the tax account
-    const newAccount = await frappeRequest('frappe.client.insert', 'POST', {
+    const newAccount = await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'Account',
         account_name: accountName,
@@ -274,7 +274,7 @@ async function createTaxAccount(accountName: string, company: string) {
 // --- HELPER: Find or Create Tax Accounts ---
 async function getTaxAccount(search: string, company: string) {
   try {
-    const accounts = await frappeRequest('frappe.client.get_list', 'GET', {
+    const accounts = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Account',
       filters: `[["account_name", "like", "%${search}%"], ["is_group", "=", 0], ["company", "=", "${company}"]]`,
       limit_page_length: 1
@@ -296,7 +296,7 @@ async function getTaxAccount(search: string, company: string) {
 async function ensureTaxTemplate(templateName: string) {
   if (!templateName) return null;
   try {
-    await frappeRequest('frappe.client.get', 'GET', {
+    await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Taxes and Charges Template',
       name: templateName
     });
@@ -304,7 +304,7 @@ async function ensureTaxTemplate(templateName: string) {
   } catch (e) {
     try {
       // Get company first
-      const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      const companies = await tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Company',
         fields: '["name"]',
         limit_page_length: 1
@@ -341,7 +341,7 @@ async function ensureTaxTemplate(templateName: string) {
           });
       }
 
-      await frappeRequest('frappe.client.insert', 'POST', {
+      await tenantAdminRequest('frappe.client.insert', 'POST', {
         doc: {
           doctype: 'Sales Taxes and Charges Template',
           title: templateName,
@@ -379,7 +379,7 @@ export async function createInvoice(data: any) {
   if (data.sales_order) {
     try {
 
-      const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
+      const salesOrder = await tenantAdminRequest('frappe.client.get', 'GET', {
         doctype: 'Sales Order',
         name: data.sales_order
       }) as any
@@ -488,7 +488,7 @@ export async function createInvoice(data: any) {
 
     try {
       // Fetch the tax template to get the tax rows
-      const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
+      const taxTemplate = await tenantAdminRequest('frappe.client.get', 'GET', {
         doctype: 'Sales Taxes and Charges Template',
         name: data.taxes_and_charges
       }) as { taxes?: any[] }
@@ -511,7 +511,7 @@ export async function createInvoice(data: any) {
   }
 
   try {
-    const newDoc = await frappeRequest('frappe.client.insert', 'POST', {
+    const newDoc = await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: invoiceDoc
     }) as { name: string }
 
@@ -543,13 +543,13 @@ export async function createInvoice(data: any) {
 export async function submitInvoice(id: string) {
   try {
     // First, fetch the latest version of the document to get the current modified timestamp
-    const latestDoc = await frappeRequest('frappe.client.get', 'GET', {
+    const latestDoc = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Invoice',
       name: id
     })
 
     // Now submit with the latest document data (including modified timestamp)
-    await frappeRequest('frappe.client.submit', 'POST', {
+    await tenantAdminRequest('frappe.client.submit', 'POST', {
       doc: latestDoc
     })
 
@@ -565,7 +565,7 @@ export async function submitInvoice(id: string) {
 // 4. CANCEL
 export async function cancelInvoice(id: string) {
   try {
-    await frappeRequest('frappe.client.cancel', 'POST', {
+    await tenantAdminRequest('frappe.client.cancel', 'POST', {
       doctype: 'Sales Invoice',
       name: id
     })
@@ -583,13 +583,13 @@ export async function cancelInvoice(id: string) {
 export async function updateInvoiceStatus(id: string, status: string) {
   try {
     // Fetch the current invoice first
-    const invoice = await frappeRequest('frappe.client.get', 'GET', {
+    const invoice = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Invoice',
       name: id
     })
 
     // Update the status field
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    await tenantAdminRequest('frappe.client.set_value', 'POST', {
       doctype: 'Sales Invoice',
       name: id,
       fieldname: 'status',
@@ -608,7 +608,7 @@ export async function updateInvoiceStatus(id: string, status: string) {
 // 5. SEARCH CUSTOMERS
 export async function searchCustomers(query: string) {
   try {
-    const customers = await frappeRequest('frappe.client.get_list', 'GET', {
+    const customers = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Customer',
       filters: `[["customer_name", "like", "%${query}%"]]`,
       fields: '["name", "customer_name"]',
@@ -642,7 +642,7 @@ export async function searchItems(query: string, itemGroup?: string) {
     }
 
 
-    const items = await frappeRequest('frappe.client.get_list', 'GET', {
+    const items = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Item',
       filters: filters,
       fields: '["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item"]',
@@ -661,7 +661,7 @@ export async function searchItems(query: string, itemGroup?: string) {
 
     if (stockItemCodes.length > 0) {
       try {
-        const binRecords = await frappeRequest('frappe.client.get_list', 'GET', {
+        const binRecords = await tenantAdminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Bin',
           filters: JSON.stringify([['item_code', 'in', stockItemCodes]]),
           fields: '["item_code", "actual_qty"]',
@@ -702,7 +702,7 @@ export async function searchItems(query: string, itemGroup?: string) {
 // Get all item groups
 export async function getItemGroups() {
   try {
-    const groups = await frappeRequest('frappe.client.get_list', 'GET', {
+    const groups = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Item Group',
       filters: '[["is_group", "=", 0]]',
       fields: '["name"]',
@@ -721,7 +721,7 @@ export async function ensureItemGroups() {
     // Step 1: Find the actual root item group (the top-level parent)
     let rootGroup = 'All Item Groups'
     try {
-      const rootGroups = await frappeRequest('frappe.client.get_list', 'GET', {
+      const rootGroups = await tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Item Group',
         filters: '[["is_group", "=", 1], ["parent_item_group", "=", ""]]',
         fields: '["name"]',
@@ -742,7 +742,7 @@ export async function ensureItemGroups() {
     for (const group of requiredGroups) {
       try {
         // Use get_list instead of get to avoid 404 throws
-        const existing = await frappeRequest('frappe.client.get_list', 'GET', {
+        const existing = await tenantAdminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Item Group',
           filters: `[["item_group_name", "=", "${group.name}"]]`,
           fields: '["name"]',
@@ -750,7 +750,7 @@ export async function ensureItemGroups() {
         }) as { name: string }[]
 
         if (!existing || existing.length === 0) {
-          await frappeRequest('frappe.client.insert', 'POST', {
+          await tenantAdminRequest('frappe.client.insert', 'POST', {
             doc: {
               doctype: 'Item Group',
               item_group_name: group.name,
@@ -773,7 +773,7 @@ export async function ensureItemGroups() {
 // Get item with stock and pricing info
 export async function getItemDetails(itemCode: string) {
   try {
-    const item = await frappeRequest('frappe.client.get', 'GET', {
+    const item = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Item',
       name: itemCode
     }) as any
@@ -784,7 +784,7 @@ export async function getItemDetails(itemCode: string) {
     // Get latest price from Item Price
     let price = item.standard_rate || 0
     try {
-      const priceList = await frappeRequest('frappe.client.get_list', 'GET', {
+      const priceList = await tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Item Price',
         filters: `{"item_code": "${itemCode}"}`,
         fields: '["price_list_rate"]',
@@ -813,7 +813,7 @@ export async function getItemDetails(itemCode: string) {
 export async function getCompanyDetails() {
   try {
     // Get list of companies and use the first one as default
-    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+    const companies = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Company',
       fields: '["name", "company_name", "tax_id"]',
       limit_page_length: 1
@@ -833,7 +833,7 @@ export async function getCompanyDetails() {
 export async function getBankDetails() {
   try {
     // Get first company
-    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+    const companies = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 1
@@ -842,7 +842,7 @@ export async function getBankDetails() {
     if (!companies || companies.length === 0) return null;
     const companyName = companies[0].name;
 
-    const banks = await frappeRequest('frappe.client.get_list', 'GET', {
+    const banks = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Bank Account',
       filters: `[["company", "=", "${companyName}"], ["is_default", "=", 1]]`,
       fields: '["bank", "bank_account_no", "branch_code"]',
@@ -858,7 +858,7 @@ export async function getBankDetails() {
 // 9. GET CUSTOMER DETAILS
 export async function getCustomerDetails(customerId: string) {
   try {
-    const customer = await frappeRequest('frappe.client.get', 'GET', {
+    const customer = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Customer',
       name: customerId
     }) as any
@@ -866,7 +866,7 @@ export async function getCustomerDetails(customerId: string) {
     let addressDisplay = ""
     if (customer.customer_primary_address) {
       try {
-        const address = await frappeRequest('frappe.client.get', 'GET', {
+        const address = await tenantAdminRequest('frappe.client.get', 'GET', {
           doctype: 'Address',
           name: customer.customer_primary_address
         }) as any
@@ -883,10 +883,10 @@ export async function getCustomerDetails(customerId: string) {
 // 10. DELETE INVOICE
 export async function deleteInvoice(id: string) {
   try {
-    const invoice = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Sales Invoice', name: id }) as { docstatus: number }
+    const invoice = await tenantAdminRequest('frappe.client.get', 'GET', { doctype: 'Sales Invoice', name: id }) as { docstatus: number }
     if (invoice.docstatus === 1) throw new Error("Cannot delete Submitted invoice")
 
-    await frappeRequest('frappe.client.delete', 'POST', { doctype: 'Sales Invoice', name: id })
+    await tenantAdminRequest('frappe.client.delete', 'POST', { doctype: 'Sales Invoice', name: id })
 
     revalidatePath('/invoices')
     return { success: true }
@@ -898,7 +898,7 @@ export async function deleteInvoice(id: string) {
 // 11. GET TAX TEMPLATES (New Helper)
 export async function getTaxTemplates() {
   try {
-    const templates = await frappeRequest('frappe.client.get_list', 'GET', {
+    const templates = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Taxes and Charges Template',
       fields: '["name", "title"]',
       filters: '[["disabled", "=", 0]]'
@@ -920,7 +920,7 @@ export async function createPaymentEntry(data: {
 }) {
   try {
     // Fetch the invoice to get necessary details
-    const invoice = await frappeRequest('frappe.client.get', 'GET', {
+    const invoice = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Invoice',
       name: data.invoiceName
     }) as any
@@ -936,7 +936,7 @@ export async function createPaymentEntry(data: {
     // Try to find a default bank account for the company
     let paidToAccount = null
     try {
-      const bankAccounts = await frappeRequest('frappe.client.get_list', 'GET', {
+      const bankAccounts = await tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Bank Account',
         filters: `[["company", "=", "${company}"], ["is_default", "=", 1]]`,
         fields: '["account"]',
@@ -949,7 +949,7 @@ export async function createPaymentEntry(data: {
     // If no bank account, try to find default cash account
     if (!paidToAccount) {
       try {
-        const cashAccounts = await frappeRequest('frappe.client.get_list', 'GET', {
+        const cashAccounts = await tenantAdminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Account',
           filters: `[["account_type", "=", "Cash"], ["company", "=", "${company}"], ["is_group", "=", 0]]`,
           fields: '["name"]',
@@ -962,7 +962,7 @@ export async function createPaymentEntry(data: {
     }
 
     // Create Payment Entry
-    const paymentEntry = await frappeRequest('frappe.client.insert', 'POST', {
+    const paymentEntry = await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'Payment Entry',
         payment_type: 'Receive',
@@ -991,7 +991,7 @@ export async function createPaymentEntry(data: {
     }) as { name: string }
 
     // Submit the payment entry
-    await frappeRequest('frappe.client.submit', 'POST', {
+    await tenantAdminRequest('frappe.client.submit', 'POST', {
       doc: paymentEntry
     })
 
@@ -1008,7 +1008,7 @@ export async function createPaymentEntry(data: {
 // 13. GET ALL PAYMENT ENTRIES
 export async function getPaymentEntries() {
   try {
-    const response = await frappeRequest(
+    const response = await tenantAdminRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -1028,7 +1028,7 @@ export async function getPaymentEntries() {
 // 14. GET SINGLE PAYMENT ENTRY
 export async function getPaymentEntry(id: string): Promise<PaymentEntry | null> {
   try {
-    const payment = await frappeRequest('frappe.client.get', 'GET', {
+    const payment = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Payment Entry',
       name: id
     }) as PaymentEntry
@@ -1044,7 +1044,7 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
   try {
 
     // 1. Fetch and validate Sales Order
-    const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
+    const salesOrder = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: salesOrderId
     }) as any
@@ -1092,7 +1092,7 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
 
 
     // 6. Use ERPNext's built-in method to create sales invoice from sales order
-    const invoiceDraft = await frappeRequest(
+    const invoiceDraft = await tenantAdminRequest(
       'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
       'POST',
       { source_name: salesOrderId }
@@ -1117,7 +1117,7 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
 
 
     // 9. Save the invoice
-    const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
+    const savedInvoice = await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: invoiceDoc
     }) as { name?: string }
 
@@ -1129,14 +1129,14 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
 
     // 10. Update Sales Order status based on billing progress
     try {
-      const updatedSalesOrder = await frappeRequest('frappe.client.get', 'GET', {
+      const updatedSalesOrder = await tenantAdminRequest('frappe.client.get', 'GET', {
         doctype: 'Sales Order',
         name: salesOrderId
       }) as any
 
       // ERPNext automatically updates per_billed, but we can ensure status is correct
       if (updatedSalesOrder.per_billed >= 100) {
-        await frappeRequest('frappe.client.set_value', 'POST', {
+        await tenantAdminRequest('frappe.client.set_value', 'POST', {
           doctype: 'Sales Order',
           name: salesOrderId,
           fieldname: 'status',
@@ -1145,7 +1145,7 @@ export async function createInvoiceFromOrder(salesOrderId: string, postingDate?:
       } else {
         // Keep as "To Bill and Deliver" or "To Bill" based on delivery status
         const newStatus = updatedSalesOrder.delivery_status === 'Fully Delivered' ? 'To Bill' : 'To Deliver and Bill'
-        await frappeRequest('frappe.client.set_value', 'POST', {
+        await tenantAdminRequest('frappe.client.set_value', 'POST', {
           doctype: 'Sales Order',
           name: salesOrderId,
           fieldname: 'status',
@@ -1246,7 +1246,7 @@ export async function createInvoiceFromSalesOrderProdReady(
     }
 
     // 3. Fetch Sales Order data
-    const so = await frappeRequest('frappe.client.get', 'GET', {
+    const so = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: salesOrderId
     }) as any
@@ -1259,7 +1259,7 @@ export async function createInvoiceFromSalesOrderProdReady(
     }
 
     // 4. Generate invoice from SO using ERPNext method
-    const invoiceDraft = await frappeRequest(
+    const invoiceDraft = await tenantAdminRequest(
       'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
       'POST',
       { source_name: salesOrderId }
@@ -1292,7 +1292,7 @@ export async function createInvoiceFromSalesOrderProdReady(
 
 
     // 6. Save invoice
-    const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
+    const savedInvoice = await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: invoiceDoc
     }) as any
 

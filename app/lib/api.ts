@@ -422,3 +422,20 @@ export async function masterRequest(
 ): Promise<unknown> {
   return frappeRequest(endpoint, method, body, { useMasterCredentials: true })
 }
+
+/**
+ * Make request to CURRENT TENANT site using MASTER credentials
+ * Use for ERP data operations where the tenant user may lack role permissions
+ * (e.g., Sales Invoice, Payment Entry reads)
+ */
+export async function tenantAdminRequest(
+  endpoint: string,
+  method: ApiRequestOptions['method'] = 'GET',
+  body: Record<string, unknown> | null = null
+): Promise<unknown> {
+  const context = await getTenantContext()
+  return frappeRequest(endpoint, method, body, {
+    useMasterCredentials: true,
+    siteOverride: context.siteName
+  })
+}

@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest } from "@/app/lib/api"
+import { tenantAdminRequest } from "@/app/lib/api"
 import { cookies } from 'next/headers'
 
 // Get comprehensive dashboard statistics
@@ -22,12 +22,12 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     let winRateChange = 0;
 
     if (accessibleModules.includes('quotations')) {
-      const quotationsWonMTD = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const quotationsWonMTD = await safeFetch(() => tenantAdminRequest('frappe.client.get_count', 'GET', {
         doctype: 'Quotation',
         filters: `[["status", "=", "Ordered"], ["modified", ">=", "${monthStart}"]]`
       }), 0) as number
 
-      const quotationsLostMTD = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const quotationsLostMTD = await safeFetch(() => tenantAdminRequest('frappe.client.get_count', 'GET', {
         doctype: 'Quotation',
         filters: `[["status", "=", "Lost"], ["modified", ">=", "${monthStart}"]]`
       }), 0) as number
@@ -35,12 +35,12 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
       const totalClosedMTD = (typeof quotationsWonMTD === 'number' ? quotationsWonMTD : 0) + (typeof quotationsLostMTD === 'number' ? quotationsLostMTD : 0)
       winRate = totalClosedMTD > 0 ? ((typeof quotationsWonMTD === 'number' ? quotationsWonMTD : 0) / totalClosedMTD) * 100 : 0
 
-      const quotationsWonLastMonth = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const quotationsWonLastMonth = await safeFetch(() => tenantAdminRequest('frappe.client.get_count', 'GET', {
         doctype: 'Quotation',
         filters: `[["status", "=", "Ordered"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
       }), 0) as number
 
-      const quotationsLostLastMonth = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const quotationsLostLastMonth = await safeFetch(() => tenantAdminRequest('frappe.client.get_count', 'GET', {
         doctype: 'Quotation',
         filters: `[["status", "=", "Lost"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
       }), 0) as number
@@ -54,7 +54,7 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     let pipelineValue = 0;
 
     if (accessibleModules.includes('quotations')) {
-      const quotes = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
+      const quotes = await safeFetch(() => tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Quotation',
         fields: '["base_grand_total"]',
         filters: '[["status", "=", "Open"]]',
@@ -66,7 +66,7 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     }
 
     if (accessibleModules.includes('sales-orders')) {
-      const orders = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
+      const orders = await safeFetch(() => tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Sales Order',
         fields: '["base_grand_total"]',
         filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
@@ -80,7 +80,7 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     // 3. Revenue MTD (from Paid Sales Invoices this month)
     let revenue = 0;
     if (accessibleModules.includes('invoices')) {
-      const revenueInvoices = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
+      const revenueInvoices = await safeFetch(() => tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Sales Invoice',
         fields: '["base_grand_total"]',
         filters: `[["status", "in", ["Paid", "Partly Paid"]], ["posting_date", ">=", "${monthStart}"]]`,
@@ -96,12 +96,12 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     let leadsChange = 0;
 
     if (accessibleModules.includes('crm')) {
-      const activeLeads = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const activeLeads = await safeFetch(() => tenantAdminRequest('frappe.client.get_count', 'GET', {
         doctype: 'Lead',
         filters: '[["status", "in", ["Open", "Replied", "Interested"]]]'
       }), 0) as number
 
-      const lastMonthLeads = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const lastMonthLeads = await safeFetch(() => tenantAdminRequest('frappe.client.get_count', 'GET', {
         doctype: 'Lead',
         filters: `[["status", "in", ["Open", "Replied", "Interested"]], ["creation", ">=", "${lastMonthStart}"], ["creation", "<=", "${lastMonthEnd}"]]`
       }), 0) as number
@@ -138,7 +138,7 @@ export async function getOpportunities(accessibleModules: string[] = []) {
   try {
     if (!accessibleModules.includes('quotations')) return []
 
-    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+    const quotes = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Quotation',
       fields: '["name", "customer_name", "party_name", "base_grand_total", "status", "modified"]',
       filters: '[["status", "in", ["Open"]]]',
@@ -181,7 +181,7 @@ export async function getRecentActivities(accessibleModules: string[] = []) {
     // 1. Fetch Recent Closed Deals (Sales Invoices Paid / SOs Created)
     if (accessibleModules.includes('sales-orders')) {
       try {
-        const closedDeals = await frappeRequest('frappe.client.get_list', 'GET', {
+        const closedDeals = await tenantAdminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Sales Order',
           fields: '["name", "customer_name", "modified", "owner"]',
           filters: '[["status", "in", ["To Deliver and Bill", "To Bill", "Completed"]]]',
@@ -208,7 +208,7 @@ export async function getRecentActivities(accessibleModules: string[] = []) {
     // 2. Fetch Recent New Quotes
     if (accessibleModules.includes('quotations')) {
       try {
-        const newQuotes = await frappeRequest('frappe.client.get_list', 'GET', {
+        const newQuotes = await tenantAdminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Quotation',
           fields: '["name", "customer_name", "creation", "owner"]',
           filters: '[["status", "in", ["Open", "Draft"]]]',
@@ -251,7 +251,7 @@ export async function getAtRiskDeals(accessibleModules: string[] = []) {
     if (!accessibleModules.includes('quotations')) return []
 
     // Get stagnant quotations
-    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+    const quotes = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Quotation',
       fields: '["name", "customer_name", "party_name", "modified"]',
       filters: '[["status", "in", ["Open"]]]',
@@ -293,7 +293,7 @@ export async function getSalesPipelineFunnel(accessibleModules: string[] = []) {
     // Get Leads
     let leadsCount: unknown = 0;
     if (accessibleModules.includes('crm')) {
-      leadsCount = await frappeRequest('frappe.client.get_count', 'GET', {
+      leadsCount = await tenantAdminRequest('frappe.client.get_count', 'GET', {
         doctype: 'Lead',
         filters: '[["status", "in", ["Open", "Replied", "Interested"]]]'
       })
@@ -302,7 +302,7 @@ export async function getSalesPipelineFunnel(accessibleModules: string[] = []) {
     // Get Quotes
     let quotes: unknown = [];
     if (accessibleModules.includes('quotations')) {
-      quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+      quotes = await tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Quotation',
         fields: '["base_grand_total", "status"]',
         filters: '[["status", "in", ["Draft", "Open"]]]',
@@ -313,7 +313,7 @@ export async function getSalesPipelineFunnel(accessibleModules: string[] = []) {
     // Get Orders
     let orders: unknown = [];
     if (accessibleModules.includes('sales-orders')) {
-      orders = await frappeRequest('frappe.client.get_list', 'GET', {
+      orders = await tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Sales Order',
         fields: '["base_grand_total", "status"]',
         filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
@@ -364,7 +364,7 @@ export async function getDealsByStage(accessibleModules: string[] = []) {
   try {
     if (!accessibleModules.includes('quotations')) return []
 
-    const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+    const quotes = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Quotation',
       fields: '["status"]',
       filters: '[["status", "in", ["Draft", "Open"]]]',
@@ -387,7 +387,7 @@ export async function getDealsByStage(accessibleModules: string[] = []) {
     // Get won this month
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-    const wonCount = await frappeRequest('frappe.client.get_count', 'GET', {
+    const wonCount = await tenantAdminRequest('frappe.client.get_count', 'GET', {
       doctype: 'Quotation',
       filters: `[["status", "=", "Ordered"], ["modified", ">=", "${monthStart}"]]`
     })
@@ -416,7 +416,7 @@ export async function getMyOpenLeads() {
       return []
     }
 
-    const leads = await frappeRequest('frappe.client.get_list', 'GET', {
+    const leads = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Lead',
       fields: '["name", "lead_name", "company_name", "status", "modified"]',
       filters: `[["status", "in", ["Open", "Replied", "Interested"]], ["owner", "=", "${userEmail}"]]`,
@@ -454,7 +454,7 @@ export async function getMyOpenOpportunities() {
       return []
     }
 
-    const opportunities = await frappeRequest('frappe.client.get_list', 'GET', {
+    const opportunities = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Opportunity',
       fields: '["name", "title", "sales_stage", "opportunity_amount", "probability"]',
       filters: `[["status", "in", ["Open", "Quotation"]], ["owner", "=", "${userEmail}"]]`,
@@ -486,7 +486,7 @@ export async function getLeadsBySource(accessibleModules: string[] = []) {
     if (!accessibleModules.includes('crm')) return [];
 
     // Get all leads except converted ones
-    const leads = await frappeRequest('frappe.client.get_list', 'GET', {
+    const leads = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Lead',
       fields: '["source"]',
       filters: '[["status", "!=", "Converted"]]',
@@ -540,3 +540,4 @@ function getTimeAgo(date: Date): string {
   if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
   return date.toLocaleDateString()
 }
+

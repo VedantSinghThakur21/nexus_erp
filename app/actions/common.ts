@@ -1,10 +1,10 @@
 'use server'
 
-import { frappeRequest } from "@/app/lib/api"
+import { tenantAdminRequest } from "@/app/lib/api"
 
 export async function getTaxTemplates() {
   try {
-    const templates = await frappeRequest('frappe.client.get_list', 'GET', {
+    const templates = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Taxes and Charges Template',
       fields: '["name", "title"]',
       limit_page_length: 50
@@ -20,7 +20,7 @@ export async function getTaxTemplates() {
 
 export async function getTerritories(): Promise<{ name: string }[]> {
   try {
-    const territories = await frappeRequest('frappe.client.get_list', 'GET', {
+    const territories = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Territory',
       fields: '["name"]',
       filters: JSON.stringify([['is_group', '=', 0]]),
@@ -40,7 +40,7 @@ export async function createTerritory(name: string): Promise<{ success: boolean;
     // Ensure a root group territory exists first
     let rootTerritory: string | undefined
     try {
-      const roots = await frappeRequest('frappe.client.get_list', 'GET', {
+      const roots = await tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Territory',
         filters: JSON.stringify([['is_group', '=', 1], ['parent_territory', '=', '']]),
         fields: '["name"]',
@@ -51,13 +51,13 @@ export async function createTerritory(name: string): Promise<{ success: boolean;
 
     if (!rootTerritory) {
       // Create root group
-      const root = await frappeRequest('frappe.client.insert', 'POST', {
+      const root = await tenantAdminRequest('frappe.client.insert', 'POST', {
         doc: { doctype: 'Territory', territory_name: 'All Territories', is_group: 1 }
       }) as { name: string }
       rootTerritory = root.name
     }
 
-    const result = await frappeRequest('frappe.client.insert', 'POST', {
+    const result = await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'Territory',
         territory_name: name.trim(),
@@ -76,7 +76,7 @@ export async function createTerritory(name: string): Promise<{ success: boolean;
 
 export async function getTaxTemplateDetails(templateName: string) {
   try {
-    const template = await frappeRequest('frappe.client.get', 'GET', {
+    const template = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Taxes and Charges Template',
       name: templateName
     })
@@ -89,7 +89,7 @@ export async function getTaxTemplateDetails(templateName: string) {
 
 export async function getWarehouses() {
   try {
-    const warehouseList = await frappeRequest('frappe.client.get_list', 'GET', {
+    const warehouseList = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Warehouse',
       fields: '["name"]',
       limit_page_length: 50
@@ -105,7 +105,7 @@ export async function getWarehouses() {
 
 export async function getModesOfPayment(): Promise<string[]> {
   try {
-    const modes = await frappeRequest('frappe.client.get_list', 'GET', {
+    const modes = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Mode of Payment',
       fields: '["name"]',
       order_by: 'name asc',
@@ -138,7 +138,7 @@ export async function applyItemPricingRules(data: {
   }
 }) {
   try {
-    const result = await frappeRequest('erpnext.stock.get_item_details.get_item_details', 'POST', {
+    const result = await tenantAdminRequest('erpnext.stock.get_item_details.get_item_details', 'POST', {
       item_code: data.item_code,
       company: data.company || 'ASP Cranes',
       customer: data.customer,
@@ -187,3 +187,5 @@ export async function applyItemPricingRules(data: {
     return { success: false, error: 'Failed to apply pricing rules' }
   }
 }
+
+

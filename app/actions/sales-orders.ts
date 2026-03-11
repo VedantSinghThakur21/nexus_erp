@@ -41,7 +41,7 @@
  * ============================================================================
  */
 
-import { frappeRequest } from "@/app/lib/api"
+import { tenantAdminRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 
 /**
@@ -53,7 +53,7 @@ async function resolveValidTerritory(preferredTerritory?: string): Promise<strin
   try {
     if (preferredTerritory) {
       // Check if this specific territory actually exists in ERPNext
-      const check = await frappeRequest('frappe.client.get_list', 'GET', {
+      const check = await tenantAdminRequest('frappe.client.get_list', 'GET', {
         doctype: 'Territory',
         filters: JSON.stringify([['name', '=', preferredTerritory]]),
         fields: '["name"]',
@@ -64,7 +64,7 @@ async function resolveValidTerritory(preferredTerritory?: string): Promise<strin
       }
     }
     // Fall back to the first territory that actually exists
-    const all = await frappeRequest('frappe.client.get_list', 'GET', {
+    const all = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Territory',
       fields: '["name"]',
       limit_page_length: 1
@@ -119,7 +119,7 @@ export interface SalesOrderItem {
 // 1. READ: Get All Sales Orders
 export async function getSalesOrders() {
   try {
-    const response = await frappeRequest(
+    const response = await tenantAdminRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -139,7 +139,7 @@ export async function getSalesOrders() {
 // 2. READ: Get Single Sales Order
 export async function getSalesOrder(id: string) {
   try {
-    const order = await frappeRequest('frappe.client.get', 'GET', {
+    const order = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: decodeURIComponent(id)
     })
@@ -165,7 +165,7 @@ export async function createSalesOrder(data: any) {
 
       try {
         // 1. Fetch the lead to get details
-        const lead = await frappeRequest('frappe.client.get', 'GET', {
+        const lead = await tenantAdminRequest('frappe.client.get', 'GET', {
           doctype: 'Lead',
           name: leadId
         }) as any
@@ -173,7 +173,7 @@ export async function createSalesOrder(data: any) {
         if (lead) {
           // 2. Look for an existing Customer that was created from this lead
           //    (ERPNext stores lead_name on Customer when converted)
-          const existingCustomers = await frappeRequest('frappe.client.get_list', 'GET', {
+          const existingCustomers = await tenantAdminRequest('frappe.client.get_list', 'GET', {
             doctype: 'Customer',
             filters: JSON.stringify([
               ['customer_name', 'in', [
@@ -205,7 +205,7 @@ export async function createSalesOrder(data: any) {
             if (validTerritory) customerData.territory = validTerritory
             if (lead.organization_slug) customerData.organization_slug = lead.organization_slug
 
-            const newCustomer = await frappeRequest('frappe.client.insert', 'POST', {
+            const newCustomer = await tenantAdminRequest('frappe.client.insert', 'POST', {
               doc: customerData
             }) as any
 
@@ -214,7 +214,7 @@ export async function createSalesOrder(data: any) {
 
             // Update lead status to Converted
             try {
-              await frappeRequest('frappe.client.set_value', 'POST', {
+              await tenantAdminRequest('frappe.client.set_value', 'POST', {
                 doctype: 'Lead',
                 name: leadId,
                 fieldname: 'status',
@@ -236,7 +236,7 @@ export async function createSalesOrder(data: any) {
     let defaultWarehouse: string | undefined = undefined
     try {
       // Try to get default warehouse from Stock Settings
-      const stockSettings = await frappeRequest('frappe.client.get_value', 'GET', {
+      const stockSettings = await tenantAdminRequest('frappe.client.get_value', 'GET', {
         doctype: 'Stock Settings',
         fieldname: 'default_warehouse'
       }) as any
@@ -246,7 +246,7 @@ export async function createSalesOrder(data: any) {
     if (!defaultWarehouse) {
       try {
         // Fallback: get the first available non-group warehouse
-        const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
+        const warehouses = await tenantAdminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Warehouse',
           filters: JSON.stringify([['is_group', '=', 0]]),
           fields: '["name"]',
@@ -340,7 +340,7 @@ export async function createSalesOrder(data: any) {
 
       try {
         // Fetch the tax template to get the tax rows
-        const taxTemplate = await frappeRequest('frappe.client.get', 'GET', {
+        const taxTemplate = await tenantAdminRequest('frappe.client.get', 'GET', {
           doctype: 'Sales Taxes and Charges Template',
           name: data.taxes_and_charges
         }) as { taxes?: any[] }
@@ -362,7 +362,7 @@ export async function createSalesOrder(data: any) {
       }
     }
 
-    const result = await frappeRequest('frappe.client.insert', 'POST', { doc: orderData })
+    const result = await tenantAdminRequest('frappe.client.insert', 'POST', { doc: orderData })
 
     revalidatePath('/sales-orders')
     return { success: true, data: result }
@@ -375,7 +375,7 @@ export async function createSalesOrder(data: any) {
 // 4. UPDATE: Update Sales Order
 export async function updateSalesOrder(id: string, data: any) {
   try {
-    const result = await frappeRequest('frappe.client.set_value', 'POST', {
+    const result = await tenantAdminRequest('frappe.client.set_value', 'POST', {
       doctype: 'Sales Order',
       name: id,
       fieldname: data
@@ -394,7 +394,7 @@ export async function updateSalesOrder(id: string, data: any) {
 export async function submitSalesOrder(id: string) {
   try {
     // Fetch the full Sales Order document first
-    const getResult = await frappeRequest('frappe.client.get', 'POST', {
+    const getResult = await tenantAdminRequest('frappe.client.get', 'POST', {
       doctype: 'Sales Order',
       name: id
     });
@@ -408,7 +408,7 @@ export async function submitSalesOrder(id: string) {
     if (!doc) throw new Error('Could not fetch Sales Order document');
 
     // Submit the Sales Order using the full doc
-    await frappeRequest('frappe.client.submit', 'POST', {
+    await tenantAdminRequest('frappe.client.submit', 'POST', {
       doc
     });
 
@@ -424,7 +424,7 @@ export async function submitSalesOrder(id: string) {
 // 6. CANCEL: Cancel Sales Order
 export async function cancelSalesOrder(id: string) {
   try {
-    await frappeRequest('frappe.client.cancel', 'POST', {
+    await tenantAdminRequest('frappe.client.cancel', 'POST', {
       doctype: 'Sales Order',
       name: id
     })
@@ -461,7 +461,7 @@ export async function getSalesOrderStats() {
 export async function createSalesOrderFromQuotation(quotationId: string) {
   try {
     // 1. Fetch Quotation to verify it's submitted
-    const quotation = await frappeRequest('frappe.client.get', 'GET', {
+    const quotation = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Quotation',
       name: quotationId
     }) as any
@@ -484,7 +484,7 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
     }
 
     // 4. Use ERPNext's built-in method to create sales order from quotation
-    const result = await frappeRequest('erpnext.selling.doctype.quotation.quotation.make_sales_order', 'POST', {
+    const result = await tenantAdminRequest('erpnext.selling.doctype.quotation.quotation.make_sales_order', 'POST', {
       source_name: quotationId
     }) as any
 
@@ -495,7 +495,7 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
     const salesOrderDoc = result.message || result
 
     // 5. Save the sales order
-    const savedOrder = await frappeRequest('frappe.client.insert', 'POST', {
+    const savedOrder = await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: salesOrderDoc
     }) as any
 
@@ -504,7 +504,7 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
     }
 
     // 6. Update Quotation status to \"Ordered\"
-    await frappeRequest('frappe.client.set_value', 'PUT', {
+    await tenantAdminRequest('frappe.client.set_value', 'PUT', {
       doctype: 'Quotation',
       name: quotationId,
       fieldname: 'status',
@@ -513,7 +513,7 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
 
     // 7. If there's a linked opportunity, update it to \"Converted\"
     if (quotation.opportunity) {
-      await frappeRequest('frappe.client.set_value', 'PUT', {
+      await tenantAdminRequest('frappe.client.set_value', 'PUT', {
         doctype: 'Opportunity',
         name: quotation.opportunity,
         fieldname: 'status',
@@ -538,7 +538,7 @@ export async function createSalesOrderFromQuotation(quotationId: string) {
 // 9. UPDATE: Update Sales Order Status
 export async function updateSalesOrderStatus(orderId: string, status: string) {
   try {
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    await tenantAdminRequest('frappe.client.set_value', 'POST', {
       doctype: 'Sales Order',
       name: orderId,
       fieldname: 'status',
@@ -557,7 +557,7 @@ export async function updateSalesOrderStatus(orderId: string, status: string) {
 // 11. UPDATE: Update Sales Order Delivery Status
 export async function updateSalesOrderDeliveryStatus(orderId: string, deliveryStatus: string) {
   try {
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    await tenantAdminRequest('frappe.client.set_value', 'POST', {
       doctype: 'Sales Order',
       name: orderId,
       fieldname: 'delivery_status',
@@ -578,7 +578,7 @@ export async function getSalesOrdersReadyForInvoice(): Promise<SalesOrder[]> {
   try {
     // ERPNext field availability varies across sites. Fetch a conservative list
     // (submitted, not fully billed) then filter client-side using delivery/billing fields.
-    const raw = await frappeRequest('frappe.client.get_list', 'GET', {
+    const raw = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: JSON.stringify([
         ['docstatus', '=', '1'],
@@ -640,7 +640,7 @@ export async function markSalesOrderReadyForInvoice(orderId: string) {
   try {
 
     // Fetch current sales order to validate
-    const salesOrder = await frappeRequest('frappe.client.get', 'GET', {
+    const salesOrder = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: orderId
     }) as any
@@ -701,7 +701,7 @@ export async function markSalesOrderReadyForInvoice(orderId: string) {
 // 12. READ: Get Sales Orders Eligible for Invoice Preparation
 export async function getSalesOrdersEligibleForInvoice(): Promise<SalesOrder[]> {
   try {
-    const raw = await frappeRequest('frappe.client.get_list', 'GET', {
+    const raw = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: JSON.stringify([
         ['docstatus', '=', '1'], // Must be submitted
@@ -781,7 +781,7 @@ export async function checkSalesOrderInvoiceEligibility(orderId: string): Promis
 }> {
   try {
 
-    const so = await frappeRequest('frappe.client.get', 'GET', {
+    const so = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: orderId
     }) as any
@@ -896,7 +896,7 @@ export async function refreshSalesOrderStatus(orderId: string): Promise<{
   try {
 
     // Fetch latest SO to get current per_billed and per_delivered
-    const so = await frappeRequest('frappe.client.get', 'GET', {
+    const so = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: orderId
     }) as any
@@ -964,13 +964,13 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
     }
 
     // 2. Fetch Sales Order
-    const so = await frappeRequest('frappe.client.get', 'GET', {
+    const so = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: orderId
     }) as any
 
     // 3. Use ERPNext's built-in method to generate invoice
-    const invoiceDraft = await frappeRequest(
+    const invoiceDraft = await tenantAdminRequest(
       'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
       'POST',
       { source_name: orderId }
@@ -998,7 +998,7 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
 
 
     // 5. Save invoice
-    const savedInvoice = await frappeRequest('frappe.client.insert', 'POST', {
+    const savedInvoice = await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: invoiceDoc
     }) as any
 
@@ -1039,7 +1039,7 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
 export async function deleteSalesOrder(orderId: string) {
   try {
     // Only allow delete if status is Draft
-    const order = await frappeRequest('frappe.client.get', 'GET', {
+    const order = await tenantAdminRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: orderId
     }) as { status: string, docstatus: number }
@@ -1052,7 +1052,7 @@ export async function deleteSalesOrder(orderId: string) {
       throw new Error('Only Draft sales orders can be deleted')
     }
 
-    await frappeRequest('frappe.client.delete', 'POST', {
+    await tenantAdminRequest('frappe.client.delete', 'POST', {
       doctype: 'Sales Order',
       name: orderId
     })

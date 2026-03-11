@@ -1,6 +1,6 @@
 "use server";
 
-import { frappeRequest } from "@/app/lib/api";
+import { tenantAdminRequest } from "@/app/lib/api";
 
 interface PricingRuleMatch {
   rule_name: string;
@@ -33,7 +33,7 @@ type PricingRuleDoc = {
 
 async function fetchActivePricingRules(): Promise<PricingRuleDoc[]> {
   try {
-    const rules = await frappeRequest(
+    const rules = await tenantAdminRequest(
       "frappe.client.get_list",
       "GET",
       {
@@ -51,7 +51,7 @@ async function fetchActivePricingRules(): Promise<PricingRuleDoc[]> {
       rules.map(async (rule: any) => {
         if (rule.apply_on === "Item Group") {
           try {
-            const full = await frappeRequest("frappe.client.get", "GET", {
+            const full = await tenantAdminRequest("frappe.client.get", "GET", {
               doctype: "Pricing Rule",
               name: rule.name,
             }) as any;
@@ -77,7 +77,7 @@ async function getItemGroupMap(itemCodes: string[]): Promise<Record<string, stri
   if (itemCodes.length === 0) return map;
 
   try {
-    const items = await frappeRequest("frappe.client.get_list", "GET", {
+    const items = await tenantAdminRequest("frappe.client.get_list", "GET", {
       doctype: "Item",
       fields: '["name","item_group"]',
       filters: JSON.stringify([["name", "in", itemCodes]]),
@@ -256,3 +256,5 @@ export async function getApplicablePricingRules(params: {
     return [];
   }
 }
+
+
