@@ -39,11 +39,23 @@ export default function InspectionsPage() {
     ).length;
     const passRate = total > 0 ? Math.round((passed / total) * 100) : 0;
 
+    // AI Risk Score Algorithm (Deterministic, Free-Tier Optimized)
+    // 0 = Safe, 100 = Critical Danger
+    // Base risk from failed inspections (weight: 60%)
+    const failureRate = total > 0 ? (failed / total) * 100 : 0;
+    // Base risk from pending inspections (weight: 40%) - assume > 10 pending is high risk
+    const pendingRisk = Math.min((pending / 10) * 100, 100);
+    
+    let computedRisk = 0;
+    if (total > 0) {
+      computedRisk = Math.round((failureRate * 0.6) + (pendingRisk * 0.4));
+    }
+
     return {
       total,
       passRate: `${passRate}%`,
       pending,
-      avgRiskScore: "N/A",
+      avgRiskScore: computedRisk,
     };
   }, [inspections]);
 
@@ -165,18 +177,37 @@ export default function InspectionsPage() {
                 <div className="bg-[#111827] dark:bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
-                      AI Risk Score
+                      Fleet Risk Score
                     </span>
-                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-                      <span className="material-symbols-outlined text-xl">trending_up</span>
+                    <div className={`p-2 rounded-lg ${
+                      kpis.avgRiskScore >= 70 ? 'bg-red-500/10 text-red-400' :
+                      kpis.avgRiskScore >= 40 ? 'bg-amber-500/10 text-amber-400' :
+                      'bg-emerald-500/10 text-emerald-400'
+                    }`}>
+                      <span className="material-symbols-outlined text-xl">
+                        {kpis.avgRiskScore >= 70 ? 'warning' : kpis.avgRiskScore >= 40 ? 'trending_up' : 'health_and_safety'}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">N/A</span>
-                    <span className="text-sm font-semibold text-slate-400 mb-1">Unavailable</span>
+                    <span className="text-[28px] font-bold text-white leading-none">{kpis.avgRiskScore}/100</span>
+                    <span className={`text-sm font-semibold mb-1 ${
+                      kpis.avgRiskScore >= 70 ? 'text-red-400' :
+                      kpis.avgRiskScore >= 40 ? 'text-amber-400' :
+                      'text-emerald-400'
+                    }`}>
+                      {kpis.avgRiskScore >= 70 ? 'Critical' : kpis.avgRiskScore >= 40 ? 'Moderate' : 'Healthy'}
+                    </span>
                   </div>
                   <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-slate-700 w-0 rounded-full"></div>
+                    <div 
+                      className={`h-full rounded-full shadow-sm ${
+                        kpis.avgRiskScore >= 70 ? 'bg-red-500 shadow-red-500/50' :
+                        kpis.avgRiskScore >= 40 ? 'bg-amber-500 shadow-amber-500/50' :
+                        'bg-emerald-500 shadow-emerald-500/50'
+                      }`} 
+                      style={{ width: `${kpis.avgRiskScore}%` }}
+                    ></div>
                   </div>
                 </div>
               </div>

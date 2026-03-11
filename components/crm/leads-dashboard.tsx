@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Opportunity } from "@/app/actions/crm"
 import { PageHeader } from "@/components/page-header"
+import { AICrmInsights } from "@/components/crm/ai-crm-insights"
+import { useUser } from "@/contexts/user-context"
 
 interface Lead {
   name: string
@@ -69,6 +71,7 @@ function getConfidenceTextColor(confidence: number): string {
 export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+  const { accessibleModules } = useUser()
 
   // High-probability opportunities: real Opportunity records with probability >= 70
   const highProbOpportunities = useMemo(() => {
@@ -317,8 +320,8 @@ export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
           </div>
 
           <div className="grid grid-cols-12 gap-8">
-            {/* Single Column */}
-            <div className="col-span-12 space-y-8">
+            {/* Left Column */}
+            <div className="col-span-12 xl:col-span-8 space-y-8">
               {/* High-Probability Opportunities Table */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -487,6 +490,15 @@ export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Right Column - AI Insights */}
+            <div className="col-span-12 xl:col-span-4">
+               <AICrmInsights 
+                  accessibleModules={accessibleModules}
+                  atRiskDeals={[]}
+                  highProbOpportunities={highProbOpportunities}
+               />
             </div>
           </div>
 

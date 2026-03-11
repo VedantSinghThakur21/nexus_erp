@@ -44,6 +44,9 @@ export async function POST(
             case 'fraud-check':
                 apiKey = process.env.DIFY_FRAUD_API_KEY || '';
                 break;
+            case 'crm-insights':
+                apiKey = process.env.DIFY_CRM_API_KEY || '';
+                break;
             default:
                 return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
@@ -76,7 +79,7 @@ export async function POST(
         const responseData = await response.json();
 
         // Extract the result from the workflow output
-        let resultRaw = responseData?.data?.outputs;
+        const resultRaw = responseData?.data?.outputs;
         let resultStr = null;
 
         if (resultRaw) {
@@ -130,15 +133,16 @@ export async function POST(
                     parsedResult = JSON.parse(cleanStr);
                 }
             }
-        } catch (e) {
+        } catch {
             console.warn("Failed to parse AI output as JSON:", resultStr);
             // Keep as string if parsing fails
         }
 
         return NextResponse.json({ result: parsedResult });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`AI Action Error [${action}]:`, error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

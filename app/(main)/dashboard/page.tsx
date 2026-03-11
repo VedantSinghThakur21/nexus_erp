@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import {
 } from "@/app/actions/dashboard";
 import { useUser } from "@/contexts/user-context";
 import { formatIndianCurrency } from "@/lib/currency";
+import { AICrmInsights } from "@/components/crm/ai-crm-insights";
 
 type Opportunity = {
   name: string;
@@ -137,7 +138,9 @@ export default function DashboardPage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [atRiskDeal, setAtRiskDeal] = useState<AtRiskDeal | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [leadSources, setLeadSources] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [funnelData, setFunnelData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,59 +148,64 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!userLoading) {
-      loadDashboardData();
+      // Inline the function or define outside to escape exhausting deps problem
+      const loadData = async () => {
+        try {
+          setLoading(true);
+          const [
+            statsData,
+            oppsData,
+            activitiesData,
+            atRiskData,
+            leadSourcesData,
+            funnelDataResult,
+          ] = await Promise.all([
+            getDashboardStats(accessibleModules),
+            getOpportunities(accessibleModules),
+            getRecentActivities(accessibleModules),
+            getAtRiskDeals(accessibleModules),
+            getLeadsBySource(accessibleModules),
+            getSalesPipelineFunnel(accessibleModules),
+          ]);
+    
+          setStats({
+            pipelineValue: statsData.pipelineValue,
+            revenue: statsData.revenue,
+            openOpportunities: statsData.openOpportunities,
+            winRate: statsData.winRate,
+            winRateChange: statsData.winRateChange,
+            leadsChange: statsData.leadsChange,
+          });
+          setOpportunities(oppsData);
+          setActivities(activitiesData as ActivityItem[]);
+          if (atRiskData.length > 0) {
+            setAtRiskDeal(atRiskData[0]);
+          }
+          setLeadSources(leadSourcesData);
+    
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const maxCount = Math.max(...funnelDataResult.map((s: any) => s.count), 1);
+          setFunnelData(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            funnelDataResult.map((item: any, index: number) => ({
+              ...item,
+              value: formatIndianCurrency(item.value),
+              width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - (index * 10))),
+            }))
+          );
+    
+          setLoading(false);
+        } catch (err) {
+          console.error("Dashboard load error:", err);
+          setLoading(false);
+        }
+      };
+
+      loadData();
     }
-  }, [userLoading]);
+  }, [userLoading, accessibleModules]);
 
-  async function loadDashboardData() {
-    try {
-      setLoading(true);
-      const [
-        statsData,
-        oppsData,
-        activitiesData,
-        atRiskData,
-        leadSourcesData,
-        funnelDataResult,
-      ] = await Promise.all([
-        getDashboardStats(accessibleModules),
-        getOpportunities(accessibleModules),
-        getRecentActivities(accessibleModules),
-        getAtRiskDeals(accessibleModules),
-        getLeadsBySource(accessibleModules),
-        getSalesPipelineFunnel(accessibleModules),
-      ]);
 
-      setStats({
-        pipelineValue: statsData.pipelineValue,
-        revenue: statsData.revenue,
-        openOpportunities: statsData.openOpportunities,
-        winRate: statsData.winRate,
-        winRateChange: statsData.winRateChange,
-        leadsChange: statsData.leadsChange,
-      });
-      setOpportunities(oppsData);
-      setActivities(activitiesData as ActivityItem[]);
-      if (atRiskData.length > 0) {
-        setAtRiskDeal(atRiskData[0]);
-      }
-      setLeadSources(leadSourcesData);
-
-      const maxCount = Math.max(...funnelDataResult.map((s: any) => s.count), 1);
-      setFunnelData(
-        funnelDataResult.map((item: any, index: number) => ({
-          ...item,
-          value: formatIndianCurrency(item.value),
-          width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - (index * 10))),
-        }))
-      );
-
-      setLoading(false);
-    } catch (err) {
-      console.error("Dashboard load error:", err);
-      setLoading(false);
-    }
-  }
 
   // Filter high-probability opportunities (probability >= 70)
   const highProbOpportunities = opportunities
@@ -569,98 +577,11 @@ export default function DashboardPage() {
 
             {/* Right Column - AI Insights */}
             <div className="col-span-12 xl:col-span-4">
-              <div className="bg-[#111827] rounded-2xl border border-slate-800 shadow-xl p-5 relative h-full flex flex-col max-w-sm mx-auto">
-                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-400/10">
-                      <span className="material-symbols-outlined text-yellow-400 text-xl">bolt</span>
-                    </span>
-                    <h4 className="font-bold text-base text-white tracking-wider uppercase">
-                      AI INSIGHTS
-                    </h4>
-                  </div>
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                </div>
-
-                {atRiskDeal ? (
-                  <div className="bg-white/5 border border-yellow-400/30 rounded-xl p-5 mb-5 relative overflow-hidden group">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="w-7 h-7 flex items-center justify-center rounded-full bg-yellow-400/10">
-                        <span className="material-symbols-outlined text-yellow-400 text-lg">warning</span>
-                      </span>
-                      <span className="text-[11px] font-bold uppercase text-yellow-400 tracking-tighter">Deal at Risk</span>
-                    </div>
-                    <h4 className="text-base font-bold mb-2 text-white">{atRiskDeal.customer_name}</h4>
-                    <p className="text-[12px] text-slate-400 mb-5 leading-relaxed">
-                      {atRiskDeal.reason || `No activity for ${atRiskDeal.days_since_activity} days. Competitive threat detected.`}
-                    </p>
-                    <Link href={`/crm/opportunities/${atRiskDeal.name}`}>
-                      <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded-lg text-xs transition uppercase tracking-wider">
-                        Priority Outreach
-                      </button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-4 mb-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="material-symbols-outlined text-emerald-500 text-base">
-                        check_circle
-                      </span>
-                      <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest">
-                        {accessibleModules.includes('quotations') ? "ALL DEALS ON TRACK" : "AI INSIGHTS UNAVAILABLE"}
-                      </span>
-                    </div>
-                    <p className="text-[12px] text-slate-400 leading-relaxed">
-                      {accessibleModules.includes('quotations')
-                        ? "No at-risk deals detected. All opportunities are progressing well."
-                        : "You do not have the required permissions to view at-risk deals."}
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-3 flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                      RECOMMENDED ACTIONS
-                    </p>
-                    <Link href="/crm">
-                      <button className="text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300">
-                        VIEW ALL
-                      </button>
-                    </Link>
-                  </div>
-                  {highProbOpportunities.slice(0, 2).map((opp, index) => {
-                    const actionType = index === 0 ? "alternate_email" : "check_circle";
-                    const actionColor = index === 0 ? "blue" : "emerald";
-                    return (
-                      <div
-                        key={opp.name}
-                        className="group flex items-center gap-3 p-3 bg-slate-800/40 rounded-lg hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
-                        onClick={() => router.push(`/crm/opportunities/${opp.name}`)}
-                      >
-                        <div
-                          className={`w-8 h-8 bg-${actionColor}-500/10 text-${actionColor}-400 flex items-center justify-center rounded-full ring-1 ring-${actionColor}-500/30 group-hover:scale-105 transition-transform`}
-                        >
-                          <span className="material-symbols-outlined text-lg font-bold">
-                            {actionType}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-[12px] font-bold text-white">
-                            {index === 0 ? "Follow up - " : "Contract - "}
-                            {((opp.customer_name || opp.party_name) || "Unknown").split(" ")[0]}
-                          </p>
-                          <p className="text-[10px] text-slate-500">
-                            {index === 0
-                              ? "High velocity activity."
-                              : "Review is complete."}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+               <AICrmInsights 
+                  accessibleModules={accessibleModules}
+                  atRiskDeals={atRiskDeal ? [atRiskDeal] : []}
+                  highProbOpportunities={highProbOpportunities}
+               />
             </div>
           </div>
 
