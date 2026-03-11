@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from "@/app/lib/api"
+import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 import { cookies } from 'next/headers'
 
@@ -18,7 +18,7 @@ export interface Inspection {
 // 1. READ: List
 export async function getInspections() {
   try {
-    const response = await tenantAdminRequest(
+    const response = await frappeRequest(
       'frappe.client.get_list', 
       'GET', 
       {
@@ -52,7 +52,7 @@ export async function createInspection(formData: FormData) {
 
     // Step 1: look for a Delivery Note (most relevant for outgoing inspection)
     try {
-      const dns = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      const dns = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Delivery Note',
         fields: JSON.stringify(['name']),
         filters: JSON.stringify([['Delivery Note Item', 'item_code', '=', machineValue]]),
@@ -70,7 +70,7 @@ export async function createInspection(formData: FormData) {
     // Step 2: if no Delivery Note, look for a Stock Entry
     if (!referenceName) {
       try {
-        const stes = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        const stes = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Stock Entry',
           fields: JSON.stringify(['name']),
           filters: JSON.stringify([['Stock Entry Detail', 'item_code', '=', machineValue]]),
@@ -90,7 +90,7 @@ export async function createInspection(formData: FormData) {
     if (!referenceName) {
       console.log(`No transaction found for ${machineValue}, creating anchor Stock Entry`)
       try {
-        const warehouses = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Warehouse',
           filters: '[["is_group", "=", 0]]',
           fields: JSON.stringify(['name']),
@@ -98,7 +98,7 @@ export async function createInspection(formData: FormData) {
         }) as any[]
         const toWarehouse = warehouses[0]?.name || 'Stores - ERP - A'
 
-        const ste = await tenantAdminRequest('frappe.client.insert', 'POST', {
+        const ste = await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Stock Entry',
             stock_entry_type: 'Material Receipt',
@@ -138,7 +138,7 @@ export async function createInspection(formData: FormData) {
       inspectionDoc.reference_name = referenceName
     }
 
-    await tenantAdminRequest('frappe.client.insert', 'POST', { doc: inspectionDoc })
+    await frappeRequest('frappe.client.insert', 'POST', { doc: inspectionDoc })
 
     revalidatePath('/inspections')
     revalidatePath('/bookings')
@@ -153,7 +153,7 @@ export async function createInspection(formData: FormData) {
 // 3. READ: Get Single Inspection
 export async function getInspection(id: string): Promise<Inspection | null> {
   try {
-    const inspection = await tenantAdminRequest('frappe.client.get', 'GET', {
+    const inspection = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Quality Inspection',
       name: decodeURIComponent(id)
     })
@@ -167,7 +167,7 @@ export async function getInspection(id: string): Promise<Inspection | null> {
 // 4. UPDATE: Update Inspection Status
 export async function updateInspection(inspectionId: string, formData: FormData) {
   try {
-    await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Quality Inspection',
       name: inspectionId,
       fieldname: {
@@ -202,7 +202,7 @@ export async function getAssetInspections(itemCode: string, salesOrderId?: strin
   if (itemCode) {
     try {
       const code = decodeURIComponent(itemCode)
-      absorb(await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      absorb(await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Quality Inspection',
         fields: inspectionFields,
         filters: JSON.stringify([['item_code', '=', code]]),
@@ -215,7 +215,7 @@ export async function getAssetInspections(itemCode: string, salesOrderId?: strin
   // Strategy 2: look up Delivery Notes for this Sales Order, then inspections referencing those DNs
   if (salesOrderId) {
     try {
-      const dns = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      const dns = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Delivery Note',
         fields: JSON.stringify(['name']),
         filters: JSON.stringify([['Delivery Note Item', 'against_sales_order', '=', salesOrderId]]),
@@ -225,7 +225,7 @@ export async function getAssetInspections(itemCode: string, salesOrderId?: strin
 
       for (const dn of dns || []) {
         try {
-          absorb(await tenantAdminRequest('frappe.client.get_list', 'GET', {
+          absorb(await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Quality Inspection',
             fields: inspectionFields,
             filters: JSON.stringify([['reference_name', '=', dn.name]]),
@@ -238,7 +238,7 @@ export async function getAssetInspections(itemCode: string, salesOrderId?: strin
 
     // Strategy 3: inspections whose remarks contain the Sales Order ID (set by createInspection)
     try {
-      absorb(await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      absorb(await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Quality Inspection',
         fields: inspectionFields,
         filters: JSON.stringify([['remarks', 'like', `%${salesOrderId}%`]]),
@@ -252,5 +252,6 @@ export async function getAssetInspections(itemCode: string, salesOrderId?: strin
     (b.report_date || '').localeCompare(a.report_date || '')
   )
 }
+
 
 

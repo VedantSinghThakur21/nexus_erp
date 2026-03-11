@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest } from '@/app/lib/api'
 import { cookies } from 'next/headers'
 
 export interface UserProfile {
@@ -25,7 +25,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
         }
 
         // Fetch user details from Frappe
-        const userData = await tenantAdminRequest('frappe.client.get_value', 'GET', {
+        const userData = await frappeRequest('frappe.client.get_value', 'GET', {
             doctype: 'User',
             filters: JSON.stringify({ name: userEmail }),
             fieldname: '["first_name", "last_name", "full_name", "email"]'
@@ -40,7 +40,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
         try {
             // Fetch user document with roles using user's own tenant credentials.
             // Users can read their own User doc in Frappe.
-            const userDoc = await tenantAdminRequest('frappe.client.get', 'POST', {
+            const userDoc = await frappeRequest('frappe.client.get', 'POST', {
                 doctype: 'User',
                 name: userEmail,
                 fields: JSON.stringify(['name', 'roles', 'role_profile_name'])
@@ -109,5 +109,6 @@ function formatRoleName(role: string): string {
     }
     return displayNames[role] || role
 }
+
 
 

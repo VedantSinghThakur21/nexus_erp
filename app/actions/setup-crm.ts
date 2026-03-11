@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest } from '@/app/lib/api'
 
 /**
  * Setup CRM Master Data for a newly provisioned tenant
@@ -42,7 +42,7 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
     // Setup Opportunity Types
     for (const typeName of DEFAULT_OPPORTUNITY_TYPES) {
       try {
-        const existing = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        const existing = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Opportunity Type',
           filters: { name: typeName },
           limit_page_length: 1
@@ -54,7 +54,7 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
           continue
         }
 
-        await tenantAdminRequest('frappe.client.insert', 'POST', {
+        await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Opportunity Type',
             name: typeName
@@ -72,7 +72,7 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
     // Setup Sales Stages
     for (const stageName of DEFAULT_SALES_STAGES) {
       try {
-        const existing = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        const existing = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Sales Stage',
           filters: { name: stageName },
           limit_page_length: 1
@@ -84,7 +84,7 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
           continue
         }
 
-        await tenantAdminRequest('frappe.client.insert', 'POST', {
+        await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Sales Stage',
             stage_name: stageName
@@ -114,5 +114,6 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
     }
   }
 }
+
 
 

@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from "@/app/lib/api"
+import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 
 export interface Booking {
@@ -22,7 +22,7 @@ export async function getBookings() {
   const baseFields = '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]'
   try {
     // Try filtering to rental bookings by po_no prefix first
-    const rentalBookings = await tenantAdminRequest(
+    const rentalBookings = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -38,7 +38,7 @@ export async function getBookings() {
 
     // Fallback: return all Sales Orders if no RENT-% bookings found
     // (handles cases where po_no wasn't saved or order was created outside the app)
-    const allBookings = await tenantAdminRequest(
+    const allBookings = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -58,7 +58,7 @@ export async function getBookings() {
 // 1b. Get Customer Booking History
 export async function getCustomerBookingHistory(customerName: string) {
   try {
-    const bookings = await tenantAdminRequest(
+    const bookings = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -100,7 +100,7 @@ export async function getCustomerBookingHistory(customerName: string) {
 export async function getItemRentalAnalytics(itemCode: string) {
   try {
     // Get all Sales Orders with this item
-    const salesOrders = await tenantAdminRequest(
+    const salesOrders = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -148,7 +148,7 @@ export async function createBooking(formData: FormData) {
 
   try {
     // Verify customer exists
-    const customerDoc = await tenantAdminRequest('frappe.client.get', 'GET', {
+    const customerDoc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Customer',
       name: customer
     })
@@ -158,7 +158,7 @@ export async function createBooking(formData: FormData) {
     }
 
     // Check for overlapping bookings on the same item
-    const existingBookings = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const existingBookings = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: JSON.stringify([
         ['Sales Order Item', 'item_code', '=', itemCode],
@@ -209,7 +209,7 @@ export async function createBooking(formData: FormData) {
       status: 'Draft'
     }
 
-    const createdBooking = await tenantAdminRequest('frappe.client.insert', 'POST', { doc: bookingDoc }) as { name: string }
+    const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc }) as { name: string }
 
     revalidatePath('/bookings')
     revalidatePath('/catalogue')
@@ -223,7 +223,7 @@ export async function createBooking(formData: FormData) {
 // 2. READ: Single Booking
 export async function getBooking(id: string): Promise<Booking | null> {
   try {
-    const booking = await tenantAdminRequest('frappe.client.get', 'GET', {
+    const booking = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Order',
       name: decodeURIComponent(id)
     })
@@ -248,7 +248,7 @@ export async function mobilizeAsset(formData: FormData) {
     // 0. Check if item has serial number tracking
     let hasSerialNo = false
     try {
-      const existingItem = await tenantAdminRequest('frappe.client.get', 'GET', {
+      const existingItem = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Item',
         name: itemCode,
         fields: JSON.stringify(['has_serial_no'])
@@ -275,12 +275,12 @@ export async function mobilizeAsset(formData: FormData) {
       // 1. Check if Serial No exists, create if it doesn't
       let asset: any = {}
       try {
-        asset = await tenantAdminRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
+        asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
         sourceWarehouse = asset.warehouse || ""
       } catch (e: any) {
         console.log(`Serial No ${assetId} not found, explicitly creating it`)
         try {
-          await tenantAdminRequest('frappe.client.insert', 'POST', {
+          await frappeRequest('frappe.client.insert', 'POST', {
             doc: {
               doctype: 'Serial No',
               item_code: itemCode,
@@ -295,14 +295,14 @@ export async function mobilizeAsset(formData: FormData) {
 
       // Self-Healing: If no warehouse, receipt it first
       if (!sourceWarehouse) {
-        const warehouses = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Warehouse',
           filters: '[["is_group", "=", 0]]',
           limit_page_length: 1
         }) as any[]
         const defaultWh = warehouses[0]?.name || "Stores - ERP - A"
 
-        await tenantAdminRequest('frappe.client.insert', 'POST', {
+        await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Stock Entry',
             stock_entry_type: 'Material Receipt',
@@ -320,7 +320,7 @@ export async function mobilizeAsset(formData: FormData) {
       }
     } else {
       // --- Non-serial item flow: ensure stock exists in a warehouse ---
-      const warehouses = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Warehouse',
         filters: '[["is_group", "=", 0]]',
         limit_page_length: 1
@@ -330,7 +330,7 @@ export async function mobilizeAsset(formData: FormData) {
       // Check current stock level
       let hasStock = false
       try {
-        const bins = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        const bins = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Bin',
           filters: JSON.stringify([['item_code', '=', itemCode], ['warehouse', '=', defaultWh]]),
           fields: JSON.stringify(['actual_qty']),
@@ -343,7 +343,7 @@ export async function mobilizeAsset(formData: FormData) {
 
       if (!hasStock) {
         try {
-          await tenantAdminRequest('frappe.client.insert', 'POST', {
+          await frappeRequest('frappe.client.insert', 'POST', {
             doc: {
               doctype: 'Stock Entry',
               stock_entry_type: 'Material Receipt',
@@ -381,12 +381,12 @@ export async function mobilizeAsset(formData: FormData) {
       docstatus: 1
     }
 
-    await tenantAdminRequest('frappe.client.insert', 'POST', { doc: deliveryDoc }) as { name: string }
+    await frappeRequest('frappe.client.insert', 'POST', { doc: deliveryDoc }) as { name: string }
 
     // 3. Update Asset Status to "Issued" (only for serial-tracked items)
     if (hasSerialNo && assetId) {
       try {
-        await tenantAdminRequest('frappe.client.set_value', 'PUT', {
+        await frappeRequest('frappe.client.set_value', 'PUT', {
           doctype: 'Serial No',
           name: assetId,
           fieldname: 'status',
@@ -398,7 +398,7 @@ export async function mobilizeAsset(formData: FormData) {
     }
 
     // 4. Update Sales Order (Booking) status to reflect mobilization
-    await tenantAdminRequest('frappe.client.set_value', 'PUT', {
+    await frappeRequest('frappe.client.set_value', 'PUT', {
       doctype: 'Sales Order',
       name: booking.name,
       fieldname: 'status',
@@ -425,7 +425,7 @@ export async function returnAsset(bookingId: string) {
     // 0. Check if item has serial number tracking
     let hasSerialNo = false
     try {
-      const existingItem = await tenantAdminRequest('frappe.client.get', 'GET', {
+      const existingItem = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Item',
         name: itemCode,
         fields: JSON.stringify(['has_serial_no'])
@@ -438,7 +438,7 @@ export async function returnAsset(bookingId: string) {
     // Find a warehouse
     let targetWarehouse = "Stores - ERP - A"
     try {
-      const warehouses = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Warehouse',
         filters: '[["is_group", "=", 0]]',
         limit_page_length: 1
@@ -460,11 +460,11 @@ export async function returnAsset(bookingId: string) {
       // Check current asset status
       let asset: any = {}
       try {
-        asset = await tenantAdminRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
+        asset = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Serial No', name: assetId }) as { warehouse?: string }
       } catch (e) {
         console.log(`Serial No ${assetId} not found in system during return, explicitly creating it`)
         try {
-          await tenantAdminRequest('frappe.client.insert', 'POST', {
+          await frappeRequest('frappe.client.insert', 'POST', {
             doc: {
               doctype: 'Serial No',
               item_code: itemCode,
@@ -492,12 +492,12 @@ export async function returnAsset(bookingId: string) {
           docstatus: 1
         }
 
-        await tenantAdminRequest('frappe.client.insert', 'POST', { doc: stockEntry })
+        await frappeRequest('frappe.client.insert', 'POST', { doc: stockEntry })
       }
 
       // Update Serial No status to Active
       try {
-        await tenantAdminRequest('frappe.client.set_value', 'PUT', {
+        await frappeRequest('frappe.client.set_value', 'PUT', {
           doctype: 'Serial No',
           name: assetId,
           fieldname: 'status',
@@ -509,7 +509,7 @@ export async function returnAsset(bookingId: string) {
     } else {
       // --- Non-serial item flow: receipt stock back ---
       try {
-        await tenantAdminRequest('frappe.client.insert', 'POST', {
+        await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Stock Entry',
             stock_entry_type: 'Material Receipt',
@@ -528,14 +528,14 @@ export async function returnAsset(bookingId: string) {
     }
 
     // Properly close the Sales Order by updating both status and per_delivered
-    await tenantAdminRequest('frappe.client.set_value', 'PUT', {
+    await frappeRequest('frappe.client.set_value', 'PUT', {
       doctype: 'Sales Order',
       name: bookingId,
       fieldname: 'status',
       value: 'Completed'
     })
 
-    await tenantAdminRequest('frappe.client.set_value', 'PUT', {
+    await frappeRequest('frappe.client.set_value', 'PUT', {
       doctype: 'Sales Order',
       name: bookingId,
       fieldname: 'per_delivered',
@@ -550,5 +550,6 @@ export async function returnAsset(bookingId: string) {
     return { error: error.message || 'Failed to return asset' }
   }
 }
+
 
 

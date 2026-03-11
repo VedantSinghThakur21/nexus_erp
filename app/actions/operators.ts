@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from "@/app/lib/api"
+import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 
 export interface Operator {
@@ -16,7 +16,7 @@ export interface Operator {
 // 1. READ: Get All Operators
 export async function getOperators() {
   try {
-    const response = await tenantAdminRequest(
+    const response = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -74,7 +74,7 @@ export async function createOperator(formData: FormData) {
 
     console.log('Creating operator with data:', operatorData)
 
-    const response = await tenantAdminRequest('frappe.client.insert', 'POST', { doc: operatorData })
+    const response = await frappeRequest('frappe.client.insert', 'POST', { doc: operatorData })
 
     console.log('Operator created successfully:', response)
 
@@ -86,5 +86,6 @@ export async function createOperator(formData: FormData) {
     return { error: errorMessage, success: false }
   }
 }
+
 
 

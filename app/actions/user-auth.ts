@@ -2,7 +2,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { provisionTenantSite, generateUserApiKeys } from '@/lib/provisioning-client'
-import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 
 /**
  * Tenant data structure from Frappe API
@@ -843,6 +843,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
   try {
     const cookieStore = await cookies()
     const userEmail = cookieStore.get('user_email')?.value
+    const sid = cookieStore.get('sid')?.value
 
     if (!userEmail) {
       return { success: false, error: 'Not authenticated. Please log in again.' }
@@ -855,14 +856,41 @@ export async function changePassword(currentPassword: string, newPassword: strin
       return { success: false, error: 'New password must be different from the current password.' }
     }
 
-    // Use tenantAdminRequest — master credentials on the current tenant site
-    // frappe.client.set_value with new_password is Frappe's standard way to change a user's password
-    await tenantAdminRequest('frappe.client.set_value', 'POST', {
-      doctype: 'User',
-      name: userEmail,
-      fieldname: 'new_password',
-      value: newPassword
-    })
+    const { siteName } = await getTenantContext()
+    const masterUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+
+    // Use Frappe's built-in update_password method with the user's own session.
+    // This validates old_password server-side — no admin credentials needed.
+    const response = await fetch(
+      `${masterUrl}/api/method/frappe.core.doctype.user.user.update_password`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Frappe-Site-Name': siteName,
+          ...(sid ? { Cookie: `sid=${sid}` } : {}),
+        },
+        body: JSON.stringify({
+          old_password: currentPassword,
+          new_password: newPassword,
+          logout_all_sessions: 0
+        })
+      }
+    )
+
+    const data = await response.json()
+    if (!response.ok || data.exc_type) {
+      if (data.exc_type === 'AuthenticationError') {
+        return { success: false, error: 'Incorrect temporary password. Please check and try again.' }
+      }
+      let msg = 'Failed to change password.'
+      if (data._server_messages) {
+        try { msg = JSON.parse(JSON.parse(data._server_messages)[0])?.message ?? msg } catch {}
+      } else if (typeof data.message === 'string' && data.message) {
+        msg = data.message
+      }
+      return { success: false, error: msg }
+    }
 
     return { success: true }
   } catch (error: any) {

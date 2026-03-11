@@ -1,6 +1,6 @@
 "use server";
 
-import { tenantAdminRequest } from "@/app/lib/api";
+import { frappeRequest } from "@/app/lib/api";
 import { revalidatePath } from "next/cache";
 
 interface PricingRule {
@@ -33,7 +33,7 @@ interface PricingRule {
 // Get all pricing rules
 export async function getPricingRules(): Promise<PricingRule[]> {
   try {
-    const response = await tenantAdminRequest(
+    const response = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -56,7 +56,7 @@ export async function getPricingRules(): Promise<PricingRule[]> {
 // Get single pricing rule with full details
 export async function getPricingRule(name: string): Promise<PricingRule | null> {
   try {
-    const response = await tenantAdminRequest(
+    const response = await frappeRequest(
       'frappe.client.get',
       'GET',
       {
@@ -151,7 +151,7 @@ export async function createPricingRule(formData: FormData) {
     if (priority) ruleData.priority = parseInt(priority);
 
 
-    await tenantAdminRequest('frappe.client.insert', 'POST', {
+    await frappeRequest('frappe.client.insert', 'POST', {
       doc: ruleData
     });
 
@@ -208,7 +208,7 @@ export async function updatePricingRule(name: string, formData: FormData) {
     if (maxQty) updateData.max_qty = parseFloat(maxQty);
     if (priority) updateData.priority = parseInt(priority);
 
-    await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Pricing Rule',
       name: name,
       fieldname: updateData
@@ -226,7 +226,7 @@ export async function updatePricingRule(name: string, formData: FormData) {
 // Toggle pricing rule status (enable/disable)
 export async function togglePricingRuleStatus(name: string, disable: number) {
   try {
-    await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Pricing Rule',
       name: name,
       fieldname: {
@@ -245,7 +245,7 @@ export async function togglePricingRuleStatus(name: string, disable: number) {
 // Delete pricing rule
 export async function deletePricingRule(name: string) {
   try {
-    await tenantAdminRequest('frappe.client.delete', 'POST', {
+    await frappeRequest('frappe.client.delete', 'POST', {
       doctype: 'Pricing Rule',
       name: name
     });
@@ -261,7 +261,7 @@ export async function deletePricingRule(name: string) {
 // Get customer groups for filtering
 export async function getCustomerGroups(): Promise<string[]> {
   try {
-    const response = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const response = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Customer Group',
       fields: '["name"]',
       filters: JSON.stringify([['is_group', '=', 0]]),
@@ -279,7 +279,7 @@ export async function getCustomerGroups(): Promise<string[]> {
 // Get territories for filtering
 export async function getTerritories(): Promise<string[]> {
   try {
-    const response = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const response = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Territory',
       fields: '["name"]',
       filters: JSON.stringify([['is_group', '=', 0]]),
@@ -297,7 +297,7 @@ export async function getTerritories(): Promise<string[]> {
 // Get item groups for filtering
 export async function getItemGroups(): Promise<string[]> {
   try {
-    const response = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const response = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Item Group',
       fields: '["name"]',
       filters: JSON.stringify([['is_group', '=', 0]]),
@@ -311,5 +311,6 @@ export async function getItemGroups(): Promise<string[]> {
     return [];
   }
 }
+
 
 

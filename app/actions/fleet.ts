@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from "@/app/lib/api"
+import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 
 export interface Asset {
@@ -19,7 +19,7 @@ export interface Asset {
 // 1. READ: Get All Machines
 export async function getFleet() {
   try {
-    const response = await tenantAdminRequest(
+    const response = await frappeRequest(
       'frappe.client.get_list', 
       'GET', 
       {
@@ -41,7 +41,7 @@ export async function getFleet() {
 export async function getAsset(id: string) {
   const name = decodeURIComponent(id)
   try {
-    const asset = await tenantAdminRequest('frappe.client.get', 'GET', {
+    const asset = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Serial No',
       name: name
     })
@@ -55,7 +55,7 @@ export async function getAsset(id: string) {
 // 2b. READ: Get Customer's Booking History
 export async function getCustomerBookingHistory(customerId: string) {
   try {
-    const bookings = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       fields: '["name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]',
       filters: `[["customer", "=", "${customerId}"], ["po_no", "like", "RENT-%"]]`,
@@ -76,7 +76,7 @@ export async function getCustomerBookingHistory(customerId: string) {
 // 2c. READ: Get Equipment's Booking History
 export async function getEquipmentBookingHistory(equipmentId: string) {
   try {
-    const bookings = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const bookings = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       fields: '["name", "customer", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "per_delivered"]',
       filters: `[["po_no", "=", "RENT-${equipmentId}"]]`,
@@ -97,12 +97,12 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
   
   try {
     // Try to get existing record
-    await tenantAdminRequest('frappe.client.get', 'GET', { doctype, name });
+    await frappeRequest('frappe.client.get', 'GET', { doctype, name });
     return name;
   } catch (e) {
     // Try fuzzy match for existing record (e.g., "Stores - ERP - A")
     try {
-        const list = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        const list = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype,
             filters: `[["name", "like", "${name}%"]]`,
             fields: '["name"]',
@@ -119,7 +119,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
         
         // Special logic for Warehouse parent
         if (doctype === 'Warehouse' && !finalFields.parent_warehouse) {
-            const roots = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+            const roots = await frappeRequest('frappe.client.get_list', 'GET', {
                 doctype: 'Warehouse',
                 filters: '[["is_group", "=", 1], ["parent_warehouse", "=", ""]]',
                 limit_page_length: 1
@@ -128,7 +128,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
             if (roots && roots.length > 0) {
                 finalFields.parent_warehouse = roots[0].name;
             } else {
-                const anyGroup = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+                const anyGroup = await frappeRequest('frappe.client.get_list', 'GET', {
                     doctype: 'Warehouse',
                     filters: '[["is_group", "=", 1]]',
                     limit_page_length: 1
@@ -137,7 +137,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
             }
         }
 
-        const newDoc = await tenantAdminRequest('frappe.client.insert', 'POST', {
+        const newDoc = await frappeRequest('frappe.client.insert', 'POST', {
             doc: { 
                 doctype, 
                 [doctype === 'Brand' ? 'brand' : 'warehouse_name']: name, 
@@ -149,7 +149,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
     } catch (createError: any) {
         // Handle race condition where it exists but wasn't found initially
         if (createError.message && createError.message.includes("already exists")) {
-            const list = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+            const list = await frappeRequest('frappe.client.get_list', 'GET', {
                 doctype,
                 filters: `[["name", "like", "${name}%"]]`,
                 fields: '["name"]',
@@ -201,7 +201,7 @@ export async function createMachine(formData: FormData) {
         details: formData.get('description'), 
     }
 
-    await tenantAdminRequest('frappe.client.insert', 'POST', {
+    await frappeRequest('frappe.client.insert', 'POST', {
       doc: machineData
     })
 
@@ -222,7 +222,7 @@ export async function createMachine(formData: FormData) {
         }
         
         try {
-            await tenantAdminRequest('frappe.client.insert', 'POST', { doc: stockEntry })
+            await frappeRequest('frappe.client.insert', 'POST', { doc: stockEntry })
         } catch (stockError: any) {
             console.warn("Stock Entry Warning (Machine Created but not in Stock):", stockError.message);
             // We don't fail the whole request, as the Serial No record exists now
@@ -250,7 +250,7 @@ export async function bookMachine(formData: FormData) {
 
   try {
     // Verify customer exists
-    const customerDoc = await tenantAdminRequest('frappe.client.get', 'GET', {
+    const customerDoc = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Customer',
       name: customer
     })
@@ -260,7 +260,7 @@ export async function bookMachine(formData: FormData) {
     }
 
     // Check for overlapping bookings on the same asset
-    const existingBookings = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const existingBookings = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: JSON.stringify([
         ['Sales Order Item', 'item_code', '=', itemCode],
@@ -313,7 +313,7 @@ export async function bookMachine(formData: FormData) {
         status: 'Draft'
     }
 
-    const createdBooking = await tenantAdminRequest('frappe.client.insert', 'POST', { doc: bookingDoc }) as { name: string }
+    const createdBooking = await frappeRequest('frappe.client.insert', 'POST', { doc: bookingDoc }) as { name: string }
     
     revalidatePath(`/fleet/${assetId}`)
     revalidatePath('/bookings')
@@ -323,5 +323,6 @@ export async function bookMachine(formData: FormData) {
     return { error: error.message || 'Booking failed' }
   }
 }
+
 
 

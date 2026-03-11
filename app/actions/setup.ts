@@ -5,7 +5,7 @@
  * Run this once to initialize the organization and subscription system
  */
 
-import { tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest } from '@/app/lib/api'
 
 export async function setupERPNextDoctypes() {
   const results = {
@@ -16,7 +16,7 @@ export async function setupERPNextDoctypes() {
   try {
     // Check if Organization already exists
     try {
-      await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'DocType',
         filters: JSON.stringify({ name: 'Organization' }),
         limit_page_length: 1
@@ -24,7 +24,7 @@ export async function setupERPNextDoctypes() {
       results.organization = { status: 'exists', message: 'Organization DocType already exists' }
     } catch {
       // DocType doesn't exist, create it
-      await tenantAdminRequest('frappe.client.insert', 'POST', {
+      await frappeRequest('frappe.client.insert', 'POST', {
         doc: {
           doctype: 'DocType',
           name: 'Organization',
@@ -150,7 +150,7 @@ export async function setupERPNextDoctypes() {
 
     // Check if Organization Member already exists
     try {
-      await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'DocType',
         filters: JSON.stringify({ name: 'Organization Member' }),
         limit_page_length: 1
@@ -158,7 +158,7 @@ export async function setupERPNextDoctypes() {
       results.member = { status: 'exists', message: 'Organization Member DocType already exists' }
     } catch {
       // DocType doesn't exist, create it
-      await tenantAdminRequest('frappe.client.insert', 'POST', {
+      await frappeRequest('frappe.client.insert', 'POST', {
         doc: {
           doctype: 'DocType',
           name: 'Organization Member',
@@ -244,7 +244,7 @@ export async function linkOrganizationToExistingDocs() {
     for (const doctype of doctypes) {
       try {
         // Check if field already exists
-        const existing = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        const existing = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Custom Field',
           filters: JSON.stringify({ dt: doctype, fieldname: 'organization_slug' }),
           limit_page_length: 1
@@ -254,7 +254,7 @@ export async function linkOrganizationToExistingDocs() {
           results[doctype] = { status: 'exists', message: 'Field already exists' }
         } else {
           // Field doesn't exist, create it
-          await tenantAdminRequest('frappe.client.insert', 'POST', {
+          await frappeRequest('frappe.client.insert', 'POST', {
             doc: {
               doctype: 'Custom Field',
               dt: doctype,
@@ -276,5 +276,6 @@ export async function linkOrganizationToExistingDocs() {
     return { success: false, error: error.message }
   }
 }
+
 
 

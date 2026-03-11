@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from "@/app/lib/api"
+import { frappeRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 import { canCreateProject, incrementUsage } from "./usage-limits"
 import { headers } from "next/headers"
@@ -26,7 +26,7 @@ export interface Task {
 // 1. READ: Get All Projects
 export async function getProjects() {
   try {
-    const response = await tenantAdminRequest(
+    const response = await frappeRequest(
       'frappe.client.get_list', 
       'GET', 
       {
@@ -46,7 +46,7 @@ export async function getProjects() {
 // 2. READ: Get Single Project
 export async function getProject(id: string) {
   try {
-    const project = await tenantAdminRequest('frappe.client.get', 'GET', {
+    const project = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Project',
       name: decodeURIComponent(id)
     })
@@ -59,7 +59,7 @@ export async function getProject(id: string) {
 // 3. READ: Get Tasks for a Project
 export async function getTasks(projectId: string) {
   try {
-    const tasks = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const tasks = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Task',
       filters: `[["project", "=", "${decodeURIComponent(projectId)}"]]`,
       fields: '["name", "subject", "status", "priority", "exp_end_date"]',
@@ -98,7 +98,7 @@ export async function createProject(formData: FormData) {
   }
 
   try {
-    await tenantAdminRequest('frappe.client.insert', 'POST', { doc: projectData })
+    await frappeRequest('frappe.client.insert', 'POST', { doc: projectData })
     
     // Increment usage counter
     if (subdomain) {
@@ -124,7 +124,7 @@ export async function createTask(projectId: string, formData: FormData) {
   }
 
   try {
-    await tenantAdminRequest('frappe.client.insert', 'POST', { doc: taskData })
+    await frappeRequest('frappe.client.insert', 'POST', { doc: taskData })
     revalidatePath(`/projects/${projectId}`)
     return { success: true }
   } catch (error: any) {
@@ -135,7 +135,7 @@ export async function createTask(projectId: string, formData: FormData) {
 // 6. UPDATE: Update Project Details
 export async function updateProject(projectId: string, formData: FormData) {
   try {
-    await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Project',
       name: projectId,
       fieldname: {
@@ -156,7 +156,7 @@ export async function updateProject(projectId: string, formData: FormData) {
 // 7. GET: Get Sales Orders linked to Project
 export async function getProjectSalesOrders(projectId: string) {
   try {
-    const orders = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const orders = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Sales Order',
       filters: `[["project", "=", "${decodeURIComponent(projectId)}"]]`,
       fields: '["name", "customer_name", "transaction_date", "grand_total", "status"]',
@@ -167,7 +167,7 @@ export async function getProjectSalesOrders(projectId: string) {
     const ordersWithItems = await Promise.all(
       orders.map(async (order: any) => {
         try {
-          const fullOrder = await tenantAdminRequest('frappe.client.get', 'GET', {
+          const fullOrder = await frappeRequest('frappe.client.get', 'GET', {
             doctype: 'Sales Order',
             name: order.name
           }) as any
@@ -184,6 +184,7 @@ export async function getProjectSalesOrders(projectId: string) {
     return []
   }
 }
+
 
 
 

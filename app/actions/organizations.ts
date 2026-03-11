@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest } from '@/app/lib/api'
 import { Organization, OrganizationMember, SubscriptionTier } from '@/types/subscription'
 
 // Create Organization in ERPNext as a custom doctype
@@ -45,7 +45,7 @@ export async function createOrganization(data: {
       updated_at: formatDateForERPNext(currentDate)
     }
 
-    const result = await tenantAdminRequest('frappe.client.insert', 'POST', {
+    const result = await frappeRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'Organization',
         organization_name: organization.name,
@@ -65,7 +65,7 @@ export async function createOrganization(data: {
     })
 
     // Create organization member entry for owner
-    await tenantAdminRequest('frappe.client.insert', 'POST', {
+    await frappeRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'Organization Member',
         member_name: data.ownerEmail.split('@')[0],
@@ -85,7 +85,7 @@ export async function createOrganization(data: {
 // Get Organization by slug
 export async function getOrganization(slug: string) {
   try {
-    const result = await tenantAdminRequest('frappe.client.get', 'GET', {
+    const result = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Organization',
       filters: JSON.stringify({ slug: slug })
     }) as any
@@ -120,7 +120,7 @@ export async function addOrganizationMember(data: {
       created_at: new Date().toISOString()
     }
 
-    const result = await tenantAdminRequest('frappe.client.insert', 'POST', {
+    const result = await frappeRequest('frappe.client.insert', 'POST', {
       doc: {
         doctype: 'Organization Member',
         member_name: member.name,
@@ -147,7 +147,7 @@ export async function updateSubscription(
       return { success: false, error: 'Organization not found' }
     }
 
-    const result = await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    const result = await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Organization',
       name: org.name,
       fieldname: {
@@ -186,7 +186,7 @@ export async function updateUsage(
     const currentValue = (org as any)[fieldMap[usageType]] || 0
     const newValue = currentValue + increment
 
-    const result = await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    const result = await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Organization',
       name: (org as any).name,
       fieldname: {
@@ -250,5 +250,6 @@ export async function canPerformAction(
     return { allowed: false, reason: error.message }
   }
 }
+
 
 

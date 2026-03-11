@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest, userRequest } from "@/app/lib/api"
+import { frappeRequest, userRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 import { cookies } from 'next/headers'
 
@@ -50,7 +50,7 @@ export async function getProfile() {
 // 2. Get Team Members
 export async function getTeam() {
   try {
-    const users = await tenantAdminRequest(
+    const users = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -91,7 +91,7 @@ export async function inviteUser(formData: FormData) {
   }
 
   try {
-    await tenantAdminRequest('frappe.client.insert', 'POST', { doc: userData })
+    await frappeRequest('frappe.client.insert', 'POST', { doc: userData })
     revalidatePath('/settings')
     return { success: true }
   } catch (error: any) {
@@ -124,7 +124,7 @@ export interface TaxTemplateDetail {
 // Get all tax templates
 export async function getTaxTemplates() {
   try {
-    const templates = await tenantAdminRequest(
+    const templates = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -144,7 +144,7 @@ export async function getTaxTemplates() {
 // Get single tax template with details
 export async function getTaxTemplate(name: string) {
   try {
-    const template = await tenantAdminRequest('frappe.client.get', 'GET', {
+    const template = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'Sales Taxes and Charges Template',
       name: name
     })
@@ -178,7 +178,7 @@ export async function createTaxTemplate(data: {
       }))
     }
 
-    const template = await tenantAdminRequest('frappe.client.insert', 'POST', { doc })
+    const template = await frappeRequest('frappe.client.insert', 'POST', { doc })
     revalidatePath('/settings')
     return { success: true, template }
   } catch (error: any) {
@@ -190,7 +190,7 @@ export async function createTaxTemplate(data: {
 // Get available tax accounts for a company
 export async function getTaxAccounts(company: string) {
   try {
-    const accounts = await tenantAdminRequest(
+    const accounts = await frappeRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -222,7 +222,7 @@ export interface Company {
 // Get company details
 export async function getCompany() {
   try {
-    const companies = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Company',
       fields: '["name", "company_name", "abbr", "tax_id", "country", "default_currency"]',
       limit_page_length: 1
@@ -242,7 +242,7 @@ export async function updateCompany(data: {
   country?: string
 }) {
   try {
-    await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Company',
       name: data.name,
       fieldname: {
@@ -274,7 +274,7 @@ export interface BankAccount {
 export async function getBankAccounts() {
   try {
     // First get company
-    const companies = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 1
@@ -282,7 +282,7 @@ export async function getBankAccounts() {
     if (!companies || companies.length === 0) return []
     const companyName = companies[0].name
 
-    const accounts = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const accounts = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Bank Account',
       fields: '["name", "bank", "bank_account_no", "branch_code", "company", "is_default"]',
       filters: `[["company", "=", "${companyName}"]]`,
@@ -305,7 +305,7 @@ export async function createBankAccount(data: {
 }) {
   try {
     // Get company name
-    const companies = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 1
@@ -317,14 +317,14 @@ export async function createBankAccount(data: {
 
     // Ensure the Bank record exists (bank field is a Link to Bank doctype)
     try {
-      const existingBanks = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      const existingBanks = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Bank',
         fields: '["name"]',
         filters: JSON.stringify([['name', '=', data.bank]]),
         limit_page_length: 1
       }) as any[]
       if (!existingBanks || existingBanks.length === 0) {
-        await tenantAdminRequest('frappe.client.insert', 'POST', {
+        await frappeRequest('frappe.client.insert', 'POST', {
           doc: { doctype: 'Bank', bank_name: data.bank }
         })
       }
@@ -346,7 +346,7 @@ export async function createBankAccount(data: {
       is_company_account: 1
     }
 
-    await tenantAdminRequest('frappe.client.insert', 'POST', { doc })
+    await frappeRequest('frappe.client.insert', 'POST', { doc })
     revalidatePath('/settings')
     return { success: true }
   } catch (error: any) {
@@ -363,7 +363,7 @@ export async function updateBankAccount(name: string, data: {
   is_default?: boolean
 }) {
   try {
-    await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Bank Account',
       name: name,
       fieldname: {
@@ -380,5 +380,6 @@ export async function updateBankAccount(name: string, data: {
     return { error: error.message || 'Failed to update bank account' }
   }
 }
+
 
 

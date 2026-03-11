@@ -1,6 +1,6 @@
 'use server'
 
-import { tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest } from '@/app/lib/api'
 import { canInviteUser, incrementUsage } from './usage-limits'
 import { headers, cookies } from 'next/headers'
 import { sendInviteEmail } from '@/lib/email'
@@ -27,12 +27,12 @@ export async function inviteTeamMember(data: {
       const cookieStore = await cookies()
       const inviterEmail = cookieStore.get('user_email')?.value
       if (inviterEmail) {
-        const inviterData = await tenantAdminRequest('frappe.client.get_value', 'GET', {
+        const inviterData = await frappeRequest('frappe.client.get_value', 'GET', {
           doctype: 'User', filters: inviterEmail, fieldname: 'full_name'
         }) as { full_name?: string }
         if (inviterData?.full_name) inviterName = inviterData.full_name
       }
-      const companies = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      const companies = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Company', fields: '["company_name"]', limit_page_length: 1
       }) as { company_name: string }[]
       if (companies?.[0]?.company_name) organizationName = companies[0].company_name
@@ -59,7 +59,7 @@ export async function inviteTeamMember(data: {
     }
     
     // Check if user already exists (including disabled/removed users)
-    const existingUsers = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const existingUsers = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'User',
       filters: `[["email", "=", "${data.email}"]]`,
       fields: '["name", "email", "enabled"]',
@@ -77,10 +77,10 @@ export async function inviteTeamMember(data: {
       // Previously removed (disabled) — re-enable and update their role
       // Generate a fresh temp password so the admin can share access again
       const resetPassword = generateTempPassword()
-      await tenantAdminRequest('frappe.client.set_value', 'POST', {
+      await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'User', name: existing.email, fieldname: 'enabled', value: 1
       })
-      await tenantAdminRequest('frappe.client.set_value', 'POST', {
+      await frappeRequest('frappe.client.set_value', 'POST', {
         doctype: 'User', name: existing.email, fieldname: 'new_password', value: resetPassword
       })
       // Re-assign proper roles via provisioning service (ignore_permissions)
@@ -126,7 +126,7 @@ export async function inviteTeamMember(data: {
       roles: getRolesForType(data.role),
     }
     
-    await tenantAdminRequest('frappe.client.insert', 'POST', {
+    await frappeRequest('frappe.client.insert', 'POST', {
       doc: userData
     })
     
@@ -165,7 +165,7 @@ export async function inviteTeamMember(data: {
  */
 export async function getTeamMembers(): Promise<any[]> {
   try {
-    const users = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    const users = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'User',
       filters: `[["enabled", "=", 1], ["name", "!=", "Administrator"], ["name", "!=", "Guest"]]`,
       fields: '["name", "email", "first_name", "last_name", "enabled", "creation", "last_login", "user_type", "role_profile_name"]',
@@ -241,7 +241,7 @@ export async function removeTeamMember(email: string): Promise<{ success: boolea
     }
     
     // Disable the user instead of deleting (best practice)
-    await tenantAdminRequest('frappe.client.set_value', 'POST', {
+    await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'User',
       name: email,
       fieldname: 'enabled',
@@ -335,4 +335,5 @@ function getRolesForType(roleType: string): { role: string }[] {
 function getPrimaryRoleForType(roleType: string): string {
   return (ROLE_SETS[roleType] || ROLE_SETS.member)[0]
 }
+
 

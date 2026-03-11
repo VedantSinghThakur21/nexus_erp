@@ -1,13 +1,13 @@
 'use server'
 
-import { tenantAdminRequest } from "@/app/lib/api"
+import { frappeRequest } from "@/app/lib/api"
 
 export async function checkSystemSetup() {
   const results: any = {};
 
   try {
     // 1. Check Global Defaults
-    results.globalDefaults = await tenantAdminRequest('frappe.client.get_value', 'GET', {
+    results.globalDefaults = await frappeRequest('frappe.client.get_value', 'GET', {
       doctype: 'Global Defaults',
       fieldname: 'default_company'
     });
@@ -17,7 +17,7 @@ export async function checkSystemSetup() {
 
   try {
     // 2. List Companies
-    results.companies = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+    results.companies = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 5
@@ -28,7 +28,7 @@ export async function checkSystemSetup() {
 
   try {
     // 3. Check User Info (who are we?)
-    results.user = await tenantAdminRequest('frappe.client.get_info', 'GET', {});
+    results.user = await frappeRequest('frappe.client.get_info', 'GET', {});
   } catch (e: any) {
     results.userError = e.message;
   }
@@ -36,5 +36,6 @@ export async function checkSystemSetup() {
 
   return results;
 }
+
 
 
