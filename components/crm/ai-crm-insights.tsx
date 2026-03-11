@@ -253,44 +253,7 @@ export function AICrmInsights({
               </div>
             )}
             
-            {/* Quick Actions (fallback/static actions if needed) */}
-             <div className="space-y-3 mt-4">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                        QUICK ACTIONS
-                    </p>
-                </div>
-                {highProbOpportunities.slice(0, 2).map((opp, index) => {
-                    const actionType = index === 0 ? "alternate_email" : "check_circle";
-                    const actionColor = index === 0 ? "blue" : "emerald";
-                    return (
-                        <div
-                            key={opp.name || index}
-                            className="group flex items-center gap-3 p-3 bg-slate-800/40 rounded-lg hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
-                            onClick={() => router.push(`/crm/opportunities/${opp.name || ''}`)}
-                        >
-                        <div
-                            className={`w-8 h-8 bg-${actionColor}-500/10 text-${actionColor}-400 flex items-center justify-center rounded-full ring-1 ring-${actionColor}-500/30 group-hover:scale-105 transition-transform shrink-0`}
-                        >
-                            <span className="material-symbols-outlined text-lg font-bold">
-                                {actionType}
-                            </span>
-                        </div>
-                        <div className="min-w-0 pr-2">
-                            <p className="text-[12px] font-bold text-white truncate">
-                                {index === 0 ? "Follow up - " : "Contract - "}
-                                {((opp.customer_name || opp.party_name) || "Unknown").split(" ")[0]}
-                            </p>
-                            <p className="text-[10px] text-slate-500 truncate">
-                                {index === 0
-                                ? "High velocity activity."
-                                : "Review is complete."}
-                            </p>
-                        </div>
-                        </div>
-                    );
-                })}
-            </div>
+
           </>
         )}
       </div>
