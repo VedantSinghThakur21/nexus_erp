@@ -554,46 +554,49 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           }
 
           if (needsUpdate) {
-            // Use direct frappe.client.save via master credentials — doesn't need provisioning service
+            // Use provisioning service (ignore_permissions=True) as the primary mechanism.
+            // Master credentials (ERP_API_KEY) return 401 on tenant sites, so we skip that
+            // path and go straight to the provisioning service which is known to work for
+            // role assignment (same path used by updateTeamMemberRole in team.ts).
             try {
-              const docResp = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Frappe-Site-Name': siteName,
-                  'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
-                },
-                body: JSON.stringify({ doctype: 'User', name: userEmail }),
-              })
-              const docData = await docResp.json()
-              const userDoc = docData?.message || docData
-
-              if (userDoc?.name) {
-                userDoc.role_profile_name = null
-                userDoc.roles = rolesToAssign.map((role: string) => ({
-                  doctype: 'Has Role',
-                  role,
-                  parent: userEmail,
-                  parenttype: 'User',
-                  parentfield: 'roles',
-                }))
-                await fetch(`${masterUrl}/api/method/frappe.client.save`, {
+              await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
+            } catch (provErr: any) {
+              // Provisioning service unavailable — try master credentials as last resort
+              try {
+                const docResp = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                     'X-Frappe-Site-Name': siteName,
                     'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
                   },
-                  body: JSON.stringify({ doc: userDoc }),
+                  body: JSON.stringify({ doctype: 'User', name: userEmail }),
                 })
-
-              }
-            } catch (saveErr: any) {
-              // Fallback to provisioning service if direct save fails
-              try {
-                await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
-              } catch (provErr: any) {
-                console.warn('Role assignment fallback also failed')
+                if (docResp.ok) {
+                  const docData = await docResp.json()
+                  const userDoc = docData?.message || docData
+                  if (userDoc?.name) {
+                    userDoc.role_profile_name = null
+                    userDoc.roles = rolesToAssign.map((role: string) => ({
+                      doctype: 'Has Role',
+                      role,
+                      parent: userEmail,
+                      parenttype: 'User',
+                      parentfield: 'roles',
+                    }))
+                    await fetch(`${masterUrl}/api/method/frappe.client.save`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-Frappe-Site-Name': siteName,
+                        'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
+                      },
+                      body: JSON.stringify({ doc: userDoc }),
+                    })
+                  }
+                }
+              } catch {
+                console.warn('Role normalization: both provisioning service and master credentials failed')
               }
             }
           }
@@ -603,31 +606,36 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         }
       }
 
-      // Detect first-time login (invited users with temp passwords)
-      // If the user has never logged in before, redirect them to change their password.
+      // Detect first-time login (invited users with temp passwords).
+      // We use Frappe's login_before counter: Frappe increments it during every login.
+      // After the very first login login_before == 1, so we redirect to change-password.
+      // We MUST use the user's own SID here — master credentials (ERP_API_KEY) return 401
+      // on tenant sites, making every login look like a "first login".
       let requirePasswordChange = false
       if (userEmail) {
         try {
+          const sidForCheck = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
           const userInfo = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'X-Frappe-Site-Name': siteName,
-              'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
+              ...(sidForCheck ? { 'Cookie': `sid=${sidForCheck}` } : {}),
             },
             body: JSON.stringify({
               doctype: 'User',
               filters: userEmail,
-              fieldname: 'last_login'
+              fieldname: 'login_before'
             })
           })
           const userInfoData = await userInfo.json()
-          const lastLogin = userInfoData?.message?.last_login
-          if (!lastLogin) {
+          // login_before == 1 means Frappe just incremented it from 0 → this is the first ever login
+          if (userInfo.ok && userInfoData?.message?.login_before === 1) {
             requirePasswordChange = true
           }
+          // If check fails for any reason, default to NOT requiring change (safe default)
         } catch {
-          // Non-fatal — skip password change prompt if detection fails
+          // Non-fatal — don't redirect if detection fails
         }
       }
 
@@ -890,27 +898,6 @@ export async function changePassword(currentPassword: string, newPassword: strin
         msg = data.message
       }
       return { success: false, error: msg }
-    }
-
-    // Update last_login so the forced-password-change detection on next login
-    // doesn't redirect them back to this page again.
-    try {
-      await fetch(`${masterUrl}/api/method/frappe.client.set_value`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frappe-Site-Name': siteName,
-          'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
-        },
-        body: JSON.stringify({
-          doctype: 'User',
-          name: userEmail,
-          fieldname: 'last_login',
-          value: new Date().toISOString().replace('T', ' ').slice(0, 19),
-        })
-      })
-    } catch {
-      // Non-fatal — user still gets to dashboard, next login may re-prompt
     }
 
     return { success: true }
