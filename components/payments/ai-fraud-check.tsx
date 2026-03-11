@@ -16,7 +16,7 @@ export function AIFraudCheck({ payment }: { payment: any }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           inputs: {
-            payment_data: JSON.stringify({
+            transaction_details: JSON.stringify({
               amount: payment.paid_amount || payment.received_amount || 0,
               type: payment.payment_type,
               party: payment.party_name,
@@ -49,7 +49,7 @@ export function AIFraudCheck({ payment }: { payment: any }) {
   }
 
   if (result) {
-    const isSuspicious = result.status === 'SUSPICIOUS' || result.risk_level === 'HIGH';
+    const isSuspicious = result.is_flagged;
     const isError = result.status === 'ERROR';
 
     if (isError) {
@@ -65,7 +65,7 @@ export function AIFraudCheck({ payment }: { payment: any }) {
         isSuspicious 
           ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20' 
           : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
-      }`} title={`Confidence: ${result.confidence || 99}%`}>
+      }`} title={`Fraud Score: ${result.fraud_score || 0}`}>
         {isSuspicious ? <ShieldAlert className="h-3 w-3 mr-1" /> : <ShieldCheck className="h-3 w-3 mr-1" />}
         {isSuspicious ? 'FLAGGED' : 'VERIFIED'}
       </span>

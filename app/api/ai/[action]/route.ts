@@ -70,8 +70,7 @@ export async function POST(
             const errorText = await response.text();
             console.error(`Dify API Error [${action}]:`, errorText);
             
-            // Fallback to mock data for testing purposes if Dify is unavailable
-            return NextResponse.json({ result: getMockResponse(action) });
+            return NextResponse.json({ error: "AI Service Error" }, { status: response.status });
         }
 
         const responseData = await response.json();
@@ -92,36 +91,6 @@ export async function POST(
 
     } catch (error: any) {
         console.error(`AI Action Error [${action}]:`, error);
-        // Fallback to mock data on generic errors
-        return NextResponse.json({ result: getMockResponse(action) });
-    }
-}
-
-// Helper to return mock data for testing
-function getMockResponse(action: string) {
-    switch (action) {
-        case 'risk-score':
-            return {
-                risk_score: 85,
-                risk_level: 'High',
-                remarks: '[MOCK] High risk of non-compliance detected due to missing safety documentation in recent logs.'
-            };
-        case 'forecast':
-            return {
-                occupancy_percentage: 92,
-                alert: {
-                    message: '[MOCK] High priority alert: Equipment shortages likely next week due to overlapping major projects.',
-                    mitigation_plan: 'Procure additional generators from sub-vendors immediately.'
-                }
-            };
-        case 'fraud-check':
-            return {
-                status: 'SUSPICIOUS',
-                confidence: 89,
-                risk_level: 'HIGH',
-                reason: '[MOCK] Payment amount deviates significantly from historical averages for this client.'
-            };
-        default:
-            return { message: '[MOCK] Action successful.' };
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

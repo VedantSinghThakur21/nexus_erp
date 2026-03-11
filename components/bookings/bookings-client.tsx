@@ -46,7 +46,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
              inputs: {
-                bookings_summary: JSON.stringify({
+                target_month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+                booking_history: JSON.stringify({
                    total: bookings.length,
                    active: bookings.filter(b => b.status === 'To Deliver and Bill' || b.per_delivered > 0).length
                 })
@@ -79,7 +80,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
     .reduce((sum, b) => sum + b.grand_total, 0)
 
   // AI Occupancy Forecast (dynamic or fallback)
-  const aiOccupancyForecast = aiForecast?.occupancy_percentage || '--'
+  const aiOccupancyForecast = aiForecast?.predicted_occupancy_rate ?? '--'
 
   // Filter bookings by status
   const filteredBookings = useMemo(() => {
@@ -276,23 +277,26 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                     <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
                 </div>
             </div>
-        ) : aiForecast?.alert ? (
+        ) : aiForecast?.analysis ? (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-5 rounded-xl flex items-center gap-5 shadow-sm">
               <div className="bg-amber-100 dark:bg-amber-800/40 p-3 rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">auto_awesome</span>
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">insights</span>
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
-                  AI AVAILABILITY ALERT
-                  <span className="bg-amber-200 dark:bg-amber-800 text-[10px] px-1.5 py-0.5 rounded uppercase">High Priority</span>
+                  AI OUTLOOK
+                  <span className="bg-amber-200 dark:bg-amber-800 text-[10px] px-1.5 py-0.5 rounded uppercase font-bold text-amber-700 dark:text-amber-400">Insight</span>
                 </p>
                 <p className="text-sm text-amber-800 dark:text-amber-400/90 mt-0.5">
-                  {aiForecast.alert.message}
+                  {aiForecast.analysis}
                 </p>
               </div>
-              {aiForecast.alert.mitigation_plan && (
-                  <button className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shrink-0">
-                    View Mitigation Plan
+              {aiForecast.pricing_suggestion && (
+                  <button 
+                     className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shrink-0"
+                     title={String(aiForecast.pricing_suggestion)}
+                  >
+                    View Pricing Strategy
                   </button>
               )}
             </div>

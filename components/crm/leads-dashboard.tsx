@@ -317,8 +317,8 @@ export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
           </div>
 
           <div className="grid grid-cols-12 gap-8">
-            {/* Left Column */}
-            <div className="col-span-12 xl:col-span-8 space-y-8">
+            {/* Single Column */}
+            <div className="col-span-12 space-y-8">
               {/* High-Probability Opportunities Table */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -483,74 +483,6 @@ export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
                           </span>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column - AI Insights */}
-            <div className="col-span-12 xl:col-span-4">
-              <div className="bg-[#111827] rounded-2xl border border-slate-800 shadow-xl p-8 relative h-full flex flex-col">
-                <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-800">
-                  <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-brand-yellow text-3xl">
-                      bolt
-                    </span>
-                    <h4 className="font-bold text-lg text-white tracking-wider uppercase">
-                      AI INSIGHTS
-                    </h4>
-                  </div>
-                  <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                </div>
-                <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-6 mb-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="material-symbols-outlined text-brand-yellow text-xl">
-                      warning
-                    </span>
-                    <span className="text-[12px] font-bold text-brand-yellow uppercase tracking-widest">
-                      DEAL AT RISK
-                    </span>
-                  </div>
-                  <h5 className="font-bold text-xl text-white mb-2">
-                    Acme Corp HQ - Phase II
-                  </h5>
-                  <p className="text-[14px] text-slate-400 mb-6 leading-relaxed">
-                    Decision maker hasn't opened proposal for 5 days. Competitive threat detected.
-                  </p>
-                  <button className="w-full py-4 bg-brand-yellow hover:bg-amber-400 text-slate-900 text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/10 uppercase tracking-widest">
-                    PRIORITY OUTREACH
-                  </button>
-                </div>
-                <div className="space-y-4 flex-1">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                      RECOMMENDED ACTIONS
-                    </p>
-                    <button className="text-[11px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300">
-                      VIEW ALL
-                    </button>
-                  </div>
-                  <div className="group flex items-center gap-5 p-5 bg-slate-800/40 rounded-2xl hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700">
-                    <div className="w-12 h-12 bg-blue-500/10 text-blue-400 flex items-center justify-center rounded-full ring-1 ring-blue-500/30 group-hover:scale-105 transition-transform">
-                      <span className="material-symbols-outlined text-2xl font-bold">
-                        alternate_email
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-bold text-white">Follow up - Globtel</p>
-                      <p className="text-[12px] text-slate-500">High velocity activity.</p>
-                    </div>
-                  </div>
-                  <div className="group flex items-center gap-5 p-5 bg-slate-800/40 rounded-2xl hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700">
-                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 flex items-center justify-center rounded-full ring-1 ring-emerald-500/30 group-hover:scale-105 transition-transform">
-                      <span className="material-symbols-outlined text-2xl font-bold">
-                        check_circle
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-bold text-white">Contract - Urban</p>
-                      <p className="text-[12px] text-slate-500">Review is complete.</p>
                     </div>
                   </div>
                 </div>
