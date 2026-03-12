@@ -253,7 +253,53 @@ export function AICrmInsights({
               </div>
             )}
             
+            {/* Interactive Quick Actions based on actual AI data */}
+            {insights?.opportunity_analysis?.top_prospects && insights.opportunity_analysis.top_prospects.length > 0 && (
+             <div className="space-y-3 mt-4">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                        QUICK ACTIONS
+                    </p>
+                </div>
+                {insights.opportunity_analysis.top_prospects.slice(0, 3).map((prospectName: string, index: number) => {
+                    // Try to find the real deal object that matches this prospect
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const matchingDeal = highProbOpportunities.find((opp: any) => 
+                        (opp.customer_name || opp.party_name) === prospectName || 
+                        prospectName.includes(opp.customer_name || opp.party_name)
+                    );
+                    
+                    if (!matchingDeal) return null;
 
+                    return (
+                        <div
+                            key={matchingDeal.name || index}
+                            className="group flex items-center gap-3 p-3 bg-slate-800/40 rounded-lg hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
+                            onClick={() => router.push(`/crm/opportunities/${matchingDeal.name || ''}`)}
+                        >
+                        <div
+                            className={`w-8 h-8 bg-blue-500/10 text-blue-400 flex items-center justify-center rounded-full ring-1 ring-blue-500/30 group-hover:scale-105 transition-transform shrink-0`}
+                        >
+                            <span className="material-symbols-outlined text-lg font-bold">
+                                file_open
+                            </span>
+                        </div>
+                        <div className="min-w-0 pr-2">
+                            <p className="text-[12px] font-bold text-white truncate">
+                                View Deal: {prospectName}
+                            </p>
+                            <p className="text-[10px] text-slate-500 truncate">
+                                Probability: {matchingDeal.probability}% - Value: ₹{matchingDeal.opportunity_amount}
+                            </p>
+                        </div>
+                        <div className="ml-auto text-slate-500 group-hover:text-white transition-colors">
+                           <span className="material-symbols-outlined text-sm">chevron_right</span>
+                        </div>
+                        </div>
+                    );
+                })}
+            </div>
+            )}
           </>
         )}
       </div>
