@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Grid, List as ListIcon, ArrowRight, TrendingUp, DollarSign, Zap, CheckCircle, AlertCircle, PauseCircle } from "lucide-react"
 import { updateOpportunitySalesStage } from "@/app/actions/crm"
+import { formatIndianCurrency } from "@/lib/currency"
 import { PageHeader } from "@/components/page-header"
 import { useUser } from "@/contexts/user-context"
 
@@ -282,7 +283,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                       </td>
                       <td className="px-8 py-6">
                         <span className="text-[16px] font-bold text-slate-900 dark:text-white">
-                          ${(opp.opportunity_amount / 1000).toFixed(opp.opportunity_amount >= 1000000 ? 1 : 0)}{opp.opportunity_amount >= 1000000 ? 'M' : 'K'}
+                          {formatIndianCurrency(opp.opportunity_amount || 0)}
                         </span>
                       </td>
                       <td className="px-8 py-6">

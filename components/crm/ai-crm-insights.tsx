@@ -416,7 +416,15 @@ export function AICrmInsights({
                       return (
                         <button
                           key={i}
-                          onClick={() => deal?.name && router.push(`/crm/opportunities/${deal.name}`)}
+                          onClick={() => {
+                            if (!deal?.name) return
+                            // Quotation names contain 'QTN', Opportunity names don't
+                            if (deal.name.includes('QTN')) {
+                              router.push('/quotations')
+                            } else {
+                              router.push(`/crm/opportunities/${deal.name}`)
+                            }
+                          }}
                           disabled={!deal?.name}
                           className="group w-full flex items-center gap-3 p-3 bg-slate-800/40 hover:bg-slate-800 rounded-xl border border-transparent hover:border-slate-700 transition-all text-left"
                         >
@@ -461,7 +469,7 @@ export function AICrmInsights({
                       dealName={`Deal: ${deal.customer_name}`}
                       riskFactor={displayReason}
                       onDismiss={() => setDismissedRisks(prev => new Set([...prev, deal.name]))}
-                      onView={() => deal.name && router.push(`/quotations/${deal.name}`)}
+                      onView={() => deal.name && router.push('/quotations')}
                     />
                   )
                 })}
