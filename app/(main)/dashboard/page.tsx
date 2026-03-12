@@ -137,7 +137,7 @@ export default function DashboardPage() {
   });
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [atRiskDeal, setAtRiskDeal] = useState<AtRiskDeal | null>(null);
+  const [atRiskDeals, setAtRiskDeals] = useState<AtRiskDeal[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [leadSources, setLeadSources] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -178,9 +178,7 @@ export default function DashboardPage() {
           });
           setOpportunities(oppsData);
           setActivities(activitiesData as ActivityItem[]);
-          if (atRiskData.length > 0) {
-            setAtRiskDeal(atRiskData[0]);
-          }
+          setAtRiskDeals(atRiskData);
           setLeadSources(leadSourcesData);
     
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -579,7 +577,7 @@ export default function DashboardPage() {
             <div className="col-span-12 xl:col-span-4">
                <AICrmInsights 
                   accessibleModules={accessibleModules}
-                  atRiskDeals={atRiskDeal ? [atRiskDeal] : []}
+                  atRiskDeals={atRiskDeals}
                   highProbOpportunities={highProbOpportunities}
                />
             </div>

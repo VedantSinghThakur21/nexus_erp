@@ -21,9 +21,35 @@ interface Lead {
   industry?: string
 }
 
+interface AtRiskDeal {
+  name: string
+  customer_name: string
+  days_since_activity: number
+  reason: string
+}
+
+interface ActivityItem {
+  type: 'closed-deal' | 'new-lead' | 'outbound' | 'booking-scheduled'
+  owner: string
+  company: string
+  time: string
+}
+
 interface LeadsDashboardProps {
   leads: Lead[]
   opportunities: Opportunity[]
+  atRiskDeals: AtRiskDeal[]
+  recentActivities: ActivityItem[]
+}
+
+function getActivityIcon(type: string): { icon: string; color: string; label: string } {
+  const mapping: Record<string, { icon: string; color: string; label: string }> = {
+    'closed-deal': { icon: 'check_circle', color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500', label: 'Closed Deal' },
+    'new-lead': { icon: 'person_add', color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500', label: 'New Lead' },
+    outbound: { icon: 'mail', color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-500', label: 'Outbound' },
+    'booking-scheduled': { icon: 'calendar_today', color: 'bg-amber-50 dark:bg-amber-500/10 text-amber-500', label: 'Meeting Set' },
+  }
+  return mapping[type] || { icon: 'circle', color: 'bg-slate-50 dark:bg-slate-500/10 text-slate-500', label: 'Activity' }
 }
 
 // Helper: format amount in Indian rupees (short form for lakhs/crores)
@@ -68,7 +94,7 @@ function getConfidenceTextColor(confidence: number): string {
   return 'text-amber-500'
 }
 
-export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
+export function LeadsDashboard({ leads, opportunities, atRiskDeals, recentActivities }: LeadsDashboardProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const { accessibleModules } = useUser()
@@ -174,42 +200,6 @@ export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
       referral: { name: top2[0], count: top2[1], percent: total > 0 ? Math.round((top2[1] / total) * 100) : 0 }
     }
   }, [leads])
-
-  // Team activity (mock data from recent conversions)
-  const teamActivity = [
-    {
-      icon: "check_circle",
-      color: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500",
-      action: "Closed Deal",
-      member: "Sarah Jenkins",
-      account: "Cyberdyne Corp",
-      time: "2 Minutes Ago"
-    },
-    {
-      icon: "person_add",
-      color: "bg-blue-50 dark:bg-blue-500/10 text-blue-500",
-      action: "New Lead",
-      member: "Mike Rossi",
-      account: "TechFlow Systems",
-      time: "15 Minutes Ago"
-    },
-    {
-      icon: "mail",
-      color: "bg-purple-50 dark:bg-purple-500/10 text-purple-500",
-      action: "Outbound",
-      member: "David Geller",
-      account: "Stark Industries",
-      time: "45 Minutes Ago"
-    },
-    {
-      icon: "calendar_today",
-      color: "bg-amber-50 dark:bg-amber-500/10 text-amber-500",
-      action: "Meeting Set",
-      member: "Amy Pond",
-      account: "Waltham Co.",
-      time: "1 Hour Ago"
-    }
-  ]
 
   return (
     <div className="bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-hidden">
@@ -496,7 +486,7 @@ export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
             <div className="col-span-12 xl:col-span-4">
                <AICrmInsights 
                   accessibleModules={accessibleModules}
-                  atRiskDeals={[]}
+                  atRiskDeals={atRiskDeals}
                   highProbOpportunities={highProbOpportunities}
                />
             </div>
@@ -511,38 +501,41 @@ export function LeadsDashboard({ leads, opportunities }: LeadsDashboardProps) {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-6">
-              {teamActivity.map((activity, index) => (
-                <div
-                  key={index}
-                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 hover:shadow-md transition-shadow w-full"
-                >
-                  <div className="flex items-center gap-4 mb-5">
-                    <div
-                      className={`w-12 h-12 ${activity.color} rounded-full flex items-center justify-center`}
-                    >
-                      <span className="material-symbols-outlined font-bold text-xl">
-                        {activity.icon}
-                      </span>
+              {recentActivities.length > 0 ? recentActivities.map((activity, index) => {
+                const { icon, color, label } = getActivityIcon(activity.type)
+                return (
+                  <div
+                    key={index}
+                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 hover:shadow-md transition-shadow w-full"
+                  >
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className={`w-12 h-12 ${color} rounded-full flex items-center justify-center`}>
+                        <span className="material-symbols-outlined font-bold text-xl">{icon}</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
+                          {label}
+                        </p>
+                        <h4 className="text-base font-bold text-slate-800 dark:text-white leading-tight">
+                          {activity.owner}
+                        </h4>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-                        {activity.action}
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col gap-1">
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        {activity.company}
                       </p>
-                      <h4 className="text-base font-bold text-slate-800 dark:text-white leading-tight">
-                        {activity.member}
-                      </h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {activity.time}
+                      </p>
                     </div>
                   </div>
-                  <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col gap-1">
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      {activity.account}
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      {activity.time}
-                    </p>
-                  </div>
+                )
+              }) : (
+                <div className="col-span-4 text-center py-10 text-slate-400 text-sm">
+                  No recent activity found
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
