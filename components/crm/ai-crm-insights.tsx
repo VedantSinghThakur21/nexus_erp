@@ -207,10 +207,13 @@ export function AICrmInsights({
     ...(insights?.at_risk_analysis?.risk_factors?.map(f => `[Risk] ${f}`) ?? []),
     ...(insights?.opportunity_analysis?.recommended_closing_actions ?? []),
   ]
-  const activeDismissedRisks = (insights?.at_risk_analysis?.identified_risk_deals ?? []).filter(
-    d => !dismissedRisks.has(d),
-  )
-  const riskCount = activeDismissedRisks.length
+  // Use real atRiskDeals from props as source of truth; fall back to AI-named deals if props are empty
+  const activeRiskDeals = atRiskDeals.length > 0
+    ? atRiskDeals.filter(d => !dismissedRisks.has(d.name))
+    : (insights?.at_risk_analysis?.identified_risk_deals ?? [])
+        .filter(d => !dismissedRisks.has(d))
+        .map((name, i) => ({ name, customer_name: name, days_since_activity: 0, reason: insights?.at_risk_analysis?.risk_factors?.[i] || '' }))
+  const riskCount = activeRiskDeals.length
   const doneCount = checkedActions.size
 
   // ── Shared header ──────────────────────────────────────────────────────────
@@ -440,7 +443,7 @@ export function AICrmInsights({
             {/* ── Risks Tab ── */}
             {activeTab === "risks" && (
               <div className="space-y-3">
-                {activeDismissedRisks.length === 0 && (
+                {activeRiskDeals.length === 0 && (
                   <div className="text-center py-10">
                     <span className="material-symbols-outlined text-4xl text-emerald-600">check_circle</span>
                     <p className="text-sm font-semibold text-white mt-2">All risks addressed</p>
@@ -448,17 +451,17 @@ export function AICrmInsights({
                   </div>
                 )}
 
-                {activeDismissedRisks.map((dealName, i) => {
-                  const riskFactor = insights.at_risk_analysis?.risk_factors?.[i]
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const deal = atRiskDeals.find((d: any) => d.customer_name === dealName || dealName.includes(d.customer_name))
+                {activeRiskDeals.map((deal, i) => {
+                  // Use AI risk_factors as annotation if available
+                  const aiReason = insights?.at_risk_analysis?.risk_factors?.[i]
+                  const displayReason = deal.reason || aiReason
                   return (
                     <RiskCard
-                      key={dealName}
-                      dealName={dealName}
-                      riskFactor={riskFactor}
-                      onDismiss={() => setDismissedRisks(prev => new Set([...prev, dealName]))}
-                      onView={() => deal?.name && router.push(`/crm/opportunities/${deal.name}`)}
+                      key={deal.name}
+                      dealName={`Deal: ${deal.customer_name}`}
+                      riskFactor={displayReason}
+                      onDismiss={() => setDismissedRisks(prev => new Set([...prev, deal.name]))}
+                      onView={() => deal.name && router.push(`/quotations/${deal.name}`)}
                     />
                   )
                 })}
