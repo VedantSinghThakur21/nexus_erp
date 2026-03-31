@@ -21,6 +21,20 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+/**
+ * CVE-3 Fix: Restrict returnTo to relative paths only.
+ * Strips any host/protocol so external-redirect phishing is impossible.
+ */
+function sanitizeReturnTo(raw: string): string {
+  try {
+    const u = new URL(raw, 'http://localhost')
+    // Only allow path + query, never an external host
+    return u.pathname + u.search
+  } catch {
+    return '/'
+  }
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') || ''
@@ -115,16 +129,20 @@ export function middleware(request: NextRequest) {
   const isPublicPath = publicTenantPaths.some(p => pathname.startsWith(p)) || pathname === '/'
 
   if (!isPublicPath) {
+    // CVE-2 Fix: Only trust NextAuth session token — the Frappe sid cookie is
+    // not validated here and was trivially forgeable (any non-empty value passed).
     const hasApiKey = request.cookies.get('tenant_api_key')?.value
     const hasSession =
       request.cookies.get('next-auth.session-token')?.value ||
       request.cookies.get('__Secure-next-auth.session-token')?.value
-    const hasSid = request.cookies.get('sid')?.value
 
-    if (!hasApiKey && !hasSession && !hasSid) {
-      // No credentials → redirect to tenant login with returnTo parameter
+    if (!hasApiKey && !hasSession) {
+      // CVE-3 Fix: Use sanitizeReturnTo to prevent open-redirect via returnTo param.
       const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set('returnTo', request.nextUrl.pathname + request.nextUrl.search)
+      loginUrl.searchParams.set(
+        'returnTo',
+        sanitizeReturnTo(request.nextUrl.pathname + request.nextUrl.search)
+      )
       return NextResponse.redirect(loginUrl)
     }
   }

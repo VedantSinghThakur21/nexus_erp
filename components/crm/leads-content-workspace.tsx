@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { updateLeadStatus, convertLeadToOpportunity, getOpportunityMetadata } from "@/app/actions/crm"
@@ -50,18 +50,19 @@ const LEAD_STAGES = [
     "Do Not Contact"
 ]
 
-// Mock AI score calculation (to be replaced with real AI service)
+// Deterministic AI score heuristic (no randomness — stable across renders)
 function calculateAIScore(lead: Lead): number {
-    // Simple heuristic based on available data
-    let score = 50
+    let score = 40
     if (lead.email_id) score += 10
-    if (lead.mobile_no) score += 10
-    if (lead.company_name) score += 15
-    if (lead.job_title) score += 10
-    if (lead.status === "Interested") score += 20
-    if (lead.status === "Replied") score += 15
-    if (lead.status === "Opportunity") score += 25
-    return Math.min(100, score + Math.floor(Math.random() * 10))
+    if (lead.mobile_no) score += 8
+    if (lead.company_name) score += 12
+    if (lead.job_title) score += 8
+    if (lead.source) score += 5
+    if (lead.industry) score += 5
+    if (lead.status === 'Interested') score += 18
+    else if (lead.status === 'Replied') score += 12
+    else if (lead.status === 'Opportunity') score += 20
+    return Math.min(100, score)
 }
 
 // Helper function to get stage badge color
@@ -102,7 +103,6 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     const [isConversionDialogOpen, setIsConversionDialogOpen] = useState(false)
     const [pendingConversion, setPendingConversion] = useState<{ leadName: string, newStatus: string } | null>(null)
     const [isConverting, setIsConverting] = useState(false)
-    const [opportunityAmount, setOpportunityAmount] = useState<number>(0)
     const [opportunityType, setOpportunityType] = useState<string>('Sales')
     const [salesStage, setSalesStage] = useState<string>('Qualification')
     const [metadata, setMetadata] = useState<{ types: string[], stages: string[] }>({ types: [], stages: [] })
@@ -120,13 +120,70 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
 
 
 
-    // Enrich leads with AI scores
+    // Enrich leads with heuristic AI scores as initial values
+    const heuristicScores = useMemo(() => {
+        const map: Record<string, number> = {}
+        leads.forEach(lead => { map[lead.name] = calculateAIScore(lead) })
+        return map
+    }, [leads])
+
+    const [aiScores, setAiScores] = useState<Record<string, number>>(heuristicScores)
+    const scoreFetchedRef = useRef(false)
+
+    // Fetch Dify AI scores once on mount — replace heuristics progressively
+    useEffect(() => {
+        if (scoreFetchedRef.current || leads.length === 0) return
+        scoreFetchedRef.current = true
+
+        const fetchDifyScores = async () => {
+            try {
+                const res = await fetch('/api/ai/lead-score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        inputs: {
+                            leads_data: JSON.stringify(leads.map(l => ({
+                                name: l.name,
+                                status: l.status,
+                                has_email: !!l.email_id,
+                                has_phone: !!l.mobile_no,
+                                has_company: !!l.company_name,
+                                has_job_title: !!l.job_title,
+                                source: l.source || null,
+                                industry: l.industry || null,
+                            })))
+                        }
+                    })
+                })
+                if (!res.ok) return // silently keep heuristic scores
+                const data = await res.json()
+                if (data.error) return
+
+                // Dify should return { scores: [ { name, score }, ... ] }
+                const scores: { name: string; score: number }[] = data.result?.scores || []
+                if (scores.length === 0) return
+
+                setAiScores(prev => {
+                    const updated = { ...prev }
+                    scores.forEach(({ name, score }) => {
+                        if (typeof score === 'number') updated[name] = Math.min(100, Math.max(0, score))
+                    })
+                    return updated
+                })
+            } catch {
+                // Silently fall back to heuristic scores
+            }
+        }
+
+        fetchDifyScores()
+    }, [leads])
+
     const leadsWithScores = useMemo(() => {
         return leads.map(lead => ({
             ...lead,
-            aiScore: calculateAIScore(lead)
+            aiScore: aiScores[lead.name] ?? calculateAIScore(lead)
         }))
-    }, [leads])
+    }, [leads, aiScores])
 
     // Filter leads based on search, stages, and priority (only in table view)
     const filteredLeads = useMemo(() => {
@@ -220,7 +277,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
             const res = await convertLeadToOpportunity(
                 pendingConversion.leadName,
                 false, // createCustomer
-                opportunityAmount,
+                0,     // no amount at lead stage
                 opportunityType,
                 salesStage
             )
@@ -238,7 +295,6 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
             setIsConverting(false)
             setIsConversionDialogOpen(false)
             setPendingConversion(null)
-            setOpportunityAmount(0)
             setOpportunityType('Sales')
             setSalesStage('Qualification')
         }

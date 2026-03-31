@@ -1,25 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { 
-  getBackendURL, 
-  api, 
+import {
+  api,
   APIError,
-  getCurrentUser,
-  getProjects,
   type User,
-  type PaginatedResponse 
+  type PaginatedResponse
 } from '@/lib/api-client'
 
 /**
- * Example Component: API Client Usage
- * 
- * Demonstrates:
- * - Dynamic backend URL resolution
- * - OAuth Bearer token authentication
- * - Error handling for missing tokens
- * - CRUD operations with type safety
- * 
+ * Example Component: API Client Usage (Updated for CVE-1 fix)
+ *
+ * Demonstrates the secure proxy-based API — credentials live in httpOnly
+ * cookies server-side. Client JS never sees raw tokens.
+ *
  * Test with:
  * - http://tenant1.localhost:3000/example-api
  * - http://tenant2.localhost:3000/example-api
@@ -27,29 +21,24 @@ import {
 export default function ExampleAPIPage() {
   const [backendURL, setBackendURL] = useState('')
   const [user, setUser] = useState<User | null>(null)
-  const [projects, setProjects] = useState<any[]>([])
+  const [projects, setProjects] = useState<unknown[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   useEffect(() => {
-    // Get backend URL for display
-    try {
-      const url = getBackendURL()
-      setBackendURL(url)
-    } catch (err) {
-      console.error('Failed to resolve backend URL:', err)
-    }
+    // Show the proxy URL (credentials are server-side — never in the browser)
+    setBackendURL(window.location.origin + '/api/proxy/...')
   }, [])
-  
+
   /**
-   * Example: Fetch current user
+   * Example: Fetch current user via proxy
    */
   const handleFetchUser = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
-      const userData = await getCurrentUser()
+      const userData = await api.get<User>('frappe.auth.get_logged_user')
       setUser(userData)
     } catch (err) {
       if (err instanceof APIError) {
@@ -61,17 +50,20 @@ export default function ExampleAPIPage() {
       setLoading(false)
     }
   }
-  
+
   /**
    * Example: Fetch projects with pagination
    */
   const handleFetchProjects = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
-      const response = await getProjects(1, 10)
-      setProjects(response.data)
+      const response = await api.post<PaginatedResponse<unknown>>('frappe.client.get_list', {
+        doctype: 'Project',
+        limit_page_length: 10
+      })
+      setProjects(Array.isArray(response) ? response : [])
     } catch (err) {
       if (err instanceof APIError) {
         if (err.status === 401) {
@@ -86,22 +78,23 @@ export default function ExampleAPIPage() {
       setLoading(false)
     }
   }
-  
+
   /**
    * Example: Create new project
    */
   const handleCreateProject = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
-      const newProject = await api.post('/projects', {
-        name: `Project ${Date.now()}`,
-        description: 'Created from example page'
+      const newProject = await api.post<{ name: string }>('frappe.client.insert', {
+        doc: {
+          doctype: 'Project',
+          project_name: `Project ${Date.now()}`,
+        }
       })
-      
-      alert(`Project created: ${newProject.name}`)
-      handleFetchProjects() // Refresh list
+      alert(`Project created: ${(newProject as any)?.name ?? 'unknown'}`)
+      handleFetchProjects()
     } catch (err) {
       if (err instanceof APIError) {
         setError(`Failed to create project: ${err.message}`)
@@ -112,24 +105,19 @@ export default function ExampleAPIPage() {
       setLoading(false)
     }
   }
-  
+
   /**
    * Example: Manual API call with custom logic
    */
   const handleCustomAPICall = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
-      // You can use api.get, api.post, api.put, api.patch, api.delete
-      const data = await api.get('/dashboard/stats', {
-        // Optional: add custom headers
-        headers: {
-          'X-Custom-Header': 'value'
-        }
+      const data = await api.get('frappe.client.get_list', {
+        headers: { 'X-Custom-Header': 'value' }
       })
-      
-      alert(`Dashboard stats fetched: ${JSON.stringify(data)}`)
+      alert(`Response: ${JSON.stringify(data)}`)
     } catch (err) {
       if (err instanceof APIError) {
         setError(`API call failed: ${err.message}`)
@@ -140,11 +128,11 @@ export default function ExampleAPIPage() {
       setLoading(false)
     }
   }
-  
+
   return (
     <div className="container mx-auto p-8 max-w-4xl">
       <h1 className="text-4xl font-bold mb-8">API Client Example</h1>
-      
+
       {/* Backend URL Display */}
       <div className="bg-blue-50 dark:bg-blue-950 p-6 rounded-lg mb-6">
         <h2 className="text-xl font-semibold mb-3">Backend Configuration</h2>
@@ -153,20 +141,20 @@ export default function ExampleAPIPage() {
           <code className="block bg-blue-100 dark:bg-blue-900 px-3 py-2 rounded">
             {typeof window !== 'undefined' ? window.location.origin : 'Loading...'}
           </code>
-          
-          <p className="mt-4"><strong>Backend API URL:</strong></p>
+
+          <p className="mt-4"><strong>Secure Proxy URL (no tokens in browser):</strong></p>
           <code className="block bg-blue-100 dark:bg-blue-900 px-3 py-2 rounded">
             {backendURL || 'Loading...'}
           </code>
-          
+
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
-            ✓ Dynamically resolved from hostname<br />
-            ✓ No hardcoded tenant names<br />
-            ✓ Works in local dev and production
+            ✓ Credentials live in httpOnly cookies (not localStorage)<br />
+            ✓ All API calls run through /api/proxy/* server route<br />
+            ✓ Client JS never sees raw API keys or secrets
           </p>
         </div>
       </div>
-      
+
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-4 rounded-lg mb-6">
@@ -212,7 +200,7 @@ export default function ExampleAPIPage() {
                 <p className="font-medium mb-2">{projects.length} projects found:</p>
                 <ul className="list-disc list-inside space-y-1">
                   {projects.map((project, idx) => (
-                    <li key={idx}>{project.name}</li>
+                    <li key={idx}>{(project as any).name}</li>
                   ))}
                 </ul>
               </div>

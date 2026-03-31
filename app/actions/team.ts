@@ -1,9 +1,21 @@
 'use server'
 
+import { auth } from '@/auth'
 import { frappeRequest } from '@/app/lib/api'
 import { canInviteUser, incrementUsage } from './usage-limits'
 import { headers, cookies } from 'next/headers'
 import { sendInviteEmail } from '@/lib/email'
+
+/**
+ * NEW-2 Fix: Require a valid NextAuth session before any mutation.
+ */
+async function assertAuthenticated(): Promise<string> {
+  const session = await auth()
+  if (!session?.user?.email) {
+    throw new Error('Unauthorized: authentication required')
+  }
+  return session.user.email
+}
 
 /**
  * Invite a team member to the current tenant
@@ -61,7 +73,8 @@ export async function inviteTeamMember(data: {
     // Check if user already exists (including disabled/removed users)
     const existingUsers = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'User',
-      filters: `[["email", "=", "${data.email}"]]`,
+      // NEW-3 Fix: Use structured filter array instead of string interpolation
+      filters: JSON.stringify([['email', '=', data.email]]),
       fields: '["name", "email", "enabled"]',
       limit_page_length: 1
     }) as any[]
@@ -229,8 +242,18 @@ export async function getTeamMembers(): Promise<any[]> {
 
 /**
  * Remove a team member (disable user)
+ * NEW-2 Fix: Requires authentication.
+ * NEW-4 (IDOR) Fix: Verifies the target email exists in the current tenant
+ * before disabling, preventing cross-tenant user disabling by guessing emails.
  */
 export async function removeTeamMember(email: string): Promise<{ success: boolean; error?: string }> {
+  // NEW-2: Require authentication
+  try {
+    await assertAuthenticated()
+  } catch {
+    return { success: false, error: 'Unauthorized: authentication required' }
+  }
+
   try {
     // Don't allow removing Administrator
     if (email === 'Administrator' || email === 'administrator@example.com') {
@@ -239,7 +262,21 @@ export async function removeTeamMember(email: string): Promise<{ success: boolea
         error: 'Cannot remove administrator user'
       }
     }
-    
+
+    // NEW-4 (IDOR) Fix: Verify the target user actually exists in this tenant
+    // before disabling them. Without this check, a low-privilege user could
+    // disable any user in any tenant by guessing their email.
+    const targetUsers = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'User',
+      filters: JSON.stringify([['email', '=', email], ['enabled', '=', 1]]),
+      fields: '["name", "email"]',
+      limit_page_length: 1,
+    }) as any[]
+
+    if (!targetUsers || targetUsers.length === 0) {
+      return { success: false, error: 'User not found in this tenant' }
+    }
+
     // Disable the user instead of deleting (best practice)
     await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'User',
@@ -247,15 +284,15 @@ export async function removeTeamMember(email: string): Promise<{ success: boolea
       fieldname: 'enabled',
       value: 0
     })
-    
+
     // Decrement usage counter
     const headersList = await headers()
     const subdomain = headersList.get('X-Subdomain')
-    
+
     if (subdomain) {
       await incrementUsage(subdomain, 'usage_users', -1)
     }
-    
+
     return { success: true }
   } catch (error: any) {
     console.error('Remove team member error:', error)
@@ -268,11 +305,19 @@ export async function removeTeamMember(email: string): Promise<{ success: boolea
 
 /**
  * Update team member role
+ * NEW-2 Fix: Requires authentication before role changes.
  */
 export async function updateTeamMemberRole(
   email: string,
   role: string
 ): Promise<{ success: boolean; error?: string }> {
+  // NEW-2: Require authentication
+  try {
+    await assertAuthenticated()
+  } catch {
+    return { success: false, error: 'Unauthorized: authentication required' }
+  }
+
   try {
     const headersList = await headers()
     const subdomain = headersList.get('x-tenant-id') || headersList.get('X-Subdomain')

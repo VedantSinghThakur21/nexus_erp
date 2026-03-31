@@ -1,8 +1,21 @@
 'use server'
 
+import { auth } from '@/auth'
 import { frappeRequest, userRequest } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 import { cookies } from 'next/headers'
+
+/**
+ * NEW-2 Fix: Require a valid NextAuth session before any mutation.
+ * Throws if the caller is not authenticated.
+ */
+async function assertAuthenticated(): Promise<string> {
+  const session = await auth()
+  if (!session?.user?.email) {
+    throw new Error('Unauthorized: authentication required')
+  }
+  return session.user.email
+}
 
 export interface User {
   name: string // Email
@@ -70,6 +83,13 @@ export async function getTeam() {
 
 // 3. Create New Team Member
 export async function inviteUser(formData: FormData) {
+  // NEW-2 Fix: Require authentication before creating users
+  try {
+    await assertAuthenticated()
+  } catch {
+    return { error: 'Unauthorized: authentication required' }
+  }
+
   const roleType = (formData.get('role') as string) || 'member'
   const ROLE_SETS: Record<string, string[]> = {
     admin: ['System Manager'],
@@ -166,6 +186,13 @@ export async function createTaxTemplate(data: {
     rate: number
   }>
 }) {
+  // NEW-2 Fix: Require authentication
+  try {
+    await assertAuthenticated()
+  } catch {
+    return { error: 'Unauthorized: authentication required' }
+  }
+
   try {
     const doc = {
       doctype: 'Sales Taxes and Charges Template',
@@ -196,7 +223,12 @@ export async function getTaxAccounts(company: string) {
       {
         doctype: 'Account',
         fields: '["name", "account_name"]',
-        filters: `[["company", "=", "${company}"], ["account_type", "in", ["Tax", "Chargeable"]], ["is_group", "=", 0]]`,
+        // NEW-3 Fix: Use structured filter array instead of string interpolation
+        filters: JSON.stringify([
+          ['company', '=', company],
+          ['account_type', 'in', ['Tax', 'Chargeable']],
+          ['is_group', '=', 0]
+        ]),
         order_by: 'name',
         limit_page_length: 100
       }
@@ -241,6 +273,13 @@ export async function updateCompany(data: {
   tax_id?: string
   country?: string
 }) {
+  // NEW-2 Fix: Require authentication
+  try {
+    await assertAuthenticated()
+  } catch {
+    return { error: 'Unauthorized: authentication required' }
+  }
+
   try {
     await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Company',
@@ -285,7 +324,8 @@ export async function getBankAccounts() {
     const accounts = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Bank Account',
       fields: '["name", "bank", "bank_account_no", "branch_code", "company", "is_default"]',
-      filters: `[["company", "=", "${companyName}"]]`,
+      // NEW-3 Fix: structured filter instead of string interpolation
+      filters: JSON.stringify([['company', '=', companyName]]),
       order_by: 'is_default desc, creation desc',
       limit_page_length: 10
     })
@@ -303,6 +343,12 @@ export async function createBankAccount(data: {
   branch_code?: string
   is_default?: boolean
 }) {
+  // NEW-2 Fix: Require authentication
+  try {
+    await assertAuthenticated()
+  } catch {
+    return { error: 'Unauthorized: authentication required' }
+  }
   try {
     // Get company name
     const companies = await frappeRequest('frappe.client.get_list', 'GET', {

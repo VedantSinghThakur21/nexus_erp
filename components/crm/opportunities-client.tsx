@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Grid, List as ListIcon, ArrowRight, TrendingUp, DollarSign, Zap, CheckCircle, AlertCircle, PauseCircle } from "lucide-react"
 import { updateOpportunitySalesStage } from "@/app/actions/crm"
-import { formatIndianCurrency } from "@/lib/currency"
 import { PageHeader } from "@/components/page-header"
 import { useUser } from "@/contexts/user-context"
 
@@ -88,23 +87,14 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
     setCurrentPage(1)
   }, [searchQuery, selectedStage])
 
-  // Helper: Get owner initials (mock)
-  const getOwnerInitials = (opp: Opportunity): string => {
-    const owners = ["MD", "SJ", "EL", "AT", "KR", "LW"]
-    return owners[Math.floor(Math.random() * owners.length)]
-  }
-
-  // Helper: Get owner name (mock)
-  const getOwnerName = (initials: string): string => {
-    const names: Record<string, string> = {
-      "MD": "Marcus D.",
-      "SJ": "Sarah J.",
-      "EL": "Elena L.",
-      "AT": "Alex T.",
-      "KR": "Kevin R.",
-      "LW": "Lisa W."
-    }
-    return names[initials] || "Unknown"
+  // Helper: extract owner display name from ERPNext owner field (email → name)
+  const getOwnerDisplay = (opp: Opportunity): { initials: string; name: string } => {
+    const raw = (opp as any).owner || ''
+    // ERPNext owner is usually an email like "admin@example.com" or a username
+    const parts = raw.split('@')[0].replace(/[._-]/g, ' ').split(' ')
+    const initials = parts.map((p: string) => p[0]?.toUpperCase() || '').join('').slice(0, 2) || '?'
+    const name = parts.map((p: string) => p ? p[0].toUpperCase() + p.slice(1) : '').join(' ').trim() || raw
+    return { initials, name }
   }
 
   // Helper: Get AI status badge
@@ -122,17 +112,47 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
   const handleStageChange = async (opportunityId: string, newStage: string) => {
     if (!canEdit) return
     try {
-      // Estimate probability based on stage
+      // Static fallback probability per stage
       const probabilityMap: Record<string, number> = {
         "Prospecting": 10,
         "Qualification": 30,
         "Proposal/Price Quote": 60,
         "Negotiation/Review": 80
       }
-      const probability = probabilityMap[newStage] || 50
+      let probability = probabilityMap[newStage] ?? 50
+
+      // Ask Dify for a smarter probability estimate
+      try {
+        const opp = opportunities.find(o => o.name === opportunityId)
+        const res = await fetch('/api/ai/opportunity-probability', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inputs: {
+              opportunity_data: JSON.stringify({
+                name: opportunityId,
+                new_stage: newStage,
+                current_stage: opp?.sales_stage,
+                opportunity_type: opp?.opportunity_type,
+                party_name: opp?.party_name || opp?.customer_name,
+                status: opp?.status,
+              })
+            }
+          })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const difyProb = data.result?.probability
+          if (typeof difyProb === 'number' && difyProb >= 0 && difyProb <= 100) {
+            probability = Math.round(difyProb)
+          }
+        }
+      } catch {
+        // Silently use static fallback probability
+      }
 
       await updateOpportunitySalesStage(opportunityId, newStage, probability)
-      router.refresh() // Refresh to show updated data
+      router.refresh()
     } catch (error) {
       console.error("Failed to update opportunity stage:", error)
     }
@@ -254,7 +274,6 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
             <thead>
               <tr className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
                 <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500 w-1/4">Deal Name</th>
-                <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Value</th>
                 <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Owner</th>
                 <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Stage & AI Status</th>
                 <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500 text-center">Status</th>
@@ -264,14 +283,13 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredOpportunities.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-8 py-12 text-center text-slate-500">
                     No opportunities found
                   </td>
                 </tr>
               ) : (
                 paginatedOpportunities.map((opp) => {
-                  const ownerInitials = getOwnerInitials(opp)
-                  const ownerName = getOwnerName(ownerInitials)
+                  const { initials: ownerInitials, name: ownerName } = getOwnerDisplay(opp)
                   const aiStatus = getAIStatus(opp)
                   const AIStatusIcon = aiStatus.icon
 
@@ -282,13 +300,8 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                         <p className="text-[14px] text-slate-500 font-medium">{opp.opportunity_type}</p>
                       </td>
                       <td className="px-8 py-6">
-                        <span className="text-[16px] font-bold text-slate-900 dark:text-white">
-                          {formatIndianCurrency(opp.opportunity_amount || 0)}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6">
                         <div className="flex items-center space-x-3">
-                          <div className={`w-9 h-9 ${ownerInitials === "MD" ? "bg-blue-100 text-blue-600" : ownerInitials === "SJ" ? "bg-purple-100 text-purple-600" : "bg-amber-100 text-amber-600"} rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-white dark:ring-slate-800`}>
+                          <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-white dark:ring-slate-800">
                             {ownerInitials}
                           </div>
                           <span className="text-[14px] font-medium text-slate-600 dark:text-slate-400">{ownerName}</span>
@@ -418,8 +431,8 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-green-400 font-bold text-[18px]">
-                      ${(opp.opportunity_amount / 1000).toFixed(0)}K
+                    <div className="text-[9px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded inline-block font-extrabold uppercase tracking-widest">
+                      {opp.probability}% Probability
                     </div>
                     <div className="text-[9px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded inline-block font-extrabold uppercase tracking-widest mt-1">
                       Converted

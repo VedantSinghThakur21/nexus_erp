@@ -1,330 +1,149 @@
 /**
- * Backend API URL Resolver for Multi-Tenant SaaS
- * 
- * Dynamically resolves backend API URL based on current hostname
- * Supports local development and production environments
- * 
- * Examples:
- * - tenant1.localhost:3000 → api.tenant1.localhost:8080
- * - tenant2.example.com → api.tenant2.example.com
- * - localhost:3000 → api.localhost:8080 (default tenant)
+ * CVE-1 Fix: API Client — No localStorage Token Storage
+ * ======================================================
+ *
+ * BEFORE (vulnerable): access_token, refresh_token, user_info were stored in
+ * localStorage, making them accessible to ANY JavaScript on the page (XSS theft).
+ *
+ * AFTER (secure): All Frappe API requests are routed through Next.js server-side
+ * API routes (/api/proxy/[...path]). Credentials (tenant_api_key / tenant_api_secret)
+ * remain exclusively in httpOnly cookies on the server — never exposed to client JS.
+ *
+ * Client components call /api/proxy/* which acts as an authenticated proxy to Frappe.
  */
 
-interface BackendConfig {
-  protocol: 'http' | 'https'
-  port?: number
-  apiPrefix?: string
-}
+// ─── Error type ────────────────────────────────────────────────────────────────
 
-/**
- * Extracts tenant from current hostname
- * Returns subdomain or 'default' for apex domains
- */
-function extractTenant(hostname: string): string {
-  const host = hostname.split(':')[0]
-  const parts = host.split('.')
-
-  // subdomain.localhost → "subdomain"
-  if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
-    return parts[0]
-  }
-
-  // subdomain.example.com → "subdomain"
-  if (parts.length > 2) {
-    return parts[0]
-  }
-
-  // localhost or example.com → "default"
-  return 'default'
-}
-
-/**
- * Resolves backend API URL based on current hostname
- * 
- * @param config - Optional configuration for protocol, port, and API prefix
- * @returns Backend API URL (e.g., "https://api.tenant1.example.com")
- */
-export function getBackendURL(config?: BackendConfig): string {
-  if (typeof window === 'undefined') {
-    throw new Error('getBackendURL can only be called in browser environment')
-  }
-
-  const hostname = window.location.hostname
-  const tenant = extractTenant(hostname)
-
-  // Determine environment
-  const isLocalhost = hostname.includes('localhost') || hostname === '127.0.0.1'
-
-  // Default configuration
-  const protocol = config?.protocol || (isLocalhost ? 'http' : 'https')
-  const port = config?.port || (isLocalhost ? 8080 : undefined)
-  const apiPrefix = config?.apiPrefix || 'api'
-
-  // Build backend hostname
-  let backendHostname: string
-
-  if (isLocalhost) {
-    // Local development: api.tenant.localhost
-    if (tenant === 'default') {
-      backendHostname = `${apiPrefix}.localhost`
-    } else {
-      backendHostname = `${apiPrefix}.${tenant}.localhost`
-    }
-  } else {
-    // Production: api.tenant.example.com or api.example.com
-    const parts = hostname.split('.')
-
-    if (parts.length > 2) {
-      // tenant.example.com → api.tenant.example.com
-      parts[0] = apiPrefix
-      backendHostname = parts.join('.')
-    } else {
-      // example.com → api.example.com
-      backendHostname = `${apiPrefix}.${hostname}`
-    }
-  }
-
-  // Construct full URL
-  const portSuffix = port ? `:${port}` : ''
-  return `${protocol}://${backendHostname}${portSuffix}`
-}
-
-/**
- * Get OAuth token from localStorage or sessionStorage
- * Checks token expiration before returning
- */
-export function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null
-
-  // Get token and expiration
-  const token = localStorage.getItem('access_token')
-  const expiresAt = localStorage.getItem('token_expires_at')
-
-  // If no token, return null
-  if (!token) return null
-
-  // Check if token is expired
-  if (expiresAt && parseInt(expiresAt) <= Date.now()) {
-    // Token expired, clear it
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('token_expires_at')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('user_info')
-
-    // Redirect to login if in browser
-    if (typeof window !== 'undefined') {
-      window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname)
-    }
-
-    return null
-  }
-
-  return token
-}
-
-/**
- * Check if user is authenticated
- */
-export function isAuthenticated(): boolean {
-  return getAuthToken() !== null
-}
-
-/**
- * Get stored user info
- */
-export function getUserInfo(): any | null {
-  if (typeof window === 'undefined') return null
-
-  const userInfoStr = localStorage.getItem('user_info')
-  if (!userInfoStr) return null
-
-  try {
-    return JSON.parse(userInfoStr)
-  } catch {
-    return null
-  }
-}
-
-/**
- * Logout user (clear all tokens)
- */
-export function logout() {
-  if (typeof window === 'undefined') return
-
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('token_expires_at')
-  localStorage.removeItem('user_info')
-  sessionStorage.clear()
-
-  // Redirect to login
-  window.location.href = '/auth/login'
-}
-
-/**
- * Error class for API-related errors
- */
 export class APIError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public response?: any
+    public response?: unknown
   ) {
     super(message)
     this.name = 'APIError'
   }
 }
 
+// ─── Core proxy request ────────────────────────────────────────────────────────
+
 /**
- * Authenticated API request wrapper
- * Automatically adds Authorization header with Bearer token
- * 
- * @param endpoint - API endpoint path (e.g., "/users/me" or "users/me")
- * @param options - Fetch options
- * @returns Parsed JSON response
- * @throws {APIError} When request fails or token is missing
+ * Make an authenticated request through the Next.js proxy API route.
+ * Credentials are attached server-side from httpOnly cookies.
+ * Never touches localStorage.
+ *
+ * @param path - Frappe method path (e.g. "frappe.client.get_list")
+ * @param options - Standard fetch options (method, body, etc.)
  */
-export async function apiRequest<T = any>(
-  endpoint: string,
+export async function apiRequest<T = unknown>(
+  path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  // Get auth token
-  const token = getAuthToken()
+  // Normalise: strip leading slash
+  const normalised = path.startsWith('/') ? path.slice(1) : path
 
-  if (!token) {
-    // If no token found, ensure we are logged out and redirect
-    logout()
-    throw new APIError('Authentication token not found. Please log in.', 401)
-  }
-
-  // Resolve backend URL
-  const baseURL = getBackendURL()
-
-  // Normalize endpoint (remove leading slash if present)
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
-  const url = `${baseURL}/${normalizedEndpoint}`
-
-  // Prepare headers
-  const headers: HeadersInit = {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-    ...options.headers,
-  }
+  // Route through the secure Next.js proxy — credentials added server-side
+  const url = `/api/proxy/${normalised}`
 
   try {
     const response = await fetch(url, {
       ...options,
-      headers,
+      // Always send cookies so the server-side route can authenticate
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     })
 
-    // Handle non-JSON responses
     const contentType = response.headers.get('content-type')
-    const isJSON = contentType?.includes('application/json')
+    const data = contentType?.includes('application/json')
+      ? await response.json()
+      : await response.text()
 
-    // Parse response
-    const data = isJSON ? await response.json() : await response.text()
-
-    // Handle error responses
     if (!response.ok) {
-      const message = typeof data === 'object' && data.message
-        ? data.message
-        : typeof data === 'string'
-          ? data
-          : `Request failed with status ${response.status}`
+      const message =
+        typeof data === 'object' && data !== null && 'message' in data
+          ? String((data as Record<string, unknown>).message)
+          : typeof data === 'string'
+            ? data
+            : `Request failed with status ${response.status}`
 
-      // Auto-logout on Auth failures
-      if (response.status === 401 || response.status === 403) {
-        logout()
-      }
-
-      // Auto-logout if Tenant is completely missing (404 on critical paths)
-      // We need to be careful not to logout on simple "Resource not found" (like a missing project)
-      // But "Tenant not found" usually comes from the middleware/gateway layers
-      if (response.status === 404 && (
-        message.toLowerCase().includes('tenant not found') ||
-        message.toLowerCase().includes('site not found')
-      )) {
-        logout()
+      // Auto-redirect on auth failures (handled by the proxy route too, but
+      // this keeps the client UX consistent)
+      if (
+        (response.status === 401 || response.status === 403) &&
+        typeof window !== 'undefined'
+      ) {
+        window.location.href = '/login'
       }
 
       throw new APIError(message, response.status, data)
     }
 
-    return data
+    return data as T
   } catch (error) {
-    // Re-throw APIErrors
-    if (error instanceof APIError) {
-      throw error
-    }
+    if (error instanceof APIError) throw error
 
-    // Network or parsing errors
     if (error instanceof Error) {
-      throw new APIError(
-        `Network error: ${error.message}`,
-        undefined,
-        error
-      )
+      throw new APIError(`Network error: ${error.message}`, undefined, error)
     }
 
     throw new APIError('Unknown error occurred')
   }
 }
 
-/**
- * Convenience methods for common HTTP verbs
- */
-export const api = {
-  /**
-   * GET request
-   */
-  get: <T = any>(endpoint: string, options?: RequestInit): Promise<T> => {
-    return apiRequest<T>(endpoint, { ...options, method: 'GET' })
-  },
+// ─── Convenience verbs ─────────────────────────────────────────────────────────
 
-  /**
-   * POST request
-   */
-  post: <T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<T> => {
-    return apiRequest<T>(endpoint, {
+export const api = {
+  get: <T = unknown>(path: string, options?: RequestInit): Promise<T> =>
+    apiRequest<T>(path, { ...options, method: 'GET' }),
+
+  post: <T = unknown>(path: string, body?: unknown, options?: RequestInit): Promise<T> =>
+    apiRequest<T>(path, {
       ...options,
       method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
-    })
-  },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
 
-  /**
-   * PUT request
-   */
-  put: <T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<T> => {
-    return apiRequest<T>(endpoint, {
+  put: <T = unknown>(path: string, body?: unknown, options?: RequestInit): Promise<T> =>
+    apiRequest<T>(path, {
       ...options,
       method: 'PUT',
-      body: body ? JSON.stringify(body) : undefined,
-    })
-  },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
 
-  /**
-   * PATCH request
-   */
-  patch: <T = any>(endpoint: string, body?: any, options?: RequestInit): Promise<T> => {
-    return apiRequest<T>(endpoint, {
+  patch: <T = unknown>(path: string, body?: unknown, options?: RequestInit): Promise<T> =>
+    apiRequest<T>(path, {
       ...options,
       method: 'PATCH',
-      body: body ? JSON.stringify(body) : undefined,
-    })
-  },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
 
-  /**
-   * DELETE request
-   */
-  delete: <T = any>(endpoint: string, options?: RequestInit): Promise<T> => {
-    return apiRequest<T>(endpoint, { ...options, method: 'DELETE' })
-  },
+  delete: <T = unknown>(path: string, options?: RequestInit): Promise<T> =>
+    apiRequest<T>(path, { ...options, method: 'DELETE' }),
 }
 
+// ─── isAuthenticated helper ────────────────────────────────────────────────────
+
 /**
- * Type definitions for common API responses
+ * Checks authentication by hitting the proxy health endpoint.
+ * Never reads localStorage.
  */
+export async function isAuthenticated(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/proxy/frappe.auth.get_logged_user', {
+      credentials: 'include',
+      method: 'POST',
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+// ─── Type definitions ──────────────────────────────────────────────────────────
+
 export interface User {
   id: string
   email: string
@@ -337,39 +156,4 @@ export interface PaginatedResponse<T> {
   total: number
   page: number
   pageSize: number
-}
-
-/**
- * Example: Fetch current user profile
- */
-export async function getCurrentUser(): Promise<User> {
-  return api.get<User>('/users/me')
-}
-
-/**
- * Example: Fetch tenant-specific projects with pagination
- */
-export async function getProjects(page = 1, pageSize = 20) {
-  return api.get<PaginatedResponse<any>>(`/projects?page=${page}&pageSize=${pageSize}`)
-}
-
-/**
- * Example: Create a new resource
- */
-export async function createProject(data: { name: string; description?: string }) {
-  return api.post('/projects', data)
-}
-
-/**
- * Example: Update a resource
- */
-export async function updateProject(id: string, data: Partial<{ name: string; description: string }>) {
-  return api.patch(`/projects/${id}`, data)
-}
-
-/**
- * Example: Delete a resource
- */
-export async function deleteProject(id: string) {
-  return api.delete(`/projects/${id}`)
 }

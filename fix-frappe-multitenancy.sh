@@ -14,9 +14,8 @@ docker exec frappe_docker-backend-1 bash -c 'cat > /home/frappe/frappe-bench/sit
   "redis_socketio": "redis://redis-queue:6379",
   "socketio_port": 9000,
   "webserver_port": 8000,
-  "allow_tests": true,
   "default_site": "erp.localhost",
-  "allow_cors": "*",
+  "allow_cors": "https://avariq.in",
   "http_timeout": 120,
   "gunicorn_workers": 4
 }

@@ -111,10 +111,19 @@ const callbacks = {
       token.tenantSubdomain = lookup.subdomain || null
     }
 
-    // Allow manual updates (e.g., after provisioning completes)
+    // CVE-4 Fix: On session update, re-validate the claimed subdomain against
+    // the Master DB. A client calling useSession().update({tenantSubdomain:'x'})
+    // cannot escalate into a tenant whose email they do not own.
     if (trigger === 'update' && session) {
       if (session.hasTenant !== undefined) token.hasTenant = session.hasTenant
-      if (session.tenantSubdomain) token.tenantSubdomain = session.tenantSubdomain
+      if (session.tenantSubdomain) {
+        // Server-side verification: the token's email must own the subdomain
+        const verified = await lookupTenantInMasterDB(token.email as string)
+        if (verified.hasTenant && verified.subdomain === session.tenantSubdomain) {
+          token.tenantSubdomain = session.tenantSubdomain
+        }
+        // If verification fails, silently ignore the update — never trust client-supplied subdomain
+      }
     }
 
     return token

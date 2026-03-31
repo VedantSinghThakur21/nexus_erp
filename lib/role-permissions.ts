@@ -126,18 +126,24 @@ export function getPermissionLevel(
     return 'full'
   }
 
-  // Check for manager roles (full access)
+  // CVE-5 Fix: Only return 'full' if the manager role is also present in
+  // MODULE_PERMISSIONS for this specific module. Without this check, a
+  // Stock Manager would get 'full' on payments, invoices, etc.
   const managerRoles = [
     'Sales Manager',
     'Accounts Manager',
     'Projects Manager',
     'Stock Manager',
   ]
-  if (userRoles.some((role) => managerRoles.includes(role))) {
+  const moduleRoles = MODULE_PERMISSIONS[module] || []
+  const hasModuleScopedManagerAccess = userRoles.some(
+    (role) => managerRoles.includes(role) && moduleRoles.includes(role)
+  )
+  if (hasModuleScopedManagerAccess) {
     return 'full'
   }
 
-  // User roles typically have view-only access
+  // User roles (Sales User, Accounts User, …) have view-only access
   return 'view'
 }
 

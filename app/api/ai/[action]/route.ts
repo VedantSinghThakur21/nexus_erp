@@ -47,6 +47,12 @@ export async function POST(
             case 'crm-insights':
                 apiKey = process.env.DIFY_CRM_API_KEY || '';
                 break;
+            case 'lead-score':
+                apiKey = process.env.DIFY_LEAD_SCORE_API_KEY || '';
+                break;
+            case 'opportunity-probability':
+                apiKey = process.env.DIFY_OPPORTUNITY_PROB_API_KEY || '';
+                break;
             default:
                 return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
