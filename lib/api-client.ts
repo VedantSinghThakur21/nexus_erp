@@ -28,33 +28,82 @@ export class APIError extends Error {
 // ─── Core proxy request ────────────────────────────────────────────────────────
 
 /**
- * Make an authenticated request through the Next.js proxy API route.
- * Credentials are attached server-side from httpOnly cookies.
- * Never touches localStorage.
- *
- * @param path - Frappe method path (e.g. "frappe.client.get_list")
- * @param options - Standard fetch options (method, body, etc.)
+ * Make an authenticated request.
+ * - Server environment: Hits Frappe directly by reading cookies via next/headers
+ * - Client environment: Hits Next.js /api/proxy/ loopback with credentials: 'include'
  */
 export async function apiRequest<T = unknown>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  // Normalise: strip leading slash
+  const isServer = typeof window === 'undefined'
   const normalised = path.startsWith('/') ? path.slice(1) : path
 
-  // Route through the secure Next.js proxy — credentials added server-side
-  const url = `/api/proxy/${normalised}`
+  let url: string = ''
+  const finalHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...options.headers,
+  } as Record<string, string>
+
+  if (isServer) {
+    // Server environment (Server Action / Server Component)
+    // Read the httpOnly cookies directly to attach Frappe credentials
+    // Note: Calling `cookies()` acts dynamically during Server Rendering
+    
+    // We ignore if the import errors on client side, standard dynamic pattern
+    try {
+      const { cookies, headers } = await import('next/headers')
+      const cookieStore = await cookies()
+      const apiKey = cookieStore.get('tenant_api_key')?.value
+      const apiSecret = cookieStore.get('tenant_api_secret')?.value
+
+      if (apiKey && apiSecret) {
+        finalHeaders['Authorization'] = `token ${apiKey}:${apiSecret}`
+      } else {
+        // Fallback to Env Master Keys
+        const masterKey = process.env.ERP_API_KEY
+        const masterSecret = process.env.ERP_API_SECRET
+        if (masterKey && masterSecret) {
+          finalHeaders['Authorization'] = `token ${masterKey}:${masterSecret}`
+        }
+      }
+
+      // Automatically construct site name header
+      const headersList = await headers()
+      const tenantId = headersList.get('x-tenant-id')
+      if (tenantId && tenantId !== 'master') {
+             const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+             const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+             finalHeaders['X-Frappe-Site-Name'] = IS_PRODUCTION ? `${tenantId}.${ROOT_DOMAIN}` : `${tenantId}.localhost`
+      } else {
+             finalHeaders['X-Frappe-Site-Name'] = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
+      }
+    } catch (e) {
+      console.error('[API-CLIENT] Error reading server cookies/headers:', e)
+    }
+
+    const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+    url = `${BASE_URL}/api/method/${normalised}`
+
+  } else {
+    // Client environment (Browser)
+    // Uses the proxy pattern we established so JS can't see the tokens
+    url = `/api/proxy/${normalised}`
+  }
 
   try {
-    const response = await fetch(url, {
+    const fetchOptions: RequestInit = {
       ...options,
-      // Always send cookies so the server-side route can authenticate
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    })
+      headers: finalHeaders,
+    }
+    
+    // Append credentials flag for the proxy on the client side
+    if (!isServer) {
+      fetchOptions.credentials = 'include'
+    }
+
+    const response = await fetch(url, fetchOptions)
 
     const contentType = response.headers.get('content-type')
     const data = contentType?.includes('application/json')
@@ -69,12 +118,8 @@ export async function apiRequest<T = unknown>(
             ? data
             : `Request failed with status ${response.status}`
 
-      // Auto-redirect on auth failures (handled by the proxy route too, but
-      // this keeps the client UX consistent)
-      if (
-        (response.status === 401 || response.status === 403) &&
-        typeof window !== 'undefined'
-      ) {
+      // Auto-redirect on auth failures for the client side
+      if (!isServer && (response.status === 401 || response.status === 403)) {
         window.location.href = '/login'
       }
 
