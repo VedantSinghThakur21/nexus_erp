@@ -145,19 +145,17 @@ export async function getUserRolesForUser(email: string): Promise<string[]> {
   try {
     const siteOverride = await getTenantSiteName()
     // Prefer tenant-scoped credentials for tenant targets.
-    // Use get_list on 'Has Role' instead of fetching the full 'User' doc via POST
-    // to prevent Node.js fetch/stream timeouts on the Next.js server.
-    const response = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Has Role',
-      filters: JSON.stringify([['parent', '=', email], ['parenttype', '=', 'User']]),
-      fields: JSON.stringify(['role']),
-      limit_page_length: 100,
+    // Fetch the full User doc using GET rather than POST to prevent Node.js stream timeouts,
+    // and correctly access the 'roles' child table (which Frappe restricts direct get_list queries against).
+    const response = await frappeRequest('frappe.client.get', 'GET', {
+      doctype: 'User',
+      name: email,
     }, { siteOverride }) as any
 
-    const roles = Array.isArray(response) ? response : (response?.message || [])
+    const user = response?.message || response
 
-    if (roles.length > 0) {
-      return roles
+    if (Array.isArray(user?.roles) && user.roles.length > 0) {
+      return user.roles
         .map((r: any) => r.role || r.name)
         .filter((r: string) => r && r !== 'All')
     }
