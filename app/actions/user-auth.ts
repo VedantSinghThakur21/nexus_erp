@@ -293,6 +293,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       const cookieStore = await cookies()
       const setCookieHeader = response.headers.get('set-cookie')
 
+      const cookieDomain = process.env.NODE_ENV === 'production'
+        ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
+
       if (setCookieHeader) {
         const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
         if (sidMatch) {
@@ -302,9 +305,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7,
-            path: '/'
+            path: '/',
+            ...(cookieDomain ? { domain: cookieDomain } : {}),
           })
-
         }
       }
 
@@ -315,7 +318,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7,
-          path: '/'
+          path: '/',
+          ...(cookieDomain ? { domain: cookieDomain } : {}),
         })
       }
 
@@ -325,7 +329,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
-        path: '/'
+        path: '/',
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
       })
 
       cookieStore.set('tenant_site_url', tenant.site_url, {
@@ -333,14 +338,17 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
-        path: '/'
+        path: '/',
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
       })
 
       cookieStore.set('user_type', 'tenant', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
       })
 
       // Detect the user's role type (admin/member/sales/accounts/projects) and store
@@ -377,8 +385,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           }
         }
         
-        const cookieDomain = process.env.NODE_ENV === 'production'
-          ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
         cookieStore.set('tenant_role_type', roleType, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
