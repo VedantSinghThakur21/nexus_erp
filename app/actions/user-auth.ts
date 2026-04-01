@@ -346,39 +346,47 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // Detect the user's role type (admin/member/sales/accounts/projects) and store
       // it in a cookie so the self-heal path in frappeRequest can assign the correct
       // ROLE_SET rather than blindly adding base roles to everyone.
-      // We check if they're System Manager first (fast path), then map other roles.
+      // We check if they're the tenant owner first (guaranteed admin), then map other roles.
       try {
-        const isSysMgr = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Frappe-Site-Name': siteName,
-            ...(setCookieHeader?.match(/sid=([^;]+)/)?.[1]
-              ? { Cookie: `sid=${setCookieHeader.match(/sid=([^;]+)/)?.[1]}` }
-              : {}),
-          },
-          body: JSON.stringify({ doctype: 'User', filters: userEmail, fieldname: 'roles' }),
-        })
-        if (isSysMgr.ok) {
-          const rolesData = await isSysMgr.json()
-          const roles: string[] = (rolesData?.message?.roles || [])
-            .map((r: any) => r.role || r).filter(Boolean)
-          let roleType = 'member'
-          if (roles.includes('System Manager')) roleType = 'admin'
-          else if (roles.includes('Accounts Manager')) roleType = 'accounts'
-          else if (roles.includes('Projects Manager')) roleType = 'projects'
-          else if (roles.includes('Sales Manager')) roleType = 'sales'
-          const cookieDomain = process.env.NODE_ENV === 'production'
-            ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
-          cookieStore.set('tenant_role_type', roleType, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7,
-            path: '/',
-            ...(cookieDomain ? { domain: cookieDomain } : {}),
+        let roleType = 'member'
+        
+        if (userEmail === tenant.owner_email) {
+          roleType = 'admin'
+        } else {
+          const userDocReq = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Frappe-Site-Name': siteName,
+              ...(setCookieHeader?.match(/sid=([^;]+)/)?.[1]
+                ? { Cookie: `sid=${setCookieHeader.match(/sid=([^;]+)/)?.[1]}` }
+                : {}),
+            },
+            body: JSON.stringify({ doctype: 'User', name: userEmail }),
           })
+          if (userDocReq.ok) {
+            const userDocData = await userDocReq.json()
+            const userDoc = userDocData?.message || userDocData
+            const roles: string[] = (userDoc?.roles || [])
+              .map((r: any) => r.role || r.name).filter(Boolean)
+            
+            if (roles.includes('System Manager')) roleType = 'admin'
+            else if (roles.includes('Accounts Manager')) roleType = 'accounts'
+            else if (roles.includes('Projects Manager')) roleType = 'projects'
+            else if (roles.includes('Sales Manager')) roleType = 'sales'
+          }
         }
+        
+        const cookieDomain = process.env.NODE_ENV === 'production'
+          ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
+        cookieStore.set('tenant_role_type', roleType, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+          ...(cookieDomain ? { domain: cookieDomain } : {}),
+        })
       } catch {
         // Non-fatal — role type detection is best-effort
       }
