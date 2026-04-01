@@ -391,124 +391,72 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         // Non-fatal — role type detection is best-effort
       }
 
-      // Generate fresh API keys on every login
-      // NOTE: We MUST use generate_keys instead of get_value because Frappe masks
-      // Password-type fields (api_secret) with '***' when read via get_value.
-      // generate_keys returns the actual unmasked secret.
-      // For non-System Manager users, generate_keys returns PermissionError — in that
-      // case we fall back to the provisioning service which uses ignore_permissions=True.
+      // ── Generate fresh API keys on every login ──
+      // Route unconditionally to the provisioning service which uses
+      // ignore_permissions=True internally — works for ALL users regardless
+      // of Frappe role (eliminates the old try-generate_keys → 403 → fallback pattern).
+      // The provisioning service is protected by X-Provisioning-Secret so only
+      // this server-side action can call it; the raw secret never reaches the browser.
       let apiKey: string | null = null
       let apiSecret: string | null = null
 
       try {
-        const sessionCookie = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
+        const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail)
+        apiKey = provKeys.api_key
+        apiSecret = provKeys.api_secret
+      } catch (apiError: any) {
+        // Non-fatal: user can still authenticate via session cookie (sid).
+        // Log a concise message — no stack trace needed for a connectivity issue.
+        console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
+      }
 
-        const generateResponse = await fetch(`${masterUrl}/api/method/frappe.core.doctype.user.user.generate_keys`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cookie': `sid=${sessionCookie}`,
-            'X-Frappe-Site-Name': siteName,
-            'Host': siteName,
-          },
-          body: JSON.stringify({
-            user: userEmail
-          })
+      if (apiKey && apiSecret) {
+        const cookieDomain = process.env.NODE_ENV === 'production'
+          ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
+          : undefined
+
+        cookieStore.set('tenant_api_key', apiKey, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+          domain: cookieDomain,
         })
 
-        const generateData = await generateResponse.json()
+        cookieStore.set('tenant_api_secret', apiSecret, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+          domain: cookieDomain,
+        })
 
-        if (!generateResponse.ok || generateData.exc_type === 'PermissionError') {
-          // Non-System Manager user — delegate to provisioning service
-          console.warn('⚠️ generate_keys permission denied — falling back to provisioning service')
-          try {
-            const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail)
-            apiKey = provKeys.api_key
-            apiSecret = provKeys.api_secret
-          } catch (provErr: any) {
-            console.error('API key generation fallback failed')
-          }
-        } else {
-          // generate_keys returns { api_secret: 'actual_secret' }
-          // We also need the api_key which is on the User doc
-          apiKey = generateData.message?.api_key
-          apiSecret = generateData.message?.api_secret
-
-          // If generate_keys didn't return api_key, fetch it separately.
-          // frappe.client.get_value signature: get_value(doctype, filters, fieldname)
-          // The second positional param is `filters` (not `name`).
-          if (!apiKey && apiSecret) {
-            const keyResponse = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Cookie': `sid=${sessionCookie}`,
-                'X-Frappe-Site-Name': siteName,
-                'Host': siteName,
-              },
-              body: JSON.stringify({
-                doctype: 'User',
-                filters: userEmail,   // correct param name — was wrongly 'name' before
-                fieldname: 'api_key'
-              })
-            })
-            const keyData = await keyResponse.json()
-            // frappe.client.get_value returns { message: { <fieldname>: value } }
-            apiKey = keyData.message?.api_key || null
-          }
-        }
-
-        if (apiKey && apiSecret) {
-          const cookieDomain = process.env.NODE_ENV === 'production'
-            ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
-            : undefined
-
-          cookieStore.set('tenant_api_key', apiKey, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7,
-            path: '/',
-            domain: cookieDomain,
-          })
-
-          cookieStore.set('tenant_api_secret', apiSecret, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7,
-            path: '/',
-            domain: cookieDomain,
-          })
-
-          // Sync fresh credentials back to SaaS Tenant master record so the
-          // provisioning service + /api/setup/init always have current keys.
-          // Only sync api_key when we actually have one (skip if still null).
-          try {
-            const tenantRecordName = tenant.name || tenant.subdomain
-            if (apiKey) {
-              await masterRequest('frappe.client.set_value', 'POST', {
-                doctype: 'SaaS Tenant',
-                name: tenantRecordName,
-                fieldname: 'api_key',
-                value: apiKey
-              })
-            }
+        // Sync fresh credentials back to SaaS Tenant master record so the
+        // provisioning service + /api/setup/init always have current keys.
+        // Only sync api_key when we actually have one (skip if still null).
+        try {
+          const tenantRecordName = tenant.name || tenant.subdomain
+          if (apiKey) {
             await masterRequest('frappe.client.set_value', 'POST', {
               doctype: 'SaaS Tenant',
               name: tenantRecordName,
-              fieldname: 'api_secret',
-              value: apiSecret
+              fieldname: 'api_key',
+              value: apiKey
             })
-          } catch (syncErr: any) {
-            console.warn('Could not sync API credentials to tenant record')
           }
-        } else {
-          console.warn('API key generation incomplete')
+          await masterRequest('frappe.client.set_value', 'POST', {
+            doctype: 'SaaS Tenant',
+            name: tenantRecordName,
+            fieldname: 'api_secret',
+            value: apiSecret
+          })
+        } catch {
+          console.warn('Could not sync API credentials to tenant record')
         }
-      } catch (apiError) {
-        console.error('API key generation error')
-        // Continue — user can still use the app via session cookie (sid)
+      } else {
+        console.warn('API key generation incomplete — user will authenticate via session cookie only')
       }
 
       // ── Normalize roles on every login ──

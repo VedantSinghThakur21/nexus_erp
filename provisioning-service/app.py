@@ -949,15 +949,21 @@ print(json.dumps(result))
 async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool = Depends(verify_api_secret)):
     """
     Generate API key + secret for any user on a tenant site.
-    Uses ignore_permissions=True so it works even for non-System Manager users.
-    Called during login when the generate_keys RPC fails with PermissionError.
+    Uses ignore_permissions=True (via run_frappe_code) — no System Manager required.
+    Protected by X-Provisioning-Secret header (verified by verify_api_secret dependency).
     """
+    # NEW: validate subdomain against safe slug pattern
+    import re
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
     body = await request.json()
     user_email = body.get("user_email", "").strip()
-    if not user_email:
-        raise HTTPException(status_code=400, detail="user_email is required")
+    if not user_email or "@" not in user_email:
+        raise HTTPException(status_code=400, detail="user_email is required and must be a valid email")
 
     site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+    logger.info(f"generate-user-keys: site={site_name} user={user_email[:3]}***")
 
     # We embed the email safely via json.dumps — no shell injection risk because
     # run_frappe_code passes the code via stdin to `bench execute`.

@@ -1,6 +1,6 @@
 "use server";
 
-import { frappeRequest } from "@/app/lib/api";
+import { frappeRequest, tenantAdminRequest } from "@/app/lib/api";
 import { revalidatePath } from "next/cache";
 
 interface PricingRule {
@@ -33,7 +33,7 @@ interface PricingRule {
 // Get all pricing rules
 export async function getPricingRules(): Promise<PricingRule[]> {
   try {
-    const response = await frappeRequest(
+    const response = await tenantAdminRequest(
       'frappe.client.get_list',
       'GET',
       {
@@ -42,7 +42,6 @@ export async function getPricingRules(): Promise<PricingRule[]> {
         limit_page_length: 999
       }
     );
-
 
     // Handle response as array directly or as { data: [] }
     const dataArray = Array.isArray(response) ? response : (response as any)?.data || [];
@@ -56,7 +55,7 @@ export async function getPricingRules(): Promise<PricingRule[]> {
 // Get single pricing rule with full details
 export async function getPricingRule(name: string): Promise<PricingRule | null> {
   try {
-    const response = await frappeRequest(
+    const response = await tenantAdminRequest(
       'frappe.client.get',
       'GET',
       {
@@ -64,7 +63,6 @@ export async function getPricingRule(name: string): Promise<PricingRule | null> 
         name: name,
       }
     );
-
 
     // Handle response as object directly or as { data: {} }
     const rule = (response as any)?.data || response;
@@ -159,7 +157,11 @@ export async function createPricingRule(formData: FormData) {
     if (maxQty) ruleData.max_qty = parseFloat(maxQty);
     if (priority) ruleData.priority = parseInt(priority);
 
-    await frappeRequest('frappe.client.insert', 'POST', {
+    // Use tenantAdminRequest (master credentials on tenant site) because the
+    // user's own Frappe token may lack 'Sales Manager'/'System Manager' roles
+    // needed to create Pricing Rule documents. The role guard above already
+    // ensures only authorised users reach this point.
+    await tenantAdminRequest('frappe.client.insert', 'POST', {
       doc: ruleData
     });
 
@@ -225,7 +227,7 @@ export async function updatePricingRule(name: string, formData: FormData) {
     if (maxQty) updateData.max_qty = parseFloat(maxQty);
     if (priority) updateData.priority = parseInt(priority);
 
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    await tenantAdminRequest('frappe.client.set_value', 'POST', {
       doctype: 'Pricing Rule',
       name: name,
       fieldname: updateData
@@ -252,7 +254,7 @@ export async function togglePricingRuleStatus(name: string, disable: number) {
       throw new Error("403 Unauthorized: Insufficient Permission for Pricing Rule (edit)");
     }
 
-    await frappeRequest('frappe.client.set_value', 'POST', {
+    await tenantAdminRequest('frappe.client.set_value', 'POST', {
       doctype: 'Pricing Rule',
       name: name,
       fieldname: {
@@ -280,7 +282,7 @@ export async function deletePricingRule(name: string) {
       throw new Error("403 Unauthorized: Insufficient Permission for Pricing Rule (delete)");
     }
 
-    await frappeRequest('frappe.client.delete', 'POST', {
+    await tenantAdminRequest('frappe.client.delete', 'POST', {
       doctype: 'Pricing Rule',
       name: name
     });
@@ -296,7 +298,7 @@ export async function deletePricingRule(name: string) {
 // Get customer groups for filtering
 export async function getCustomerGroups(): Promise<string[]> {
   try {
-    const response = await frappeRequest('frappe.client.get_list', 'GET', {
+    const response = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Customer Group',
       fields: '["name"]',
       filters: JSON.stringify([['is_group', '=', 0]]),
@@ -314,7 +316,7 @@ export async function getCustomerGroups(): Promise<string[]> {
 // Get territories for filtering
 export async function getTerritories(): Promise<string[]> {
   try {
-    const response = await frappeRequest('frappe.client.get_list', 'GET', {
+    const response = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Territory',
       fields: '["name"]',
       filters: JSON.stringify([['is_group', '=', 0]]),
@@ -332,7 +334,7 @@ export async function getTerritories(): Promise<string[]> {
 // Get item groups for filtering
 export async function getItemGroups(): Promise<string[]> {
   try {
-    const response = await frappeRequest('frappe.client.get_list', 'GET', {
+    const response = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Item Group',
       fields: '["name"]',
       filters: JSON.stringify([['is_group', '=', 0]]),
