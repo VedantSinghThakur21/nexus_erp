@@ -35,7 +35,7 @@ function sanitizeReturnTo(raw: string): string {
   }
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') || ''
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
