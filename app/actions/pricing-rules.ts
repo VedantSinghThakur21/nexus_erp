@@ -78,6 +78,15 @@ export async function getPricingRule(name: string): Promise<PricingRule | null> 
 // Create new pricing rule
 export async function createPricingRule(formData: FormData) {
   try {
+    // Server-Side Role Guard
+    const { getUserRoles } = await import("@/app/actions/user-roles");
+    const { canPerformAction } = await import("@/lib/role-permissions");
+    const roles = await getUserRoles();
+    
+    if (!canPerformAction('pricing-rules', 'create', roles)) {
+      throw new Error("403 Unauthorized: Insufficient Permission for Pricing Rule (create)");
+    }
+
     const title = formData.get("title") as string;
     const applyOn = formData.get("apply_on") as string;
     const itemGroup = formData.get("item_group") as string;
@@ -150,7 +159,6 @@ export async function createPricingRule(formData: FormData) {
     if (maxQty) ruleData.max_qty = parseFloat(maxQty);
     if (priority) ruleData.priority = parseInt(priority);
 
-
     await frappeRequest('frappe.client.insert', 'POST', {
       doc: ruleData
     });
@@ -166,6 +174,15 @@ export async function createPricingRule(formData: FormData) {
 // Update existing pricing rule
 export async function updatePricingRule(name: string, formData: FormData) {
   try {
+    // Server-Side Role Guard
+    const { getUserRoles } = await import("@/app/actions/user-roles");
+    const { canPerformAction } = await import("@/lib/role-permissions");
+    const roles = await getUserRoles();
+    
+    if (!canPerformAction('pricing-rules', 'edit', roles)) {
+      throw new Error("403 Unauthorized: Insufficient Permission for Pricing Rule (edit)");
+    }
+
     const title = formData.get("title") as string;
     const rateOrDiscount = formData.get("rate_or_discount") as string;
     const discountPercentage = formData.get("discount_percentage") as string;
@@ -226,6 +243,15 @@ export async function updatePricingRule(name: string, formData: FormData) {
 // Toggle pricing rule status (enable/disable)
 export async function togglePricingRuleStatus(name: string, disable: number) {
   try {
+    // Server-Side Role Guard
+    const { getUserRoles } = await import("@/app/actions/user-roles");
+    const { canPerformAction } = await import("@/lib/role-permissions");
+    const roles = await getUserRoles();
+    
+    if (!canPerformAction('pricing-rules', 'edit', roles)) {
+      throw new Error("403 Unauthorized: Insufficient Permission for Pricing Rule (edit)");
+    }
+
     await frappeRequest('frappe.client.set_value', 'POST', {
       doctype: 'Pricing Rule',
       name: name,
@@ -245,6 +271,15 @@ export async function togglePricingRuleStatus(name: string, disable: number) {
 // Delete pricing rule
 export async function deletePricingRule(name: string) {
   try {
+    // Server-Side Role Guard
+    const { getUserRoles } = await import("@/app/actions/user-roles");
+    const { canPerformAction } = await import("@/lib/role-permissions");
+    const roles = await getUserRoles();
+    
+    if (!canPerformAction('pricing-rules', 'delete', roles)) {
+      throw new Error("403 Unauthorized: Insufficient Permission for Pricing Rule (delete)");
+    }
+
     await frappeRequest('frappe.client.delete', 'POST', {
       doctype: 'Pricing Rule',
       name: name
