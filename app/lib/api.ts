@@ -494,7 +494,7 @@ export async function userRequest(
         siteName: context.siteName,
         data,
       })
-      throw new Error(data.message || data._server_messages || 'Request failed')
+      throw new Error(parseErrorMessage(data))
     }
 
     return data.message ?? data.data ?? data
