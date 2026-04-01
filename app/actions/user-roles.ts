@@ -142,16 +142,20 @@ export async function updateUserRoles(email: string, roles: string[]) {
 export async function getUserRolesForUser(email: string): Promise<string[]> {
   try {
     const siteOverride = await getTenantSiteName()
-    // Use master credentials so this works regardless of the calling user's role
-    const response = await frappeRequest('frappe.client.get', 'POST', {
-      doctype: 'User',
-      name: email,
+    // Use master credentials so this works regardless of the calling user's role.
+    // Use get_list on 'Has Role' instead of fetching the full 'User' doc via POST
+    // to prevent Node.js fetch/stream timeouts on the Next.js server.
+    const response = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Has Role',
+      filters: JSON.stringify([['parent', '=', email], ['parenttype', '=', 'User']]),
+      fields: JSON.stringify(['role']),
+      limit_page_length: 100,
     }, { useMasterCredentials: true, siteOverride }) as any
 
-    const user = response?.message || response
+    const roles = Array.isArray(response) ? response : (response?.message || [])
 
-    if (Array.isArray(user?.roles) && user.roles.length > 0) {
-      return user.roles
+    if (roles.length > 0) {
+      return roles
         .map((r: any) => r.role || r.name)
         .filter((r: string) => r && r !== 'All')
     }
