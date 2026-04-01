@@ -10,6 +10,7 @@ const MASTER_API_SECRET = process.env.ERP_API_SECRET
 const MASTER_SITE_NAME = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const REQUEST_TIMEOUT_MS = Number(process.env.ERP_REQUEST_TIMEOUT_MS || '15000')
 
 // ============================================================================
 // TYPES
@@ -30,6 +31,51 @@ interface ApiRequestOptions {
   useMasterCredentials?: boolean // Force use of master credentials
   siteOverride?: string // Override the target site name (use with useMasterCredentials for tenant admin ops)
   hasRoleRepairAttempted?: boolean
+}
+
+function isTimeoutLikeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const cause = (error as Error & { cause?: { code?: string } }).cause
+  const causeCode = cause?.code
+  return (
+    error.name === 'AbortError' ||
+    error.message.includes('Headers Timeout Error') ||
+    error.message.includes('UND_ERR_HEADERS_TIMEOUT') ||
+    causeCode === 'UND_ERR_HEADERS_TIMEOUT'
+  )
+}
+
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+  // Respect externally provided signals if present.
+  if (options.signal) {
+    return fetch(url, options)
+  }
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function parseResponseData(response: Response): Promise<Record<string, unknown>> {
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    try {
+      return await response.json()
+    } catch {
+      return { message: 'Invalid JSON response from ERP backend' }
+    }
+  }
+
+  const text = await response.text()
+  return { message: text || `Request failed with status ${response.status}` }
 }
 
 // ============================================================================
@@ -342,8 +388,8 @@ export async function frappeRequest(
 
   // Execute request
   try {
-    const response = await fetch(url, fetchOptions)
-    const data = await response.json()
+    const response = await fetchWithTimeout(url, fetchOptions, REQUEST_TIMEOUT_MS)
+    const data = await parseResponseData(response)
 
     if (!response.ok) {
       if (
@@ -365,6 +411,10 @@ export async function frappeRequest(
 
     return data.message ?? data.data ?? data
   } catch (error) {
+    if (isTimeoutLikeError(error)) {
+      throw new Error(`ERP backend timeout after ${REQUEST_TIMEOUT_MS}ms (${endpoint})`)
+    }
+
     if (error instanceof Error && !error.message.includes('not found')) {
       console.error(`[API] Request failed:`, error.message)
     }
@@ -434,8 +484,8 @@ export async function userRequest(
 
   // Execute request
   try {
-    const response = await fetch(url, fetchOptions)
-    const data = await response.json()
+    const response = await fetchWithTimeout(url, fetchOptions, REQUEST_TIMEOUT_MS)
+    const data = await parseResponseData(response)
 
     if (!response.ok) {
       console.error('[API] userRequest error:', {
@@ -449,6 +499,10 @@ export async function userRequest(
 
     return data.message ?? data.data ?? data
   } catch (error) {
+    if (isTimeoutLikeError(error)) {
+      throw new Error(`ERP backend timeout after ${REQUEST_TIMEOUT_MS}ms (${endpoint})`)
+    }
+
     if (error instanceof Error) {
       console.error(`[API] userRequest failed:`, error.message)
     }

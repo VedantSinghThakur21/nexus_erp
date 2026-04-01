@@ -19,6 +19,19 @@ const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 const MASTER_SITE = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const PROXY_TIMEOUT_MS = Number(process.env.ERP_PROXY_TIMEOUT_MS || '15000')
+
+function isTimeoutLikeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const cause = (error as Error & { cause?: { code?: string } }).cause
+  const causeCode = cause?.code
+  return (
+    error.name === 'AbortError' ||
+    error.message.includes('Headers Timeout Error') ||
+    error.message.includes('UND_ERR_HEADERS_TIMEOUT') ||
+    causeCode === 'UND_ERR_HEADERS_TIMEOUT'
+  )
+}
 
 /**
  * Resolve the Frappe site name from the x-tenant-id middleware header.
@@ -98,17 +111,25 @@ async function handler(
   }
 
   try {
-    const upstreamResponse = await fetch(upstreamUrl.toString(), {
-      method: request.method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': authHeader,
-        'X-Frappe-Site-Name': siteName,
-      },
-      body: body || undefined,
-      cache: 'no-store',
-    })
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS)
+    let upstreamResponse: Response
+    try {
+      upstreamResponse = await fetch(upstreamUrl.toString(), {
+        method: request.method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': authHeader,
+          'X-Frappe-Site-Name': siteName,
+        },
+        body: body || undefined,
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timer)
+    }
 
     const responseData = await upstreamResponse.text()
 
@@ -119,6 +140,14 @@ async function handler(
       },
     })
   } catch (error) {
+    if (isTimeoutLikeError(error)) {
+      console.error('[Proxy] Upstream request timeout:', { path: frappePath, timeoutMs: PROXY_TIMEOUT_MS })
+      return NextResponse.json(
+        { message: `Proxy timeout after ${PROXY_TIMEOUT_MS}ms` },
+        { status: 504 }
+      )
+    }
+
     console.error('[Proxy] Upstream Frappe request failed:', error)
     return NextResponse.json(
       { message: 'Proxy error: could not reach Frappe backend' },

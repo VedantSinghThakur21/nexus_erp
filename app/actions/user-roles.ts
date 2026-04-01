@@ -86,9 +86,11 @@ export async function isSystemManager(): Promise<boolean> {
 export async function updateUserRoles(email: string, roles: string[]) {
   try {
     const siteOverride = await getTenantSiteName()
-    const reqOpts = { useMasterCredentials: true as const, siteOverride }
+    // Prefer tenant-scoped credentials when operating on a tenant site.
+    // For root/master context this still falls back to master credentials.
+    const reqOpts = { siteOverride }
 
-    // Step 1: Fetch full user doc with master credentials (child tables included)
+    // Step 1: Fetch full user doc (child tables included)
     const docResponse = await frappeRequest('frappe.client.get', 'POST', {
       doctype: 'User',
       name: email,
@@ -111,7 +113,7 @@ export async function updateUserRoles(email: string, roles: string[]) {
       parentfield: 'roles',
     }))
 
-    // Step 4: Save the full doc with master credentials
+    // Step 4: Save the full doc
     await frappeRequest('frappe.client.save', 'POST', { doc: userDoc }, reqOpts)
 
     console.log(`[updateUserRoles] Saved roles for ${email}:`, roles)
@@ -142,7 +144,7 @@ export async function updateUserRoles(email: string, roles: string[]) {
 export async function getUserRolesForUser(email: string): Promise<string[]> {
   try {
     const siteOverride = await getTenantSiteName()
-    // Use master credentials so this works regardless of the calling user's role.
+    // Prefer tenant-scoped credentials for tenant targets.
     // Use get_list on 'Has Role' instead of fetching the full 'User' doc via POST
     // to prevent Node.js fetch/stream timeouts on the Next.js server.
     const response = await frappeRequest('frappe.client.get_list', 'GET', {
@@ -150,7 +152,7 @@ export async function getUserRolesForUser(email: string): Promise<string[]> {
       filters: JSON.stringify([['parent', '=', email], ['parenttype', '=', 'User']]),
       fields: JSON.stringify(['role']),
       limit_page_length: 100,
-    }, { useMasterCredentials: true, siteOverride }) as any
+    }, { siteOverride }) as any
 
     const roles = Array.isArray(response) ? response : (response?.message || [])
 
