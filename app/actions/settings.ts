@@ -24,6 +24,7 @@ export interface User {
   enabled: number
   email?: string
   first_name?: string
+  roles?: string[]
 }
 
 // 1. Get Current User Details
@@ -45,15 +46,20 @@ export async function getProfile() {
       doctype: 'User',
       name: userEmail,
       fields: JSON.stringify(['name', 'full_name', 'email', 'first_name', 'role_profile_name', 'enabled'])
-    })
+    }) as User
 
     if (!user) {
       console.error('User not found:', userEmail)
       return null
     }
 
-    console.log('User profile:', user)
-    return user as User
+    // frappe.client.get restricts reading the Has Role child table for standard users reading their own profile.
+    // We must manually fetch roles using master credentials.
+    const { getUserRolesForUser } = await import('@/app/actions/user-roles')
+    user.roles = await getUserRolesForUser(userEmail)
+
+    console.log('User profile:', { name: user.name, email: user.email, roles: user.roles })
+    return user
   } catch (e) {
     console.error('Get profile error:', e)
     return null

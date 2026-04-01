@@ -39,22 +39,9 @@ export async function getUserRoles(): Promise<string[]> {
       return []
     }
 
-    // Now fetch full user details with roles using the actual email
-    const response = await frappeRequest(
-      'frappe.client.get',
-      'POST',
-      {
-        doctype: 'User',
-        name: userEmail,
-        fields: JSON.stringify(['name', 'roles']),
-      }
-    ) as any
-
-    const user = response.message || response
-
-    return Array.isArray(user.roles)
-      ? user.roles.map((r: any) => r.role || r.name)
-      : []
+    // Use master credentials to fetch roles since Frappe REST API masks
+    // the 'roles' child table when a non-master user reads their own profile.
+    return await getUserRolesForUser(userEmail)
   } catch (error) {
     console.error('[getUserRoles] Failed to fetch roles:', error)
     return []
