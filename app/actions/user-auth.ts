@@ -196,7 +196,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     const tenant = tenantData[0] as TenantData
 
     // Validate tenant status
-    if (tenant.status === 'suspended') {
+    const tenantStatus = String(tenant.status || '').toLowerCase()
+
+    if (tenantStatus === 'suspended') {
       if (!tenant.site_config) {
         return {
           success: false,
@@ -209,14 +211,14 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
     }
 
-    if (tenant.status === 'cancelled') {
+    if (tenantStatus === 'cancelled') {
       return {
         success: false,
         error: 'Your account has been cancelled. Contact support to restore access.'
       }
     }
 
-    if (tenant.status === 'pending') {
+    if (tenantStatus === 'pending') {
       return {
         success: false,
         error: 'Your account is still being set up. This usually takes 2-3 minutes. Please try again shortly.'

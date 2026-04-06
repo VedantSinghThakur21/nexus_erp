@@ -13,9 +13,11 @@ export function TenantGuard({ children, hasApiKey }: { children: React.ReactNode
     useEffect(() => {
         if (status === 'loading') return
 
+        const isProvisioningStatusRoute = pathname?.startsWith('/provisioning-status')
+
         // If authenticated but tenant API key is missing from cookies → expired/missing session → force re-login
         if (status === 'authenticated' && hasApiKey === false) {
-            if (!pathname?.startsWith('/login') && !pathname?.startsWith('/onboarding')) {
+            if (!pathname?.startsWith('/login') && !pathname?.startsWith('/onboarding') && !isProvisioningStatusRoute) {
                 console.warn('[TenantGuard] Tenant API key missing for authenticated user — redirecting to login.')
                 router.replace('/login?reason=session_expired')
             }
@@ -26,7 +28,7 @@ export function TenantGuard({ children, hasApiKey }: { children: React.ReactNode
         // check if they have a valid API key (from email/password login).
         // The hasApiKey prop comes from the server component (reads HttpOnly cookie).
         if (status === 'authenticated' && !session?.hasTenant && !hasApiKey) {
-            if (!pathname?.startsWith('/onboarding')) {
+            if (!pathname?.startsWith('/onboarding') && !isProvisioningStatusRoute) {
                 router.replace('/onboarding')
             }
         }

@@ -1,10 +1,56 @@
 'use server'
 
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 import { provisionTenantSite, checkSubdomain, ProvisioningError } from '@/lib/provisioning-client'
 import { masterRequest } from '@/app/lib/api'
 import crypto from 'crypto'
+
+function buildTenantDashboardUrl(subdomain: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+  return process.env.NODE_ENV === 'production'
+    ? `https://${subdomain}.${rootDomain}/dashboard`
+    : `http://${subdomain}.localhost:3000/dashboard`
+}
+
+function buildProvisioningStatusUrl(subdomain: string): string {
+  const encodedSubdomain = encodeURIComponent(subdomain)
+  return `/provisioning-status?subdomain=${encodedSubdomain}`
+}
+
+async function createPendingTenantRecord(input: {
+  email: string
+  subdomain: string
+  siteUrl: string
+}): Promise<string> {
+  const result = await masterRequest('frappe.client.insert', 'POST', {
+    doc: {
+      doctype: 'SaaS Tenant',
+      owner_email: input.email,
+      subdomain: input.subdomain,
+      site_url: input.siteUrl,
+      status: 'Pending',
+      site_config: JSON.stringify({
+        created_at: new Date().toISOString(),
+        provision_state: 'pending',
+        source: 'social-onboarding',
+      }),
+    },
+  }) as { name?: string }
+
+  return result.name || input.subdomain
+}
+
+async function markTenantStatus(name: string, status: string): Promise<void> {
+  try {
+    await masterRequest('frappe.client.set_value', 'POST', {
+      doctype: 'SaaS Tenant',
+      name,
+      fieldname: 'status',
+      value: status,
+    })
+  } catch (error) {
+    console.warn(`[SocialOnboarding] Failed to mark tenant ${name} as ${status}:`, error)
+  }
+}
 
 /**
  * Social (Google) Onboarding — Complete Workspace Setup
@@ -57,69 +103,66 @@ export async function completeSocialOnboarding(data: {
     // Continue anyway — the provisioning service will catch duplicates
   }
 
+  const siteUrl = process.env.NODE_ENV === 'production'
+    ? `https://${subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
+    : `http://${subdomain}.localhost:3000`
+
   // ── Check if User Already Has a Tenant ──
   try {
     const existing = await masterRequest('frappe.client.get_list', 'GET', {
       doctype: 'SaaS Tenant',
       filters: JSON.stringify({ owner_email: data.email }),
-      fields: JSON.stringify(['subdomain', 'site_url']),
+      fields: JSON.stringify(['subdomain', 'site_url', 'status']),
       limit_page_length: 1,
     }) as any[]
 
     if (existing && existing.length > 0) {
       const existingTenant = existing[0]
-      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-      const redirectUrl = process.env.NODE_ENV === 'production'
-        ? `https://${existingTenant.subdomain}.${rootDomain}/dashboard`
-        : `http://${existingTenant.subdomain}.localhost:3000/dashboard`
+      const tenantStatus = String(existingTenant.status || '').toLowerCase()
+      const redirectUrl = tenantStatus === 'active'
+        ? buildTenantDashboardUrl(existingTenant.subdomain)
+        : buildProvisioningStatusUrl(existingTenant.subdomain)
       return { success: true, redirectUrl }
     }
   } catch (error) {
   }
 
-  // ── Provision the Tenant via Provisioning Service ──
+  // ── Register the Pending Tenant in Master DB ──
   const generatedPassword = crypto.randomBytes(20).toString('base64url')
+  const tenantRecordName = await createPendingTenantRecord({
+    email: data.email,
+    subdomain,
+    siteUrl,
+  })
 
+  // ── Provision the Tenant via Provisioning Service ──
   try {
-    const result = await provisionTenantSite({
+    void provisionTenantSite({
       organization_name: data.organizationName,
       admin_email: data.email,
       admin_password: generatedPassword,
       admin_full_name: data.name,
       plan_type: 'Free',
     })
+      .then(async result => {
+        if (!result.success) {
+          console.error('[SocialOnboarding] Provisioning failed:', result.error)
+          await markTenantStatus(tenantRecordName, 'Failed')
+          return
+        }
 
-    if (!result.success) {
-      console.error('[SocialOnboarding] Provisioning failed:', result.error)
-      return { success: false, error: result.error || 'Workspace creation failed' }
+        console.log(`[SocialOnboarding] Provisioning completed for ${result.subdomain}`)
+      })
+      .catch(async error => {
+        const message = error instanceof Error ? error.message : 'Unexpected error'
+        console.error('[SocialOnboarding] Provisioning request failed:', message)
+        await markTenantStatus(tenantRecordName, 'Failed')
+      })
+
+    return {
+      success: true,
+      redirectUrl: buildProvisioningStatusUrl(subdomain),
     }
-
-
-    // ── Store API credentials for the new tenant ──
-    if (result.api_key && result.api_secret) {
-      const cookieStore = await cookies()
-      const cookieOpts = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const,
-        maxAge: 60 * 60 * 24 * 30,
-        path: '/',
-        domain: process.env.NODE_ENV === 'production'
-          ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
-          : undefined,
-      }
-      cookieStore.set('tenant_api_key', result.api_key, cookieOpts)
-      cookieStore.set('tenant_api_secret', result.api_secret, cookieOpts)
-      cookieStore.set('tenant_subdomain', result.subdomain || '', cookieOpts)
-    }
-
-    // ── Build Redirect URL ──
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-    const redirectUrl = process.env.NODE_ENV === 'production'
-      ? `https://${result.subdomain}.${rootDomain}/dashboard`
-      : `http://${result.subdomain}.localhost:3000/dashboard`
-
-    return { success: true, redirectUrl }
 
   } catch (error) {
     if (error instanceof ProvisioningError) {

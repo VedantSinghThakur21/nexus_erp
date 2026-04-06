@@ -1,19 +1,65 @@
 'use server'
 
 import { cookies } from 'next/headers'
+import { masterRequest } from '@/app/lib/api'
 import { provisionTenantSite, ProvisioningError } from '@/lib/provisioning-client'
+
+function buildProvisioningStatusUrl(subdomain: string): string {
+  return `/provisioning-status?subdomain=${encodeURIComponent(subdomain)}`
+}
+
+function buildTenantSiteUrl(subdomain: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+  return process.env.NODE_ENV === 'production'
+    ? `https://${subdomain}.${rootDomain}`
+    : `http://${subdomain}.localhost:3000`
+}
+
+async function createPendingTenantRecord(input: {
+  email: string
+  subdomain: string
+  siteUrl: string
+}): Promise<string> {
+  const result = await masterRequest('frappe.client.insert', 'POST', {
+    doc: {
+      doctype: 'SaaS Tenant',
+      owner_email: input.email,
+      subdomain: input.subdomain,
+      site_url: input.siteUrl,
+      status: 'Pending',
+      site_config: JSON.stringify({
+        created_at: new Date().toISOString(),
+        provision_state: 'pending',
+        source: 'email-signup',
+      }),
+    },
+  }) as { name?: string }
+
+  return result.name || input.subdomain
+}
+
+async function markTenantStatus(name: string, status: string): Promise<void> {
+  try {
+    await masterRequest('frappe.client.set_value', 'POST', {
+      doctype: 'SaaS Tenant',
+      name,
+      fieldname: 'status',
+      value: status,
+    })
+  } catch (error) {
+    console.warn(`[Provision Action] Failed to mark tenant ${name} as ${status}:`, error)
+  }
+}
 
 /**
  * Provision Server Action (Step 2 of 2)
  * 
  * Called from the /provisioning page. Reads pending signup data from cookie,
- * calls the Python provisioning service, and returns the redirect URL.
+ * creates a Pending SaaS Tenant record, triggers the Python provisioning
+ * service in the background, and returns the status-page redirect URL.
  * 
- * THE KEY IMPROVEMENT:
- * - No more `docker exec` or `bench console` shell hacks
- * - Clean HTTP call to the Python provisioning service
- * - Proper error handling with typed errors
- * - API keys returned from provisioning are stored for immediate login
+ * The action returns immediately so the browser can move to the status page
+ * while the worker finishes site creation in the background.
  */
 export async function performProvisioning(): Promise<{
   success: boolean
@@ -45,60 +91,50 @@ export async function performProvisioning(): Promise<{
 
   console.log(`[Provision Action] Starting for org="${data.organizationName}" email="${data.email}"`)
 
+  const siteUrl = buildTenantSiteUrl(data.subdomain)
+  let tenantRecordName: string
+
   try {
-    // ── Call the Provisioning Service (Python FastAPI) ──
-    const result = await provisionTenantSite({
+    tenantRecordName = await createPendingTenantRecord({
+      email: data.email,
+      subdomain: data.subdomain,
+      siteUrl,
+    })
+  } catch (error) {
+    console.error('[Provision Action] Failed to create Pending tenant record:', error)
+    return { success: false, error: 'Unable to register your workspace. Please try again.' }
+  }
+
+  try {
+    void provisionTenantSite({
       organization_name: data.organizationName,
       admin_email: data.email,
       admin_password: data.password,
       admin_full_name: data.fullName,
       plan_type: data.plan as 'Free' | 'Pro' | 'Enterprise',
     })
+      .then(async result => {
+        if (!result.success) {
+          console.error('[Provision Action] Service returned failure:', result.error)
+          await markTenantStatus(tenantRecordName, 'Failed')
+          return
+        }
 
-    if (!result.success) {
-      console.error('[Provision Action] Service returned failure:', result.error)
-      return { success: false, error: result.error || 'Provisioning failed' }
-    }
-
-    console.log(`[Provision Action] ✓ Success. Steps: ${result.steps_completed?.join(', ')}`)
-
-    // ── Store tenant API credentials in cookies for immediate use ──
-    if (result.api_key && result.api_secret) {
-      cookieStore.set('tenant_api_key', result.api_key, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-        path: '/',
-        domain: process.env.NODE_ENV === 'production'
-          ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
-          : undefined,
+        console.log(`[Provision Action] ✓ Background job accepted for ${result.subdomain}`)
       })
-      cookieStore.set('tenant_api_secret', result.api_secret, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30,
-        path: '/',
-        domain: process.env.NODE_ENV === 'production'
-          ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
-          : undefined,
+      .catch(async error => {
+        const message = error instanceof Error ? error.message : 'Unexpected error'
+        console.error('[Provision Action] Provisioning request failed:', message)
+        await markTenantStatus(tenantRecordName, 'Failed')
       })
-    }
 
     // ── Clear pending signup cookie ──
     cookieStore.delete('pending_tenant_data')
 
-    // ── Build Redirect URL ──
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-    const redirectUrl = process.env.NODE_ENV === 'production'
-      ? `https://${result.subdomain}.${rootDomain}/dashboard`
-      : `http://${result.subdomain}.localhost:3000/dashboard`
-
     return {
       success: true,
-      redirectUrl,
-      subdomain: result.subdomain,
+      redirectUrl: buildProvisioningStatusUrl(data.subdomain),
+      subdomain: data.subdomain,
     }
 
   } catch (error) {
