@@ -472,6 +472,12 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // 2. If user has no module-accessible roles → add minimum roles (Sales User)
       //    so the user can at least see the dashboard and CRM data.
       if (userEmail) {
+        const normalizationMarker = `${tenant.subdomain}:${userEmail}`
+        const alreadyNormalized = cookieStore.get('tenant_roles_normalized')?.value === normalizationMarker
+
+        if (alreadyNormalized) {
+          // Skip expensive role reads/writes for users already normalized in this session window.
+        } else {
         try {
           const { assignUserRoles, getUserRoles: fetchUserRoles } = await import('@/lib/provisioning-client')
           const { getAccessibleModules: getModules } = await import('@/lib/role-permissions')
@@ -599,9 +605,19 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
               }
             }
           }
+
+          cookieStore.set('tenant_roles_normalized', normalizationMarker, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24,
+            path: '/',
+            ...(cookieDomain ? { domain: cookieDomain } : {}),
+          })
         } catch (roleNormErr: any) {
           // Non-fatal — role normalization is best-effort
           console.warn('Role normalization failed (non-fatal)')
+        }
         }
       }
 

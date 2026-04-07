@@ -33,6 +33,9 @@ interface ApiRequestOptions {
   hasRoleRepairAttempted?: boolean
 }
 
+const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
+const roleRepairLastAttempt = new Map<string, number>()
+
 function isTimeoutLikeError(error: unknown): boolean {
   if (!(error instanceof Error)) return false
   const cause = (error as Error & { cause?: { code?: string } }).cause
@@ -222,13 +225,15 @@ function logApiError(
   authSource: string,
   errorData: Record<string, unknown>
 ) {
+  const safeErrorData = sanitizeErrorData(errorData)
+
   console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.error(`[API] ❌ REQUEST FAILED`)
   console.error(`[API] Endpoint: ${endpoint}`)
   console.error(`[API] Status: ${status}`)
   console.error(`[API] Site: ${siteName}`)
   console.error(`[API] Auth Source: ${authSource}`)
-  console.error(`[API] Response:`, JSON.stringify(errorData, null, 2))
+  console.error(`[API] Response:`, JSON.stringify(safeErrorData))
 
   if (status === 401) {
     console.error(`[API] `)
@@ -244,6 +249,21 @@ function logApiError(
     console.error(`[API] - User is disabled`)
   }
   console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+}
+
+function sanitizeErrorData(errorData: Record<string, unknown>): Record<string, unknown> {
+  const clone: Record<string, unknown> = { ...errorData }
+
+  const trim = (value: unknown, max: number): unknown => {
+    if (typeof value !== 'string') return value
+    if (value.length <= max) return value
+    return `${value.slice(0, max)} ...[truncated ${value.length - max} chars]`
+  }
+
+  clone.exc = trim(clone.exc, 800)
+  clone.exception = trim(clone.exception, 300)
+  clone._server_messages = trim(clone._server_messages, 500)
+  return clone
 }
 
 /**
@@ -297,6 +317,15 @@ async function tryRepairTenantRoles(
   const cookieStore = await cookies()
   const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
   if (!userEmail) return false
+
+  const cooldownKey = `${context.subdomain}:${userEmail}`
+  const now = Date.now()
+  const lastAttempt = roleRepairLastAttempt.get(cooldownKey)
+  if (lastAttempt && now - lastAttempt < ROLE_REPAIR_COOLDOWN_MS) {
+    return false
+  }
+
+  roleRepairLastAttempt.set(cooldownKey, now)
 
   try {
     const { assignUserRoles } = await import('@/lib/provisioning-client')

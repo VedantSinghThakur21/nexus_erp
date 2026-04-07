@@ -18,7 +18,9 @@
 export const BASE_TENANT_ROLES = ['Employee', 'Sales User', 'Accounts User'] as const
 
 export const ROLE_SETS: Record<string, string[]> = {
-  admin:    ['System Manager'],
+  // Keep System Manager for privileged operations, but also include the
+  // baseline ERP roles used by Quotation/CRM list APIs in customized sites.
+  admin:    ['System Manager', ...BASE_TENANT_ROLES, 'Sales Manager', 'Accounts Manager'],
   member:   [...BASE_TENANT_ROLES],
   sales:    [...BASE_TENANT_ROLES, 'Sales Manager'],
   projects: [...BASE_TENANT_ROLES, 'Projects Manager', 'Projects User'],
