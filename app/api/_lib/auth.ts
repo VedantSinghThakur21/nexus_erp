@@ -11,7 +11,7 @@ import { frappeRequest } from '@/app/lib/api'
  * Server-side utilities for protecting API routes.
  */
 
-interface AuthResult {
+type AuthResult = {
   authenticated: true
   userEmail: string
 } | {
@@ -19,7 +19,7 @@ interface AuthResult {
   response: NextResponse
 }
 
-interface AuthzResult {
+type AuthzResult = {
   authorized: true
   userEmail: string
   roles: string[]

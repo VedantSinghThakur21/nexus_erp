@@ -25,7 +25,7 @@ export interface AuthSession {
   hasCredentials: boolean
 }
 
-export interface AuthResult {
+export type AuthResult = {
   success: true
   session: AuthSession
 } | {
