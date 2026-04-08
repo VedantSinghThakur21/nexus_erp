@@ -5,34 +5,46 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 
+/**
+ * TenantGuard - Client-side Authentication Guard
+ * 
+ * Acts as a fallback layer after middleware protection.
+ * Handles edge cases like expired sessions and missing credentials.
+ * 
+ * The primary protection is in middleware.ts (server-side).
+ * This component handles client-side session state changes.
+ */
 export function TenantGuard({ children, hasApiKey }: { children: React.ReactNode, hasApiKey?: boolean }) {
-    const { data: session, status } = useSession()
+    const { status } = useSession()
     const router = useRouter()
     const pathname = usePathname()
 
     useEffect(() => {
         if (status === 'loading') return
 
-        const isProvisioningStatusRoute = pathname?.startsWith('/provisioning-status')
+        const isPublicRoute = 
+            pathname?.startsWith('/login') || 
+            pathname?.startsWith('/signup') ||
+            pathname?.startsWith('/onboarding') ||
+            pathname?.startsWith('/provisioning-status') ||
+            pathname?.startsWith('/auth/')
 
-        // If authenticated but tenant API key is missing from cookies → expired/missing session → force re-login
+        // Skip checks for public routes
+        if (isPublicRoute) return
+
+        // If tenant API key is missing but user is authenticated → session issue
         if (status === 'authenticated' && hasApiKey === false) {
-            if (!pathname?.startsWith('/login') && !pathname?.startsWith('/onboarding') && !isProvisioningStatusRoute) {
-                console.warn('[TenantGuard] Tenant API key missing for authenticated user — redirecting to login.')
-                router.replace('/login?reason=session_expired')
-            }
+            console.warn('[TenantGuard] Tenant API key missing — redirecting to login.')
+            router.replace('/login?reason=session_expired')
             return
         }
 
-        // If authenticated via NextAuth but no tenant linked in session,
-        // check if they have a valid API key (from email/password login).
-        // The hasApiKey prop comes from the server component (reads HttpOnly cookie).
-        if (status === 'authenticated' && !session?.hasTenant && !hasApiKey) {
-            if (!pathname?.startsWith('/onboarding') && !isProvisioningStatusRoute) {
-                router.replace('/onboarding')
-            }
+        // If unauthenticated and not on a public route → redirect to login
+        if (status === 'unauthenticated' && !isPublicRoute) {
+            router.replace(`/login?callbackUrl=${encodeURIComponent(pathname || '/')}&reason=unauthenticated`)
+            return
         }
-    }, [status, session, router, pathname, hasApiKey])
+    }, [status, router, pathname, hasApiKey])
 
     if (status === 'loading') {
         return (

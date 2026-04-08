@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getQuotation } from '@/app/actions/crm'
-import { requireAuth } from '@/app/api/_lib/auth'
+import { requireModuleAccess } from '@/app/api/_lib/auth'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth()
-  if (!auth.authenticated) return auth.response
+  // Require quotations module access
+  const auth = await requireModuleAccess('quotations')
+  if (!auth.authorized) return auth.response
 
   try {
     const { id } = await params
@@ -23,10 +24,11 @@ export async function GET(
     }
 
     return NextResponse.json({ quotation })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch quotation'
     console.error('Error fetching quotation:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch quotation' },
+      { error: message },
       { status: 500 }
     )
   }

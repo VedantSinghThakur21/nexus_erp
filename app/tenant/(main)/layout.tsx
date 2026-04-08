@@ -1,16 +1,20 @@
 import { AppSidebar } from '@/components/app-sidebar'
 import { TenantGuard } from '@/components/auth/tenant-guard'
+import { requireAuth } from '@/lib/auth-guard'
 import { cookies } from 'next/headers'
 
 /**
  * Tenant app layout — mirrors the existing app/(main)/layout.tsx
- * Includes sidebar navigation and tenant credential guard.
+ * Server-side authentication is enforced at the layout level.
  */
 export default async function TenantAppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Server-side authentication check
+  await requireAuth()
+  
   const cookieStore = await cookies()
   const hasApiKey = cookieStore.has('tenant_api_key')
 

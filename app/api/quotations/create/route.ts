@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createQuotationFromOpportunity } from '@/app/actions/crm'
-import { requireAuth } from '@/app/api/_lib/auth'
+import { requireActionPermission } from '@/app/api/_lib/auth'
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth()
-  if (!auth.authenticated) return auth.response
+  // Require quotations create permission
+  const auth = await requireActionPermission('quotations', 'create')
+  if (!auth.authorized) return auth.response
 
   try {
     const body = await request.json()
@@ -24,10 +25,11 @@ export async function POST(request: NextRequest) {
       success: true,
       quotation: quotation 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to create quotation'
     console.error('Error creating quotation:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to create quotation' },
+      { error: message },
       { status: 500 }
     )
   }

@@ -1,10 +1,14 @@
 import { getSalesOrders, getSalesOrderStats } from "@/app/actions/sales-orders"
 import { getQuotations } from "@/app/actions/quotations"
 import { SalesOrdersClient } from "@/components/sales-orders/sales-orders-client"
+import { requireModuleAccess } from "@/lib/auth-guard"
 
 export const dynamic = 'force-dynamic'
 
 export default async function SalesOrdersPage() {
+  // Server-side authentication and role-based authorization
+  await requireModuleAccess('sales-orders')
+  
   const [orders, stats, quotations] = await Promise.all([
     getSalesOrders(),
     getSalesOrderStats(),

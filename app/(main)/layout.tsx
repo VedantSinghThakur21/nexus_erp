@@ -1,14 +1,24 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { TenantGuard } from "@/components/auth/tenant-guard";
 import { FloatingAIChat } from "@/components/ai/floating-chat";
-
+import { requireAuth } from "@/lib/auth-guard"
 import { cookies } from "next/headers"
 
+/**
+ * Main Application Layout
+ * 
+ * Server-side authentication is enforced at the layout level.
+ * This ensures ALL routes under (main)/* are protected.
+ */
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Server-side authentication check
+  // Will redirect to login if user is not authenticated
+  await requireAuth()
+  
   const cookieStore = await cookies()
   const hasApiKey = cookieStore.has('tenant_api_key')
 
@@ -26,4 +36,3 @@ export default async function DashboardLayout({
     </div>
   )
 }
-

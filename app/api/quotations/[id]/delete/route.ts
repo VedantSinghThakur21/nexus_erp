@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteQuotation } from '@/app/actions/crm'
-import { requireAuth } from '@/app/api/_lib/auth'
+import { requireActionPermission } from '@/app/api/_lib/auth'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth()
-  if (!auth.authenticated) return auth.response
+  // Require quotations delete permission
+  const auth = await requireActionPermission('quotations', 'delete')
+  if (!auth.authorized) return auth.response
 
   try {
     const { id } = await params
@@ -26,10 +27,11 @@ export async function POST(
       success: true,
       message: 'Quotation deleted successfully'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to delete quotation'
     console.error('Error deleting quotation:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to delete quotation' },
+      { error: message },
       { status: 500 }
     )
   }
