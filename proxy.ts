@@ -211,16 +211,10 @@ export function proxy(request: NextRequest) {
     tenantSlug = hostname.replace(`.${rootDomain}`, '')
   }
 
-  // ── 4. ROOT DOMAIN → rewrite to /site ──
+  // ── 4. ROOT DOMAIN → rewrite to /site (public, no auth required) ──
   if (tenantSlug === null) {
-    // Check if protected route requires authentication
-    if (isProtectedRoute(pathname) && !isPublicRoute(pathname) && !hasValidAuth(request)) {
-      const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set('callbackUrl', pathname)
-      loginUrl.searchParams.set('reason', 'unauthenticated')
-      return NextResponse.redirect(loginUrl)
-    }
-
+    // Root domain always routes to /site without auth checks
+    // The /site section is the public marketing website
     const siteUrl = new URL(`/site${pathname}`, request.url)
     siteUrl.search = request.nextUrl.search
 
