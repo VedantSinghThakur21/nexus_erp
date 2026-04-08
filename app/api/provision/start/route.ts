@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { provisionTenantSite, ProvisioningError } from '@/lib/provisioning-client'
 import { createJob, completeJob, failJob, pruneJobs } from '@/app/lib/provision-jobs'
+import { sendWorkspaceReadyEmail } from '@/lib/email'
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 const IS_PROD = process.env.NODE_ENV === 'production'
@@ -65,12 +66,35 @@ export async function POST(_req: NextRequest) {
       admin_full_name: data.fullName,
       plan_type: data.plan as 'Free' | 'Pro' | 'Enterprise',
     })
-      .then(result => {
+      .then(async result => {
         const redirectUrl = IS_PROD
           ? `https://${result.subdomain}.${ROOT_DOMAIN}/dashboard`
           : `http://${result.subdomain}.localhost:3000/dashboard`
 
         if (result.success) {
+          // Send workspace ready email notification
+          try {
+            const loginUrl = IS_PROD
+              ? `https://${result.subdomain}.${ROOT_DOMAIN}/login`
+              : `http://${result.subdomain}.localhost:3000/login`
+
+            const subdomainDisplay = IS_PROD
+              ? `${result.subdomain}.${ROOT_DOMAIN}`
+              : `${result.subdomain}.localhost:3000`
+
+            await sendWorkspaceReadyEmail({
+              userName: data.fullName,
+              userEmail: data.email,
+              workspaceName: data.organizationName,
+              subdomain: subdomainDisplay,
+              loginUrl,
+            })
+            console.log(`[ProvisionStart] ✉️  Workspace ready email sent to ${data.email}`)
+          } catch (emailErr) {
+            // Don't fail the job if email fails — provisioning succeeded
+            console.warn(`[ProvisionStart] Failed to send workspace ready email:`, emailErr)
+          }
+
           completeJob(job.id, {
             redirectUrl,
             apiKey: result.api_key,

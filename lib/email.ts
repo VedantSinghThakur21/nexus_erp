@@ -108,6 +108,14 @@ export interface InviteEmailData {
   tempPassword: string
 }
 
+export interface WorkspaceReadyEmailData {
+  userName: string
+  userEmail: string
+  workspaceName: string
+  subdomain: string
+  loginUrl: string
+}
+
 function inviteEmailHtml(data: InviteEmailData): string {
   const roleLabel = data.role.charAt(0).toUpperCase() + data.role.slice(1)
 
@@ -216,6 +224,120 @@ function inviteEmailHtml(data: InviteEmailData): string {
   return baseTemplate(`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${content}</table>`)
 }
 
+function workspaceReadyEmailHtml(data: WorkspaceReadyEmailData): string {
+  const content = `
+    <!-- Top accent bar -->
+    <tr>
+      <td style="height:5px;background:linear-gradient(90deg,#10b981 0%,#14b8a6 100%);"></td>
+    </tr>
+
+    <!-- Body -->
+    <tr>
+      <td style="padding:40px 40px 32px;">
+
+        <!-- Icon -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:28px;">
+          <tr>
+            <td style="background:#d1fae5;border-radius:12px;width:52px;height:52px;text-align:center;vertical-align:middle;">
+              <span style="font-size:26px;line-height:52px;display:block;">&#127881;</span>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Heading -->
+        <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#0f172a;letter-spacing:-0.5px;line-height:1.2;">
+          Your workspace is ready, ${escapeHtml(data.userName.split(' ')[0])}!
+        </h1>
+        <p style="margin:0 0 28px;font-size:15px;color:#64748b;line-height:1.6;">
+          We've successfully provisioned <strong style="color:#374151;">${escapeHtml(data.workspaceName)}</strong> on Nexus ERP.
+          Your dedicated workspace is now live and ready to use.
+        </p>
+
+        <!-- Workspace details card -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:28px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+          <tr>
+            <td style="padding:0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:2px;">Workspace Name</span>
+                    <span style="font-size:14px;color:#1e293b;font-weight:500;">${escapeHtml(data.workspaceName)}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:2px;">Workspace URL</span>
+                    <span style="font-size:14px;color:#1e293b;font-weight:500;">${escapeHtml(data.subdomain)}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 18px;">
+                    <span style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:2px;">Admin Email</span>
+                    <span style="font-size:14px;color:#1e293b;font-weight:500;">${escapeHtml(data.userEmail)}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- CTA button -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:28px;">
+          <tr>
+            <td style="border-radius:10px;background:linear-gradient(135deg,#10b981 0%,#14b8a6 100%);">
+              <a href="${data.loginUrl}" target="_blank" rel="noopener noreferrer"
+                style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.01em;">
+                Access Your Workspace &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Feature highlights -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:28px;">
+          <tr>
+            <td style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;">
+              <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.05em;">
+                &#127775;&ensp;What's Included
+              </p>
+              <ul style="margin:0;padding-left:20px;font-size:13px;color:#15803d;line-height:1.8;">
+                <li>Full ERPNext suite with CRM, Sales, and Inventory</li>
+                <li>Dedicated isolated database for security</li>
+                <li>REST API access with your admin credentials</li>
+                <li>Automatic backups and updates</li>
+              </ul>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Help note -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+          <tr>
+            <td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;">
+              <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.5;">
+                <strong>&#128161;&ensp;Need help?</strong> Check out our documentation or reach out to support for onboarding assistance.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+
+    <!-- Bottom strip -->
+    <tr>
+      <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 40px;">
+        <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
+          If the button doesn&rsquo;t work, copy and paste this link into your browser:<br/>
+          <a href="${data.loginUrl}" style="color:#3b82f6;word-break:break-all;">${data.loginUrl}</a>
+        </p>
+      </td>
+    </tr>
+  `
+
+  return baseTemplate(`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${content}</table>`)
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -252,6 +374,41 @@ export async function sendInviteEmail(data: InviteEmailData): Promise<void> {
       `Log in at: ${data.loginUrl}`,
       '',
       `Please change your password after your first login.`,
+    ].join('\n'),
+  })
+}
+
+export async function sendWorkspaceReadyEmail(data: WorkspaceReadyEmailData): Promise<void> {
+  const transporter = createTransporter()
+  const fromName = process.env.SMTP_DISPLAY_NAME || 'Nexus ERP'
+  const fromEmail = process.env.SMTP_EMAIL!
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: `"${data.userName}" <${data.userEmail}>`,
+    subject: `🎉 Your ${data.workspaceName} workspace is ready!`,
+    html: workspaceReadyEmailHtml(data),
+    text: [
+      `Hi ${data.userName},`,
+      '',
+      `Great news! Your workspace "${data.workspaceName}" is now ready on Nexus ERP.`,
+      '',
+      `Workspace Details:`,
+      `  Name: ${data.workspaceName}`,
+      `  URL: ${data.subdomain}`,
+      `  Admin Email: ${data.userEmail}`,
+      '',
+      `Access your workspace: ${data.loginUrl}`,
+      '',
+      `What's included:`,
+      `  - Full ERPNext suite with CRM, Sales, and Inventory`,
+      `  - Dedicated isolated database for security`,
+      `  - REST API access with your admin credentials`,
+      `  - Automatic backups and updates`,
+      '',
+      `Need help? Check out our documentation or reach out to support.`,
+      '',
+      `Welcome to Nexus ERP!`,
     ].join('\n'),
   })
 }
