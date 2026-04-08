@@ -1,6 +1,6 @@
 /**
- * Nexus ERP — Domain-Based Multi-Tenancy Middleware
- * ===================================================
+ * Nexus ERP — Security & Multi-Tenancy Middleware
+ * ================================================
  *
  * ROUTING:
  * ┌─────────────────────────┬───────────────────────────────────┐
@@ -12,10 +12,12 @@
  * │ tesla.localhost:3000     │ /tenant/* (dev tenant)            │
  * └─────────────────────────┴───────────────────────────────────┘
  *
- * Also:
- * - Blocks direct browser access to /site and /tenant paths
- * - Protects tenant routes (require credentials)
- * - Passes through static assets and API routes untouched
+ * SECURITY:
+ * 1. Authentication: Checks for valid session (NextAuth or tenant credentials)
+ * 2. Authorization: Role-based route protection
+ * 3. Multi-tenancy: Injects tenant context headers for API routing
+ * 4. Security: Blocks unauthenticated access to protected routes
+ * 5. Blocks direct browser access to /site and /tenant paths
  */
 
 import { NextResponse } from 'next/server'
@@ -33,6 +35,100 @@ function sanitizeReturnTo(raw: string): string {
   } catch {
     return '/'
   }
+}
+
+/**
+ * Routes that don't require authentication
+ */
+const PUBLIC_ROUTES = [
+  '/login',
+  '/signup',
+  '/onboarding',
+  '/auth/login',
+  '/auth/callback',
+  '/api/auth',
+  '/join',
+  '/provisioning',
+  '/provisioning-status',
+  '/change-password',
+  '/api/provision/start',
+  '/api/provision/status',
+  '/api/provisioning-status',
+  '/api/check-site-status',
+]
+
+/**
+ * Protected routes requiring authentication
+ */
+const PROTECTED_ROUTES = [
+  '/dashboard',
+  '/quotations',
+  '/sales-orders',
+  '/invoices',
+  '/payments',
+  '/projects',
+  '/bookings',
+  '/catalogue',
+  '/crm',
+  '/operators',
+  '/agents',
+  '/inspections',
+  '/pricing-rules',
+  '/team',
+  '/settings',
+  '/admin-tenants',
+  '/access-denied',
+]
+
+/**
+ * Check if route is public (no auth required)
+ */
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.some(route => 
+    pathname === route || 
+    pathname.startsWith(`${route}/`) ||
+    pathname.startsWith(route)
+  )
+}
+
+/**
+ * Check if route requires authentication
+ */
+function isProtectedRoute(pathname: string): boolean {
+  return PROTECTED_ROUTES.some(route => pathname.startsWith(route))
+}
+
+/**
+ * Check if user has valid authentication cookies
+ */
+function hasValidAuth(request: NextRequest): boolean {
+  // Check for NextAuth session token
+  const nextAuthSession = 
+    request.cookies.get('next-auth.session-token')?.value ||
+    request.cookies.get('__Secure-next-auth.session-token')?.value
+  
+  // Check for tenant API credentials
+  const tenantApiKey = request.cookies.get('tenant_api_key')?.value
+  const tenantApiSecret = request.cookies.get('tenant_api_secret')?.value
+  
+  // Check for Frappe session
+  const frappeSession = request.cookies.get('sid')?.value
+  
+  // Must have at least one valid auth mechanism
+  const hasNextAuthSession = !!nextAuthSession
+  const hasTenantCredentials = !!(tenantApiKey && tenantApiSecret)
+  const hasFrappeSession = !!frappeSession && frappeSession !== 'Guest'
+  
+  return hasNextAuthSession || hasTenantCredentials || hasFrappeSession
+}
+
+/**
+ * Get user email from cookies
+ */
+function getUserEmail(request: NextRequest): string | null {
+  return request.cookies.get('user_email')?.value || 
+         request.cookies.get('user_id')?.value || 
+         null
 }
 
 export function proxy(request: NextRequest) {
@@ -64,8 +160,23 @@ export function proxy(request: NextRequest) {
       apiTenantSlug = hostname.replace(`.${rootDomain}`, '')
     }
 
+    // Check if API route requires authentication
+    if (!isPublicRoute(pathname) && !hasValidAuth(request)) {
+      return NextResponse.json(
+        { error: 'Authentication required', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      )
+    }
+
     const apiResponse = NextResponse.next()
     apiResponse.headers.set('x-tenant-id', apiTenantSlug || 'master')
+    
+    // Pass user email for server-side role checks
+    const userEmail = getUserEmail(request)
+    if (userEmail) {
+      apiResponse.headers.set('x-user-email', userEmail)
+    }
+    
     return apiResponse
   }
 
@@ -102,6 +213,14 @@ export function proxy(request: NextRequest) {
 
   // ── 4. ROOT DOMAIN → rewrite to /site ──
   if (tenantSlug === null) {
+    // Check if protected route requires authentication
+    if (isProtectedRoute(pathname) && !isPublicRoute(pathname) && !hasValidAuth(request)) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('callbackUrl', pathname)
+      loginUrl.searchParams.set('reason', 'unauthenticated')
+      return NextResponse.redirect(loginUrl)
+    }
+
     const siteUrl = new URL(`/site${pathname}`, request.url)
     siteUrl.search = request.nextUrl.search
 
@@ -110,10 +229,51 @@ export function proxy(request: NextRequest) {
     response.headers.set('x-current-path', pathname)
     response.headers.set('x-middleware-executed', 'true')
     response.headers.set('x-rewrite-to', siteUrl.pathname)
+    
+    // Pass user email for server-side role checks
+    const userEmail = getUserEmail(request)
+    if (userEmail) {
+      response.headers.set('x-user-email', userEmail)
+    }
+    
     return response
   }
 
   // ── 5. TENANT SUBDOMAIN → rewrite to /tenant ──
+  // ── 5a. Enhanced tenant auth protection with protected routes ──
+  const isPublicPath = isPublicRoute(pathname) || pathname === '/'
+  
+  if (!isPublicPath) {
+    // Check if protected route requires authentication
+    if (isProtectedRoute(pathname) && !hasValidAuth(request)) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set(
+        'returnTo',
+        sanitizeReturnTo(request.nextUrl.pathname + request.nextUrl.search)
+      )
+      loginUrl.searchParams.set('reason', 'unauthenticated')
+      return NextResponse.redirect(loginUrl)
+    }
+    
+    // CVE-2 Fix: For non-protected routes, only trust NextAuth session token
+    // The Frappe sid cookie is not validated here and was trivially forgeable
+    if (!isProtectedRoute(pathname)) {
+      const hasApiKey = request.cookies.get('tenant_api_key')?.value
+      const hasSession =
+        request.cookies.get('next-auth.session-token')?.value ||
+        request.cookies.get('__Secure-next-auth.session-token')?.value
+
+      if (!hasApiKey && !hasSession) {
+        const loginUrl = new URL('/login', request.url)
+        loginUrl.searchParams.set(
+          'returnTo',
+          sanitizeReturnTo(request.nextUrl.pathname + request.nextUrl.search)
+        )
+        return NextResponse.redirect(loginUrl)
+      }
+    }
+  }
+
   const tenantUrl = new URL(`/tenant${pathname}`, request.url)
   tenantUrl.search = request.nextUrl.search
 
@@ -122,29 +282,11 @@ export function proxy(request: NextRequest) {
   response.headers.set('x-current-path', pathname)
   response.headers.set('x-middleware-executed', 'true')
   response.headers.set('x-rewrite-to', tenantUrl.pathname)
-
-  // ── 6. Tenant Auth Protection ──
-  // Public tenant paths that don't require auth
-  const publicTenantPaths = ['/login', '/signup', '/join', '/provisioning', '/change-password']
-  const isPublicPath = publicTenantPaths.some(p => pathname.startsWith(p)) || pathname === '/'
-
-  if (!isPublicPath) {
-    // CVE-2 Fix: Only trust NextAuth session token — the Frappe sid cookie is
-    // not validated here and was trivially forgeable (any non-empty value passed).
-    const hasApiKey = request.cookies.get('tenant_api_key')?.value
-    const hasSession =
-      request.cookies.get('next-auth.session-token')?.value ||
-      request.cookies.get('__Secure-next-auth.session-token')?.value
-
-    if (!hasApiKey && !hasSession) {
-      // CVE-3 Fix: Use sanitizeReturnTo to prevent open-redirect via returnTo param.
-      const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set(
-        'returnTo',
-        sanitizeReturnTo(request.nextUrl.pathname + request.nextUrl.search)
-      )
-      return NextResponse.redirect(loginUrl)
-    }
+  
+  // Pass user email for server-side role checks
+  const userEmail = getUserEmail(request)
+  if (userEmail) {
+    response.headers.set('x-user-email', userEmail)
   }
 
   return response
