@@ -23,6 +23,20 @@ import {
 const CACHE_KEY = 'nexus_user_roles_cache'
 const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 const FETCH_TIMEOUT_MS = 8_000 // 8 s — give up and render with [] rather than blocking forever
+const PUBLIC_PATH_PREFIXES = [
+  '/login',
+  '/signup',
+  '/onboarding',
+  '/auth/login',
+  '/auth/callback',
+  '/provisioning',
+  '/provisioning-status',
+  '/change-password',
+]
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+}
 
 interface RolesCache {
   roles: string[]
@@ -144,6 +158,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // Public pages do not need role resolution and can generate noisy failures
+    // while users are unauthenticated. Keep provider lightweight there.
+    if (typeof window !== 'undefined' && isPublicPath(window.location.pathname)) {
+      setLoading(false)
+      return
+    }
+
     fetchRoles()
   }, [fetchRoles])
 

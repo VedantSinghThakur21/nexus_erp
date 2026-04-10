@@ -1,6 +1,6 @@
 'use client'
 
-import { cache } from 'react'
+import { useEffect, useState } from 'react'
 
 /**
  * Client-side hook to get tenant from hostname
@@ -9,12 +9,15 @@ import { cache } from 'react'
  * @returns tenant identifier
  */
 export function useClientTenant(): string {
-  if (typeof window === 'undefined') {
-    return 'default'
-  }
+  // Keep initial SSR and first client render consistent to avoid hydration mismatch.
+  const [tenant, setTenant] = useState('default')
 
-  const hostname = window.location.hostname
-  return extractTenantFromHostname(hostname)
+  useEffect(() => {
+    const hostname = window.location.hostname
+    setTenant(extractTenantFromHostname(hostname))
+  }, [])
+
+  return tenant
 }
 
 /**
