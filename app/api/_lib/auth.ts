@@ -1,14 +1,19 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canAccessModule, canPerformAction } from '@/lib/role-permissions'
-import { headers } from 'next/headers'
-import { frappeRequest } from '@/app/lib/api'
+import { tenantAdminRequest } from '@/app/lib/api'
+
 
 /**
  * API Authentication & Authorization Utilities
  * ============================================
- * 
+ *
  * Server-side utilities for protecting API routes.
+ *
+ * Security note: all role fetches use `tenantAdminRequest` (master credentials +
+ * current-tenant site override) so that:
+ *   1. The User doc is fetched from the correct site (not from master).
+ *   2. Frappe's role-table masking does not hide roles from non-admin callers.
  */
 
 type AuthResult = {
@@ -55,27 +60,22 @@ export async function requireAuth(): Promise<AuthResult> {
 }
 
 /**
- * Fetch user roles from Frappe backend
+ * Fetch user roles from the current tenant's Frappe site.
+ *
+ * SECURITY FIX: uses tenantAdminRequest (master credentials + tenant site) so
+ *   • the user doc exists on the site being queried, and
+ *   • the `roles` child-table is not masked by Frappe's user-level permissions.
  */
 async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
   try {
-    const headersList = await headers()
-    const tenantId = headersList.get('x-tenant-id')
-    let siteOverride: string | undefined
-
-    if (tenantId && tenantId !== 'master') {
-      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-      siteOverride = process.env.NODE_ENV === 'production'
-        ? `${tenantId}.${rootDomain}`
-        : `${tenantId}.localhost`
-    }
-
-    const response = await frappeRequest('frappe.client.get', 'GET', {
+    // tenantAdminRequest automatically reads x-tenant-id from middleware headers
+    // and builds the correct X-Frappe-Site-Name while using master API credentials.
+    const response = await tenantAdminRequest('frappe.client.get', 'POST', {
       doctype: 'User',
       name: userEmail,
-    }, { siteOverride }) as Record<string, unknown>
+    }) as Record<string, unknown>
 
-    const user = response?.message || response
+    const user = (response as any)?.message || response
 
     if (user && Array.isArray((user as Record<string, unknown>).roles)) {
       const roles = (user as { roles: Array<{ role?: string; name?: string }> }).roles
@@ -96,7 +96,7 @@ async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
  */
 export async function requireModuleAccess(module: string): Promise<AuthzResult> {
   const auth = await requireAuth()
-  
+
   if (!auth.authenticated) {
     return { authorized: false, response: auth.response }
   }
@@ -121,7 +121,7 @@ export async function requireModuleAccess(module: string): Promise<AuthzResult> 
  */
 export async function requireActionPermission(module: string, action: string): Promise<AuthzResult> {
   const auth = await requireAuth()
-  
+
   if (!auth.authenticated) {
     return { authorized: false, response: auth.response }
   }
@@ -146,7 +146,7 @@ export async function requireActionPermission(module: string, action: string): P
  */
 export async function requireSystemManager(): Promise<AuthzResult> {
   const auth = await requireAuth()
-  
+
   if (!auth.authenticated) {
     return { authorized: false, response: auth.response }
   }

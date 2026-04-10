@@ -81,13 +81,14 @@ const PROTECTED_ROUTES = [
 ]
 
 /**
- * Check if route is public (no auth required)
+ * Check if route is public (no auth required).
+ * Uses exact match OR strict prefix (route + '/') to prevent false matches
+ * such as /api/auth-hacked matching /api/auth.
  */
 function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(route => 
-    pathname === route || 
-    pathname.startsWith(`${route}/`) ||
-    pathname.startsWith(route)
+  return PUBLIC_ROUTES.some(route =>
+    pathname === route ||
+    pathname.startsWith(`${route}/`)
   )
 }
 

@@ -144,64 +144,63 @@ export default function DashboardPage() {
   const [funnelData, setFunnelData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const { accessibleModules, loading: userLoading } = useUser();
+  const { accessibleModules } = useUser();
 
   useEffect(() => {
-    if (!userLoading) {
-      // Inline the function or define outside to escape exhausting deps problem
-      const loadData = async () => {
-        try {
-          setLoading(true);
-          const [
-            statsData,
-            oppsData,
-            activitiesData,
-            atRiskData,
-            leadSourcesData,
-            funnelDataResult,
-          ] = await Promise.all([
-            getDashboardStats(accessibleModules),
-            getOpportunities(accessibleModules),
-            getRecentActivities(accessibleModules),
-            getAtRiskDeals(accessibleModules),
-            getLeadsBySource(accessibleModules),
-            getSalesPipelineFunnel(accessibleModules),
-          ]);
-    
-          setStats({
-            pipelineValue: statsData.pipelineValue,
-            revenue: statsData.revenue,
-            openOpportunities: statsData.openOpportunities,
-            winRate: statsData.winRate,
-            winRateChange: statsData.winRateChange,
-            leadsChange: statsData.leadsChange,
-          });
-          setOpportunities(oppsData);
-          setActivities(activitiesData as ActivityItem[]);
-          setAtRiskDeals(atRiskData);
-          setLeadSources(leadSourcesData);
-    
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [
+          statsData,
+          oppsData,
+          activitiesData,
+          atRiskData,
+          leadSourcesData,
+          funnelDataResult,
+        ] = await Promise.all([
+          getDashboardStats(accessibleModules),
+          getOpportunities(accessibleModules),
+          getRecentActivities(accessibleModules),
+          getAtRiskDeals(accessibleModules),
+          getLeadsBySource(accessibleModules),
+          getSalesPipelineFunnel(accessibleModules),
+        ]);
+  
+        setStats({
+          pipelineValue: statsData.pipelineValue,
+          revenue: statsData.revenue,
+          openOpportunities: statsData.openOpportunities,
+          winRate: statsData.winRate,
+          winRateChange: statsData.winRateChange,
+          leadsChange: statsData.leadsChange,
+        });
+        setOpportunities(oppsData);
+        setActivities(activitiesData as ActivityItem[]);
+        setAtRiskDeals(atRiskData);
+        setLeadSources(leadSourcesData);
+  
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const maxCount = Math.max(...funnelDataResult.map((s: any) => s.count), 1);
+        setFunnelData(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const maxCount = Math.max(...funnelDataResult.map((s: any) => s.count), 1);
-          setFunnelData(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            funnelDataResult.map((item: any, index: number) => ({
-              ...item,
-              value: formatIndianCurrency(item.value),
-              width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - (index * 10))),
-            }))
-          );
-    
-          setLoading(false);
-        } catch (err) {
-          console.error("Dashboard load error:", err);
-          setLoading(false);
-        }
-      };
+          funnelDataResult.map((item: any, index: number) => ({
+            ...item,
+            value: formatIndianCurrency(item.value),
+            width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - (index * 10))),
+          }))
+        );
+  
+        setLoading(false);
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+        setLoading(false);
+      }
+    };
 
-      loadData();
-    }
-  }, [userLoading, accessibleModules]);
+    loadData();
+  // Re-fire when roles resolve and provide a new accessibleModules array
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(accessibleModules)]);
 
 
 
@@ -268,18 +267,14 @@ export default function DashboardPage() {
     return `conic-gradient(${gradientStops.join(', ')})`;
   })();
 
-  if (loading || userLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-background-dark flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {userLoading ? "Loading user permissions..." : "Loading dashboard..."}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Skeleton KPI card used during data load
+  const SkeletonCard = () => (
+    <div className="bg-[#111827] p-7 rounded-2xl shadow-xl border border-slate-800/50 w-full min-h-[160px] animate-pulse">
+      <div className="h-3 w-24 bg-slate-700 rounded mb-4" />
+      <div className="h-8 w-32 bg-slate-700 rounded mt-6" />
+      <div className="h-3 w-16 bg-slate-800 rounded mt-4" />
+    </div>
+  );
 
   return (
     <div className="bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-hidden">
@@ -294,7 +289,16 @@ export default function DashboardPage() {
         <div className="max-w-full mx-auto space-y-8">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-            {/* Win Rate */}
+            {loading ? (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : (
+            <>
+
             <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50 w-full">
               <div className="flex items-start justify-between">
                 <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.1em]">
@@ -388,9 +392,12 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </div>
 
           <div className="grid grid-cols-12 gap-8">
+
             {/* Left Column */}
             <div className="col-span-12 xl:col-span-8 space-y-8">
               {/* High-Probability Opportunities Table */}

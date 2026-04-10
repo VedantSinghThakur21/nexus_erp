@@ -1,19 +1,36 @@
 /**
  * API Route: /api/user/roles
- * 
+ *
  * Fetches current user's roles from Frappe ERPNext backend.
  * Uses multiple fallback strategies:
- *   1. API key auth → frappe.client.get for User doc
+ *   1. tenantAdminRequest (master creds + tenant site) → frappe.client.get User doc
  *   2. role_profile_name mapping
  *   3. Provisioning service (ignore_permissions) as last resort
+ *
+ * Security fix: always uses master credentials against the TENANT site so that
+ * (a) the user doc actually exists on that site, and
+ * (b) the roles child table is not masked by Frappe's per-user permission rules.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { frappeRequest, getTenantContext } from '@/app/lib/api'
+import { frappeRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 import { requireAuth } from '@/app/api/_lib/auth'
 
-export async function GET(request: NextRequest) {
+const PROFILE_ROLES: Record<string, string[]> = {
+  'Administrator': ['System Manager'],
+  'System Manager': ['System Manager'],
+  'Sales Manager': ['Sales Manager', 'Sales User'],
+  'Sales User': ['Sales User'],
+  'Accounts Manager': ['Accounts Manager', 'Accounts User'],
+  'Accounts User': ['Accounts User'],
+  'Projects Manager': ['Projects Manager', 'Projects User'],
+  'Projects User': ['Projects User'],
+  'Standard User': ['Employee', 'Sales User'],
+  'Employee': ['Employee', 'Sales User'],
+}
+
+export async function GET(_request: NextRequest) {
   const auth = await requireAuth()
   if (!auth.authenticated) return auth.response
 
@@ -21,19 +38,17 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies()
     const cookieEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
 
-    // Step 1: Determine the user's email
+    // ── Step 1: Determine the user's email ──────────────────────────────────
     let userEmail: string | null = null
 
     try {
-      const userInfoResponse = await frappeRequest(
-        'frappe.auth.get_logged_user',
-        'GET'
-      ) as any
-      userEmail = userInfoResponse?.message || userInfoResponse || null
-      if (typeof userEmail !== 'string' || !userEmail.includes('@')) {
-        userEmail = null
+      const userInfoResponse = await frappeRequest('frappe.auth.get_logged_user', 'GET') as any
+      const raw = userInfoResponse?.message || userInfoResponse || null
+      if (typeof raw === 'string' && raw.includes('@')) {
+        userEmail = raw
       }
-    } catch (authErr: any) {
+    } catch {
+      // Swallow — fallback to cookie below
     }
 
     // Fallback: use the email stored in cookies during login
@@ -42,94 +57,99 @@ export async function GET(request: NextRequest) {
     }
 
     if (!userEmail) {
+      console.warn('[/api/user/roles] Could not determine user email — no cookie or Frappe session')
       throw new Error('No user logged in')
     }
 
-
-    // Step 2: Fetch roles from Frappe User doc
+    // ── Step 2: Fetch roles using master credentials → tenant site ──────────
+    // SECURITY FIX: `tenantAdminRequest` sends master API key with X-Frappe-Site-Name
+    // pointing at the CURRENT TENANT site (from x-tenant-id middleware header).
+    // This ensures:
+    //   • The user document is found (it lives on the tenant site, not master).
+    //   • The `roles` child table is visible (non-admin credentials mask it).
     let roles: string[] = []
     let roleProfileName: string | null = null
 
     try {
-      const userDoc = await frappeRequest(
-        'frappe.client.get',
-        'POST',
-        {
-          doctype: 'User',
-          name: userEmail,
-        }
-      ) as any
+      const userDoc = await tenantAdminRequest('frappe.client.get', 'POST', {
+        doctype: 'User',
+        name: userEmail,
+      }) as any
 
       const user = userDoc?.message || userDoc
       roleProfileName = user?.role_profile_name || null
 
-
-      if (Array.isArray(user?.roles)) {
+      if (Array.isArray(user?.roles) && user.roles.length > 0) {
         roles = user.roles
           .map((r: any) => r.role || r.name)
           .filter((r: string) => r && r !== 'All')
+        console.log(`[/api/user/roles] Fetched ${roles.length} roles for ${userEmail} via tenantAdminRequest`)
+      } else {
+        console.warn(`[/api/user/roles] User doc returned empty roles array for ${userEmail}`)
       }
     } catch (getErr: any) {
+      console.error(`[/api/user/roles] tenantAdminRequest failed for ${userEmail}:`, getErr.message)
     }
 
-    // Step 3: If roles are empty but role_profile_name is set, derive roles
+    // ── Step 3: If roles empty but role_profile_name set → derive roles ──────
     if (roles.length === 0 && roleProfileName) {
-      const PROFILE_ROLES: Record<string, string[]> = {
-        'Administrator': ['System Manager'],
-        'System Manager': ['System Manager'],
-        'Sales Manager': ['Sales Manager', 'Sales User'],
-        'Sales User': ['Sales User'],
-        'Accounts Manager': ['Accounts Manager', 'Accounts User'],
-        'Accounts User': ['Accounts User'],
-        'Projects Manager': ['Projects Manager', 'Projects User'],
-        'Projects User': ['Projects User'],
-        'Standard User': ['Employee', 'Sales User'],
-      }
+      console.log(`[/api/user/roles] Deriving roles from profile "${roleProfileName}" for ${userEmail}`)
       roles = PROFILE_ROLES[roleProfileName] || []
     }
 
-    // Step 4: If STILL empty, use provisioning service (ignore_permissions)
+    // ── Step 4: Provisioning service fallback (ignore_permissions) ───────────
     if (roles.length === 0) {
       try {
         const context = await getTenantContext()
         if (context.subdomain) {
+          console.log(`[/api/user/roles] Trying provisioning service for ${userEmail} on ${context.subdomain}`)
           const { getUserRoles } = await import('@/lib/provisioning-client')
           const provRoleData = await getUserRoles(context.subdomain, userEmail)
           roles = provRoleData.roles || []
           roleProfileName = provRoleData.role_profile_name || null
 
-          // If provisioning returned a profile name but no roles, derive
           if (roles.length === 0 && roleProfileName) {
-            const PROFILE_ROLES: Record<string, string[]> = {
-              'Administrator': ['System Manager'],
-              'Sales Manager': ['Sales Manager', 'Sales User'],
-              'Sales User': ['Sales User'],
-              'Standard User': ['Employee', 'Sales User'],
-            }
             roles = PROFILE_ROLES[roleProfileName] || []
+          }
+
+          if (roles.length > 0) {
+            console.log(`[/api/user/roles] Got ${roles.length} roles from provisioning service for ${userEmail}`)
           }
         }
       } catch (provErr: any) {
+        console.warn(`[/api/user/roles] Provisioning service fallback failed:`, provErr.message)
       }
     }
 
-    // Step 5: Last resort — user has zero roles somehow (corrupted state).
-    // Give them the minimum Sales User access so the app is usable.
-    // Login normalization will assign proper roles on next login.
+    // ── Step 5: Absolute last resort ─────────────────────────────────────────
+    // Give minimum access so the UI doesn't fully break, but log loudly.
     if (roles.length === 0) {
+      console.error(
+        `[/api/user/roles] ⚠️  ALL role-fetch strategies failed for ${userEmail}. ` +
+        `Defaulting to ['Sales User']. Check that the user exists on the tenant site ` +
+        `and that PROVISIONING_SERVICE_URL is reachable.`
+      )
       roles = ['Sales User']
     }
 
-
-    return NextResponse.json({
-      success: true,
-      roles,
-      roleProfileName,
-      user: {
-        name: userEmail,
-        email: userEmail,
+    return NextResponse.json(
+      {
+        success: true,
+        roles,
+        roleProfileName,
+        user: {
+          name: userEmail,
+          email: userEmail,
+        },
       },
-    })
+      {
+        headers: {
+          // Prevent any CDN or browser from caching role responses
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      }
+    )
   } catch (error: any) {
     console.error('[API /user/roles] Failed to fetch roles:', error)
 
@@ -139,7 +159,10 @@ export async function GET(request: NextRequest) {
         error: error.message || 'Failed to fetch user roles',
         roles: [],
       },
-      { status: 500 }
+      {
+        status: 500,
+        headers: { 'Cache-Control': 'no-store' },
+      }
     )
   }
 }

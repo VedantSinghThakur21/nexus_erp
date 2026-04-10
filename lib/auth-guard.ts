@@ -8,9 +8,9 @@
  * - API Route Handlers
  */
 
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { frappeRequest } from '@/app/lib/api'
+import { tenantAdminRequest } from '@/app/lib/api'
 import { canAccessModule } from '@/lib/role-permissions'
 
 // ============================================================================
@@ -131,23 +131,16 @@ export async function getUserRoles(userEmail?: string): Promise<string[]> {
   }
   
   try {
-    const headersList = await headers()
-    const tenantId = headersList.get('x-tenant-id')
-    let siteOverride: string | undefined
-    
-    if (tenantId && tenantId !== 'master') {
-      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-      siteOverride = process.env.NODE_ENV === 'production'
-        ? `${tenantId}.${rootDomain}`
-        : `${tenantId}.localhost`
-    }
-    
-    const response = await frappeRequest('frappe.client.get', 'GET', {
+    // SECURITY FIX: tenantAdminRequest uses master credentials against the current
+    // tenant site. This ensures:
+    //   1. The User doc is fetched from the right site (not from master).
+    //   2. Frappe's role-table masking does not hide roles from non-admin callers.
+    const response = await tenantAdminRequest('frappe.client.get', 'POST', {
       doctype: 'User',
       name: email,
-    }, { siteOverride }) as Record<string, unknown>
+    }) as Record<string, unknown>
     
-    const user = response?.message || response
+    const user = (response as any)?.message || response
     
     if (user && Array.isArray((user as Record<string, unknown>).roles)) {
       const roles = (user as { roles: Array<{ role?: string; name?: string }> }).roles
