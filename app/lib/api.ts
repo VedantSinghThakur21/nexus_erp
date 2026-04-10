@@ -597,8 +597,15 @@ export async function tenantAdminRequest(
   body: Record<string, unknown> | null = null
 ): Promise<unknown> {
   const context = await getTenantContext()
+  // IMPORTANT:
+  // In our deployment, the master site's API key/secret are NOT valid on tenant sites.
+  // For tenant-scoped operations, authenticate using the tenant user's API keys (httpOnly cookies)
+  // while still targeting the current tenant via X-Frappe-Site-Name.
+  //
+  // For true ignore_permissions / "admin on tenant" operations, use the provisioning service
+  // endpoints (e.g., getUserRoles / assignUserRoles) which are designed for that purpose.
   return frappeRequest(endpoint, method, body, {
-    useMasterCredentials: true,
-    siteOverride: context.siteName
+    useMasterCredentials: false,
+    siteOverride: context.siteName,
   })
 }
