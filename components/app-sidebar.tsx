@@ -69,14 +69,20 @@ function SidebarContent() {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-[#0B0E14] flex flex-col border-r border-white/5 shadow-2xl">
-      {/* Logo Area */}
-      <div className="p-6 pb-8 flex items-center space-x-3">
-        <div className="w-9 h-9 bg-[#FACC15] rounded flex items-center justify-center">
-          <span className="material-symbols-outlined !text-black !font-bold text-[20px]" style={{ fontVariationSettings: "'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 24" }}>
-            grid_view
-          </span>
-        </div>
-        <span className="text-xl font-bold tracking-tight text-white uppercase">AVARIQ</span>
+      {/* Logo Area — links to marketing site, not the app */}
+      <div className="p-6 pb-8">
+        <a
+          href={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`}
+          className="flex items-center space-x-3 group"
+          aria-label="Go to Avariq home"
+        >
+          <div className="w-9 h-9 bg-[#FACC15] rounded flex items-center justify-center group-hover:opacity-80 transition-opacity">
+            <span className="material-symbols-outlined !text-black !font-bold text-[20px]" style={{ fontVariationSettings: "'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 24" }}>
+              grid_view
+            </span>
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white uppercase">AVARIQ</span>
+        </a>
       </div>
 
       {/* Navigation */}

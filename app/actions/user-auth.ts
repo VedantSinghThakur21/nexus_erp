@@ -236,8 +236,15 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       tenant.site_url = `https://${tenant.site_url}`
     }
 
-    // Step 2: Authenticate against the tenant's site using X-Frappe-Site-Name
-    const siteName = tenant.site_url.replace(/^https?:\/\//, '')
+    // Step 2: Authenticate against the tenant's Frappe site.
+    // IMPORTANT: X-Frappe-Site-Name must be the bench site name, NOT the public URL.
+    // In production bench, tenant sites are named like "subdomain.avariq.in".
+    // We build it from the subdomain + root domain rather than stripping the site_url,
+    // because site_url may contain https:// prefixes or trailing slashes that confuse bench.
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+    const siteName = process.env.NODE_ENV === 'production'
+      ? `${tenant.subdomain}.${rootDomain}`
+      : `${tenant.subdomain}.localhost`
 
     // Retry helper — Frappe may throw OperationalError(1020) if a concurrent
     // request (e.g. provisioning service generating API keys) modified the User
@@ -298,14 +305,20 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       const cookieDomain = process.env.NODE_ENV === 'production'
         ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
 
+      // In production, cookies must use sameSite:'none' + secure:true to be sent
+      // across subdomain redirects (avariq.in → subdomain.avariq.in). 'lax' blocks
+      // cross-site cookie sending on top-level navigations in modern browsers.
+      const cookieSameSite = process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+      const cookieSecure = process.env.NODE_ENV === 'production'
+
       if (setCookieHeader) {
         const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
         if (sidMatch) {
           const sessionId = sidMatch[1]
           cookieStore.set('sid', sessionId, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: cookieSecure,
+            sameSite: cookieSameSite,
             maxAge: 60 * 60 * 24 * 7,
             path: '/',
             ...(cookieDomain ? { domain: cookieDomain } : {}),
@@ -317,8 +330,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       if (userEmail) {
         cookieStore.set('user_email', userEmail, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+          secure: cookieSecure,
+          sameSite: cookieSameSite,
           maxAge: 60 * 60 * 24 * 7,
           path: '/',
           ...(cookieDomain ? { domain: cookieDomain } : {}),
@@ -328,8 +341,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // CRITICAL: Store tenant subdomain for X-Frappe-Site-Name in future requests
       cookieStore.set('tenant_subdomain', tenant.subdomain, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
         maxAge: 60 * 60 * 24 * 7,
         path: '/',
         ...(cookieDomain ? { domain: cookieDomain } : {}),
@@ -337,8 +350,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
       cookieStore.set('tenant_site_url', tenant.site_url, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
         maxAge: 60 * 60 * 24 * 7,
         path: '/',
         ...(cookieDomain ? { domain: cookieDomain } : {}),
@@ -346,8 +359,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
       cookieStore.set('user_type', 'tenant', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
         maxAge: 60 * 60 * 24 * 7,
         path: '/',
         ...(cookieDomain ? { domain: cookieDomain } : {}),
@@ -389,8 +402,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         
         cookieStore.set('tenant_role_type', roleType, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+          secure: cookieSecure,
+          sameSite: cookieSameSite,
           maxAge: 60 * 60 * 24 * 7,
           path: '/',
           ...(cookieDomain ? { domain: cookieDomain } : {}),
@@ -419,26 +432,26 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       }
 
       if (apiKey && apiSecret) {
-        const cookieDomain = process.env.NODE_ENV === 'production'
+        const apiCookieDomain = process.env.NODE_ENV === 'production'
           ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`
           : undefined
 
         cookieStore.set('tenant_api_key', apiKey, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+          secure: cookieSecure,
+          sameSite: cookieSameSite,
           maxAge: 60 * 60 * 24 * 7,
           path: '/',
-          domain: cookieDomain,
+          domain: apiCookieDomain,
         })
 
         cookieStore.set('tenant_api_secret', apiSecret, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+          secure: cookieSecure,
+          sameSite: cookieSameSite,
           maxAge: 60 * 60 * 24 * 7,
           path: '/',
-          domain: cookieDomain,
+          domain: apiCookieDomain,
         })
 
         // Sync fresh credentials back to SaaS Tenant master record so the
