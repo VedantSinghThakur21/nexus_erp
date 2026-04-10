@@ -8,7 +8,7 @@
  * - API Route Handlers
  */
 
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { tenantAdminRequest } from '@/app/lib/api'
 import { canAccessModule } from '@/lib/role-permissions'
