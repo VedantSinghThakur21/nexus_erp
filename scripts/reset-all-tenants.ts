@@ -9,9 +9,12 @@
  * ⚠️  IRREVERSIBLE. All ERPNext data on tenant sites will be lost.
  *
  * Usage:
- *   npx ts-node scripts/reset-all-tenants.ts --confirm
+ *   npm run reset:tenants -- --confirm
  *   # or dry-run (lists tenants without deleting):
- *   npx ts-node scripts/reset-all-tenants.ts --dry-run
+ *   npm run reset:tenants -- --dry-run
+ *
+ * Direct run alternative:
+ *   npx tsx scripts/reset-all-tenants.ts --dry-run
  *
  * Requirements:
  *   - .env.local must have ERP_NEXT_URL, ERP_API_KEY, ERP_API_SECRET, FRAPPE_SITE_NAME
@@ -65,8 +68,8 @@ You must pass one of:
   --confirm    Proceed with PERMANENT deletion of all tenants and their data.
 
 Example:
-  npx ts-node scripts/reset-all-tenants.ts --dry-run
-  npx ts-node scripts/reset-all-tenants.ts --confirm
+  npm run reset:tenants -- --dry-run
+  npm run reset:tenants -- --confirm
 `)
   process.exit(1)
 }
