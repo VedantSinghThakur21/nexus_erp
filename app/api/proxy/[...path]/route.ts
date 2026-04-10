@@ -20,6 +20,18 @@ const MASTER_SITE = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 const PROXY_TIMEOUT_MS = Number(process.env.ERP_PROXY_TIMEOUT_MS || '15000')
+const PROXY_LOG_THROTTLE_MS = Number(process.env.ERP_PROXY_LOG_THROTTLE_MS || '120000')
+const proxyLogLastSeen = new Map<string, number>()
+
+function shouldLogProxyError(key: string, throttleMs: number): boolean {
+  const now = Date.now()
+  const lastSeen = proxyLogLastSeen.get(key)
+  if (lastSeen && now - lastSeen < throttleMs) {
+    return false
+  }
+  proxyLogLastSeen.set(key, now)
+  return true
+}
 
 function isTimeoutLikeError(error: unknown): boolean {
   if (!(error instanceof Error)) return false
@@ -141,14 +153,21 @@ async function handler(
     })
   } catch (error) {
     if (isTimeoutLikeError(error)) {
-      console.error('[Proxy] Upstream request timeout:', { path: frappePath, timeoutMs: PROXY_TIMEOUT_MS })
+      const logKey = `timeout:${frappePath}`
+      if (shouldLogProxyError(logKey, PROXY_LOG_THROTTLE_MS)) {
+        console.error('[Proxy] Upstream request timeout:', { path: frappePath, timeoutMs: PROXY_TIMEOUT_MS })
+      }
       return NextResponse.json(
         { message: `Proxy timeout after ${PROXY_TIMEOUT_MS}ms` },
         { status: 504 }
       )
     }
 
-    console.error('[Proxy] Upstream Frappe request failed:', error)
+    const reason = error instanceof Error ? error.message : String(error)
+    const logKey = `error:${frappePath}:${reason}`
+    if (shouldLogProxyError(logKey, PROXY_LOG_THROTTLE_MS)) {
+      console.error('[Proxy] Upstream Frappe request failed:', error)
+    }
     return NextResponse.json(
       { message: 'Proxy error: could not reach Frappe backend' },
       { status: 502 }

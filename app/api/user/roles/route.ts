@@ -30,6 +30,18 @@ const PROFILE_ROLES: Record<string, string[]> = {
   'Employee': ['Employee', 'Sales User'],
 }
 
+const roleApiLogLastSeen = new Map<string, number>()
+
+function shouldLogRoleApi(key: string, throttleMs: number): boolean {
+  const now = Date.now()
+  const last = roleApiLogLastSeen.get(key)
+  if (last && now - last < throttleMs) {
+    return false
+  }
+  roleApiLogLastSeen.set(key, now)
+  return true
+}
+
 export async function GET(_request: NextRequest) {
   const auth = await requireAuth()
   if (!auth.authenticated) return auth.response
@@ -83,17 +95,30 @@ export async function GET(_request: NextRequest) {
         roles = user.roles
           .map((r: any) => r.role || r.name)
           .filter((r: string) => r && r !== 'All')
-        console.log(`[/api/user/roles] Fetched ${roles.length} roles for ${userEmail} via tenantAdminRequest`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[/api/user/roles] Fetched ${roles.length} roles for ${userEmail} via tenantAdminRequest`)
+        }
       } else {
-        console.warn(`[/api/user/roles] User doc returned empty roles array for ${userEmail}`)
+        if (shouldLogRoleApi(`empty-roles:${userEmail}`, 5 * 60 * 1000)) {
+          console.warn(`[/api/user/roles] User doc returned empty roles array for ${userEmail}`)
+        }
       }
     } catch (getErr: any) {
-      console.error(`[/api/user/roles] tenantAdminRequest failed for ${userEmail}:`, getErr.message)
+      const message = String(getErr?.message || 'Unknown error')
+      if (message.includes('AuthenticationError')) {
+        if (shouldLogRoleApi(`tenant-admin-auth:${userEmail}`, 10 * 60 * 1000)) {
+          console.warn(`[/api/user/roles] tenantAdminRequest auth failed for ${userEmail}; using fallback path`)
+        }
+      } else {
+        console.error(`[/api/user/roles] tenantAdminRequest failed for ${userEmail}:`, message)
+      }
     }
 
     // ── Step 3: If roles empty but role_profile_name set → derive roles ──────
     if (roles.length === 0 && roleProfileName) {
-      console.log(`[/api/user/roles] Deriving roles from profile "${roleProfileName}" for ${userEmail}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[/api/user/roles] Deriving roles from profile "${roleProfileName}" for ${userEmail}`)
+      }
       roles = PROFILE_ROLES[roleProfileName] || []
     }
 
@@ -102,7 +127,9 @@ export async function GET(_request: NextRequest) {
       try {
         const context = await getTenantContext()
         if (context.subdomain) {
-          console.log(`[/api/user/roles] Trying provisioning service for ${userEmail} on ${context.subdomain}`)
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[/api/user/roles] Trying provisioning service for ${userEmail} on ${context.subdomain}`)
+          }
           const { getUserRoles } = await import('@/lib/provisioning-client')
           const provRoleData = await getUserRoles(context.subdomain, userEmail)
           roles = provRoleData.roles || []
@@ -113,11 +140,16 @@ export async function GET(_request: NextRequest) {
           }
 
           if (roles.length > 0) {
-            console.log(`[/api/user/roles] Got ${roles.length} roles from provisioning service for ${userEmail}`)
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[/api/user/roles] Got ${roles.length} roles from provisioning service for ${userEmail}`)
+            }
           }
         }
       } catch (provErr: any) {
-        console.warn(`[/api/user/roles] Provisioning service fallback failed:`, provErr.message)
+        const message = String(provErr?.message || 'Unknown error')
+        if (shouldLogRoleApi(`prov-fallback-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
+          console.warn(`[/api/user/roles] Provisioning service fallback failed:`, message)
+        }
       }
     }
 

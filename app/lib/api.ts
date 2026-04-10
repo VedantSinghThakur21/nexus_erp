@@ -11,6 +11,8 @@ const MASTER_SITE_NAME = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 const REQUEST_TIMEOUT_MS = Number(process.env.ERP_REQUEST_TIMEOUT_MS || '15000')
+const DEFAULT_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_ERROR_LOG_THROTTLE_MS || '120000')
+const AUTH_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_AUTH_ERROR_LOG_THROTTLE_MS || '600000')
 
 // ============================================================================
 // TYPES
@@ -35,6 +37,17 @@ interface ApiRequestOptions {
 
 const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
 const roleRepairLastAttempt = new Map<string, number>()
+const apiErrorLogLastSeen = new Map<string, number>()
+
+function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
+  const now = Date.now()
+  const lastSeen = apiErrorLogLastSeen.get(key)
+  if (lastSeen && now - lastSeen < throttleMs) {
+    return false
+  }
+  apiErrorLogLastSeen.set(key, now)
+  return true
+}
 
 function isTimeoutLikeError(error: unknown): boolean {
   if (!(error instanceof Error)) return false
@@ -226,6 +239,17 @@ function logApiError(
   errorData: Record<string, unknown>
 ) {
   const safeErrorData = sanitizeErrorData(errorData)
+  const signature =
+    (typeof safeErrorData.exc_type === 'string' && safeErrorData.exc_type) ||
+    (typeof safeErrorData.exception === 'string' && safeErrorData.exception) ||
+    (typeof safeErrorData.message === 'string' && safeErrorData.message) ||
+    'unknown'
+  const throttleMs = status === 401 ? AUTH_ERROR_LOG_THROTTLE_MS : DEFAULT_ERROR_LOG_THROTTLE_MS
+  const logKey = `${status}:${endpoint}:${siteName}:${authSource}:${signature}`
+
+  if (!shouldEmitThrottledLog(logKey, throttleMs)) {
+    return
+  }
 
   console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.error(`[API] ❌ REQUEST FAILED`)
@@ -444,8 +468,15 @@ export async function frappeRequest(
       throw new Error(`ERP backend timeout after ${REQUEST_TIMEOUT_MS}ms (${endpoint})`)
     }
 
-    if (error instanceof Error && !error.message.includes('not found')) {
-      console.error(`[API] Request failed:`, error.message)
+    if (
+      error instanceof Error &&
+      !error.message.includes('not found') &&
+      !error.message.includes('AuthenticationError')
+    ) {
+      const logKey = `request-failed:${endpoint}:${error.message}`
+      if (shouldEmitThrottledLog(logKey, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+        console.error(`[API] Request failed:`, error.message)
+      }
     }
     throw error
   }
