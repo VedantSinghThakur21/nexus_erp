@@ -4,6 +4,15 @@ import { cookies, headers } from 'next/headers'
 import { provisionTenantSite, generateUserApiKeys } from '@/lib/provisioning-client'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 
+// Timeout for all direct Frappe fetch() calls (ms).
+// Keep well under nginx's upstream timeout (typically 60s).
+const FRAPPE_FETCH_TIMEOUT = Number(process.env.ERP_REQUEST_TIMEOUT_MS || '12000')
+
+/** Create an AbortSignal that fires after `ms` milliseconds */
+function timeoutSignal(ms: number): AbortSignal {
+  return AbortSignal.timeout(ms)
+}
+
 /**
  * Tenant data structure from Frappe API
  */
@@ -259,12 +268,14 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'X-Frappe-Site-Name': siteName,
-          'Host': siteName,
+          // NOTE: Do NOT set 'Host' header — let the HTTP stack handle it.
+          // Overriding Host can confuse nginx when Next.js and Frappe share the same server.
         },
         body: new URLSearchParams({
           usr: usernameOrEmail,
           pwd: password
-        })
+        }),
+        signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
       })
 
       const responseText = await response.text()
@@ -386,6 +397,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
                 : {}),
             },
             body: JSON.stringify({ doctype: 'User', name: userEmail }),
+            signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
           })
           if (userDocReq.ok) {
             const userDocData = await userDocReq.json()
