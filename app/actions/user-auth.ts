@@ -432,15 +432,67 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // this server-side action can call it; the raw secret never reaches the browser.
       let apiKey: string | null = null
       let apiSecret: string | null = null
+      const sessionSid = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || null
 
       try {
         const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 8_000)
         apiKey = provKeys.api_key
         apiSecret = provKeys.api_secret
       } catch (apiError: any) {
-        // Non-fatal: user can still authenticate via session cookie (sid).
-        // Log a concise message — no stack trace needed for a connectivity issue.
+        // Non-fatal: if provisioning endpoint is unavailable (e.g. old service image),
+        // try direct key generation on the tenant session as a best-effort fallback.
         console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
+
+        if (userEmail && sessionSid) {
+          try {
+            const directGenResp = await fetch(`${masterUrl}/api/method/frappe.core.doctype.user.user.generate_keys`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Frappe-Site-Name': siteName,
+                'Cookie': `sid=${sessionSid}`,
+              },
+              body: JSON.stringify({}),
+              signal: timeoutSignal(8_000),
+            })
+
+            const directGenData = await directGenResp.json().catch(() => ({} as any))
+            const directMessage = directGenData?.message || {}
+            let directApiKey = directMessage?.api_key || null
+            const directApiSecret = directMessage?.api_secret || null
+
+            // Some Frappe versions return api_secret only; read api_key from User.
+            if (!directApiKey && directApiSecret) {
+              const keyReadResp = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Frappe-Site-Name': siteName,
+                  'Cookie': `sid=${sessionSid}`,
+                },
+                body: JSON.stringify({
+                  doctype: 'User',
+                  filters: { name: userEmail },
+                  fieldname: 'api_key',
+                }),
+                signal: timeoutSignal(8_000),
+              })
+
+              if (keyReadResp.ok) {
+                const keyReadData = await keyReadResp.json()
+                directApiKey = keyReadData?.message?.api_key || null
+              }
+            }
+
+            if (directGenResp.ok && directApiKey && directApiSecret) {
+              apiKey = directApiKey
+              apiSecret = directApiSecret
+              console.info('[Login] API keys generated via direct tenant-session fallback')
+            }
+          } catch (fallbackErr: any) {
+            console.warn('[Login] Direct fallback API key generation failed:', fallbackErr?.message ?? String(fallbackErr))
+          }
+        }
       }
 
       if (apiKey && apiSecret) {
@@ -528,7 +580,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
                 headers: {
                   'Content-Type': 'application/json',
                   'X-Frappe-Site-Name': siteName,
-                  'Host': siteName,
                   ...(apiKey && apiSecret
                     ? { 'Authorization': `token ${apiKey}:${apiSecret}` }
                     : { 'Cookie': `sid=${setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''}` }),
