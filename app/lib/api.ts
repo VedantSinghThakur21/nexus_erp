@@ -183,33 +183,14 @@ function getAuthorizationHeader(
     }
   }
 
-  // For tenant users WITHOUT credentials - this is an error state  
-  if (context.isTenant && !context.hasCredentials) {
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    console.error(`[API] ❌ TENANT API CREDENTIALS NOT FOUND`)
-    console.error(`[API] Tenant subdomain: ${context.subdomain}`)
-    console.error(`[API] Target site: ${context.siteName}`)
-    console.error(`[API] `)
-    console.error(`[API] This usually means:`)
-    console.error(`[API] 1. The SaaS Tenant record in master DB is missing api_key/api_secret`)
-    console.error(`[API] 2. The user logged in before provisioning completed`)
-    console.error(`[API] 3. Cookies are not being set correctly (domain scope issue)`)
-    console.error(`[API] `)
-    console.error(`[API] Solution: Log out and log back in after ensuring the`)
-    console.error(`[API] SaaS Tenant record has api_key and api_secret populated.`)
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    // Use a special error code so the client/middleware can detect this and auto-logout
-    throw new Error(`TENANT_CREDENTIALS_MISSING:${context.subdomain}`)
-  }
+  // Fallback to sid cookie if credentials are missing
+  return { header: null, source: 'session_cookie' }
 
-  // Default: admin user with master credentials
-  if (!MASTER_API_KEY || !MASTER_API_SECRET) {
-    throw new Error('ERP_API_KEY and ERP_API_SECRET must be set in environment variables')
-  }
-  return {
-    header: `token ${MASTER_API_KEY}:${MASTER_API_SECRET}`,
-    source: 'master (default)',
-  }
+
+
+  // This is no longer reached because we return {header: null} above,
+  // but kept for type safety or future master-fallback logic.
+  return { header: null, source: 'none' }
 }
 
 /**
@@ -404,11 +385,22 @@ export async function frappeRequest(
   // Log request details
   logApiRequest(endpoint, method, siteName, authSource, context)
 
+  // Grab session cookie in case authHeader is null or we want to pass both
+  const cookieStore = await cookies()
+  const sid = cookieStore.get('sid')?.value
+
   // Build request headers
-  const requestHeaders: HeadersInit = {
+  const requestHeaders: Record<string, string> = {
     'Accept': 'application/json',
-    'Authorization': authHeader,
     'X-Frappe-Site-Name': siteName,
+  }
+
+  if (authHeader) {
+    requestHeaders['Authorization'] = authHeader
+  }
+  
+  if (sid) {
+    requestHeaders['Cookie'] = `sid=${sid}`
   }
 
   if (method !== 'GET') {
