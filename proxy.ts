@@ -103,24 +103,29 @@ function isProtectedRoute(pathname: string): boolean {
  * Check if user has valid authentication cookies
  */
 function hasValidAuth(request: NextRequest): boolean {
-  // Check for NextAuth session token
+  // Check for NextAuth session token (Google OAuth path)
   const nextAuthSession = 
     request.cookies.get('next-auth.session-token')?.value ||
     request.cookies.get('__Secure-next-auth.session-token')?.value
   
-  // Check for tenant API credentials
+  // Check for tenant API credentials (set after provisioning service generates keys)
   const tenantApiKey = request.cookies.get('tenant_api_key')?.value
   const tenantApiSecret = request.cookies.get('tenant_api_secret')?.value
   
-  // Check for Frappe session
+  // Check for Frappe SID session cookie (set by loginUser action after Frappe login)
   const frappeSession = request.cookies.get('sid')?.value
+
+  // Check for user_email — set server-side (httpOnly) by loginUser action on success.
+  // This is the most reliable indicator for credential-based logins where the
+  // provisioning service may have failed to generate API keys.
+  const userEmail = request.cookies.get('user_email')?.value
   
-  // Must have at least one valid auth mechanism
   const hasNextAuthSession = !!nextAuthSession
   const hasTenantCredentials = !!(tenantApiKey && tenantApiSecret)
   const hasFrappeSession = !!frappeSession && frappeSession !== 'Guest'
+  const hasUserEmailCookie = !!userEmail
   
-  return hasNextAuthSession || hasTenantCredentials || hasFrappeSession
+  return hasNextAuthSession || hasTenantCredentials || hasFrappeSession || hasUserEmailCookie
 }
 
 /**

@@ -521,6 +521,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             // Fall back: direct fetch using the API keys we generated in this same login request.
             console.warn('[Login Normalization] getUserRoles failed, falling back to direct API:', provFetchErr.message)
             try {
+              const controller = new AbortController()
+              const timeoutId = setTimeout(() => controller.abort(), 8000)
               const directResp = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
                 method: 'POST',
                 headers: {
@@ -532,7 +534,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
                     : { 'Cookie': `sid=${setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''}` }),
                 },
                 body: JSON.stringify({ doctype: 'User', name: userEmail }),
+                signal: controller.signal,
               })
+              clearTimeout(timeoutId)
               const directData = await directResp.json()
               const userDoc = directData?.message || directData
               currentRoles = (userDoc?.roles || [])
@@ -593,6 +597,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             } catch (provErr: any) {
               // Provisioning service unavailable — try master credentials as last resort
               try {
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 8000)
                 const docResp = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
                   method: 'POST',
                   headers: {
@@ -601,7 +607,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
                     'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
                   },
                   body: JSON.stringify({ doctype: 'User', name: userEmail }),
+                  signal: controller.signal,
                 })
+                clearTimeout(timeoutId)
                 if (docResp.ok) {
                   const docData = await docResp.json()
                   const userDoc = docData?.message || docData
@@ -614,6 +622,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
                       parenttype: 'User',
                       parentfield: 'roles',
                     }))
+                    
+                    const saveController = new AbortController()
+                    const saveTimeoutId = setTimeout(() => saveController.abort(), 8000)
                     await fetch(`${masterUrl}/api/method/frappe.client.save`, {
                       method: 'POST',
                       headers: {
@@ -622,7 +633,9 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
                         'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
                       },
                       body: JSON.stringify({ doc: userDoc }),
+                      signal: saveController.signal,
                     })
+                    clearTimeout(saveTimeoutId)
                   }
                 }
               } catch {
@@ -655,6 +668,8 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       let requirePasswordChange = false
       if (userEmail) {
         try {
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 8000)
           const sidForCheck = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
           const userInfo = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
             method: 'POST',
@@ -667,8 +682,10 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
               doctype: 'User',
               filters: userEmail,
               fieldname: 'last_login',
-            })
+            }),
+            signal: controller.signal,
           })
+          clearTimeout(timeoutId)
           if (userInfo.ok) {
             const userInfoData = await userInfo.json()
             const lastLogin = userInfoData?.message?.last_login
