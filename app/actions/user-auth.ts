@@ -312,21 +312,27 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
       const cookieStore = await cookies()
 
-      // CRITICAL: Wipe any stale API keys left over from previous failed logins
-      // so we start with a clean slate for the fallback logic.
-      cookieStore.delete('tenant_api_key')
-      cookieStore.delete('tenant_api_secret')
-
-      const setCookieHeader = response.headers.get('set-cookie')
-
       const cookieDomain = process.env.NODE_ENV === 'production'
         ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
 
       // In production, cookies must use sameSite:'none' + secure:true to be sent
-      // across subdomain redirects (avariq.in → subdomain.avariq.in). 'lax' blocks
-      // cross-site cookie sending on top-level navigations in modern browsers.
       const cookieSameSite = process.env.NODE_ENV === 'production' ? 'none' : 'lax'
       const cookieSecure = process.env.NODE_ENV === 'production'
+
+      // CRITICAL: Wipe any stale API keys left over from previous failed logins
+      // Must pass the exact domain and path to actually delete cross-subdomain cookies!
+      cookieStore.delete({
+        name: 'tenant_api_key',
+        domain: cookieDomain,
+        path: '/'
+      })
+      cookieStore.delete({
+        name: 'tenant_api_secret',
+        domain: cookieDomain,
+        path: '/'
+      })
+
+      const setCookieHeader = response.headers.get('set-cookie')
 
       if (setCookieHeader) {
         const sidMatch = setCookieHeader.match(/sid=([^;]+)/)
@@ -451,6 +457,10 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
         if (userEmail && sessionSid) {
           try {
+            // Delay 1.5s to let the initial master/tenant login sequence finish writing
+            // to the tabUser database table. Prevents PyMySQL OperationalError 1020.
+            await new Promise(r => setTimeout(r, 1500))
+
             const directGenResp = await fetch(`${masterUrl}/api/method/frappe.core.doctype.user.user.generate_keys`, {
               method: 'POST',
               headers: {
