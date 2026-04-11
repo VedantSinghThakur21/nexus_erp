@@ -163,7 +163,7 @@ export async function getTenantContext(): Promise<TenantContext> {
 function getAuthorizationHeader(
   context: TenantContext,
   useMasterCredentials: boolean
-): { header: string; source: string } {
+): { header: string | null; source: string } {
   // If forced to use master credentials
   if (useMasterCredentials) {
     if (!MASTER_API_KEY || !MASTER_API_SECRET) {
@@ -185,12 +185,6 @@ function getAuthorizationHeader(
 
   // Fallback to sid cookie if credentials are missing
   return { header: null, source: 'session_cookie' }
-
-
-
-  // This is no longer reached because we return {header: null} above,
-  // but kept for type safety or future master-fallback logic.
-  return { header: null, source: 'none' }
 }
 
 /**
