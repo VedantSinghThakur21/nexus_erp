@@ -311,6 +311,12 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
     if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
       const cookieStore = await cookies()
+
+      // CRITICAL: Wipe any stale API keys left over from previous failed logins
+      // so we start with a clean slate for the fallback logic.
+      cookieStore.delete('tenant_api_key')
+      cookieStore.delete('tenant_api_secret')
+
       const setCookieHeader = response.headers.get('set-cookie')
 
       const cookieDomain = process.env.NODE_ENV === 'production'
@@ -452,7 +458,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
                 'X-Frappe-Site-Name': siteName,
                 'Cookie': `sid=${sessionSid}`,
               },
-              body: JSON.stringify({}),
+              body: JSON.stringify({ user: userEmail }),
               signal: timeoutSignal(8_000),
             })
 
