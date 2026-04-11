@@ -434,7 +434,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       let apiSecret: string | null = null
 
       try {
-        const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail)
+        const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 8_000)
         apiKey = provKeys.api_key
         apiSecret = provKeys.api_secret
       } catch (apiError: any) {
@@ -513,7 +513,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           let profileName: string | null = null
 
           try {
-            const roleData = await fetchUserRoles(tenant.subdomain, userEmail)
+            const roleData = await fetchUserRoles(tenant.subdomain, userEmail, 8_000)
             currentRoles = roleData.roles || []
             profileName = roleData.role_profile_name || null
           } catch (provFetchErr: any) {

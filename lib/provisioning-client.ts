@@ -176,13 +176,14 @@ export async function seedTenantDefaults(subdomain: string): Promise<{
 export async function generateUserApiKeys(
   subdomain: string,
   userEmail: string,
+  timeout = 30_000,
 ): Promise<{ success: boolean; api_key: string; api_secret: string }> {
   return serviceRequest(
     `/api/v1/generate-user-keys/${encodeURIComponent(subdomain)}`,
     {
       method: 'POST',
       body: { user_email: userEmail },
-      timeout: 30_000,
+      timeout,
     },
   )
 }
@@ -213,13 +214,14 @@ export async function assignUserRoles(
 export async function getUserRoles(
   subdomain: string,
   userEmail: string,
+  timeout = 30_000,
 ): Promise<{ success: boolean; roles: string[]; role_profile_name: string | null }> {
   return serviceRequest(
     `/api/v1/get-user-roles/${encodeURIComponent(subdomain)}`,
     {
       method: 'POST',
       body: { user_email: userEmail },
-      timeout: 30_000,
+      timeout,
     },
   )
 }
