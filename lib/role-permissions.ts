@@ -69,6 +69,7 @@ export const MODULE_PERMISSIONS: Record<string, string[]> = {
   ],
   operators: ['System Manager', 'Projects Manager', 'Stock Manager', 'Stock User'],
   agents: ['System Manager', 'Projects Manager', 'Stock Manager', 'Stock User'],
+  'agent-inbox': ['System Manager', 'Sales Manager', 'Sales User'],
   inspections: [
     'System Manager',
     'Projects Manager',
@@ -251,6 +252,11 @@ export const ACTION_PERMISSIONS: Record<string, Record<string, string[]>> = {
     create: ['Projects Manager', 'Stock Manager'],
     edit:   ['Projects Manager', 'Stock Manager'],
     delete: ['Projects Manager', 'Stock Manager'],
+  },
+  'agent-inbox': {
+    create: ['Sales Manager', 'Sales User'],
+    edit: ['Sales Manager', 'Sales User'],
+    delete: ['Sales Manager'],
   },
   inspections: {
     create: ['Projects Manager', 'Stock Manager'],

@@ -72,6 +72,7 @@ const PROTECTED_ROUTES = [
   '/crm',
   '/operators',
   '/agents',
+  '/agent',
   '/inspections',
   '/pricing-rules',
   '/team',

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useUser } from '@/contexts/user-context'
 import { canAccessModule } from '@/lib/role-permissions'
 
@@ -46,6 +46,7 @@ const navigationConfig = [
     items: [
       { name: 'Team', icon: 'group_work', href: '/team', module: 'team' },
       { name: 'Settings', icon: 'settings', href: '/settings', module: 'settings' },
+      { name: 'Agent Inbox', icon: 'inbox', href: '/agent', module: 'agent-inbox' },
       { name: 'AI Agent', icon: 'smart_toy', href: '/agents', module: 'agents' },
     ]
   }
@@ -54,6 +55,45 @@ const navigationConfig = [
 function SidebarContent() {
   const pathname = usePathname()
   const { roles, loading } = useUser()
+  const [pendingAgentActions, setPendingAgentActions] = useState<number>(0)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadPendingCount() {
+      if (loading || !canAccessModule('agent-inbox', roles)) {
+        if (active) setPendingAgentActions(0)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/agent/inbox?limit=100', { cache: 'no-store' })
+        if (!response.ok) {
+          if (active) setPendingAgentActions(0)
+          return
+        }
+
+        const data = await response.json() as { total?: number; items?: unknown[] }
+        const total = typeof data.total === 'number'
+          ? data.total
+          : Array.isArray(data.items)
+            ? data.items.length
+            : 0
+
+        if (active) setPendingAgentActions(total)
+      } catch {
+        if (active) setPendingAgentActions(0)
+      }
+    }
+
+    loadPendingCount()
+    const timer = setInterval(loadPendingCount, 30000)
+
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
+  }, [loading, roles])
 
   // Filter navigation items based on user roles
   const filteredNavigationConfig = useMemo(() => {
@@ -127,6 +167,11 @@ function SidebarContent() {
                         {item.icon}
                       </span>
                       <span className="text-[14px] font-medium">{item.name}</span>
+                      {item.href === '/agent' && pendingAgentActions > 0 && (
+                        <span className="ml-auto rounded-full bg-[#1E40AF] px-2 py-0.5 text-[10px] font-semibold text-white">
+                          {pendingAgentActions > 99 ? '99+' : pendingAgentActions}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 )

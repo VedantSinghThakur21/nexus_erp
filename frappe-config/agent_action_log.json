@@ -1,0 +1,81 @@
+{
+  "doctype": "DocType",
+  "name": "Agent Action Log",
+  "module": "Custom",
+  "custom": 1,
+  "is_submittable": 0,
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "tenant",
+      "fieldtype": "Data",
+      "label": "Tenant",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "action_type",
+      "fieldtype": "Select",
+      "label": "Action Type",
+      "options": "follow_up_scan\nstale_lead_scan\noverdue_invoice_scan\nmanual",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "pending_approval\napproved\nrejected\nexecuted\nfailed",
+      "reqd": 1,
+      "default": "pending_approval",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "triggered_by",
+      "fieldtype": "Data",
+      "label": "Triggered By",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "payload",
+      "fieldtype": "Long Text",
+      "label": "Payload",
+      "reqd": 1
+    },
+    {
+      "fieldname": "result",
+      "fieldtype": "Long Text",
+      "label": "Result"
+    },
+    {
+      "fieldname": "approved_by",
+      "fieldtype": "Data",
+      "label": "Approved By",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "rolled_back",
+      "fieldtype": "Check",
+      "label": "Rolled Back",
+      "default": "0"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1
+    },
+    {
+      "role": "Sales Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ]
+}

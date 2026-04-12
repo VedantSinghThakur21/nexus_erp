@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "reset:tenants": "tsx scripts/reset-all-tenants.ts"
+    "reset:tenants": "tsx scripts/reset-all-tenants.ts",
+    "worker:agent": "tsx worker/index.ts",
+    "agent:scan": "tsx -e \"import { enqueueAgentJob } from './lib/agent/queue'; const tenant = process.argv[2] || 'master'; const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'; const prod = process.env.NODE_ENV === 'production'; const site = tenant === 'master' ? (process.env.FRAPPE_SITE_NAME || 'erp.localhost') : (prod ? `${tenant}.${root}` : `${tenant}.localhost`); enqueueAgentJob({ tenant: { tenantId: tenant, siteName: site }, triggeredBy: 'manual-cli', jobType: 'stale_lead_scan', objective: 'CLI triggered safe scan' }).then((j) => { console.log('queued', j.id); process.exit(0); }).catch((e) => { console.error(e); process.exit(1); });\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.62.0",
     "@ai-sdk/google": "^3.0.7",
     "@ai-sdk/openai": "^3.0.9",
     "@dnd-kit/core": "^6.3.1",
@@ -31,6 +34,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "bullmq": "^5.58.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.4",
     "framer-motion": "^12.25.0",
@@ -40,6 +44,7 @@
     "next-auth": "^5.0.0-beta.30",
     "next-themes": "^0.4.6",
     "nodemailer": "^8.0.1",
+    "ioredis": "^5.8.2",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-markdown": "^10.1.0",
