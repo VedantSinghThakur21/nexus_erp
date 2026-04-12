@@ -92,9 +92,9 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
 
     const [viewMode, setViewMode] = useState<"list" | "grid">("list")
     const [searchQuery, setSearchQuery] = useState("")
-    const [selectedStages, setSelectedStages] = useState<string[]>(["Lead", "Opportunity"])
+    const [selectedStages, setSelectedStages] = useState<string[]>([])
     const [selectedSource, setSelectedSource] = useState("All Sources")
-    const [selectedPriority, setSelectedPriority] = useState<"hot" | "warm" | "cold" | null>("hot")
+    const [selectedPriority, setSelectedPriority] = useState<"hot" | "warm" | "cold" | null>(null)
     const [draggedLead, setDraggedLead] = useState<string | null>(null)
     // Removed local toast state in favor of useToast
     const toast = useToastHelpers()
