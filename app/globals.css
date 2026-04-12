@@ -125,8 +125,13 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
@@ -166,7 +171,9 @@
 
 /* Smooth transitions for all interactive elements */
 button, a {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* Glass morphism effects */
