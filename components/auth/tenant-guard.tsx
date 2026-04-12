@@ -14,7 +14,7 @@ import { Loader2 } from 'lucide-react'
  * The primary protection is in middleware.ts (server-side).
  * This component handles client-side session state changes.
  */
-export function TenantGuard({ children, hasApiKey }: { children: React.ReactNode, hasApiKey?: boolean }) {
+export function TenantGuard({ children, hasServerAuth }: { children: React.ReactNode, hasServerAuth?: boolean }) {
     const { status } = useSession()
     const router = useRouter()
     const pathname = usePathname()
@@ -32,9 +32,13 @@ export function TenantGuard({ children, hasApiKey }: { children: React.ReactNode
         // Skip checks for public routes
         if (isPublicRoute) return
 
+        // Server layout already validated auth via cookies (API key/SID/user/email or NextAuth).
+        // Do not let NextAuth's unauthenticated state override the credential-based login flow.
+        if (hasServerAuth) return
+
         // If tenant API key is missing but user is authenticated → session issue
-        if (status === 'authenticated' && hasApiKey === false) {
-            console.warn('[TenantGuard] Tenant API key missing — redirecting to login.')
+        if (status === 'authenticated' && hasServerAuth === false) {
+            console.warn('[TenantGuard] Server auth cookies missing — redirecting to login.')
             router.replace('/login?reason=session_expired')
             return
         }
@@ -44,7 +48,7 @@ export function TenantGuard({ children, hasApiKey }: { children: React.ReactNode
             router.replace(`/login?callbackUrl=${encodeURIComponent(pathname || '/')}&reason=unauthenticated`)
             return
         }
-    }, [status, router, pathname, hasApiKey])
+    }, [status, router, pathname, hasServerAuth])
 
     if (status === 'loading') {
         return (

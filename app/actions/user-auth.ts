@@ -446,7 +446,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       let apiSecret: string | null = null
 
       try {
-        const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 8_000)
+        const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
         apiKey = provKeys.api_key
         apiSecret = provKeys.api_secret
       } catch (apiError: any) {
