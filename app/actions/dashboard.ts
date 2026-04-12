@@ -2,9 +2,11 @@
 
 import { frappeRequest } from "@/app/lib/api"
 import { cookies } from 'next/headers'
+import { unstable_noStore as noStore } from 'next/cache'
 
 // Get comprehensive dashboard statistics
 export async function getDashboardStats(accessibleModules: string[] = []) {
+  noStore()
   try {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0]
@@ -135,6 +137,7 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
 
 // Get high-probability opportunities for the main table (using Quotations now)
 export async function getOpportunities(accessibleModules: string[] = []) {
+  noStore()
   try {
     if (!accessibleModules.includes('quotations')) return []
 
@@ -169,6 +172,7 @@ export async function getOpportunities(accessibleModules: string[] = []) {
 
 // Get recent activities for Team Performance section
 export async function getRecentActivities(accessibleModules: string[] = []) {
+  noStore()
   try {
     const allActivities: Array<{
       type: 'closed-deal' | 'new-lead' | 'outbound' | 'booking-scheduled';
@@ -247,6 +251,7 @@ export async function getRecentActivities(accessibleModules: string[] = []) {
 
 // Get deals at risk (for Intelligence Hub)
 export async function getAtRiskDeals(accessibleModules: string[] = []) {
+  noStore()
   try {
     if (!accessibleModules.includes('quotations')) return []
 
@@ -289,6 +294,7 @@ export async function getAtRiskDeals(accessibleModules: string[] = []) {
 
 // Get Sales Pipeline Funnel Data
 export async function getSalesPipelineFunnel(accessibleModules: string[] = []) {
+  noStore()
   try {
     // Get Leads
     let leadsCount: unknown = 0;
@@ -361,6 +367,7 @@ export async function getSalesPipelineFunnel(accessibleModules: string[] = []) {
 
 // Get Deals by Stage (for bar chart if we use it)
 export async function getDealsByStage(accessibleModules: string[] = []) {
+  noStore()
   try {
     if (!accessibleModules.includes('quotations')) return []
 
@@ -406,6 +413,7 @@ export async function getDealsByStage(accessibleModules: string[] = []) {
 
 // Get My Open Leads
 export async function getMyOpenLeads() {
+  noStore()
   try {
     // Get logged-in user from cookies (set by Frappe during login)
     const cookieStore = await cookies()
@@ -444,6 +452,7 @@ export async function getMyOpenLeads() {
 
 // Get My Open Opportunities
 export async function getMyOpenOpportunities() {
+  noStore()
   try {
     // Get logged-in user from cookies (set by Frappe during login)
     const cookieStore = await cookies()
@@ -482,6 +491,7 @@ export async function getMyOpenOpportunities() {
 
 // Get Leads by Source (for donut chart)
 export async function getLeadsBySource(accessibleModules: string[] = []) {
+  noStore()
   try {
     if (!accessibleModules.includes('crm')) return [];
 

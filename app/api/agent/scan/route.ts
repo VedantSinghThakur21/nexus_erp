@@ -32,6 +32,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, jobId: job.id })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to enqueue scan'
+
+    if (message.includes('ECONNREFUSED')) {
+      return NextResponse.json(
+        {
+          error: 'Redis is not reachable for agent queue. Set FRAPPE_REDIS_PORT (bench is often 11000) or FRAPPE_REDIS_URL.',
+          details: message,
+        },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { useRouter } from "next/navigation";
@@ -146,61 +146,90 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { accessibleModules } = useUser();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [
-          statsData,
-          oppsData,
-          activitiesData,
-          atRiskData,
-          leadSourcesData,
-          funnelDataResult,
-        ] = await Promise.all([
-          getDashboardStats(accessibleModules),
-          getOpportunities(accessibleModules),
-          getRecentActivities(accessibleModules),
-          getAtRiskDeals(accessibleModules),
-          getLeadsBySource(accessibleModules),
-          getSalesPipelineFunnel(accessibleModules),
-        ]);
-  
-        setStats({
-          pipelineValue: statsData.pipelineValue,
-          revenue: statsData.revenue,
-          openOpportunities: statsData.openOpportunities,
-          winRate: statsData.winRate,
-          winRateChange: statsData.winRateChange,
-          leadsChange: statsData.leadsChange,
-        });
-        setOpportunities(oppsData);
-        setActivities(activitiesData as ActivityItem[]);
-        setAtRiskDeals(atRiskData);
-        setLeadSources(leadSourcesData);
-  
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [
+        statsData,
+        oppsData,
+        activitiesData,
+        atRiskData,
+        leadSourcesData,
+        funnelDataResult,
+      ] = await Promise.all([
+        getDashboardStats(accessibleModules),
+        getOpportunities(accessibleModules),
+        getRecentActivities(accessibleModules),
+        getAtRiskDeals(accessibleModules),
+        getLeadsBySource(accessibleModules),
+        getSalesPipelineFunnel(accessibleModules),
+      ]);
+
+      setStats({
+        pipelineValue: statsData.pipelineValue,
+        revenue: statsData.revenue,
+        openOpportunities: statsData.openOpportunities,
+        winRate: statsData.winRate,
+        winRateChange: statsData.winRateChange,
+        leadsChange: statsData.leadsChange,
+      });
+      setOpportunities(oppsData);
+      setActivities(activitiesData as ActivityItem[]);
+      setAtRiskDeals(atRiskData);
+      setLeadSources(leadSourcesData);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const maxCount = Math.max(...funnelDataResult.map((s: any) => s.count), 1);
+      setFunnelData(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const maxCount = Math.max(...funnelDataResult.map((s: any) => s.count), 1);
-        setFunnelData(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          funnelDataResult.map((item: any, index: number) => ({
-            ...item,
-            value: formatIndianCurrency(item.value),
-            width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - (index * 10))),
-          }))
-        );
-  
-        setLoading(false);
-      } catch (err) {
-        console.error("Dashboard load error:", err);
-        setLoading(false);
-      }
+        funnelDataResult.map((item: any, index: number) => ({
+          ...item,
+          value: formatIndianCurrency(item.value),
+          width: index === 0 ? 100 : Math.round((item.count / maxCount) * (100 - (index * 10))),
+        }))
+      );
+    } catch (err) {
+      console.error("Dashboard load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [accessibleModules]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const guardedLoad = async () => {
+      if (!isMounted) return;
+      await loadData();
     };
 
-    loadData();
-  // Re-fire when roles resolve and provide a new accessibleModules array
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(accessibleModules)]);
+    guardedLoad();
+
+    // Keep dashboard fresh when users leave/return to the tab or window.
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        guardedLoad();
+      }
+    };
+    const onWindowFocus = () => {
+      guardedLoad();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onWindowFocus);
+
+    // Poll periodically so ERP updates are reflected without hard refresh.
+    const intervalId = window.setInterval(() => {
+      guardedLoad();
+    }, 60000);
+
+    return () => {
+      isMounted = false;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onWindowFocus);
+      window.clearInterval(intervalId);
+    };
+  }, [loadData]);
 
 
 

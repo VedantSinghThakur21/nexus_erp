@@ -6,7 +6,7 @@ import { agentQueueName } from '../lib/agent/queue'
 import type { AgentActionLogDoc, AgentJobPayload } from '../lib/agent/types'
 
 const redisHost = process.env.FRAPPE_REDIS_HOST || '127.0.0.1'
-const redisPort = Number(process.env.FRAPPE_REDIS_PORT || '6379')
+const redisPort = Number(process.env.FRAPPE_REDIS_PORT || '11000')
 const redisPassword = process.env.FRAPPE_REDIS_PASSWORD
 const redisUrl = process.env.FRAPPE_REDIS_URL
 
