@@ -452,64 +452,13 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         apiSecret = provKeys.api_secret
       } catch (apiError: any) {
         // Non-fatal: if provisioning endpoint is unavailable (e.g. old service image),
-        // try direct key generation on the tenant session as a best-effort fallback.
+        // we fall back natively to sid session cookies in frappeRequest.
         console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
-
-        if (userEmail && sessionSid) {
-          try {
-            // Delay 1.5s to let the initial master/tenant login sequence finish writing
-            // to the tabUser database table. Prevents PyMySQL OperationalError 1020.
-            await new Promise(r => setTimeout(r, 1500))
-
-            const directGenResp = await fetch(`${masterUrl}/api/method/frappe.core.doctype.user.user.generate_keys`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Frappe-Site-Name': siteName,
-                'Cookie': `sid=${sessionSid}`,
-              },
-              body: JSON.stringify({ user: userEmail }),
-              signal: timeoutSignal(8_000),
-            })
-
-            const directGenData = await directGenResp.json().catch(() => ({} as any))
-            const directMessage = directGenData?.message || {}
-            let directApiKey = directMessage?.api_key || null
-            const directApiSecret = directMessage?.api_secret || null
-
-            // Some Frappe versions return api_secret only; read api_key from User.
-            if (!directApiKey && directApiSecret) {
-              const keyReadResp = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Frappe-Site-Name': siteName,
-                  'Cookie': `sid=${sessionSid}`,
-                },
-                body: JSON.stringify({
-                  doctype: 'User',
-                  filters: { name: userEmail },
-                  fieldname: 'api_key',
-                }),
-                signal: timeoutSignal(8_000),
-              })
-
-              if (keyReadResp.ok) {
-                const keyReadData = await keyReadResp.json()
-                directApiKey = keyReadData?.message?.api_key || null
-              }
-            }
-
-            if (directGenResp.ok && directApiKey && directApiSecret) {
-              apiKey = directApiKey
-              apiSecret = directApiSecret
-              console.info('[Login] API keys generated via direct tenant-session fallback')
-            }
-          } catch (fallbackErr: any) {
-            console.warn('[Login] Direct fallback API key generation failed:', fallbackErr?.message ?? String(fallbackErr))
-          }
-        }
+        console.warn('[Login] Proceeding with SID session cookie authentication.')
       }
+
+      const sessionSid = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || null
+
 
       if (apiKey && apiSecret) {
         const apiCookieDomain = process.env.NODE_ENV === 'production'

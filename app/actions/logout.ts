@@ -6,24 +6,30 @@ import { redirect } from 'next/navigation'
 export async function logoutUser() {
   const cookieStore = await cookies()
 
+  const cookieDomain = process.env.NODE_ENV === 'production'
+    ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
+
+  // Provide exactly the same options used during creation to ensure deletion works across subdomains
+  const deleteOpts = { domain: cookieDomain, path: '/' }
+
   // Delete all session cookies
-  cookieStore.delete('sid')
-  cookieStore.delete('user_id')
-  cookieStore.delete('user_email')
-  cookieStore.delete('full_name')
-  cookieStore.delete('system_user')
-  cookieStore.delete('access_token')
-  cookieStore.delete('refresh_token')
-  cookieStore.delete('tenant_api_key')
-  cookieStore.delete('tenant_api_secret')
+  cookieStore.delete({ name: 'sid', ...deleteOpts })
+  cookieStore.delete({ name: 'user_id', ...deleteOpts })
+  cookieStore.delete({ name: 'user_email', ...deleteOpts })
+  cookieStore.delete({ name: 'full_name', ...deleteOpts })
+  cookieStore.delete({ name: 'system_user', ...deleteOpts })
+  cookieStore.delete({ name: 'access_token', ...deleteOpts })
+  cookieStore.delete({ name: 'refresh_token', ...deleteOpts })
+  cookieStore.delete({ name: 'tenant_api_key', ...deleteOpts })
+  cookieStore.delete({ name: 'tenant_api_secret', ...deleteOpts })
 
   // NextAuth cookies
-  cookieStore.delete('next-auth.session-token')
-  cookieStore.delete('__Secure-next-auth.session-token')
-  cookieStore.delete('next-auth.callback-url')
-  cookieStore.delete('__Secure-next-auth.callback-url')
-  cookieStore.delete('next-auth.csrf-token')
-  cookieStore.delete('__Host-next-auth.csrf-token')
+  cookieStore.delete({ name: 'next-auth.session-token', ...deleteOpts })
+  cookieStore.delete({ name: '__Secure-next-auth.session-token', ...deleteOpts })
+  cookieStore.delete({ name: 'next-auth.callback-url', ...deleteOpts })
+  cookieStore.delete({ name: '__Secure-next-auth.callback-url', ...deleteOpts })
+  cookieStore.delete({ name: 'next-auth.csrf-token', ...deleteOpts })
+  cookieStore.delete({ name: '__Host-next-auth.csrf-token', ...deleteOpts })
 
   // Redirect to login page
   redirect('/login')
