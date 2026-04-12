@@ -99,10 +99,10 @@ export function LeadsDashboard({ leads, opportunities, atRiskDeals, recentActivi
   const [searchQuery, setSearchQuery] = useState("")
   const { accessibleModules } = useUser()
 
-  // High-probability opportunities: real Opportunity records with probability >= 70
+  // High-probability opportunities: real Opportunity records with probability >= 50
   const highProbOpportunities = useMemo(() => {
     return opportunities
-      .filter(o => o.probability >= 70 && (o.status === "Open" || o.status === "Quotation"))
+      .filter(o => o.probability >= 50)
       .sort((a, b) => b.probability - a.probability)
       .slice(0, 5)
   }, [opportunities])
@@ -338,7 +338,7 @@ export function LeadsDashboard({ leads, opportunities, atRiskDeals, recentActivi
                       {highProbOpportunities.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="px-8 py-12 text-center text-slate-500">
-                            No high-probability opportunities found
+                            No opportunities found yet. Create an opportunity from a lead to get started.
                           </td>
                         </tr>
                       ) : (
