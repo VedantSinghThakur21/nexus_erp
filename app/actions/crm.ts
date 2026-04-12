@@ -301,16 +301,32 @@ export async function createLead(data: any) {
     }
   }
 
+  const leadName = (
+    data.lead_name ||
+    [data.first_name, data.last_name].filter(Boolean).join(' ').trim() ||
+    data.company_name ||
+    data.company ||
+    data.email_id ||
+    data.email ||
+    'New Lead'
+  ).trim()
+
+  const firstName = (data.first_name || data.lead_name || leadName).toString().trim()
+  const emailId = (data.email_id || data.email || '').toString().trim()
+  const mobileNo = (data.mobile_no || data.phone || '').toString().trim()
+  const companyName = (data.company_name || data.company || '').toString().trim()
+
   // Build the lead document with required fields
   const leadData: any = {
     doctype: 'Lead',
     // Details
-    first_name: data.first_name,
-    status: 'Lead', // Default status
+    lead_name: leadName,
+    first_name: firstName,
+    status: data.status || 'Lead', // Default status
 
     // Contact Info
-    email_id: data.email_id,
-    mobile_no: data.mobile_no,
+    email_id: emailId,
+    mobile_no: mobileNo,
   }
 
   // Fetch Default Company (Aggressive Search)
@@ -434,7 +450,7 @@ export async function createLead(data: any) {
   if (data.job_title) leadData.job_title = data.job_title
   if (data.phone) leadData.phone = data.phone
   if (data.website) leadData.website = data.website
-  if (data.company_name) leadData.company_name = data.company_name
+  if (companyName) leadData.company_name = companyName
   if (data.no_of_employees) leadData.no_of_employees = data.no_of_employees
   if (data.annual_revenue) leadData.annual_revenue = data.annual_revenue
   if (data.market_segment) leadData.market_segment = data.market_segment
