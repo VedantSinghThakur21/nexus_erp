@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { useRouter } from "next/navigation";
@@ -143,12 +143,22 @@ export default function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [funnelData, setFunnelData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { accessibleModules } = useUser();
+  const loadInFlight = useRef(false);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (options: { initial?: boolean } = {}) => {
+    if (loadInFlight.current) return;
+
+    loadInFlight.current = true;
     try {
-      setLoading(true);
+      if (options.initial) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+
       const [
         statsData,
         oppsData,
@@ -192,18 +202,20 @@ export default function DashboardPage() {
       console.error("Dashboard load error:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      loadInFlight.current = false;
     }
   }, [accessibleModules]);
 
   useEffect(() => {
     let isMounted = true;
 
-    const guardedLoad = async () => {
+    const guardedLoad = async (options?: { initial?: boolean }) => {
       if (!isMounted) return;
-      await loadData();
+      await loadData(options);
     };
 
-    guardedLoad();
+    guardedLoad({ initial: true });
 
     // Keep dashboard fresh when users leave/return to the tab or window.
     const onVisibilityChange = () => {
@@ -225,6 +237,7 @@ export default function DashboardPage() {
 
     return () => {
       isMounted = false;
+      loadInFlight.current = false;
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("focus", onWindowFocus);
       window.clearInterval(intervalId);
@@ -316,6 +329,15 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-background-dark custom-scrollbar">
         <div className="max-w-full mx-auto space-y-8">
+          {refreshing && !loading && (
+            <div className="flex justify-end">
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 dark:text-slate-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                Refreshing dashboard
+              </div>
+            </div>
+          )}
+
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {loading ? (
