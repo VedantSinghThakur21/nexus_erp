@@ -444,7 +444,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // this server-side action can call it; the raw secret never reaches the browser.
       let apiKey: string | null = null
       let apiSecret: string | null = null
-      const sessionSid = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || null
 
       try {
         const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 8_000)
@@ -456,9 +455,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
         console.warn('[Login] Proceeding with SID session cookie authentication.')
       }
-
-      const sessionSid = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || null
-
 
       if (apiKey && apiSecret) {
         const apiCookieDomain = process.env.NODE_ENV === 'production'
