@@ -54,7 +54,8 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
       body: new URLSearchParams({
         usr: usernameOrEmail,
         pwd: password
-      })
+      }),
+      signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
     })
 
     const data = await response.json()
@@ -844,7 +845,8 @@ export async function logoutUser() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
       })
     } catch (error) {
       console.error('ERPNext logout error:', error)
@@ -955,7 +957,8 @@ export async function changePassword(currentPassword: string, newPassword: strin
           old_password: currentPassword,
           new_password: newPassword,
           logout_all_sessions: 0
-        })
+        }),
+        signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
       }
     )
 
