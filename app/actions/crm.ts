@@ -422,11 +422,16 @@ export async function createLead(data: any) {
   if (data.salutation) leadData.salutation = await getValidLinkValue('Salutation', data.salutation);
   if (data.source) leadData.source = await getValidLinkValue('Lead Source', data.source);
   if (data.industry) leadData.industry = await getValidLinkValue('Industry Type', data.industry);
+  if (data.gender) {
+    const validGender = await getValidLinkValue('Gender', data.gender)
+    if (validGender) {
+      leadData.gender = validGender
+    }
+  }
 
   if (data.middle_name) leadData.middle_name = data.middle_name
   if (data.last_name) leadData.last_name = data.last_name
   if (data.job_title) leadData.job_title = data.job_title
-  if (data.gender) leadData.gender = data.gender
   if (data.phone) leadData.phone = data.phone
   if (data.website) leadData.website = data.website
   if (data.company_name) leadData.company_name = data.company_name
