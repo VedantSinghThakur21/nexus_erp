@@ -19,6 +19,12 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
       try { return await fn() } catch { return fallback }
     }
 
+    const activeLeadFilters = '[ ["status", "!=", "Converted"], ["status", "!=", "Do Not Contact"] ]'
+    const getAmount = (row: any): number => {
+      const raw = row?.base_grand_total ?? row?.grand_total ?? row?.opportunity_amount ?? 0
+      return typeof raw === 'number' ? raw : Number(raw) || 0
+    }
+
     // 1. Win Rate Calculation (Quotations Converted to Sales Orders vs Lost)
     let winRate = 0;
     let winRateChange = 0;
@@ -58,24 +64,24 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     if (accessibleModules.includes('quotations')) {
       const quotes = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Quotation',
-        fields: '["base_grand_total"]',
+        fields: '["base_grand_total", "grand_total"]',
         filters: '[["status", "=", "Open"]]',
         limit_page_length: 1000
       }), []) as any[]
       if (Array.isArray(quotes)) {
-        pipelineValue += quotes.reduce((sum: number, q: any) => sum + (q.base_grand_total || 0), 0)
+        pipelineValue += quotes.reduce((sum: number, q: any) => sum + getAmount(q), 0)
       }
     }
 
     if (accessibleModules.includes('sales-orders')) {
       const orders = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Sales Order',
-        fields: '["base_grand_total"]',
+        fields: '["base_grand_total", "grand_total"]',
         filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
         limit_page_length: 1000
       }), []) as any[]
       if (Array.isArray(orders)) {
-        pipelineValue += orders.reduce((sum: number, o: any) => sum + (o.base_grand_total || 0), 0)
+        pipelineValue += orders.reduce((sum: number, o: any) => sum + getAmount(o), 0)
       }
     }
 
@@ -84,12 +90,12 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     if (accessibleModules.includes('invoices')) {
       const revenueInvoices = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Sales Invoice',
-        fields: '["base_grand_total"]',
+        fields: '["base_grand_total", "grand_total"]',
         filters: `[["status", "in", ["Paid", "Partly Paid"]], ["posting_date", ">=", "${monthStart}"]]`,
         limit_page_length: 1000
       }), []) as any[]
       revenue = Array.isArray(revenueInvoices)
-        ? revenueInvoices.reduce((sum: number, inv: any) => sum + (inv.base_grand_total || 0), 0)
+        ? revenueInvoices.reduce((sum: number, inv: any) => sum + getAmount(inv), 0)
         : 0
     }
 
@@ -100,12 +106,12 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     if (accessibleModules.includes('crm')) {
       const activeLeads = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Lead',
-        filters: '[["status", "in", ["Open", "Replied", "Interested"]]]'
+        filters: activeLeadFilters
       }), 0) as number
 
       const lastMonthLeads = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Lead',
-        filters: `[["status", "in", ["Open", "Replied", "Interested"]], ["creation", ">=", "${lastMonthStart}"], ["creation", "<=", "${lastMonthEnd}"]]`
+        filters: `[["status", "!=", "Converted"], ["status", "!=", "Do Not Contact"], ["creation", ">=", "${lastMonthStart}"], ["creation", "<=", "${lastMonthEnd}"]]`
       }), 0) as number
 
       currentLeadCount = typeof activeLeads === 'number' ? activeLeads : 0
@@ -143,7 +149,7 @@ export async function getOpportunities(accessibleModules: string[] = []) {
 
     const quotes = await frappeRequest('frappe.client.get_list', 'GET', {
       doctype: 'Quotation',
-      fields: '["name", "customer_name", "party_name", "base_grand_total", "status", "modified"]',
+      fields: '["name", "customer_name", "party_name", "base_grand_total", "grand_total", "status", "modified"]',
       filters: '[["status", "in", ["Open"]]]',
       order_by: 'modified desc',
       limit_page_length: 100
@@ -158,7 +164,7 @@ export async function getOpportunities(accessibleModules: string[] = []) {
       customer_name: q.customer_name || q.party_name || 'Unknown',
       party_name: q.party_name || q.customer_name || 'Unknown',
       sales_stage: 'Proposal/Price Quote',
-      opportunity_amount: typeof q.base_grand_total === 'number' ? q.base_grand_total : 0,
+      opportunity_amount: typeof (q.base_grand_total ?? q.grand_total) === 'number' ? (q.base_grand_total ?? q.grand_total) : Number(q.base_grand_total ?? q.grand_total) || 0,
       // For quotations, we consider them 75% probable by default if open
       probability: 75,
       status: q.status || 'Open',
@@ -296,35 +302,39 @@ export async function getAtRiskDeals(accessibleModules: string[] = []) {
 export async function getSalesPipelineFunnel(accessibleModules: string[] = []) {
   noStore()
   try {
+    async function safeFetch<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+      try { return await fn() } catch { return fallback }
+    }
+
     // Get Leads
     let leadsCount: unknown = 0;
     if (accessibleModules.includes('crm')) {
-      leadsCount = await frappeRequest('frappe.client.get_count', 'GET', {
+      leadsCount = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Lead',
-        filters: '[["status", "in", ["Open", "Replied", "Interested"]]]'
-      })
+        filters: '[["status", "!=", "Converted"], ["status", "!=", "Do Not Contact"]]'
+      }), 0)
     }
 
     // Get Quotes
     let quotes: unknown = [];
     if (accessibleModules.includes('quotations')) {
-      quotes = await frappeRequest('frappe.client.get_list', 'GET', {
+      quotes = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Quotation',
-        fields: '["base_grand_total", "status"]',
+        fields: '["base_grand_total", "grand_total", "status"]',
         filters: '[["status", "in", ["Draft", "Open"]]]',
         limit_page_length: 1000
-      })
+      }), [])
     }
 
     // Get Orders
     let orders: unknown = [];
     if (accessibleModules.includes('sales-orders')) {
-      orders = await frappeRequest('frappe.client.get_list', 'GET', {
+      orders = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Sales Order',
-        fields: '["base_grand_total", "status"]',
+        fields: '["base_grand_total", "grand_total", "status"]',
         filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
         limit_page_length: 1000
-      })
+      }), [])
     }
 
     const stages = {
@@ -336,20 +346,26 @@ export async function getSalesPipelineFunnel(accessibleModules: string[] = []) {
 
     if (Array.isArray(quotes)) {
       quotes.forEach((q: any) => {
+        const amount = typeof (q.base_grand_total ?? q.grand_total) === 'number'
+          ? (q.base_grand_total ?? q.grand_total)
+          : Number(q.base_grand_total ?? q.grand_total) || 0
         if (q.status === 'Draft') {
           stages['Draft Quote'].count++
-          stages['Draft Quote'].value += q.base_grand_total || 0
+          stages['Draft Quote'].value += amount
         } else {
           stages['Open Quote'].count++
-          stages['Open Quote'].value += q.base_grand_total || 0
+          stages['Open Quote'].value += amount
         }
       })
     }
 
     if (Array.isArray(orders)) {
       orders.forEach((o: any) => {
+        const amount = typeof (o.base_grand_total ?? o.grand_total) === 'number'
+          ? (o.base_grand_total ?? o.grand_total)
+          : Number(o.base_grand_total ?? o.grand_total) || 0
         stages['Sales Order'].count++
-        stages['Sales Order'].value += o.base_grand_total || 0
+        stages['Sales Order'].value += amount
       })
     }
 
