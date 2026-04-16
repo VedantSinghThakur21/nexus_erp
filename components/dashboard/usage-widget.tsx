@@ -42,12 +42,14 @@ export function UsageWidget({ subdomain }: { subdomain: string }) {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="rounded-xl border border-border bg-card shadow-none">
         <CardHeader>
           <CardTitle>Usage & Limits</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Loading...</p>
+        <CardContent className="space-y-3">
+          <div className="h-4 w-32 animate-pulse rounded-md bg-muted" />
+          <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
+          <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
         </CardContent>
       </Card>
     )

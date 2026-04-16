@@ -44,7 +44,19 @@ export default function OnboardingPage() {
     }, [session, status])
 
     if (!sessionResult || status === 'loading' || checking) {
-        return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+        return (
+            <div className="min-h-screen bg-muted/40 p-4">
+                <div className="mx-auto mt-20 w-full max-w-md rounded-xl border border-border bg-card p-6">
+                    <div className="h-6 w-40 animate-pulse rounded-md bg-muted" />
+                    <div className="mt-3 h-4 w-56 animate-pulse rounded-md bg-muted" />
+                    <div className="mt-8 space-y-3">
+                        <div className="h-4 w-28 animate-pulse rounded-md bg-muted" />
+                        <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
+                        <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     if (status === 'unauthenticated') {
@@ -91,8 +103,8 @@ export default function OnboardingPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-            <Card className="w-full max-w-md shadow-xl">
+        <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+            <Card className="w-full max-w-md rounded-xl border border-border bg-card shadow-none">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Welcome, {session?.user?.name}!</CardTitle>
                     <CardDescription>

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { getUserProfile, type UserProfile } from '@/app/actions/profile'
 import { logoutUser } from '@/app/actions/user-auth'
 import { signOut } from 'next-auth/react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 interface PageHeaderProps {
     searchQuery?: string
@@ -56,62 +59,63 @@ export function PageHeader({
         }
     }
 
-    const displayName = profile?.fullName || 'Loading...'
+    const displayName = profile?.fullName || 'Nexus User'
     const displayRole = profile?.role || ''
-    const initials = profile?.initials || '...'
+    const initials = profile?.initials || 'NU'
 
     return (
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 w-full z-10">
-            <div className="relative w-[480px]">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+        <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="flex h-full items-center justify-between gap-3 px-4 pl-14 md:px-6 md:pl-6">
+            <div className="relative w-full max-w-xl">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base">
                     search
                 </span>
-                <input
-                    className="w-full bg-slate-100 border-none rounded-full py-2.5 pl-11 pr-5 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-500 transition-[background-color,box-shadow,transform] duration-150 ease-out focus:scale-[1.01]"
+                <Input
+                    className="h-9 rounded-md border-border bg-muted/40 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     placeholder={searchPlaceholder}
                     type="text"
                     value={searchQuery}
                     onChange={(e) => onSearchChange?.(e.target.value)}
                 />
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
                 {/* Extra action buttons (e.g., "New Lead") */}
                 {children}
 
                 {/* Notifications */}
-                <button className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-full transition-[background-color,transform,color] duration-150 ease-out active:scale-[0.96]">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md text-muted-foreground">
                     <span className="material-symbols-outlined">notifications</span>
-                </button>
-                <div className="h-8 w-px bg-slate-200"></div>
+                </Button>
+                <div className="h-6 w-px bg-border"></div>
 
                 {/* Profile Section with Dropdown */}
                 <div className="relative" ref={dropdownRef}>
                     <button
-                        className="flex items-center gap-3 pl-2 cursor-pointer transition-[transform,opacity] duration-150 ease-out hover:translate-x-0.5 hover:opacity-90 active:scale-[0.98]"
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-muted"
                         onClick={() => setShowDropdown(!showDropdown)}
                     >
-                        <div className="text-right">
-                            <p className="text-sm font-semibold leading-tight text-slate-900">{displayName}</p>
+                        <div className="hidden text-right md:block">
+                            <p className="text-sm font-medium leading-tight text-foreground">{displayName}</p>
                             {displayRole && (
-                                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+                                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
                                     {displayRole}
                                 </p>
                             )}
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 overflow-hidden ring-2 ring-slate-100 flex items-center justify-center text-white font-bold text-sm">
-                            {initials}
-                        </div>
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-muted text-xs font-medium text-foreground">{initials}</AvatarFallback>
+                        </Avatar>
                     </button>
 
                     {/* Dropdown Menu */}
                     {showDropdown && (
-                        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                        <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 shadow-none">
                             {/* User Info */}
-                            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50">
-                                <p className="text-sm font-bold text-slate-900">{displayName}</p>
-                                <p className="text-xs text-slate-500 mt-0.5">{profile?.email || ''}</p>
+                            <div className="px-4 py-3 border-b border-border bg-muted/40">
+                                <p className="text-sm font-medium text-foreground">{displayName}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{profile?.email || ''}</p>
                                 {displayRole && (
-                                    <span className="inline-block mt-2 px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
+                                    <span className="inline-block mt-2 px-2 py-0.5 bg-accent text-accent-foreground text-[10px] font-medium uppercase tracking-wide rounded-md">
                                         {displayRole}
                                     </span>
                                 )}
@@ -124,9 +128,9 @@ export function PageHeader({
                                         setShowDropdown(false)
                                         router.push('/settings')
                                     }}
-                                    className="w-full px-5 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-[background-color,transform,color] duration-150 ease-out flex items-center gap-3"
+                                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
                                 >
-                                    <span className="material-symbols-outlined text-lg text-slate-400" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>
+                                    <span className="material-symbols-outlined text-lg text-muted-foreground" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>
                                         settings
                                     </span>
                                     Settings
@@ -136,9 +140,9 @@ export function PageHeader({
                                         setShowDropdown(false)
                                         router.push('/team')
                                     }}
-                                    className="w-full px-5 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-[background-color,transform,color] duration-150 ease-out flex items-center gap-3"
+                                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
                                 >
-                                    <span className="material-symbols-outlined text-lg text-slate-400" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>
+                                    <span className="material-symbols-outlined text-lg text-muted-foreground" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>
                                         group
                                     </span>
                                     Team
@@ -146,11 +150,11 @@ export function PageHeader({
                             </div>
 
                             {/* Logout */}
-                            <div className="py-2 border-t border-slate-100">
+                            <div className="py-2 border-t border-border">
                                 <button
                                     onClick={handleLogout}
                                     disabled={loggingOut}
-                                    className="w-full px-5 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition-[background-color,transform,color] duration-150 ease-out flex items-center gap-3 disabled:opacity-50"
+                                    className="w-full px-4 py-2.5 text-left text-sm text-destructive hover:bg-muted transition-colors flex items-center gap-3 disabled:opacity-50"
                                 >
                                     <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>
                                         logout

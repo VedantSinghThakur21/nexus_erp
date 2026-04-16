@@ -59,8 +59,8 @@ export default function TenantSignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F3F4F6] px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
+      <Card className="w-full max-w-md rounded-xl border border-border bg-card shadow-none">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <UserPlus className="h-6 w-6 text-primary" />

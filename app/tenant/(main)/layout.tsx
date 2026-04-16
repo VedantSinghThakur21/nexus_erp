@@ -24,9 +24,9 @@ export default async function TenantAppLayout({
     cookieStore.has('__Secure-next-auth.session-token')
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-[#F3F4F6]">
+    <div className="app-shell flex overflow-hidden">
       <AppSidebar />
-      <main className="ml-64 flex-1 min-h-screen">
+      <main className="flex-1 min-w-0 min-h-screen">
         <TenantGuard hasServerAuth={hasServerAuth}>
           {children}
         </TenantGuard>

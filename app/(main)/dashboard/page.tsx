@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { ArrowUpRight, Briefcase, FolderOpenDot, ReceiptText, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import {
   getDashboardStats,
   getOpportunities,
@@ -14,7 +16,9 @@ import {
 } from "@/app/actions/dashboard";
 import { useUser } from "@/contexts/user-context";
 import { formatIndianCurrency } from "@/lib/currency";
-import { AICrmInsights } from "@/components/crm/ai-crm-insights";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Opportunity = {
   name: string;
@@ -50,7 +54,6 @@ type AtRiskDeal = {
   reason: string;
 };
 
-// Helper to get initials from name
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -60,69 +63,20 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-// Helper to get stage badge color
-function getStageColor(stage: string): string {
-  const colors: Record<string, string> = {
-    Prospecting: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    Qualification: "bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400",
-    "Proposal/Price Quote": "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    "Negotiation/Review": "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  };
-  return colors[stage] || "bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400";
+function relativeTimeLabel(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const deltaMinutes = Math.max(1, Math.floor((Date.now() - date.getTime()) / 60000));
+  if (deltaMinutes < 60) return `${deltaMinutes}m ago`;
+  const deltaHours = Math.floor(deltaMinutes / 60);
+  if (deltaHours < 24) return `${deltaHours}h ago`;
+  return `${Math.floor(deltaHours / 24)}d ago`;
 }
 
-// Helper to get confidence bar color
-function getConfidenceColor(confidence: number): string {
-  if (confidence >= 75) return "bg-emerald-500";
-  if (confidence >= 50) return "bg-primary";
-  return "bg-amber-400";
-}
-
-// Helper to get confidence text color
-function getConfidenceTextColor(confidence: number): string {
-  if (confidence >= 75) return "text-emerald-500";
-  if (confidence >= 50) return "text-primary";
-  return "text-amber-500";
-}
-
-// Helper to get activity icon and color
-function getActivityIcon(type: string): {
-  icon: string;
-  color: string;
-  label: string;
-} {
-  const mapping: Record<
-    string,
-    { icon: string; color: string; label: string }
-  > = {
-    "closed-deal": {
-      icon: "check_circle",
-      color: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500",
-      label: "Closed Deal",
-    },
-    "new-lead": {
-      icon: "person_add",
-      color: "bg-blue-50 dark:bg-blue-500/10 text-blue-500",
-      label: "New Lead",
-    },
-    outbound: {
-      icon: "mail",
-      color: "bg-purple-50 dark:bg-purple-500/10 text-purple-500",
-      label: "Outbound",
-    },
-    "booking-scheduled": {
-      icon: "calendar_today",
-      color: "bg-amber-50 dark:bg-amber-500/10 text-amber-500",
-      label: "Meeting Set",
-    },
-  };
-  return (
-    mapping[type] || {
-      icon: "circle",
-      color: "bg-slate-50 dark:bg-slate-500/10 text-slate-500",
-      label: "Activity",
-    }
-  );
+function stageBadge(stage: string): "default" | "secondary" | "outline" {
+  if (stage.includes("Negotiation")) return "default";
+  if (stage.includes("Qualification")) return "secondary";
+  return "outline";
 }
 
 export default function DashboardPage() {
@@ -244,473 +198,308 @@ export default function DashboardPage() {
     };
   }, [loadData]);
 
-
-
-  // Filter high-probability opportunities (probability >= 70)
   const highProbOpportunities = opportunities
     .filter((opp: Opportunity) => opp.probability >= 70 && opp.status === "Open")
     .sort((a: Opportunity, b: Opportunity) => b.probability - a.probability)
     .slice(0, 3);
 
-
-
-  // Lead source data - calculate from actual API data
-  const leadSourceData = (() => {
-    const total = leadSources.reduce((sum, src) => sum + (src.count || 0), 0);
-
-    if (total === 0 || leadSources.length === 0) {
-      return {
-        total: 0,
-        sources: [],
-        colors: []
-      };
-    }
-
-    // Take top 3 sources and group rest as "Other"
-    const topSources = leadSources.slice(0, 3);
-    const othersCount = leadSources.slice(3).reduce((sum, s) => sum + (s.count || 0), 0);
-
-    const sources = topSources.map(s => ({
-      name: s.source,
-      count: s.count,
-      percent: Math.round((s.count / total) * 100)
-    }));
-
-    if (othersCount > 0) {
-      sources.push({
-        name: 'Other',
-        count: othersCount,
-        percent: Math.round((othersCount / total) * 100)
-      });
-    }
-
-    // Assign colors
-    const colorPalette = ['#3f51b5', '#10b981', '#f59e0b', '#e2e8f0'];
-
-    return {
-      total,
-      sources,
-      colors: colorPalette.slice(0, sources.length)
-    };
-  })();
-
-  // Generate conic gradient for donut chart
-  const donutGradient = (() => {
-    if (leadSourceData.sources.length === 0) return 'conic-gradient(#e2e8f0 0% 100%)';
-
-    let currentPercent = 0;
-    const gradientStops = leadSourceData.sources.map((source, idx) => {
-      const startPercent = currentPercent;
-      currentPercent += source.percent;
-      const color = leadSourceData.colors[idx];
-      return `${color} ${startPercent}% ${currentPercent}%`;
-    });
-
-    return `conic-gradient(${gradientStops.join(', ')})`;
-  })();
-
-  // Skeleton KPI card used during data load
-  const SkeletonCard = () => (
-    <div className="bg-[#111827] p-7 rounded-2xl shadow-xl border border-slate-800/50 w-full min-h-[160px] animate-pulse">
-      <div className="h-3 w-24 bg-slate-700 rounded mb-4" />
-      <div className="h-8 w-32 bg-slate-700 rounded mt-6" />
-      <div className="h-3 w-16 bg-slate-800 rounded mt-4" />
-    </div>
-  );
+  const leadSourceData = leadSources.slice(0, 4).map((source) => ({
+    name: source.source,
+    count: source.count,
+    percent: Math.round(
+      ((source.count || 0) / Math.max(leadSources.reduce((sum, item) => sum + (item.count || 0), 0), 1)) * 100
+    ),
+  }));
 
   return (
-    <div className="bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-hidden">
-      {/* Header */}
-      <PageHeader
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-background-dark custom-scrollbar">
-        <div className="max-w-full mx-auto space-y-8">
+    <div className="app-shell flex flex-col">
+      <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <motion.main
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="app-content space-y-6"
+      >
+        <div className="space-y-6">
           {refreshing && !loading && (
-            <div className="flex justify-end">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 dark:text-slate-300">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 Refreshing dashboard
-              </div>
             </div>
           )}
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="flex items-center justify-between border-b border-border pb-6">
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Pipeline, revenue, and team activity in one place.</p>
+            </div>
+            <div className="hidden gap-2 md:flex">
+              {[
+                { href: "/crm/leads", label: "New Lead" },
+                { href: "/quotations/new", label: "New Quotation" },
+                { href: "/invoices/new", label: "New Invoice" },
+              ].map((action) => (
+                <Link key={action.href} href={action.href}>
+                  <Button variant="ghost" className="h-9 rounded-lg border border-dashed border-border">
+                    <Sparkles className="h-4 w-4" />
+                    {action.label}
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {loading ? (
-              <>
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
-              </>
+              Array.from({ length: 4 }).map((_, index) => (
+                <Card key={index} className="rounded-xl border border-border bg-card shadow-none">
+                  <CardContent className="space-y-3 p-5">
+                    <div className="h-4 w-24 animate-pulse rounded-md bg-muted" />
+                    <div className="h-8 w-28 animate-pulse rounded-md bg-muted" />
+                    <div className="h-4 w-20 animate-pulse rounded-md bg-muted" />
+                  </CardContent>
+                </Card>
+              ))
             ) : (
-            <>
-
-            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50 w-full">
-              <div className="flex items-start justify-between">
-                <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-                  Win Rate
-                </p>
-                <span className="material-symbols-outlined text-blue-500 text-2xl">
-                  trending_up
-                </span>
-              </div>
-              <div className="mt-4">
-                <h3 className="text-[32px] font-bold text-white leading-tight">
-                  {stats.winRate.toFixed(1)}%
-                </h3>
-                <p className="mt-2 text-[14px] font-semibold text-blue-500 flex items-center">
-                  <span className="material-symbols-outlined text-sm mr-1">
-                    {stats.winRateChange >= 0 ? "north" : "south"}
-                  </span>{" "}
-                  {stats.winRateChange >= 0 ? "+" : ""}
-                  {stats.winRateChange.toFixed(1)}%
-                </p>
-              </div>
-            </div>
-
-            {/* Pipeline Value */}
-            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50 w-full">
-              <div className="flex items-start justify-between">
-                <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-                  Pipeline Value
-                </p>
-                <span className="material-symbols-outlined text-emerald-500 text-2xl">
-                  account_balance_wallet
-                </span>
-              </div>
-              <div className="mt-4">
-                <h3 className="text-[32px] font-bold text-white leading-tight">
-                  {formatIndianCurrency(stats.pipelineValue)}
-                </h3>
-                <div className="mt-4 w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-emerald-500 h-full w-[65%] rounded-full"></div>
-                </div>
-                <div className="flex justify-between mt-2 text-[10px] font-bold uppercase text-slate-500 tracking-wider">
-                  <span>Target: ₹200L</span>
-                  <span>65% Achieved</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Revenue MTD (Only visible if they have invoices access) */}
-            {accessibleModules.includes('invoices') && (
-              <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50 w-full">
-                <div className="flex items-start justify-between">
-                  <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-                    Revenue MTD
-                  </p>
-                  <span className="material-symbols-outlined text-slate-400 text-2xl">
-                    insights
-                  </span>
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-[32px] font-bold text-white leading-tight">
-                    {formatIndianCurrency(stats.revenue)}
-                  </h3>
-                  <div className="mt-3 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-                    <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-                    <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-                    <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Active Leads */}
-            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50 w-full">
-              <div className="flex items-start justify-between">
-                <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-                  Active Leads
-                </p>
-                <span className="material-symbols-outlined text-amber-400 text-2xl">
-                  electric_bolt
-                </span>
-              </div>
-              <div className="mt-4">
-                <h3 className="text-[32px] font-bold text-white leading-tight">
-                  {stats.openOpportunities.toLocaleString()}
-                </h3>
-                <div className="mt-4 inline-flex px-3 py-1.5 rounded-full bg-blue-900/30 border border-blue-500/30 items-center">
-                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-                    AI Confidence High
-                  </span>
-                </div>
-              </div>
-            </div>
-            </>
+              <>
+                {[
+                  {
+                    title: "Win Rate",
+                    value: `${stats.winRate.toFixed(1)}%`,
+                    delta: stats.winRateChange,
+                    icon: TrendingUp,
+                  },
+                  {
+                    title: "Pipeline Value",
+                    value: formatIndianCurrency(stats.pipelineValue),
+                    delta: stats.leadsChange,
+                    icon: Briefcase,
+                  },
+                  {
+                    title: "Revenue MTD",
+                    value: formatIndianCurrency(stats.revenue),
+                    delta: stats.winRateChange,
+                    icon: ReceiptText,
+                  },
+                  {
+                    title: "Open Opportunities",
+                    value: stats.openOpportunities.toLocaleString(),
+                    delta: stats.leadsChange,
+                    icon: FolderOpenDot,
+                  },
+                ]
+                  .filter((item) => item.title !== "Revenue MTD" || accessibleModules.includes("invoices"))
+                  .map((item) => {
+                    const DeltaIcon = item.delta >= 0 ? TrendingUp : TrendingDown;
+                    const StatIcon = item.icon;
+                    return (
+                      <motion.div
+                        key={item.title}
+                        whileHover={{ scale: 1.01 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Card className="rounded-xl border border-border bg-card shadow-none">
+                          <CardContent className="p-5">
+                            <div className="flex items-start justify-between">
+                              <p className="text-[13px] font-medium text-muted-foreground">{item.title}</p>
+                              <StatIcon className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <p className="mt-4 text-2xl font-medium leading-tight text-foreground">{item.value}</p>
+                            <Badge variant="outline" className="mt-3 gap-1 rounded-md text-[11px] font-medium">
+                              <DeltaIcon className={`h-3 w-3 ${item.delta >= 0 ? "text-emerald-600" : "text-red-600"}`} />
+                              {item.delta >= 0 ? "+" : ""}
+                              {item.delta.toFixed(1)}%
+                            </Badge>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+              </>
             )}
           </div>
 
-          <div className="grid grid-cols-12 gap-8">
-
-            {/* Left Column */}
-            <div className="col-span-12 xl:col-span-8 space-y-8">
-              {/* High-Probability Opportunities Table */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <h4 className="text-lg font-bold text-slate-800 dark:text-white">
-                    High-Probability Opportunities
-                  </h4>
+          <div className="grid gap-4 lg:grid-cols-12">
+            <div className="space-y-4 lg:col-span-8">
+              <Card className="rounded-xl border border-border bg-card shadow-none">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-base">High-Probability Opportunities</CardTitle>
                   <Link href="/crm">
-                    <button className="text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wider transition-colors">
-                      Full Pipeline
-                    </button>
+                    <Button variant="ghost" size="sm">View pipeline</Button>
                   </Link>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 dark:bg-slate-800/50">
-                      <tr className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">
-                        <th className="px-8 py-5">Account</th>
-                        <th className="px-8 py-5">Stage</th>
-                        <th className="px-8 py-5">Value</th>
-                        <th className="px-8 py-5 text-right">Confidence</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {highProbOpportunities.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            className="px-8 py-12 text-center text-slate-500"
-                          >
-                            No high-probability opportunities found
-                          </td>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[620px]">
+                      <thead className="sticky top-0 bg-background">
+                        <tr className="border-y border-border">
+                          <th className="h-12 px-4 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Account</th>
+                          <th className="h-12 px-4 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Stage</th>
+                          <th className="h-12 px-4 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">Value</th>
+                          <th className="h-12 px-4 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">Confidence</th>
                         </tr>
-                      ) : (
-                        highProbOpportunities.map((opp) => (
-                          <tr
-                            key={opp.name}
-                            className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-                            onClick={() => router.push(`/crm/opportunities/${opp.name}`)}
-                          >
-                            <td className="px-8 py-5 flex items-center gap-4">
-                              <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[11px] font-bold">
-                                {getInitials((opp.customer_name || opp.party_name) || "N/A")}
-                              </div>
-                              <span className="text-[15px] font-semibold">
-                                {opp.customer_name || opp.party_name}
-                              </span>
-                            </td>
-                            <td className="px-8 py-5">
-                              <span
-                                className={`px-2.5 py-1 ${getStageColor(
-                                  opp.sales_stage
-                                )} text-[10px] font-bold rounded-md uppercase`}
-                              >
-                                {opp.sales_stage}
-                              </span>
-                            </td>
-                            <td className="px-8 py-5 font-semibold text-slate-700 dark:text-slate-300">
-                              {formatIndianCurrency(opp.opportunity_amount)}
-                            </td>
-                            <td className="px-8 py-5">
-                              <div className="flex items-center justify-end gap-4">
-                                <span
-                                  className={`text-sm font-bold ${getConfidenceTextColor(
-                                    opp.probability
-                                  )}`}
-                                >
-                                  {opp.probability}%
-                                </span>
-                                <div className="w-32 bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                                  <div
-                                    className={`${getConfidenceColor(
-                                      opp.probability
-                                    )} h-full`}
-                                    style={{ width: `${opp.probability}%` }}
-                                  ></div>
-                                </div>
-                              </div>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {highProbOpportunities.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                              No high-probability opportunities found.
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Sales Funnel & Lead Source */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Sales Funnel */}
-                <div className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-slate-400 text-xl">
-                        filter_alt
-                      </span>
-                      <h4 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-[0.15em]">
-                        Sales Funnel
-                      </h4>
-                    </div>
+                        ) : (
+                          highProbOpportunities.map((opp, index) => (
+                            <motion.tr
+                              key={opp.name}
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.04 }}
+                              className="group h-12 cursor-pointer hover:bg-muted/50"
+                              onClick={() => router.push(`/crm/opportunities/${opp.name}`)}
+                            >
+                              <td className="px-4 text-sm font-medium text-foreground">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-[11px] text-muted-foreground">
+                                    {getInitials((opp.customer_name || opp.party_name) || "NA")}
+                                  </div>
+                                  <span>{opp.customer_name || opp.party_name}</span>
+                                </div>
+                              </td>
+                              <td className="px-4">
+                                <Badge variant={stageBadge(opp.sales_stage)} className="rounded-md text-[11px] font-medium">
+                                  {opp.sales_stage}
+                                </Badge>
+                              </td>
+                              <td className="px-4 text-sm text-foreground">{formatIndianCurrency(opp.opportunity_amount)}</td>
+                              <td className="px-4 text-right text-sm font-medium text-foreground">{opp.probability}%</td>
+                            </motion.tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="space-y-6">
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="rounded-xl border border-border bg-card shadow-none">
+                  <CardHeader>
+                    <CardTitle className="text-base">Sales Funnel</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     {funnelData.map((item, index) => (
-                      <div key={item.stage}>
-                        <div className="flex justify-between text-[11px] font-bold uppercase text-slate-400 mb-2">
+                      <div key={item.stage} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>{item.stage}</span>
-                          <span>{item.value}</span>
+                          <span>{item.count} deals</span>
                         </div>
-                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-9 rounded-xl overflow-hidden relative">
-                          <div
-                            className={`absolute inset-y-0 left-0 flex items-center px-4 text-white text-[11px] font-bold ${index === 0
-                              ? "bg-gradient-to-r from-blue-700 to-blue-600"
-                              : index === 1
-                                ? "bg-gradient-to-r from-blue-600 to-blue-500"
-                                : "bg-gradient-to-r from-blue-500 to-blue-400"
-                              }`}
-                            style={{ width: `${item.width}%` }}
-                          >
-                            {item.count} Deals
-                          </div>
+                        <div className="h-2 rounded-full bg-muted">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${item.width}%` }}
+                            transition={{ duration: 0.2, delay: index * 0.04 }}
+                            className="h-2 rounded-full bg-primary"
+                          />
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
 
-                {/* Lead Source */}
-                <div className="bg-white dark:bg-slate-900 p-7 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="material-symbols-outlined text-slate-400 text-xl">
-                      pie_chart
-                    </span>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-[0.15em]">
-                      Leads Source
-                    </h4>
-                  </div>
-                  <div className="flex items-center justify-around h-full pb-6">
-                    {/* Donut Chart */}
-                    <div className="relative w-40 h-40">
-                      <div
-                        className="w-full h-full rounded-full"
-                        style={{
-                          background: donutGradient,
-                        }}
-                      ></div>
-                      <div className="absolute inset-5 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold">
-                          {leadSourceData.total || 0}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold uppercase">
-                          Total
-                        </span>
-                      </div>
-                    </div>
-                    {/* Legend */}
-                    <div className="flex flex-col gap-4">
-                      {leadSourceData.sources.map((source, idx) => (
-                        <div key={source.name} className="flex items-center gap-3">
-                          <span
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: leadSourceData.colors[idx] }}
-                          ></span>
-                          <div className="flex flex-col">
-                            <span className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
-                              {source.name}
-                            </span>
-                            <span className="text-[10px] font-semibold text-slate-400">
-                              {source.percent}% ({source.count})
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                      {leadSourceData.sources.length === 0 && (
-                        <p className="text-xs text-slate-400">No data available</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <Card className="rounded-xl border border-border bg-card shadow-none">
+                  <CardHeader>
+                    <CardTitle className="text-base">Lead Sources</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {leadSourceData.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No source distribution data available.</p>
+                    )}
+                    {leadSourceData.map((source, index) => (
+                      <motion.div
+                        key={source.name}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.04 }}
+                        className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2"
+                      >
+                        <p className="text-sm font-medium text-foreground">{source.name}</p>
+                        <Badge variant="outline" className="rounded-md text-[11px] font-medium">
+                          {source.percent}% ({source.count})
+                        </Badge>
+                      </motion.div>
+                    ))}
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
-            {/* Right Column - AI Insights */}
-            <div className="col-span-12 xl:col-span-4">
-               <AICrmInsights 
-                  accessibleModules={accessibleModules}
-                  atRiskDeals={atRiskDeals}
-                  highProbOpportunities={highProbOpportunities}
-               />
+            <div className="space-y-4 lg:col-span-4">
+              <Card className="rounded-xl border border-border bg-card shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-base">Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {activities.slice(0, 6).map((activity, index) => (
+                    <motion.div
+                      key={`${activity.owner}-${index}`}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.04 }}
+                      className="flex items-start gap-3 rounded-md border border-border bg-muted/20 p-3"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                        {getInitials(activity.owner)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">{activity.owner}</p>
+                        <p className="truncate text-sm text-muted-foreground">{activity.company}</p>
+                        <p className="text-xs text-muted-foreground">{relativeTimeLabel(activity.time)}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-xl border border-border bg-card shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-base">At-Risk Deals</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {atRiskDeals.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No deals currently flagged by risk checks.</p>
+                  )}
+                  {atRiskDeals.slice(0, 4).map((deal, index) => (
+                    <motion.div
+                      key={deal.name}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.04 }}
+                      className="rounded-md border border-border p-3"
+                    >
+                      <p className="text-sm font-medium text-foreground">{deal.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{deal.days_since_activity} days inactive</p>
+                      <p className="mt-1 text-xs text-red-600">{deal.reason}</p>
+                    </motion.div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                {[
+                  { href: "/crm/new", label: "Create Lead" },
+                  { href: "/sales-orders/new", label: "Create Sales Order" },
+                ].map((action) => (
+                  <Link key={action.href} href={action.href}>
+                    <Button variant="ghost" className="h-10 w-full justify-between rounded-lg border border-dashed border-border">
+                      {action.label}
+                      <ArrowUpRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
-
-          {/* Team Performance Section */}
-          <div className="col-span-12">
-            <div className="flex items-center gap-3 mb-6">
-              <span className="material-symbols-outlined text-slate-400 text-2xl">
-                history
-              </span>
-              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">
-                Team Performance &amp; Intelligence
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-6">
-              {activities.slice(0, 4).map((activity, index) => {
-                const { icon, color, label } = getActivityIcon(activity.type);
-                return (
-                  <div
-                    key={index}
-                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 hover:shadow-md transition-shadow w-full"
-                  >
-                    <div className="flex items-center gap-4 mb-5">
-                      <div className={`w-12 h-12 ${color} rounded-full flex items-center justify-center`}>
-                        <span className="material-symbols-outlined font-bold text-xl">
-                          {icon}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-                          {label}
-                        </p>
-                        <h4 className="text-base font-bold text-slate-800 dark:text-white leading-tight">
-                          {activity.owner}
-                        </h4>
-                      </div>
-                    </div>
-                    <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col gap-1">
-                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        {activity.company}
-                      </p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {activity.time}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Footer */}
-          <footer className="mt-12 py-8 flex items-center justify-between text-[11px] text-slate-400 font-bold px-4 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                SYSTEMS OPERATIONAL
-              </span>
-              <span className="opacity-60">v4.12.0 Enterprise Ultimate</span>
-            </div>
-            <div className="flex items-center gap-8 uppercase tracking-widest">
-              <a className="hover:text-primary transition-colors" href="#">
-                API Documentation
-              </a>
-              <a className="hover:text-primary transition-colors" href="#">
-                Technical Support
-              </a>
-              <a className="hover:text-primary transition-colors" href="#">
-                Security Policy
-              </a>
-            </div>
-          </footer>
         </div>
-      </main>
+      </motion.main>
     </div>
   );
 }

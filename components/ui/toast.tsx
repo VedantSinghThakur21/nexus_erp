@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 function ToastContainer({ toasts, removeToast }: { toasts: Toast[]; removeToast: (id: string) => void }) {
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-4 right-4 z-[9999] flex max-w-sm flex-col gap-2 pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
@@ -90,7 +90,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       exit={{ opacity: 0, x: 300, scale: 0.8 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
       className={cn(
-        "pointer-events-auto min-w-[300px] max-w-md rounded-lg border p-4 shadow-lg backdrop-blur-sm",
+        "pointer-events-auto w-full rounded-xl border border-border bg-card p-4 text-card-foreground shadow-none backdrop-blur-sm",
         styles[toast.type]
       )}
     >

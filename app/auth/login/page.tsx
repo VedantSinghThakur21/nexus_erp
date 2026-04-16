@@ -85,11 +85,11 @@ export default function OAuthLoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-none">
         {/* Logo/Header */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-blue-600 rounded-full">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
             <svg
               className="w-8 h-8 text-white"
               fill="none"
@@ -105,8 +105,8 @@ export default function OAuthLoginPage() {
             </svg>
           </div>
           
-          <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-2xl font-medium text-foreground">Welcome Back</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             Sign in to your tenant account
           </p>
         </div>
@@ -135,7 +135,7 @@ export default function OAuthLoginPage() {
         <button
           onClick={initiateOAuthLogin}
           disabled={isRedirecting}
-          className="w-full px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-lg"
+          className="h-10 w-full rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isRedirecting ? (
             <span className="flex items-center justify-center">
@@ -175,7 +175,7 @@ export default function OAuthLoginPage() {
         {/* Development Info */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            <h3 className="mb-2 text-sm font-medium text-foreground">
               Development Info
             </h3>
             <div className="space-y-1 text-xs text-gray-600">

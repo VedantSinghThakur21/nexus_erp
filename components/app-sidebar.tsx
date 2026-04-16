@@ -1,58 +1,112 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import type { ComponentType } from 'react'
+import {
+  Bot,
+  BriefcaseBusiness,
+  Building2,
+  CalendarCheck2,
+  ChevronLeft,
+  ChevronRight,
+  CircleDollarSign,
+  ClipboardCheck,
+  FolderOpen,
+  Gauge,
+  HandCoins,
+  Inbox,
+  Layers3,
+  Menu,
+  ReceiptText,
+  Settings,
+  ShoppingCart,
+  Users,
+} from 'lucide-react'
 import { useUser } from '@/contexts/user-context'
 import { canAccessModule } from '@/lib/role-permissions'
+import { getUserProfile, type UserProfile } from '@/app/actions/profile'
+import { logoutUser } from '@/app/actions/user-auth'
+import { signOut } from 'next-auth/react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 
-// Navigation structure with role-based access control
-const navigationConfig = [
+const COLLAPSE_STORAGE_KEY = 'nexus.sidebar.collapsed'
+
+type NavigationItem = {
+  name: string
+  icon: ComponentType<{ className?: string }>
+  href: string
+  module: string
+}
+
+const navigationConfig: Array<{ category: string; items: NavigationItem[] }> = [
   {
     category: 'Main',
     items: [
-      { name: 'Dashboard', icon: 'dashboard', href: '/dashboard', module: 'dashboard' },
-      { name: 'Leads', icon: 'group', href: '/crm/leads', module: 'crm' },
-      { name: 'Opportunities', icon: 'trending_up', href: '/crm/opportunities', module: 'crm' },
-    ]
+      { name: 'Dashboard', icon: Gauge, href: '/dashboard', module: 'dashboard' },
+      { name: 'Leads', icon: Users, href: '/crm/leads', module: 'crm' },
+      { name: 'Opportunities', icon: BriefcaseBusiness, href: '/crm/opportunities', module: 'crm' },
+    ],
   },
   {
     category: 'Sales',
     items: [
-      { name: 'Quotations', icon: 'description', href: '/quotations', module: 'quotations' },
-      { name: 'Sales Orders', icon: 'shopping_cart', href: '/sales-orders', module: 'sales-orders' },
-      { name: 'Invoices', icon: 'receipt', href: '/invoices', module: 'invoices' },
-      { name: 'Payments', icon: 'account_balance_wallet', href: '/payments', module: 'payments' },
-    ]
+      { name: 'Quotations', icon: CircleDollarSign, href: '/quotations', module: 'quotations' },
+      { name: 'Sales Orders', icon: ShoppingCart, href: '/sales-orders', module: 'sales-orders' },
+      { name: 'Invoices', icon: ReceiptText, href: '/invoices', module: 'invoices' },
+      { name: 'Payments', icon: HandCoins, href: '/payments', module: 'payments' },
+    ],
   },
   {
     category: 'Inventory',
     items: [
-      { name: 'Catalogue', icon: 'layers', href: '/catalogue', module: 'catalogue' },
-      { name: 'Pricing Rules', icon: 'sell', href: '/pricing-rules', module: 'pricing-rules' },
-    ]
+      { name: 'Catalogue', icon: Layers3, href: '/catalogue', module: 'catalogue' },
+      { name: 'Pricing Rules', icon: Settings, href: '/pricing-rules', module: 'pricing-rules' },
+    ],
   },
   {
     category: 'Operations',
     items: [
-      { name: 'Projects', icon: 'folder_open', href: '/projects', module: 'projects' },
-      { name: 'Bookings', icon: 'calendar_today', href: '/bookings', module: 'bookings' },
-      { name: 'Inspections', icon: 'fact_check', href: '/inspections', module: 'inspections' },
-      { name: 'Operators', icon: 'account_circle', href: '/operators', module: 'operators' },
-    ]
+      { name: 'Projects', icon: FolderOpen, href: '/projects', module: 'projects' },
+      { name: 'Bookings', icon: CalendarCheck2, href: '/bookings', module: 'bookings' },
+      { name: 'Inspections', icon: ClipboardCheck, href: '/inspections', module: 'inspections' },
+      { name: 'Operators', icon: Users, href: '/operators', module: 'operators' },
+    ],
   },
   {
     category: 'Management',
     items: [
-      { name: 'Team', icon: 'group_work', href: '/team', module: 'team' },
-      { name: 'Settings', icon: 'settings', href: '/settings', module: 'settings' },
-      { name: 'Agent Inbox', icon: 'inbox', href: '/agent', module: 'agent-inbox' },
-      { name: 'AI Agent', icon: 'smart_toy', href: '/agents', module: 'agents' },
-    ]
-  }
+      { name: 'Team', icon: Building2, href: '/team', module: 'team' },
+      { name: 'Settings', icon: Settings, href: '/settings', module: 'settings' },
+      { name: 'Agent Inbox', icon: Inbox, href: '/agent', module: 'agent-inbox' },
+      { name: 'AI Agent', icon: Bot, href: '/agents', module: 'agents' },
+    ],
+  },
 ]
 
-function SidebarContent() {
+function initialsFromProfile(profile: UserProfile | null): string {
+  if (!profile?.fullName) return 'NU'
+  return profile.fullName
+    .split(' ')
+    .map((chunk) => chunk[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function SidebarNav({
+  collapsed,
+  onNavigate,
+}: {
+  collapsed: boolean
+  onNavigate?: () => void
+}) {
   const pathname = usePathname()
   const { roles, loading } = useUser()
   const [pendingAgentActions, setPendingAgentActions] = useState<number>(0)
@@ -73,13 +127,8 @@ function SidebarContent() {
           return
         }
 
-        const data = await response.json() as { total?: number; items?: unknown[] }
-        const total = typeof data.total === 'number'
-          ? data.total
-          : Array.isArray(data.items)
-            ? data.items.length
-            : 0
-
+        const data = (await response.json()) as { total?: number; items?: unknown[] }
+        const total = typeof data.total === 'number' ? data.total : Array.isArray(data.items) ? data.items.length : 0
         if (active) setPendingAgentActions(total)
       } catch {
         if (active) setPendingAgentActions(0)
@@ -88,123 +137,211 @@ function SidebarContent() {
 
     loadPendingCount()
     const timer = setInterval(loadPendingCount, 30000)
-
     return () => {
       active = false
       clearInterval(timer)
     }
   }, [loading, roles])
 
-  // Filter navigation items based on user roles
   const filteredNavigationConfig = useMemo(() => {
-    if (loading) return navigationConfig // Show all while loading
-
-    return navigationConfig.map(section => ({
-      ...section,
-      items: section.items.filter(item =>
-        canAccessModule(item.module, roles)
-      )
-    })).filter(section => section.items.length > 0) // Remove empty sections
-  }, [roles, loading])
+    if (loading) return navigationConfig
+    return navigationConfig
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => canAccessModule(item.module, roles)),
+      }))
+      .filter((section) => section.items.length > 0)
+  }, [loading, roles])
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-[#0B0E14] flex flex-col border-r border-white/5 shadow-2xl will-change-transform">
-      {/* Logo Area — links to marketing site, not the app */}
-      <div className="p-6 pb-8">
-        <a
-          href={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}`}
-          className="flex items-center space-x-3 group transition-transform duration-150 ease-out hover:translate-x-0.5"
-          aria-label="Go to Avariq home"
-        >
-          <div className="w-9 h-9 bg-[#FACC15] rounded flex items-center justify-center transition-all duration-150 ease-out group-hover:scale-[1.03] group-hover:opacity-90">
-            <span className="material-symbols-outlined !text-black !font-bold text-[20px]" style={{ fontVariationSettings: "'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 24" }}>
-              grid_view
-            </span>
-          </div>
-          <span className="text-xl font-bold tracking-tight text-white uppercase">AVARIQ</span>
-        </a>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto sidebar-scroll pb-6">
-        {filteredNavigationConfig.map((section, sectionIndex) => (
-          <div key={sectionIndex} className={sectionIndex === 0 ? 'mt-2' : 'mt-8'}>
-            {/* Category Header */}
-            <p className="px-6 text-[10px] font-bold text-[#6B7280] uppercase tracking-widest mb-3">
+    <nav className="flex-1 overflow-y-auto px-3 py-4">
+      {filteredNavigationConfig.map((section) => (
+        <div key={section.category} className="mb-5">
+          {!collapsed && (
+            <p className="mb-2 px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {section.category}
             </p>
+          )}
+          <ul className="space-y-1">
+            {section.items.map((item) => {
+              const Icon = item.icon
+              const isActive =
+                pathname === item.href ||
+                (item.href !== '/dashboard' && item.href !== '/crm' && pathname.startsWith(`${item.href}/`))
 
-            {/* Category Items */}
-            <ul className="space-y-1">
-              {section.items.map((item, itemIndex) => {
-                // Active route detection
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/dashboard' && item.href !== '/crm' && pathname.startsWith(item.href + '/'))
-
-                return (
-                  <li key={itemIndex}>
-                    <Link
-                      href={item.href}
-                      className={`
-                        flex items-center space-x-3 px-6 py-2.5 relative
-                        transition-[background-color,color,transform] duration-150 ease-out will-change-transform
-                        ${isActive
-                          ? 'bg-[#1F232B] text-white'
-                          : 'text-[#9CA3AF] hover:text-white hover:bg-white/5'
-                        }
-                      `}
-                    >
-                      {/* Active indicator line */}
-                      {isActive && (
-                        <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#3B82F6]"></span>
-                      )}
-
-                      <span
-                        className="material-symbols-outlined text-[20px] transition-transform duration-150 ease-out group-hover:translate-x-0.5"
-                        style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24" }}
-                      >
-                        {item.icon}
-                      </span>
-                      <span className="text-[14px] font-medium">{item.name}</span>
-                      {item.href === '/agent' && pendingAgentActions > 0 && (
-                        <span className="ml-auto rounded-full bg-[#1E40AF] px-2 py-0.5 text-[10px] font-semibold text-white">
-                          {pendingAgentActions > 99 ? '99+' : pendingAgentActions}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
-
-      {/* Footer */}
-      <div className="p-6 border-t border-white/5">
-        <p className="text-[9px] font-bold text-[#6B7280] uppercase tracking-[2px]">
-          Powered by AvarIQ
-        </p>
-      </div>
-
-      <style jsx>{`
-        .sidebar-scroll::-webkit-scrollbar {
-          width: 4px;
-        }
-        .sidebar-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .sidebar-scroll::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
-        }
-      `}</style>
-    </aside>
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onNavigate}
+                    className={cn(
+                      'group flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                      collapsed && 'justify-center px-2',
+                      isActive && 'bg-accent text-accent-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!collapsed && <span className="truncate">{item.name}</span>}
+                    {!collapsed && item.href === '/agent' && pendingAgentActions > 0 && (
+                      <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px]">
+                        {pendingAgentActions > 99 ? '99+' : pendingAgentActions}
+                      </Badge>
+                    )}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
+    </nav>
   )
 }
 
-// Main Sidebar Component (Desktop Only - matching HTML which is desktop-first)
+function SidebarUser({ collapsed }: { collapsed: boolean }) {
+  const router = useRouter()
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  useEffect(() => {
+    getUserProfile().then(setProfile).catch(() => setProfile(null))
+  }, [])
+
+  async function handleLogout() {
+    setLoggingOut(true)
+    try {
+      await logoutUser()
+      await signOut({ redirect: false })
+    } finally {
+      router.push('/login')
+      setLoggingOut(false)
+    }
+  }
+
+  return (
+    <div className="border-t border-border p-3">
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            className={cn(
+              'flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-muted',
+              collapsed && 'justify-center px-1'
+            )}
+          >
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-muted text-xs font-medium text-foreground">
+                {initialsFromProfile(profile)}
+              </AvatarFallback>
+            </Avatar>
+            {!collapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium leading-tight text-foreground">
+                  {profile?.fullName || 'Nexus User'}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {profile?.role || 'Team Member'}
+                </p>
+              </div>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-56 rounded-xl border border-border bg-popover p-2 shadow-none">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-sm"
+            onClick={() => router.push('/settings')}
+          >
+            Settings
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-sm"
+            onClick={() => router.push('/team')}
+          >
+            Team
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-sm text-destructive hover:text-destructive"
+            onClick={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? 'Signing out...' : 'Sign out'}
+          </Button>
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
 export function AppSidebar() {
-  return <SidebarContent />
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY)
+    if (stored === '1') setCollapsed(true)
+  }, [])
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev
+      localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? '1' : '0')
+      return next
+    })
+  }
+
+  return (
+    <>
+      <div
+        className={cn(
+          'hidden h-screen shrink-0 border-r border-border bg-background md:flex md:flex-col',
+          collapsed ? 'w-16' : 'w-60'
+        )}
+      >
+        <div className="flex h-14 items-center justify-between border-b border-border px-3">
+          <Link href="/dashboard" className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Building2 className="h-4 w-4" />
+            </div>
+            {!collapsed && <span className="text-sm font-medium">Nexus ERP</span>}
+          </Link>
+          {!collapsed && (
+            <Button size="icon-sm" variant="ghost" onClick={toggleCollapsed} className="h-7 w-7">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
+          {collapsed && (
+            <Button size="icon-sm" variant="ghost" onClick={toggleCollapsed} className="h-7 w-7">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <SidebarNav collapsed={collapsed} />
+        <SidebarUser collapsed={collapsed} />
+      </div>
+
+      <div className="fixed left-3 top-3 z-40 md:hidden">
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger asChild>
+            <Button size="icon" variant="outline" className="h-9 w-9 border-border bg-background">
+              <Menu className="h-4 w-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-60 border-r border-border p-0">
+            <SheetHeader className="h-14 border-b border-border px-3">
+              <SheetTitle className="flex items-center gap-2 text-sm font-medium">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                Nexus ERP
+              </SheetTitle>
+            </SheetHeader>
+            <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
+            <SidebarUser collapsed={false} />
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
+  )
 }

@@ -21,15 +21,16 @@ export function DashboardCharts({ revenueData, recentActivity }: { revenueData: 
         <CardContent className="pl-2">
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={revenueData}>
+              <CartesianGrid stroke="hsl(var(--muted-foreground) / 0.3)" vertical={false} />
               <XAxis
                 dataKey="name"
-                stroke="#888888"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                stroke="#888888"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -37,7 +38,7 @@ export function DashboardCharts({ revenueData, recentActivity }: { revenueData: 
               />
               <Tooltip 
                 cursor={{fill: 'transparent'}}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: 'none' }}
               />
               <Bar
                 dataKey="total"

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import { Building2, Mail, Lock, Box, Loader2, User, ArrowUpRight } from 'lucide-react'
+import { Building2, Mail, Lock, Loader2, User } from 'lucide-react'
 
 export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -28,38 +28,19 @@ export default function SignupPage() {
   }
 
   return (
-    <div suppressHydrationWarning className="min-h-screen flex items-center justify-center bg-[#050505] p-4 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-      />
-
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-500">
-              <Box className="w-[18px] h-[18px] text-white" />
+    <div suppressHydrationWarning className="min-h-screen bg-muted/40 px-4 py-8">
+      <div className="mx-auto flex min-h-[80vh] w-full max-w-md items-center">
+        <div className="w-full rounded-xl border border-border bg-card p-6 md:p-8">
+          <Link href="/" className="mb-6 flex items-center justify-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Building2 className="h-4 w-4" />
             </div>
-            <span className="font-bold tracking-tight text-lg text-white">
-              nexus<span className="text-white/20">erp</span>
-            </span>
+            <span className="text-base font-medium text-foreground">Nexus ERP</span>
           </Link>
-        </div>
 
-        {/* Card */}
-        <div className="bg-[#0A0A0A] border border-white/10 p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-white tracking-tight mb-2">Create your workspace</h1>
-            <p className="text-sm text-neutral-500">
-              Get started with your own instance in minutes
-            </p>
+          <div className="mb-6 text-center">
+            <h1 className="text-xl font-medium text-foreground">Create your workspace</h1>
+            <p className="text-sm text-muted-foreground">Get started in minutes with a new organization.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -72,7 +53,7 @@ export default function SignupPage() {
             <input type="hidden" name="plan" value="Free" />
 
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Full Name</Label>
+              <Label htmlFor="fullName">Full Name</Label>
               <div className="relative">
                 <Input
                   id="fullName"
@@ -80,14 +61,14 @@ export default function SignupPage() {
                   placeholder="John Doe"
                   required
                   disabled={isLoading}
-                  className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
+                  className="h-10 pr-10"
                 />
-                <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-600" />
+                <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="organizationName" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Organization</Label>
+              <Label htmlFor="organizationName">Organization</Label>
               <div className="relative">
                 <Input
                   id="organizationName"
@@ -95,15 +76,15 @@ export default function SignupPage() {
                   placeholder="Acme Corporation"
                   required
                   disabled={isLoading}
-                  className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
+                  className="h-10 pr-10"
                 />
-                <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-600" />
+                <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
-              <p className="text-[10px] text-neutral-600 font-mono">Your subdomain will be generated from this name</p>
+              <p className="text-[11px] text-muted-foreground">Your subdomain is generated from this name.</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Admin Email</Label>
+              <Label htmlFor="email">Admin Email</Label>
               <div className="relative">
                 <Input
                   id="email"
@@ -112,14 +93,14 @@ export default function SignupPage() {
                   placeholder="admin@acmecorp.com"
                   required
                   disabled={isLoading}
-                  className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
+                  className="h-10 pr-10"
                 />
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-600" />
+                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs font-mono text-neutral-400 uppercase tracking-wider">Password</Label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -129,16 +110,16 @@ export default function SignupPage() {
                   required
                   disabled={isLoading}
                   minLength={8}
-                  className="w-full bg-[#111] border-white/10 text-white placeholder:text-neutral-600 pr-10 py-5 rounded-none focus:border-orange-500 focus:ring-orange-500/20"
+                  className="h-10 pr-10"
                 />
-                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-600" />
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
-              <p className="text-[10px] text-neutral-600 font-mono">At least 8 characters</p>
+              <p className="text-[11px] text-muted-foreground">At least 8 characters.</p>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-white hover:bg-neutral-200 text-black py-6 rounded-none font-semibold tracking-tight transition-colors disabled:opacity-50"
+              className="h-10 w-full"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -149,24 +130,14 @@ export default function SignupPage() {
               ) : (
                 <span className="flex items-center gap-2">
                   Start Free Trial
-                  <ArrowUpRight className="w-4 h-4" />
                 </span>
               )}
             </Button>
 
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/5" />
-              </div>
-              <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
-                <span className="bg-[#0A0A0A] px-3 text-neutral-600 font-mono">Or</span>
-              </div>
-            </div>
-
             <Button
               variant="outline"
               type="button"
-              className="w-full bg-[#111] border-white/10 text-white py-5 rounded-none font-medium hover:bg-white/5 transition-colors"
+              className="h-10 w-full"
               onClick={() => signIn('google')}
               disabled={isLoading}
             >
@@ -176,20 +147,13 @@ export default function SignupPage() {
               Sign up with Google
             </Button>
 
-            <div className="text-center text-xs text-neutral-500 font-mono mt-4">
+            <div className="text-center text-sm text-muted-foreground mt-4">
               Already have an account?{' '}
-              <Link href="/login" className="text-orange-500 hover:text-orange-400 transition-colors">
+              <Link href="/login" className="font-medium text-foreground hover:underline">
                 Sign in
               </Link>
             </div>
           </form>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-6 text-center">
-          <p className="text-[10px] text-neutral-600 font-mono uppercase tracking-wider">
-            © 2026 Avariq • SOC-2 Compliant
-          </p>
         </div>
       </div>
     </div>
