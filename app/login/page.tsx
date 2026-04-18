@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { loginUser } from '@/app/actions/user-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Building2 } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const searchParams = useSearchParams()
   const [loginError, setLoginError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -126,5 +126,23 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div suppressHydrationWarning className="min-h-screen bg-muted/40 px-4 py-8">
+          <div className="mx-auto flex min-h-[80vh] w-full max-w-md items-center">
+            <div className="w-full rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground md:p-8">
+              Loading login...
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   )
 }
