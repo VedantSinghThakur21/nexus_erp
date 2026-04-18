@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canAccessModule, canPerformAction } from '@/lib/role-permissions'
-import { tenantAdminRequest } from '@/app/lib/api'
+import { getTenantContext, tenantAdminRequest } from '@/app/lib/api'
 
 
 /**
@@ -74,13 +74,51 @@ async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
     }) as any[]
 
     if (Array.isArray(roleRows)) {
-      return roleRows
+      const roles = roleRows
         .map(r => r?.role)
         .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
+
+      if (roles.length > 0) {
+        return roles
+      }
     }
   } catch (error) {
-    console.error(`[API Auth] Failed to fetch roles for ${userEmail}:`, error)
+    const message = String((error as Error)?.message || '')
+    const isPermissionError = message.includes('PermissionError')
+
+    if (!isPermissionError) {
+      console.error(`[API Auth] Failed to fetch roles for ${userEmail}:`, error)
+    }
+
+    if (isPermissionError) {
+      try {
+        const context = await getTenantContext()
+        if (context.subdomain) {
+          const { getUserRoles } = await import('@/lib/provisioning-client')
+          const provRoleData = await getUserRoles(context.subdomain, userEmail)
+          if (Array.isArray(provRoleData.roles)) {
+            return provRoleData.roles.filter((r): r is string => typeof r === 'string' && r !== 'All')
+          }
+        }
+      } catch (fallbackError) {
+        console.error(`[API Auth] Provisioning fallback failed for ${userEmail}:`, fallbackError)
+      }
+    }
   }
+
+  try {
+    const context = await getTenantContext()
+    if (context.subdomain) {
+      const { getUserRoles } = await import('@/lib/provisioning-client')
+      const provRoleData = await getUserRoles(context.subdomain, userEmail)
+      if (Array.isArray(provRoleData.roles)) {
+        return provRoleData.roles.filter((r): r is string => typeof r === 'string' && r !== 'All')
+      }
+    }
+  } catch {
+    // Return least-privileged default when role lookup fails.
+  }
+
   return []
 }
 
