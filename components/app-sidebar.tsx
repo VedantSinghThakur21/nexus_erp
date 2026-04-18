@@ -22,6 +22,8 @@ import {
   ReceiptText,
   Settings,
   ShoppingCart,
+  Sun,
+  Moon,
   Users,
 } from 'lucide-react'
 import { useUser } from '@/contexts/user-context'
@@ -144,7 +146,7 @@ function SidebarNav({
   }, [loading, roles])
 
   const filteredNavigationConfig = useMemo(() => {
-    if (loading) return navigationConfig
+    if (loading) return []
     return navigationConfig
       .map((section) => ({
         ...section,
@@ -202,10 +204,27 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
     getUserProfile().then(setProfile).catch(() => setProfile(null))
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const saved = localStorage.getItem('nexus.theme')
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const shouldUseDark = saved ? saved === 'dark' : prefersDark
+    document.documentElement.classList.toggle('dark', shouldUseDark)
+    setIsDarkMode(shouldUseDark)
+  }, [])
+
+  function toggleTheme() {
+    const next = !isDarkMode
+    setIsDarkMode(next)
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem('nexus.theme', next ? 'dark' : 'light')
+  }
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -259,6 +278,14 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
             onClick={() => router.push('/team')}
           >
             Team
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-sm"
+            onClick={toggleTheme}
+          >
+            {isDarkMode ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+            {isDarkMode ? 'Light mode' : 'Dark mode'}
           </Button>
           <Button
             variant="ghost"

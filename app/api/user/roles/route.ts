@@ -3,8 +3,7 @@
  *
  * Fetches current user's roles from Frappe ERPNext backend.
  * Uses multiple fallback strategies:
- *   1. frappe.auth.get_roles (current authenticated user)
- *   2. tenantAdminRequest → frappe.client.get_list on Has Role
+ *   1. tenantAdminRequest → frappe.client.get_list on Has Role
  *   2. role_profile_name mapping
  *   3. Provisioning service (ignore_permissions) as last resort
  *
@@ -15,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { frappeRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
+import { frappeRequest, getTenantContext, tenantAdminRequest } from '@/app/lib/api'
 import { requireAuth } from '@/app/api/_lib/auth'
 
 const PROFILE_ROLES: Record<string, string[]> = {
@@ -74,47 +73,31 @@ export async function GET(_request: NextRequest) {
       throw new Error('No user logged in')
     }
 
-    // ── Step 2: Fetch roles via whitelisted auth method ──────────────────────
+    // ── Step 2: Fetch roles from Has Role child table ────────────────────────
     let roles: string[] = []
     let roleProfileName: string | null = null
 
     try {
-      const authRoles = await frappeRequest('frappe.auth.get_roles', 'GET') as any
-      const normalizedRoles = Array.isArray(authRoles?.message) ? authRoles.message : authRoles
-      if (Array.isArray(normalizedRoles)) {
-        roles = normalizedRoles.filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
-      }
-    } catch (authRolesErr: any) {
-      const message = String(authRolesErr?.message || 'Unknown error')
-      if (shouldLogRoleApi(`auth-get-roles:${userEmail}:${message}`, 5 * 60 * 1000)) {
-        console.warn(`[/api/user/roles] frappe.auth.get_roles failed for ${userEmail}:`, message)
-      }
-    }
+      const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Has Role',
+        fields: ['role'],
+        filters: [['parent', '=', userEmail], ['parenttype', '=', 'User']],
+        limit_page_length: 200,
+      }) as any[]
 
-    // ── Step 2b: Fallback to Has Role child table (avoids frappe.client.get) ─
-    if (roles.length === 0) {
-      try {
-        const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Has Role',
-          fields: ['role'],
-          filters: [['parent', '=', userEmail], ['parenttype', '=', 'User']],
-          limit_page_length: 200,
-        }) as any[]
-
-        if (Array.isArray(roleRows)) {
-          roles = roleRows
-            .map((row: any) => row?.role)
-            .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
-        }
-      } catch (rolesListErr: any) {
-        const message = String(rolesListErr?.message || 'Unknown error')
-        if (shouldLogRoleApi(`roles-list-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
-          console.warn(`[/api/user/roles] Has Role fallback failed for ${userEmail}:`, message)
-        }
+      if (Array.isArray(roleRows)) {
+        roles = roleRows
+          .map((row: any) => row?.role)
+          .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
+      }
+    } catch (rolesListErr: any) {
+      const message = String(rolesListErr?.message || 'Unknown error')
+      if (shouldLogRoleApi(`roles-list-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
+        console.warn(`[/api/user/roles] Has Role lookup failed for ${userEmail}:`, message)
       }
     }
 
-    // ── Step 2c: Optional role profile fetch via get_value ───────────────────
+    // ── Step 2b: Optional role profile fetch via get_value ───────────────────
     if (!roleProfileName) {
       try {
         const profile = await tenantAdminRequest('frappe.client.get_value', 'GET', {
@@ -168,14 +151,13 @@ export async function GET(_request: NextRequest) {
     }
 
     // ── Step 5: Absolute last resort ─────────────────────────────────────────
-    // Give minimum access so the UI doesn't fully break, but log loudly.
+    // Return no roles if all strategies fail (do not over-grant fallback access).
     if (roles.length === 0) {
       console.error(
         `[/api/user/roles] ⚠️  ALL role-fetch strategies failed for ${userEmail}. ` +
-        `Defaulting to ['Sales User']. Check that the user exists on the tenant site ` +
+        `Returning empty role set. Check that the user exists on the tenant site ` +
         `and that PROVISIONING_SERVICE_URL is reachable.`
       )
-      roles = ['Sales User']
     }
 
     return NextResponse.json(

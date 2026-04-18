@@ -90,13 +90,17 @@ export function FloatingAIChat() {
   return (
     <>
       {/* Floating Button */}
+      <div className="pointer-events-none fixed bottom-5 right-5 h-16 w-16 rounded-full bg-blue-500/20 blur-md animate-pulse z-40" />
       <Button
         onClick={() => setOpen(true)}
         aria-label="Open chat"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl z-50 bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 hover:from-blue-700 hover:via-blue-600 hover:to-purple-700 border-0 transition-all duration-300 hover:scale-110"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl z-50 bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 hover:from-blue-700 hover:via-blue-600 hover:to-purple-700 border border-blue-300/30 ring-2 ring-blue-400/30 transition-all duration-300 hover:scale-110"
         size="icon"
       >
         <Sparkles className="h-6 w-6 text-white" />
+        <span className="absolute -top-1 -right-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold text-slate-900 border border-amber-200">
+          AI
+        </span>
       </Button>
 
       {/* Chat Sheet */}

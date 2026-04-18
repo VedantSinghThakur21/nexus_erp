@@ -311,7 +311,10 @@ export function AICrmInsights({
   ]
 
   return (
-    <div className="bg-[#111827] rounded-2xl border border-slate-800 shadow-xl p-5 h-full flex flex-col w-full">
+    <div className="relative bg-[#111827] rounded-2xl border border-blue-500/30 shadow-xl p-5 h-full flex flex-col w-full ring-1 ring-blue-500/20">
+      <span className="absolute right-4 top-3 rounded-full bg-blue-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-blue-300 border border-blue-500/30">
+        AI Priority
+      </span>
       <Header isActive={!!insights} />
 
       {/* Error banner */}

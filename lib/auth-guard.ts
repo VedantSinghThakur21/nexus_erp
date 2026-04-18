@@ -148,12 +148,6 @@ export async function getUserRoles(userEmail?: string): Promise<string[]> {
   }
   
   try {
-    const authRolesResponse = await frappeRequest('frappe.auth.get_roles', 'GET') as any
-    const authRoles = Array.isArray(authRolesResponse?.message) ? authRolesResponse.message : authRolesResponse
-    if (Array.isArray(authRoles) && authRoles.length > 0) {
-      return authRoles.filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
-    }
-
     const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Has Role',
       fields: ['role'],

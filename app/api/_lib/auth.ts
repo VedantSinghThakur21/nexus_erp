@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canAccessModule, canPerformAction } from '@/lib/role-permissions'
-import { frappeRequest, tenantAdminRequest } from '@/app/lib/api'
+import { tenantAdminRequest } from '@/app/lib/api'
 
 
 /**
@@ -62,17 +62,10 @@ export async function requireAuth(): Promise<AuthResult> {
 /**
  * Fetch user roles from the current tenant's Frappe site.
  *
- * Uses whitelisted `frappe.auth.get_roles` first, then falls back to Has Role
- * list query for resilience on restricted Frappe setups.
+ * Uses Has Role child-table query for broad Frappe compatibility.
  */
 async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
   try {
-    const authRolesResponse = await frappeRequest('frappe.auth.get_roles', 'GET') as any
-    const authRoles = Array.isArray(authRolesResponse?.message) ? authRolesResponse.message : authRolesResponse
-    if (Array.isArray(authRoles) && authRoles.length > 0) {
-      return authRoles.filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
-    }
-
     const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Has Role',
       fields: ['role'],
