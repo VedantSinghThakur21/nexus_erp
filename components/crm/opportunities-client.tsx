@@ -7,6 +7,8 @@ import { Search, Filter, Grid, List as ListIcon, ArrowRight, TrendingUp, DollarS
 import { updateOpportunitySalesStage } from "@/app/actions/crm"
 import { PageHeader } from "@/components/page-header"
 import { useUser } from "@/contexts/user-context"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface Opportunity {
   name: string
@@ -159,22 +161,22 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950">
+    <div className="app-shell">
       {/* Header */}
       <PageHeader />
 
-      <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
+      <main className="app-content mx-auto w-full max-w-[1600px]">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Open Opportunities</span>
+              <span className="text-[13px] font-medium text-muted-foreground">Open Opportunities</span>
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
                 <TrendingUp className="h-5 w-5" />
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <span className="text-[28px] font-bold text-white leading-none">{totalOpenOpportunities}</span>
+              <span className="text-2xl font-medium text-foreground leading-none">{totalOpenOpportunities}</span>
               <span className="text-sm font-semibold text-blue-400 mb-1">+12%</span>
             </div>
             <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -182,15 +184,15 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
             </div>
           </div>
 
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Won This Month</span>
+              <span className="text-[13px] font-medium text-muted-foreground">Won This Month</span>
               <div className="p-2 rounded-lg bg-green-500/10 text-green-400">
                 <DollarSign className="h-5 w-5" />
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <span className="text-[28px] font-bold text-white leading-none">{wonThisMonth}</span>
+              <span className="text-2xl font-medium text-foreground leading-none">{wonThisMonth}</span>
               <span className="text-sm font-semibold text-emerald-400 mb-1">Target: 40</span>
             </div>
             <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -198,15 +200,15 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
             </div>
           </div>
 
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Avg. Probability</span>
+              <span className="text-[13px] font-medium text-muted-foreground">Avg. Probability</span>
               <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-400">
                 <Zap className="h-5 w-5" />
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <span className="text-[28px] font-bold text-white leading-none">{avgProbability}%</span>
+              <span className="text-2xl font-medium text-foreground leading-none">{avgProbability}%</span>
               <span className="text-sm font-semibold text-slate-400 mb-1">AI Rating</span>
             </div>
             <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -237,18 +239,18 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
           <div className="flex items-center space-x-4 pb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
-              <input
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg h-10 pl-10 pr-3 text-sm outline-none w-64 font-medium text-slate-600 dark:text-slate-300 placeholder:text-slate-400"
+              <Input
+                className="h-10 w-64 pl-10"
                 placeholder="Search deals..."
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="flex items-center h-10 space-x-2 text-sm font-medium px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300">
+            <Button variant="outline" className="h-10">
               <Filter className="h-4 w-4 text-slate-500" />
               <span>Filter</span>
-            </button>
+            </Button>
             <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-700 h-10 items-center">
               <button
                 onClick={() => setViewMode("list")}
@@ -420,7 +422,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {wonOpportunities.slice(0, 3).map((opp) => (
               <Link key={opp.name} href={`/crm/opportunities/${opp.name}`}>
-                <div className="bg-[#111827] rounded-xl p-6 flex items-center justify-between border border-transparent hover:border-green-500/30 transition-all cursor-pointer group">
+                <div className="rounded-xl border border-border bg-card p-6 flex items-center justify-between hover:border-emerald-500/30 transition-all cursor-pointer group">
                   <div className="flex items-center space-x-5">
                     <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 group-hover:bg-green-500/20 transition-colors">
                       <DollarSign className="h-6 w-6" />

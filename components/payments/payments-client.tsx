@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { AIFraudCheck } from "@/components/payments/ai-fraud-check"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface PaymentEntry {
   name: string
@@ -112,108 +114,106 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="app-shell flex flex-col">
       {/* Header */}
       <PageHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex-1 p-8 max-w-[1600px] mx-auto w-full">
-        <div className="mb-8">
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Payment Entries</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Enterprise-grade transaction management powered by real-time neural auditing.</p>
+      <main className="app-content mx-auto w-full max-w-[1600px] space-y-6">
+        <div className="border-b border-border pb-6">
+          <h1 className="text-xl font-semibold text-foreground">Payment Entries</h1>
+          <p className="text-sm text-muted-foreground mt-1">Enterprise-grade transaction management with real-time checks.</p>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Total Payments */}
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Total Payments</span>
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+              <span className="text-[13px] font-medium text-muted-foreground">Total Payments</span>
+              <div className="p-2 rounded-lg bg-blue-100 text-blue-700">
                 <span className="material-symbols-outlined text-xl">receipt_long</span>
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <span className="text-[28px] font-bold text-white leading-none">{totalPayments}</span>
-              <span className="text-sm font-semibold text-green-400 mb-1 flex items-center gap-0.5">
+              <span className="text-2xl font-medium text-foreground leading-none">{totalPayments}</span>
+              <span className="text-sm font-medium text-emerald-600 mb-1 flex items-center gap-0.5">
                 <span className="material-symbols-outlined text-xs">trending_up</span>+5.2%
               </span>
             </div>
-            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-blue-500 w-[72%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
             </div>
           </div>
 
           {/* Total Amount */}
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Total Amount</span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <span className="text-[13px] font-medium text-muted-foreground">Total Amount</span>
+              <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700">
                 <span className="material-symbols-outlined text-xl">payments</span>
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <span className="text-[28px] font-bold text-white leading-none">{formatCurrency(totalAmount)}</span>
-              <span className="text-sm font-semibold text-slate-400 mb-1">Settled Oct 2025</span>
+              <span className="text-2xl font-medium text-foreground leading-none">{formatCurrency(totalAmount)}</span>
+              <span className="text-sm font-medium text-muted-foreground mb-1">Settled Oct 2025</span>
             </div>
-            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-emerald-500 w-[45%] rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
             </div>
           </div>
 
           {/* Received */}
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Received</span>
-              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+              <span className="text-[13px] font-medium text-muted-foreground">Received</span>
+              <div className="p-2 rounded-lg bg-indigo-100 text-indigo-700">
                 <span className="material-symbols-outlined text-xl">input</span>
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <span className="text-[28px] font-bold text-white leading-none">{receivePayments.length}</span>
-              <span className="text-sm font-semibold text-slate-400 mb-1">Net Inflow</span>
+              <span className="text-2xl font-medium text-foreground leading-none">{receivePayments.length}</span>
+              <span className="text-sm font-medium text-muted-foreground mb-1">Net Inflow</span>
             </div>
-            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-indigo-500 w-[85%] rounded-full shadow-[0_0_8px_rgba(99,102,241,0.5)]"></div>
             </div>
           </div>
 
           {/* Paid Out */}
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Paid Out</span>
-              <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
+              <span className="text-[13px] font-medium text-muted-foreground">Paid Out</span>
+              <div className="p-2 rounded-lg bg-orange-100 text-orange-700">
                 <span className="material-symbols-outlined text-xl">outbox</span>
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <span className="text-[28px] font-bold text-white leading-none">{payPayments.length}</span>
-              <span className="text-sm font-semibold text-red-400 mb-1 flex items-center gap-0.5">
+              <span className="text-2xl font-medium text-foreground leading-none">{payPayments.length}</span>
+              <span className="text-sm font-medium text-red-600 mb-1 flex items-center gap-0.5">
                 <span className="material-symbols-outlined text-xs">trending_down</span>2.1%
               </span>
             </div>
-            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-orange-500 w-[20%] rounded-full shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
             </div>
           </div>
         </div>
 
-        {/* Payments Table */}
-        <div className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-navy-900">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border p-6">
             <div>
-              <h2 className="font-bold text-lg text-slate-900 dark:text-white">All Payment Entries</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Real-time ledger of verified organizational transactions</p>
+              <h2 className="text-base font-medium text-foreground">All Payment Entries</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">Real-time ledger of verified organizational transactions</p>
             </div>
             <div className="flex space-x-3">
-              <div className="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+              <div className="flex overflow-hidden rounded-md border border-border">
                 <button
                   onClick={() => setActiveTab("ALL")}
                   className={`px-4 py-2 text-xs font-bold transition-colors ${activeTab === "ALL"
-                      ? "bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      ? "bg-muted border-r border-border text-foreground"
+                      : "text-muted-foreground hover:bg-muted"
                     }`}
                 >
                   ALL
@@ -221,8 +221,8 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                 <button
                   onClick={() => setActiveTab("PENDING")}
                   className={`px-4 py-2 text-xs font-bold transition-colors ${activeTab === "PENDING"
-                      ? "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted"
                     }`}
                 >
                   PENDING
@@ -230,27 +230,27 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                 <button
                   onClick={() => setActiveTab("ERROR")}
                   className={`px-4 py-2 text-xs font-bold transition-colors ${activeTab === "ERROR"
-                      ? "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted"
                     }`}
                 >
                   ERROR
                 </button>
               </div>
-              <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold flex items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+              <Button variant="outline" className="h-8 px-3 text-xs">
                 <span className="material-symbols-outlined text-[18px] mr-2">filter_list</span> Filter
-              </button>
-              <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold flex items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+              </Button>
+              <Button variant="outline" className="h-8 px-3 text-xs">
                 <span className="material-symbols-outlined text-[18px] mr-2">file_download</span> Export
-              </button>
+              </Button>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[1000px]">
               <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                  <th className="text-[12px] font-bold uppercase tracking-wider text-slate-500 py-4 px-6">Payment ID</th>
+                <tr className="bg-background border-y border-border">
+                  <th className="text-xs font-medium uppercase tracking-wide text-muted-foreground py-4 px-6">Payment ID</th>
                   <th className="text-[12px] font-bold uppercase tracking-wider text-slate-500 py-4 px-6">Date</th>
                   <th className="text-[12px] font-bold uppercase tracking-wider text-slate-500 py-4 px-6 min-w-[200px]">Party</th>
                   <th className="text-[12px] font-bold uppercase tracking-wider text-slate-500 py-4 px-6">Type</th>
@@ -261,7 +261,7 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                   <th className="text-[12px] font-bold uppercase tracking-wider text-slate-500 py-4 px-6 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border">
                 {paginatedPayments.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -276,12 +276,12 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
 
                     return (
                       <>
-                        <tr key={payment.name} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                        <tr key={payment.name} className="hover:bg-muted/50 transition-colors group">
                           <td className="px-6 py-4 text-sm font-semibold text-primary cursor-pointer hover:underline">
                             <Link href={`/payments/${payment.name}`}>{payment.name}</Link>
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{formatDate(payment.posting_date)}</td>
-                          <td className="px-6 py-4 text-[16px] font-medium text-slate-900 dark:text-white">{payment.party_name}</td>
+                          <td className="px-6 py-4 text-sm text-muted-foreground">{formatDate(payment.posting_date)}</td>
+                          <td className="px-6 py-4 text-[16px] font-medium text-foreground">{payment.party_name}</td>
                           <td className="px-6 py-4">
                             <span className={`px-2.5 py-1 text-[10px] font-extrabold rounded-md uppercase tracking-tight ${payment.payment_type === 'Receive'
                                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
@@ -290,8 +290,8 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                               {payment.payment_type}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{payment.mode_of_payment || '-'}</td>
-                          <td className={`px-6 py-4 text-[16px] font-medium text-right ${payment.docstatus === 2 ? 'opacity-50' : 'text-slate-900 dark:text-white'}`}>
+                          <td className="px-6 py-4 text-sm text-muted-foreground">{payment.mode_of_payment || '-'}</td>
+                          <td className={`px-6 py-4 text-[16px] font-medium text-right ${payment.docstatus === 2 ? 'opacity-50' : 'text-foreground'}`}>
                             {formatCurrency(payment.paid_amount || 0)}
                           </td>
                           <td className="px-6 py-4">
@@ -305,21 +305,21 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                           <td className="px-6 py-4 text-center">
                             <button
                               onClick={() => router.push(`/payments/${payment.name}`)}
-                              className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-md transition-all"
+                              className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-all"
                             >
                               <span className="material-symbols-outlined text-[20px]">visibility</span>
                             </button>
                           </td>
                         </tr>
                         {showAIInsight && (
-                          <tr className="bg-indigo-50/40 dark:bg-indigo-900/10 border-l-4 border-indigo-500">
+                          <tr className="bg-indigo-50/40 border-l-4 border-indigo-500">
                             <td className="px-6 py-2.5" colSpan={9}>
                               <div className="flex items-center space-x-3">
                                 <div className="flex -space-x-1">
                                   <span className="material-symbols-outlined text-indigo-500 text-[16px]">auto_awesome</span>
                                 </div>
-                                <span className="text-indigo-700 dark:text-indigo-400 text-[11px] font-semibold tracking-wide uppercase">AI Insight</span>
-                                <span className="text-slate-600 dark:text-slate-400 text-[13px]">
+                                <span className="text-indigo-700 text-[11px] font-semibold tracking-wide uppercase">AI Insight</span>
+                                <span className="text-muted-foreground text-[13px]">
                                   Payment successfully recorded and verified. Transaction pattern matches expected business flow.
                                 </span>
                               </div>
@@ -335,9 +335,9 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
           </div>
 
           {/* Pagination */}
-          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
-            <div className="flex items-center text-[12px] font-bold text-slate-500 uppercase tracking-wider">
-              Showing <span className="mx-1 text-slate-900 dark:text-white">{startIndex + 1} - {Math.min(endIndex, filteredPayments.length)}</span> of <span className="mx-1 text-slate-900 dark:text-white">{filteredPayments.length}</span> Entries
+          <div className="flex items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
+            <div className="flex items-center text-[12px] font-medium text-muted-foreground uppercase tracking-wide">
+              Showing <span className="mx-1 text-foreground">{startIndex + 1} - {Math.min(endIndex, filteredPayments.length)}</span> of <span className="mx-1 text-foreground">{filteredPayments.length}</span> Entries
             </div>
             <div className="flex items-center space-x-1">
               <button

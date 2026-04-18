@@ -170,7 +170,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
 
     // Empty cells for days before first day of month
     for (let i = 0; i < firstDayOfMonth; i++) {
-      cells.push(<div key={`empty-${i}`} className="calendar-cell bg-white dark:bg-[#1a2332] p-3 border-l-2 border-transparent"></div>)
+      cells.push(<div key={`empty-${i}`} className="calendar-cell bg-card p-3 border-l-2 border-transparent"></div>)
     }
 
     // Days of the month
@@ -182,7 +182,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
       cells.push(
         <div
           key={day}
-          className={`calendar-cell bg-white dark:bg-[#1a2332] p-3 text-sm border-l-2 ${isToday ? 'text-blue-500 font-semibold border-blue-500' : 'border-transparent'}`}
+          className={`calendar-cell bg-card p-3 text-sm border-l-2 ${isToday ? 'text-blue-500 font-semibold border-blue-500' : 'border-transparent'}`}
         >
           {day}
           <div className="mt-2 space-y-1">
@@ -205,53 +205,53 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+    <div className="app-shell text-foreground min-h-screen flex flex-col">
       {/* Header */}
       <PageHeader searchPlaceholder="Ask AI anything about your bookings..." />
 
       {/* Main Content */}
-      <div className="px-8 py-8 flex flex-col gap-8 max-w-[1920px] mx-auto w-full">
+      <div className="app-content mx-auto flex w-full max-w-[1920px] flex-col gap-8">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Rental Bookings Workspace</h1>
-          <p className="text-slate-500 dark:text-slate-400">Real-time scheduling intelligence and availability monitoring.</p>
+          <h1 className="text-xl font-semibold tracking-tight">Rental Bookings Workspace</h1>
+          <p className="text-sm text-muted-foreground">Real-time scheduling intelligence and availability monitoring.</p>
         </div>
 
         {/* KPI Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="bg-blue-500/10 p-2 rounded-lg">
                 <span className="material-icons-round text-blue-400 text-xl">description</span>
               </div>
               <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">+12% vs LY</span>
             </div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">TOTAL BOOKINGS</div>
-            <div className="text-3xl font-bold text-white">{totalBookings}</div>
+            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Bookings</div>
+            <div className="text-2xl font-medium text-foreground">{totalBookings}</div>
           </div>
 
-          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="bg-teal-500/10 p-2 rounded-lg">
                 <span className="material-icons-round text-teal-400 text-xl">schedule</span>
               </div>
               <span className="text-[10px] font-bold text-teal-400 bg-teal-500/10 px-2 py-1 rounded">Live</span>
             </div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ACTIVE RENTALS</div>
-            <div className="text-3xl font-bold text-white">{activeRentals}</div>
+            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Active Rentals</div>
+            <div className="text-2xl font-medium text-foreground">{activeRentals}</div>
           </div>
 
-          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="bg-purple-500/10 p-2 rounded-lg">
                 <span className="material-icons-round text-purple-400 text-xl">account_balance_wallet</span>
               </div>
               <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-1 rounded">Monthly</span>
             </div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">REVENUE MTD</div>
-            <div className="text-3xl font-bold text-white">₹{(revenueMTD / 100000).toFixed(1)}L</div>
+            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Revenue MTD</div>
+            <div className="text-2xl font-medium text-foreground">₹{(revenueMTD / 100000).toFixed(1)}L</div>
           </div>
 
-          <div className="bg-[#1a2332] rounded-xl p-5 border border-slate-800/50 relative overflow-hidden group">
+          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
             <div className="flex items-start justify-between mb-3 relative z-10">
               <div className="bg-amber-500/10 p-2 rounded-lg">
                 <span className="material-icons-round text-amber-400 text-xl">trending_up</span>
@@ -261,8 +261,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                  AI Predicted
               </span>
             </div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">AI OCCUPANCY FORECAST</div>
-            <div className="text-3xl font-bold text-white relative z-10 flex items-center gap-3">
+            <div className="relative z-10 mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">AI Occupancy Forecast</div>
+            <div className="relative z-10 flex items-center gap-3 text-2xl font-medium text-foreground">
                 {aiLoading ? <Loader2 className="h-6 w-6 animate-spin text-amber-400" /> : <>{aiOccupancyForecast}{aiOccupancyForecast !== '--' && '%'}</>}
             </div>
           </div>
@@ -303,7 +303,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
         ) : null}
 
         {/* Calendar Section */}
-        <section className="bg-white dark:bg-[#1a2332] rounded-xl border border-slate-200 dark:border-slate-800/50 shadow-sm overflow-hidden">
+        <section className="rounded-xl border border-border bg-card shadow-none overflow-hidden">
           <div className="p-6 border-b border-slate-200 dark:border-slate-800/50 flex justify-between items-center">
             <div className="flex items-center gap-6">
               <h3 className="text-xl font-bold">{monthNames[currentMonth]} {currentYear}</h3>
@@ -417,7 +417,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
 
                 return (
                   <Link key={booking.name} href={`/bookings/${booking.name}`} className="block">
-                  <div className="bg-white dark:bg-[#1a2332] rounded-lg border border-slate-200 dark:border-slate-800/50 p-4 hover:border-blue-400 transition-all cursor-pointer">
+                  <div className="rounded-lg border border-border bg-card p-4 hover:border-blue-400 transition-all cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">

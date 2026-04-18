@@ -4,6 +4,8 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface PricingRule {
   name: string
@@ -73,31 +75,31 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
   const totalDiscountRules = rules.filter(r => r.rate_or_discount.includes("Discount")).length
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+    <div className="app-shell text-foreground min-h-screen flex flex-col">
       {/* Header */}
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <Link href="/pricing-rules/new">
-          <button className="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all shadow-sm">
+          <Button className="h-9 px-4">
             <span className="material-symbols-outlined text-xl">add</span> Create Rule
-          </button>
+          </Button>
         </Link>
       </PageHeader>
 
       <main className="flex-1 overflow-y-auto">
         <div className="px-8 pt-8 pb-4">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Pricing Rules</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Automate conditional pricing for quotations, sales orders, and invoices</p>
+          <h2 className="text-xl font-semibold tracking-tight">Pricing Rules</h2>
+          <p className="text-sm text-muted-foreground mt-1">Automate conditional pricing for quotations, sales orders, and invoices</p>
         </div>
 
         <div className="px-8 space-y-6 pb-12">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[#111827] p-6 rounded-lg border border-slate-700 shadow-sm relative overflow-hidden group">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Active Rules</p>
-                  <h3 className="text-[28px] font-bold text-white">{activeRulesCount}</h3>
-                  <p className="text-xs text-slate-400 mt-1">{rules.length - activeRulesCount} inactive</p>
+                  <p className="text-[13px] font-medium text-muted-foreground mb-2">Active Rules</p>
+                  <h3 className="text-2xl font-medium text-foreground">{activeRulesCount}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{rules.length - activeRulesCount} inactive</p>
                 </div>
                 <div className="bg-green-500/10 p-3 rounded-lg">
                   <span className="material-symbols-outlined text-green-500 text-2xl">check_circle</span>
@@ -105,12 +107,12 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
               </div>
             </div>
 
-            <div className="bg-[#111827] p-6 rounded-lg border border-slate-700 shadow-sm relative overflow-hidden group">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Discount Rules</p>
-                  <h3 className="text-[28px] font-bold text-white">{totalDiscountRules}</h3>
-                  <p className="text-xs text-slate-400 mt-1">{rules.length - totalDiscountRules} rate override</p>
+                  <p className="text-[13px] font-medium text-muted-foreground mb-2">Discount Rules</p>
+                  <h3 className="text-2xl font-medium text-foreground">{totalDiscountRules}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{rules.length - totalDiscountRules} rate override</p>
                 </div>
                 <div className="bg-blue-500/10 p-3 rounded-lg">
                   <span className="material-symbols-outlined text-blue-500 text-2xl">trending_up</span>
@@ -118,12 +120,12 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
               </div>
             </div>
 
-            <div className="bg-[#111827] p-6 rounded-lg border border-slate-700 shadow-sm relative overflow-hidden group">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Total Rules</p>
-                  <h3 className="text-[28px] font-bold text-white">{rules.length}</h3>
-                  <p className="text-xs text-slate-400 mt-1">Across all business types</p>
+                  <p className="text-[13px] font-medium text-muted-foreground mb-2">Total Rules</p>
+                  <h3 className="text-2xl font-medium text-foreground">{rules.length}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Across all business types</p>
                 </div>
                 <div className="bg-purple-500/10 p-3 rounded-lg">
                   <span className="material-symbols-outlined text-purple-500 text-2xl">settings</span>
@@ -136,8 +138,8 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
           <div className="bg-white dark:bg-sidebar-dark p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-lg">search</span>
-              <input
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-700 dark:text-slate-300 outline-none"
+              <Input
+                className="h-9 w-full pl-10"
                 placeholder="Search by rule name..."
                 type="text"
                 value={searchQuery}

@@ -5,6 +5,9 @@ import Link from "next/link"
 import { Search, Filter, Package, CheckCircle, Clock, IndianRupee, Calendar, ArrowRight, Sparkles, TrendingUp, Truck } from "lucide-react"
 import type { SalesOrder } from "@/app/actions/sales-orders"
 import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 
 interface SalesOrdersClientProps {
   orders: SalesOrder[]
@@ -73,12 +76,12 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
   const getAIRisk = (order: SalesOrder) => {
     // Mock AI risk assessment - replace with real logic
     if (order.per_delivered === 100) {
-      return { label: "On Time", color: "emerald", glow: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" }
+      return { label: "On Time", className: "text-emerald-700" }
     }
     if (order.per_delivered && order.per_delivered > 0) {
-      return { label: "In Progress", color: "blue", glow: "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" }
+      return { label: "In Progress", className: "text-blue-700" }
     }
-    return { label: "Delayed", color: "red", glow: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" }
+    return { label: "Delayed", className: "text-red-700" }
   }
 
   const getAIInsight = (order: SalesOrder) => {
@@ -93,90 +96,88 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-slate-900 overflow-x-hidden">
+    <div className="app-shell flex flex-col overflow-x-hidden">
       {/* Header */}
       <PageHeader searchPlaceholder="Ask AI anything about your sales orders..." />
 
-      <main className="flex-1 w-full flex flex-col min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar p-8 bg-white dark:bg-slate-900">
+      <main className="app-content flex-1 w-full flex flex-col min-w-0 overflow-y-auto overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto w-full min-w-0">
           {/* Page Title */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Sales Orders</h1>
-            <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
+          <div className="mb-6 border-b border-border pb-6">
+            <h1 className="text-xl font-semibold text-foreground">Sales Orders</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Manage enterprise sales orders and monitor fulfillment performance with AI-driven insights.
             </p>
           </div>
 
-          {/* KPI Cards - exact match to leads page styling */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {/* Draft */}
-            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-400 transition-colors">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">DRAFT</span>
-                <div className="p-2 rounded-lg bg-slate-600/10 text-slate-400">
+                <span className="text-[13px] font-medium text-muted-foreground">Draft</span>
+                <div className="p-2 rounded-lg bg-muted text-muted-foreground">
                   <Package className="h-5 w-5" />
                 </div>
               </div>
               <div className="flex items-end gap-3">
-                <span className="text-[28px] font-bold text-white leading-none">{stats.draft}</span>
+                <span className="text-2xl font-medium text-foreground leading-none">{stats.draft}</span>
               </div>
-              <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-slate-500 w-[20%] rounded-full"></div>
+              <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-muted-foreground/70 w-[20%] rounded-full"></div>
               </div>
             </div>
 
             {/* Confirmed */}
-            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-400 transition-colors">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">CONFIRMED</span>
-                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                <span className="text-[13px] font-medium text-muted-foreground">Confirmed</span>
+                <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700">
                   <CheckCircle className="h-5 w-5" />
                 </div>
               </div>
               <div className="flex items-end gap-3">
-                <span className="text-[28px] font-bold text-white leading-none">{stats.confirmed}</span>
+                <span className="text-2xl font-medium text-foreground leading-none">{stats.confirmed}</span>
               </div>
-              <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 w-[60%] rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+              <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 w-[60%] rounded-full"></div>
               </div>
             </div>
 
             {/* In Progress */}
-            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-400 transition-colors">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">IN PROGRESS</span>
-                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                <span className="text-[13px] font-medium text-muted-foreground">In Progress</span>
+                <div className="p-2 rounded-lg bg-blue-100 text-blue-700">
                   <Clock className="h-5 w-5" />
                 </div>
               </div>
               <div className="flex items-end gap-3">
-                <span className="text-[28px] font-bold text-white leading-none">{stats.inProgress}</span>
+                <span className="text-2xl font-medium text-foreground leading-none">{stats.inProgress}</span>
               </div>
-              <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 w-[0%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+              <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 w-[35%] rounded-full"></div>
               </div>
             </div>
 
             {/* Total Value */}
-            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-400 transition-colors">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">TOTAL VALUE</span>
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                <span className="text-[13px] font-medium text-muted-foreground">Total Value</span>
+                <div className="p-2 rounded-lg bg-violet-100 text-violet-700">
                   <IndianRupee className="h-5 w-5" />
                 </div>
               </div>
               <div className="flex items-end gap-3">
-                <span className="text-[28px] font-bold text-white leading-none">₹{stats.totalValue.toLocaleString()}</span>
+                <span className="text-2xl font-medium text-foreground leading-none">₹{stats.totalValue.toLocaleString()}</span>
               </div>
-              <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-purple-500 w-[85%] rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+              <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-violet-500 w-[85%] rounded-full"></div>
               </div>
             </div>
           </div>
 
-          {/* Tabs and Search */}
-          <div className="flex flex-col lg:flex-row justify-between items-center mb-8 space-y-4 lg:space-y-0 gap-8">
-            <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-full lg:w-auto">
+          <div className="mb-6 flex flex-col items-center justify-between gap-4 lg:flex-row">
+            <div className="flex w-full rounded-lg border border-border bg-muted p-1 lg:w-auto">
               {STATUS_TABS.map((tab) => {
                 const count = tab.id === "all" ? orders.length : readyQuotations.length
                 return (
@@ -186,9 +187,9 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
                       setActiveTab(tab.id)
                       setCurrentPage(1)
                     }}
-                    className={`flex-1 lg:flex-none px-8 py-2.5 text-sm font-semibold rounded-lg transition-all ${activeTab === tab.id
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    className={`flex-1 rounded-md px-6 py-2 text-sm font-medium transition-colors lg:flex-none ${activeTab === tab.id
+                      ? "bg-background text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                       }`}
                   >
                     {tab.label} ({count})
@@ -197,13 +198,13 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
               })}
             </div>
 
-            <div className="flex items-center space-x-4 w-full lg:flex-1 lg:max-w-2xl">
+            <div className="flex w-full items-center space-x-3 lg:max-w-2xl">
               <div className="relative flex-1">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-muted-foreground">
                   <Search className="h-5 w-5" />
                 </span>
-                <input
-                  className="block w-full pl-11 pr-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl leading-5 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-slate-400"
+                <Input
+                  className="h-9 pl-10"
                   placeholder="Search by ID, customer, or items..."
                   type="text"
                   value={searchQuery}
@@ -213,20 +214,20 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
                   }}
                 />
               </div>
-              <button className="flex items-center px-6 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+              <Button variant="outline" className="h-9">
                 <Filter className="h-5 w-5 mr-2" /> Filter
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Content based on active tab */}
           {activeTab === "all" ? (
-            <div className="bg-white dark:bg-card-dark rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
               <div className="overflow-x-auto custom-scrollbar">
-                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-                  <thead className="bg-slate-50 dark:bg-slate-900/50">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="sticky top-0 bg-background">
                     <tr>
-                      <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order ID</th>
+                      <th className="h-12 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Order ID</th>
                       <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer</th>
                       <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order Date</th>
                       <th className="px-4 py-4 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Items</th>
@@ -237,54 +238,54 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
                       <th className="px-4 py-4 text-right text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-card-dark">
+                  <tbody className="divide-y divide-border bg-card">
                     {paginatedOrders.map((order) => {
                       const risk = getAIRisk(order)
                       const insight = getAIInsight(order)
                       const InsightIcon = insight.icon
 
                       return (
-                        <tr key={order.name} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors group">
-                          <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-primary">
+                        <tr key={order.name} className="group h-12 hover:bg-muted/50 transition-colors">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-primary">
                             <Link href={`/sales-orders/${order.name}`}>{order.name}</Link>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
                             {order.customer_name || order.customer}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                             {formatDate(order.transaction_date)}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                             {order.total_qty || 0} items
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                             {order.currency} {order.grand_total.toLocaleString()}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <div className={`flex items-center text-${risk.color}-600 dark:text-${risk.color}-400 text-xs font-bold uppercase tracking-tight`}>
-                              <span className={`w-2 h-2 rounded-full ${risk.glow} mr-1.5`}></span>
+                            <div className={`flex items-center text-xs font-medium uppercase tracking-tight ${risk.className}`}>
+                              <span className="mr-1.5 h-2 w-2 rounded-full bg-current"></span>
                               {risk.label}
                             </div>
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${insight.color}`}>
+                            <Badge className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium ${insight.color}`}>
                               <InsightIcon className="h-3.5 w-3.5 mr-1" />
                               {insight.label}
-                            </span>
+                            </Badge>
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md ${getStatusColor(order.status)}`}>
+                            <span className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase ${getStatusColor(order.status)}`}>
                               {order.delivery_status || order.status}
                             </span>
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end space-x-2">
                               <Link href={`/sales-orders/${order.name}`}>
-                                <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs">
+                                <button className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted">
                                   View
                                 </button>
                               </Link>
-                              <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center transition-colors text-xs">
+                              <button className="flex items-center rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted">
                                 <Truck className="h-3.5 w-3.5 mr-1" />
                                 Update
                               </button>
@@ -298,20 +299,20 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
               </div>
 
               {/* Pagination */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex items-center justify-between border-t border-border bg-muted/20 px-4 py-4">
+                <span className="text-sm text-muted-foreground">
                   Showing {startIndex + 1} to {Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} entries
                 </span>
                 <div className="flex space-x-3">
                   <button
-                    className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm disabled:opacity-50 font-medium"
+                    className="rounded-md border border-border px-4 py-2 text-sm disabled:opacity-50 font-medium"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(currentPage - 1)}
                   >
                     Previous
                   </button>
                   <button
-                    className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium transition-colors disabled:opacity-50"
+                    className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
                     disabled={currentPage >= totalPages}
                     onClick={() => setCurrentPage(currentPage + 1)}
                   >
@@ -322,16 +323,16 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
             </div>
           ) : (
             // Ready for Sales Order Tab
-            <div className="bg-white dark:bg-card-dark rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
+            <div className="rounded-xl border border-border bg-card p-6">
               {readyQuotations.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                   <Package className="h-12 w-12 mx-auto mb-4 text-slate-300" />
                   <p className="font-medium text-lg mb-2">No quotations ready</p>
                   <p className="text-sm mt-2 mb-4">Submit a quotation to see it here</p>
                   <Link href="/crm/quotations">
-                    <button className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                    <Button className="h-9 px-4">
                       Go to Quotations
-                    </button>
+                    </Button>
                   </Link>
                 </div>
               ) : (
@@ -339,7 +340,7 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
                   {readyQuotations.map((quotation) => (
                     <div
                       key={quotation.name}
-                      className="border border-slate-200 dark:border-slate-700 rounded-xl p-6 hover:shadow-md transition-all bg-green-50/50 dark:bg-green-950/20"
+                      className="rounded-xl border border-border bg-emerald-50/40 p-5 transition-colors hover:bg-emerald-50/60"
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -376,15 +377,15 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
 
                           <div className="flex gap-3">
                             <Link href={`/sales-orders/new?quotation=${encodeURIComponent(quotation.name)}`}>
-                              <button className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold flex items-center transition-colors">
+                              <Button className="h-9 bg-emerald-600 hover:bg-emerald-700">
                                 <Package className="h-4 w-4 mr-2" />
                                 Create Sales Order
-                              </button>
+                              </Button>
                             </Link>
                             <Link href={`/crm/quotations/${encodeURIComponent(quotation.name)}`}>
-                              <button className="px-6 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium">
+                              <Button variant="outline" className="h-9">
                                 View Quotation
-                              </button>
+                              </Button>
                             </Link>
                           </div>
                         </div>

@@ -57,51 +57,51 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+    <div className="app-shell text-foreground min-h-screen flex flex-col">
       {/* Header */}
       <PageHeader searchPlaceholder="Ask AI anything about your projects...">
         <CreateProjectDialog />
       </PageHeader>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="px-8 pt-8 pb-4">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Projects Dashboard</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">High-fidelity workspace for enterprise project intelligence.</p>
+        <div className="px-8 pt-8 pb-4 border-b border-border">
+          <h2 className="text-xl font-semibold tracking-tight">Projects Dashboard</h2>
+          <p className="text-sm text-muted-foreground mt-1">High-fidelity workspace for enterprise project intelligence.</p>
         </div>
 
         <div className="px-8 space-y-8 pb-12">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg flex flex-col">
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em]">Total Projects</span>
+                <span className="text-[13px] font-medium text-muted-foreground">Total Projects</span>
                 <span className="material-symbols-outlined text-blue-400 text-2xl">folder</span>
               </div>
-              <div className="text-[28px] font-bold text-white">{totalProjects}</div>
+              <div className="text-2xl font-medium text-foreground">{totalProjects}</div>
             </div>
 
-            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg flex flex-col">
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em]">Open</span>
+                <span className="text-[13px] font-medium text-muted-foreground">Open</span>
                 <span className="material-symbols-outlined text-blue-400 text-2xl">schedule</span>
               </div>
-              <div className="text-[28px] font-bold text-white">{openProjects}</div>
+              <div className="text-2xl font-medium text-foreground">{openProjects}</div>
             </div>
 
-            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg flex flex-col">
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em]">Completed</span>
+                <span className="text-[13px] font-medium text-muted-foreground">Completed</span>
                 <span className="material-symbols-outlined text-emerald-400 text-2xl">check_circle</span>
               </div>
-              <div className="text-[28px] font-bold text-white">{completedProjects}</div>
+              <div className="text-2xl font-medium text-foreground">{completedProjects}</div>
             </div>
 
-            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-lg flex flex-col">
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em]">Avg. Completion</span>
+                <span className="text-[13px] font-medium text-muted-foreground">Avg. Completion</span>
                 <span className="material-symbols-outlined text-purple-400 text-2xl">trending_up</span>
               </div>
-              <div className="text-[28px] font-bold text-white">{avgCompletion}%</div>
+              <div className="text-2xl font-medium text-foreground">{avgCompletion}%</div>
             </div>
           </div>
 
@@ -142,7 +142,7 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
 
                   return (
                     <Link key={project.name} href={`/projects/${project.name}`}>
-                      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col h-full">
+                      <div className="rounded-xl overflow-hidden border border-border bg-card shadow-none transition-colors hover:bg-muted/30 group flex flex-col h-full">
                         <div className="p-6 flex-1">
                           <div className="flex justify-between items-start mb-6">
                             <div>

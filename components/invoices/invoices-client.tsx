@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Download, CheckCircle, Calendar, Receipt } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 
 interface Invoice {
   name: string
@@ -72,7 +75,6 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
   const endIndex = startIndex + ITEMS_PER_PAGE
   const paginatedInvoices = filteredInvoices.slice(startIndex, endIndex)
 
-  // Reset to page 1 when search changes
   useMemo(() => {
     setCurrentPage(1)
   }, [searchQuery])
@@ -91,14 +93,14 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      'Paid': 'bg-slate-900 text-white dark:bg-slate-800',
-      'Unpaid': 'bg-blue-100 text-blue-600',
-      'Sent': 'bg-blue-100 text-blue-600',
-      'Draft': 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
-      'Cancelled': 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
-      'Overdue': 'bg-red-100 text-red-600'
+      'Paid': 'bg-emerald-100 text-emerald-700',
+      'Unpaid': 'bg-amber-100 text-amber-700',
+      'Sent': 'bg-blue-100 text-blue-700',
+      'Draft': 'bg-muted text-muted-foreground',
+      'Cancelled': 'bg-muted text-muted-foreground',
+      'Overdue': 'bg-red-100 text-red-700'
     }
-    return styles[status] || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+    return styles[status] || 'bg-muted text-muted-foreground'
   }
 
   const getAIInsight = (invoice: Invoice) => {
@@ -125,106 +127,100 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0F172A]">
-      {/* Header */}
+    <div className="app-shell">
       <PageHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder="Ask AI anything about your collections..."
       />
 
-      <main className="max-w-[1600px] mx-auto p-6 lg:p-10">
-        {/* Page Title */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold mb-1">Invoices</h1>
-          <p className="text-slate-500 dark:text-slate-400">Manage billing and collection intelligence across your enterprise.</p>
+      <main className="app-content mx-auto max-w-[1600px] space-y-6">
+        <div className="border-b border-border pb-6">
+          <h1 className="text-xl font-semibold">Invoices</h1>
+          <p className="text-sm text-muted-foreground">Manage billing and collection intelligence across your enterprise.</p>
         </div>
 
-        {/* KPI Cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <div className="bg-[#111827] p-7 rounded-2xl shadow-sm border border-slate-800">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[11px] font-bold text-slate-400 tracking-widest uppercase">Total Invoices</span>
-              <Receipt className="h-5 w-5 text-blue-600" />
+              <span className="text-[13px] font-medium text-muted-foreground">Total Invoices</span>
+              <Receipt className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-3xl font-bold text-white">{totalInvoices}</div>
-            <div className="text-[10px] text-green-400 mt-3 flex items-center gap-1 font-medium">
+            <div className="text-2xl font-medium text-foreground">{totalInvoices}</div>
+            <div className="mt-3 flex items-center gap-1 text-[11px] font-medium text-emerald-600">
               <span className="text-sm">↗</span> +12% from last month
             </div>
           </div>
 
-          <div className="bg-[#111827] p-7 rounded-2xl shadow-sm border border-slate-800">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[11px] font-bold text-slate-400 tracking-widest uppercase">Pending</span>
-              <span className="text-orange-400">⏱</span>
+              <span className="text-[13px] font-medium text-muted-foreground">Pending</span>
+              <span className="text-amber-600">⏱</span>
             </div>
-            <div className="text-3xl font-bold text-white">{pendingInvoices}</div>
-            <div className="text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-wider">Waiting for approval</div>
+            <div className="text-2xl font-medium text-foreground">{pendingInvoices}</div>
+            <div className="mt-3 text-[11px] font-medium text-muted-foreground">Waiting for approval</div>
           </div>
 
-          <div className="bg-[#111827] p-7 rounded-2xl shadow-sm border border-slate-800">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[11px] font-bold text-slate-400 tracking-widest uppercase">Overdue</span>
-              <span className="text-red-500">⚠</span>
+              <span className="text-[13px] font-medium text-muted-foreground">Overdue</span>
+              <span className="text-red-600">⚠</span>
             </div>
-            <div className="text-3xl font-bold text-white">{overdueInvoices}</div>
-            <div className="text-[10px] text-red-400 mt-3 flex items-center gap-1 font-medium">
-              <span className="text-sm">⚡</span> HIGH RISK IDENTIFIED
+            <div className="text-2xl font-medium text-foreground">{overdueInvoices}</div>
+            <div className="mt-3 flex items-center gap-1 text-[11px] font-medium text-red-600">
+              <span className="text-sm">⚡</span> High risk identified
             </div>
           </div>
 
-          <div className="bg-[#111827] p-7 rounded-2xl shadow-sm border border-slate-800">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[11px] font-bold text-slate-400 tracking-widest uppercase">Total Collected</span>
-              <span className="text-green-500">💰</span>
+              <span className="text-[13px] font-medium text-muted-foreground">Total Collected</span>
+              <span className="text-emerald-600">💰</span>
             </div>
-            <div className="text-3xl font-bold text-white">{formatCurrency(totalCollected)}</div>
-            <div className="text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-wider">Current fiscal year</div>
+            <div className="text-2xl font-medium text-foreground">{formatCurrency(totalCollected)}</div>
+            <div className="mt-3 text-[11px] font-medium text-muted-foreground">Current fiscal year</div>
           </div>
         </section>
 
-        {/* Ready for Invoice Section */}
         {readyForInvoice && readyForInvoice.length > 0 && (
-          <section className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-2xl p-8 mb-10 shadow-sm">
+          <section className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
                 <CheckCircle className="h-4 w-4 text-blue-600" />
               </div>
-              <h2 className="font-bold text-xl">Ready for Invoice</h2>
-              <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] px-2.5 py-1 rounded-full font-bold ml-2">
+              <h2 className="text-base font-medium">Ready for Invoice</h2>
+              <span className="ml-2 rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
                 {readyForInvoice.length} SALES ORDER{readyForInvoice.length > 1 ? 'S' : ''}
               </span>
             </div>
 
             <div className="space-y-4">
               {readyForInvoice.map((order) => (
-                <div key={order.name} className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-slate-50/50 dark:bg-slate-900/30">
+                <div key={order.name} className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/20 p-5 lg:flex-row lg:items-center">
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="font-bold text-lg text-slate-900 dark:text-white">{order.name}</span>
-                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[11px] px-2.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-semibold">
+                      <span className="text-base font-medium text-foreground">{order.name}</span>
+                      <span className="rounded border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                         {order.status}
                       </span>
                       {order.delivery_status && (
-                        <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[11px] px-2.5 py-0.5 rounded border border-green-200 dark:border-green-800 font-semibold">
+                        <span className="rounded border border-emerald-200 bg-emerald-100 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700">
                           {order.delivery_status}
                         </span>
                       )}
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400">{order.customer_name || order.customer}</p>
-                    <div className="flex items-center gap-6 text-sm text-slate-500">
+                    <p className="text-sm text-muted-foreground">{order.customer_name || order.customer}</p>
+                    <div className="flex items-center gap-6 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4" /> {formatDate(order.transaction_date)}
                       </span>
-                      <span className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+                      <span className="flex items-center gap-1.5 font-medium text-foreground">
                         {formatCurrency(order.grand_total, order.currency)}
                       </span>
                     </div>
                   </div>
                   <Link href={`/invoices/new?sales_order=${encodeURIComponent(order.name)}`}>
-                    <button className="bg-[#111827] dark:bg-white text-white dark:text-[#111827] px-8 py-3 rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-lg">
-                      Create Invoice
-                    </button>
+                    <Button className="h-9 px-4">Create Invoice</Button>
                   </Link>
                 </div>
               ))}
@@ -232,28 +228,26 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
           </section>
         )}
 
-        {/* All Invoices Section */}
-        <section className="mb-12">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <h2 className="text-2xl font-bold">All Invoices</h2>
+        <section className="space-y-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-lg font-medium">All Invoices</h2>
             <div className="flex gap-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
-                <input
-                  className="pl-10 pr-4 py-2.5 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none w-full md:w-72 focus:ring-1 focus:ring-blue-600 shadow-sm"
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="h-9 w-full pl-9 md:w-72"
                   placeholder="Search invoices..."
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-5 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+              <Button variant="outline" size="icon">
                 <Filter className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* Invoice Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {paginatedInvoices.map((invoice) => {
               const aiInsight = getAIInsight(invoice)
@@ -262,46 +256,46 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
               return (
                 <div
                   key={invoice.name}
-                  className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-2xl p-7 hover:shadow-xl hover:border-blue-600/30 transition-all relative overflow-hidden group cursor-pointer"
+                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card p-5 transition-colors hover:bg-muted/30"
                   onClick={() => router.push(`/invoices/${invoice.name}`)}
                 >
                   <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                    <button className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg hover:text-blue-600 transition-colors shadow-sm" onClick={(e) => e.stopPropagation()}>
+                    <button className="rounded-md bg-muted p-2 transition-colors hover:text-foreground" onClick={(e) => e.stopPropagation()}>
                       <Download className="h-4 w-4" />
                     </button>
                   </div>
 
                   <div className="flex items-start justify-between mb-5">
                     <div className="flex items-center gap-2">
-                      <Receipt className="h-5 w-5 text-slate-400" />
-                      <a className="font-bold text-blue-600 hover:underline text-sm" href={`/invoices/${invoice.name}`} onClick={(e) => e.stopPropagation()}>
+                      <Receipt className="h-5 w-5 text-muted-foreground" />
+                      <a className="text-sm font-medium text-primary hover:underline" href={`/invoices/${invoice.name}`} onClick={(e) => e.stopPropagation()}>
                         {invoice.name}
                       </a>
                     </div>
-                    <span className={`px-3 py-1 text-[10px] font-bold rounded-lg uppercase tracking-wider ${getStatusBadge(invoice.status)}`}>
+                    <Badge className={`rounded-md px-3 py-1 text-[10px] font-medium uppercase tracking-wide ${getStatusBadge(invoice.status)}`}>
                       {daysOverdue ? 'Overdue' : invoice.status}
-                    </span>
+                    </Badge>
                   </div>
 
                   <div className="mb-6">
-                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">Customer</p>
-                    <p className="font-bold text-slate-900 dark:text-white text-lg">{invoice.customer_name}</p>
+                    <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Customer</p>
+                    <p className="text-base font-medium text-foreground">{invoice.customer_name}</p>
                   </div>
 
-                  <div className="flex items-end justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-end justify-between border-t border-border pt-4">
                     <div>
-                      <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">Amount</p>
-                      <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(invoice.grand_total, invoice.currency)}</p>
+                      <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Amount</p>
+                      <p className="text-xl font-medium text-foreground">{formatCurrency(invoice.grand_total, invoice.currency)}</p>
                       {daysOverdue ? (
-                        <p className="text-[11px] text-red-500 mt-1 uppercase tracking-tight font-bold">Overdue by {daysOverdue} days</p>
+                        <p className="mt-1 text-[11px] font-medium uppercase tracking-tight text-red-600">Overdue by {daysOverdue} days</p>
                       ) : (
-                        <p className="text-[11px] text-slate-400 mt-1 uppercase font-medium">
+                        <p className="mt-1 text-[11px] font-medium uppercase text-muted-foreground">
                           Due: {formatDate(invoice.due_date)}
                         </p>
                       )}
                     </div>
                     {aiInsight && (
-                      <div className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 ${aiInsight.color}`}>
+                      <div className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] font-medium ${aiInsight.color}`}>
                         <span className="text-xs">{aiInsight.icon === 'verified' ? '✓' : '!'}</span> {aiInsight.label}
                       </div>
                     )}
@@ -311,13 +305,12 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
             })}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-12">
+            <div className="mt-6 flex items-center justify-center gap-3">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl text-sm font-bold cursor-not-allowed transition-colors disabled:opacity-50"
+                className="h-9 rounded-md border border-border px-4 text-sm text-muted-foreground disabled:opacity-50"
               >
                 Previous
               </button>
@@ -333,9 +326,9 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold ${currentPage === pageNum
-                          ? 'bg-blue-600 text-white'
-                          : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      className={`flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium ${currentPage === pageNum
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted'
                         }`}
                     >
                       {pageNum}
@@ -346,7 +339,7 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="px-5 py-2.5 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="h-9 rounded-md border border-border px-4 text-sm text-foreground hover:bg-muted/50 disabled:opacity-50"
               >
                 Next
               </button>

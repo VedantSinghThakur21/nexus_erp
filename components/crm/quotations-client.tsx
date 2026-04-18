@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, TrendingUp, Wallet, Zap, User, Calendar, DollarSign, Package, ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 
 interface Quotation {
@@ -165,7 +167,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
   }, [selectedTab, paginatedQuotations, proposalOpportunities])
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950">
+    <div className="app-shell">
       {/* Header */}
       <PageHeader
         searchQuery={searchQuery}
@@ -173,18 +175,18 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
         searchPlaceholder="Search quotations, customers or ask AI..."
       />
 
-      <main className="flex-1 overflow-y-auto p-10 space-y-10 w-full">
+      <main className="app-content flex-1 space-y-8 w-full">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Total Quotations</p>
+              <p className="text-[13px] font-medium text-muted-foreground">Total Quotations</p>
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
                 <TrendingUp className="h-5 w-5" />
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <p className="text-[28px] font-bold text-white leading-none">{totalQuotations}</p>
+              <p className="text-2xl font-medium text-foreground leading-none">{totalQuotations}</p>
               <span className="text-sm font-semibold text-blue-400 mb-1">+12%</span>
             </div>
             <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -192,15 +194,15 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
             </div>
           </div>
 
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Open Quotations</p>
+              <p className="text-[13px] font-medium text-muted-foreground">Open Quotations</p>
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
                 <Wallet className="h-5 w-5" />
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <p className="text-[28px] font-bold text-white leading-none">{openQuotations}</p>
+              <p className="text-2xl font-medium text-foreground leading-none">{openQuotations}</p>
               <span className="text-sm font-semibold text-slate-400 mb-1">Target: 10</span>
             </div>
             <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -208,15 +210,15 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
             </div>
           </div>
 
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex justify-between items-start mb-4">
-              <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Total Value</p>
+              <p className="text-[13px] font-medium text-muted-foreground">Total Value</p>
               <div className="p-2 rounded-lg bg-yellow-400/10 text-yellow-400">
                 <Zap className="h-5 w-5" />
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <p className="text-[28px] font-bold text-white leading-none">{formatCurrency(totalValue)}</p>
+              <p className="text-2xl font-medium text-foreground leading-none">{formatCurrency(totalValue)}</p>
             </div>
             <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-yellow-400 w-[85%] rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
@@ -247,8 +249,8 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
             <div className="flex items-center gap-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
-                <input
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 shadow-sm"
+                <Input
+                  className="h-10 w-full pl-12"
                   placeholder="Search by ID, customer name, or item..."
                   type="text"
                   value={searchQuery}
@@ -275,10 +277,10 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   <option value="thisMonth">This Month</option>
                   <option value="custom">Custom Range</option>
                 </select>
-                <button className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <Button variant="outline" className="h-10">
                   <Filter className="h-4 w-4" />
                   More Filters
-                </button>
+                </Button>
               </div>
             </div>
           </div>
