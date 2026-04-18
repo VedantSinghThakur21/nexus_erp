@@ -31,8 +31,10 @@ interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: Record<string, unknown> | null
   useMasterCredentials?: boolean // Force use of master credentials
+  useSessionAuth?: boolean // Force session cookie auth (no Authorization header)
   siteOverride?: string // Override the target site name (use with useMasterCredentials for tenant admin ops)
   hasRoleRepairAttempted?: boolean
+  hasSessionFallbackAttempted?: boolean
 }
 
 const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
@@ -162,8 +164,13 @@ export async function getTenantContext(): Promise<TenantContext> {
  */
 function getAuthorizationHeader(
   context: TenantContext,
-  useMasterCredentials: boolean
+  useMasterCredentials: boolean,
+  useSessionAuth: boolean
 ): { header: string | null; source: string } {
+  if (useSessionAuth) {
+    return { header: null, source: 'session_cookie (forced)' }
+  }
+
   // If forced to use master credentials
   if (useMasterCredentials) {
     if (!MASTER_API_KEY || !MASTER_API_SECRET) {
@@ -362,7 +369,7 @@ export async function frappeRequest(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null,
-  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'siteOverride' | 'hasRoleRepairAttempted'> = {}
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted'> = {}
 ): Promise<unknown> {
   // Get tenant context from cookies/headers
   const context = await getTenantContext()
@@ -370,7 +377,8 @@ export async function frappeRequest(
   // Determine which credentials to use
   const { header: authHeader, source: authSource } = getAuthorizationHeader(
     context,
-    options.useMasterCredentials || false
+    options.useMasterCredentials || false,
+    options.useSessionAuth || false
   )
 
   // Use appropriate site name (siteOverride takes priority, then master/tenant logic)
@@ -440,6 +448,25 @@ export async function frappeRequest(
         return frappeRequest(endpoint, method, body, {
           ...options,
           hasRoleRepairAttempted: true,
+        })
+      }
+
+      // Tenant API keys can become stale; fall back to user session once before failing.
+      if (
+        response.status === 401 &&
+        context.isTenant &&
+        context.hasCredentials &&
+        !options.hasSessionFallbackAttempted &&
+        sid
+      ) {
+        if (shouldEmitThrottledLog(`session-fallback:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+          console.warn(`[API] 401 on tenant token for ${endpoint}; retrying with session cookie auth`)
+        }
+        return frappeRequest(endpoint, method, body, {
+          ...options,
+          hasSessionFallbackAttempted: true,
+          useMasterCredentials: false,
+          useSessionAuth: true,
         })
       }
 

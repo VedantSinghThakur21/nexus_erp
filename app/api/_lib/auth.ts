@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canAccessModule, canPerformAction } from '@/lib/role-permissions'
-import { tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest, tenantAdminRequest } from '@/app/lib/api'
 
 
 /**
@@ -62,33 +62,33 @@ export async function requireAuth(): Promise<AuthResult> {
 /**
  * Fetch user roles from the current tenant's Frappe site.
  *
- * SECURITY FIX: uses tenantAdminRequest (master credentials + tenant site) so
- *   • the user doc exists on the site being queried, and
- *   • the `roles` child-table is not masked by Frappe's user-level permissions.
+ * Uses whitelisted `frappe.auth.get_roles` first, then falls back to Has Role
+ * list query for resilience on restricted Frappe setups.
  */
 async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
   try {
-    // tenantAdminRequest automatically reads x-tenant-id from middleware headers
-    // and builds the correct X-Frappe-Site-Name while using master API credentials.
-    const response = await tenantAdminRequest('frappe.client.get', 'POST', {
-      doctype: 'User',
-      name: userEmail,
-    }) as Record<string, unknown>
-
-    const user = (response as any)?.message || response
-
-    if (user && Array.isArray((user as Record<string, unknown>).roles)) {
-      const roles = (user as { roles: Array<{ role?: string; name?: string }> }).roles
-      return roles
-        .map(r => r.role || r.name)
-        .filter((r): r is string => !!r && r !== 'All')
+    const authRolesResponse = await frappeRequest('frappe.auth.get_roles', 'GET') as any
+    const authRoles = Array.isArray(authRolesResponse?.message) ? authRolesResponse.message : authRolesResponse
+    if (Array.isArray(authRoles) && authRoles.length > 0) {
+      return authRoles.filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
     }
 
-    return []
+    const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Has Role',
+      fields: ['role'],
+      filters: [['parent', '=', userEmail], ['parenttype', '=', 'User']],
+      limit_page_length: 200,
+    }) as any[]
+
+    if (Array.isArray(roleRows)) {
+      return roleRows
+        .map(r => r?.role)
+        .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
+    }
   } catch (error) {
     console.error(`[API Auth] Failed to fetch roles for ${userEmail}:`, error)
-    return []
   }
+  return []
 }
 
 /**

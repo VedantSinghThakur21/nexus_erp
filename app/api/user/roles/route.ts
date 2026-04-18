@@ -3,7 +3,8 @@
  *
  * Fetches current user's roles from Frappe ERPNext backend.
  * Uses multiple fallback strategies:
- *   1. tenantAdminRequest (master creds + tenant site) → frappe.client.get User doc
+ *   1. frappe.auth.get_roles (current authenticated user)
+ *   2. tenantAdminRequest → frappe.client.get_list on Has Role
  *   2. role_profile_name mapping
  *   3. Provisioning service (ignore_permissions) as last resort
  *
@@ -73,44 +74,57 @@ export async function GET(_request: NextRequest) {
       throw new Error('No user logged in')
     }
 
-    // ── Step 2: Fetch roles using master credentials → tenant site ──────────
-    // SECURITY FIX: `tenantAdminRequest` sends master API key with X-Frappe-Site-Name
-    // pointing at the CURRENT TENANT site (from x-tenant-id middleware header).
-    // This ensures:
-    //   • The user document is found (it lives on the tenant site, not master).
-    //   • The `roles` child table is visible (non-admin credentials mask it).
+    // ── Step 2: Fetch roles via whitelisted auth method ──────────────────────
     let roles: string[] = []
     let roleProfileName: string | null = null
 
     try {
-      const userDoc = await tenantAdminRequest('frappe.client.get', 'POST', {
-        doctype: 'User',
-        name: userEmail,
-      }) as any
+      const authRoles = await frappeRequest('frappe.auth.get_roles', 'GET') as any
+      const normalizedRoles = Array.isArray(authRoles?.message) ? authRoles.message : authRoles
+      if (Array.isArray(normalizedRoles)) {
+        roles = normalizedRoles.filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
+      }
+    } catch (authRolesErr: any) {
+      const message = String(authRolesErr?.message || 'Unknown error')
+      if (shouldLogRoleApi(`auth-get-roles:${userEmail}:${message}`, 5 * 60 * 1000)) {
+        console.warn(`[/api/user/roles] frappe.auth.get_roles failed for ${userEmail}:`, message)
+      }
+    }
 
-      const user = userDoc?.message || userDoc
-      roleProfileName = user?.role_profile_name || null
+    // ── Step 2b: Fallback to Has Role child table (avoids frappe.client.get) ─
+    if (roles.length === 0) {
+      try {
+        const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Has Role',
+          fields: ['role'],
+          filters: [['parent', '=', userEmail], ['parenttype', '=', 'User']],
+          limit_page_length: 200,
+        }) as any[]
 
-      if (Array.isArray(user?.roles) && user.roles.length > 0) {
-        roles = user.roles
-          .map((r: any) => r.role || r.name)
-          .filter((r: string) => r && r !== 'All')
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[/api/user/roles] Fetched ${roles.length} roles for ${userEmail} via tenantAdminRequest`)
+        if (Array.isArray(roleRows)) {
+          roles = roleRows
+            .map((row: any) => row?.role)
+            .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
         }
-      } else {
-        if (shouldLogRoleApi(`empty-roles:${userEmail}`, 5 * 60 * 1000)) {
-          console.warn(`[/api/user/roles] User doc returned empty roles array for ${userEmail}`)
+      } catch (rolesListErr: any) {
+        const message = String(rolesListErr?.message || 'Unknown error')
+        if (shouldLogRoleApi(`roles-list-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
+          console.warn(`[/api/user/roles] Has Role fallback failed for ${userEmail}:`, message)
         }
       }
-    } catch (getErr: any) {
-      const message = String(getErr?.message || 'Unknown error')
-      if (message.includes('AuthenticationError')) {
-        if (shouldLogRoleApi(`tenant-admin-auth:${userEmail}`, 10 * 60 * 1000)) {
-          console.warn(`[/api/user/roles] tenantAdminRequest auth failed for ${userEmail}; using fallback path`)
-        }
-      } else {
-        console.error(`[/api/user/roles] tenantAdminRequest failed for ${userEmail}:`, message)
+    }
+
+    // ── Step 2c: Optional role profile fetch via get_value ───────────────────
+    if (!roleProfileName) {
+      try {
+        const profile = await tenantAdminRequest('frappe.client.get_value', 'GET', {
+          doctype: 'User',
+          filters: { name: userEmail },
+          fieldname: ['role_profile_name'],
+        }) as any
+        roleProfileName = profile?.role_profile_name || profile?.message?.role_profile_name || null
+      } catch {
+        // Optional enrichment only; continue without failing.
       }
     }
 

@@ -334,7 +334,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     }
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors duration-200 min-h-screen">
+        <div className="app-shell text-foreground min-h-screen">
             <div className="flex min-h-screen">
                 <main className="flex-1 flex flex-col h-screen overflow-hidden">
                     {/* Header */}
@@ -342,7 +342,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
 
                         {canCreate && (
                             <Link href="/crm/new">
-                                <button className="bg-[#3b82f6] hover:bg-blue-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition shadow-sm shadow-blue-500/20">
+                                <button className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition">
                                     <span className="material-symbols-outlined text-lg">add</span> New Lead
                                 </button>
                             </Link>
@@ -350,71 +350,71 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                     </PageHeader>
 
                     {/* Main Content */}
-                    <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                    <div className="app-content flex-1 overflow-y-auto space-y-6">
                         {/* KPI Cards */}
-                        <div className="grid grid-cols-4 gap-6">
-                            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="rounded-xl border border-border bg-card p-5">
                                 <div className="flex justify-between items-start mb-4">
-                                    <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Total Leads</span>
+                                    <span className="text-[13px] font-medium text-muted-foreground">Total Leads</span>
                                     <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
                                         <span className="material-symbols-outlined text-xl">trending_up</span>
                                     </div>
                                 </div>
                                 <div className="flex items-end gap-3">
-                                    <span className="text-[28px] font-bold text-white leading-none">{kpis.totalLeads}</span>
-                                    <span className="text-sm font-semibold text-blue-400 mb-1">+12%</span>
+                                    <span className="text-2xl font-semibold text-foreground leading-none">{kpis.totalLeads}</span>
+                                    <span className="text-sm font-medium text-blue-600 mb-1">+12%</span>
                                 </div>
-                                <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                                     <div className="h-full bg-blue-500 w-[72%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
                                 </div>
                             </div>
 
-                            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                            <div className="rounded-xl border border-border bg-card p-5">
                                 <div className="flex justify-between items-start mb-4">
-                                    <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Conversion Rate %</span>
+                                    <span className="text-[13px] font-medium text-muted-foreground">Conversion Rate %</span>
                                     <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
                                         <span className="material-symbols-outlined text-xl">pie_chart</span>
                                     </div>
                                 </div>
                                 <div className="flex items-end gap-3">
-                                    <span className="text-[28px] font-bold text-white leading-none">{kpis.conversionRate}</span>
-                                    <span className="text-sm font-semibold text-emerald-400 mb-1 flex items-center gap-0.5">
+                                    <span className="text-2xl font-semibold text-foreground leading-none">{kpis.conversionRate}</span>
+                                    <span className="text-sm font-medium text-emerald-600 mb-1 flex items-center gap-0.5">
                                         <span className="material-symbols-outlined text-xs">arrow_upward</span>4.2%
                                     </span>
                                 </div>
-                                <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                                     <div className="h-full bg-orange-500 w-[45%] rounded-full shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
                                 </div>
                             </div>
 
-                            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                            <div className="rounded-xl border border-border bg-card p-5">
                                 <div className="flex justify-between items-start mb-4">
-                                    <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Avg. Lead Score</span>
+                                    <span className="text-[13px] font-medium text-muted-foreground">Avg. Lead Score</span>
                                     <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
                                         <span className="material-symbols-outlined text-xl">show_chart</span>
                                     </div>
                                 </div>
                                 <div className="flex items-end gap-3">
-                                    <span className="text-[28px] font-bold text-white leading-none">{kpis.avgScore}</span>
-                                    <span className="text-sm font-semibold text-slate-400 mb-1">100 AI Rating</span>
+                                    <span className="text-2xl font-semibold text-foreground leading-none">{kpis.avgScore}</span>
+                                    <span className="text-sm font-medium text-muted-foreground mb-1">100 AI Rating</span>
                                 </div>
-                                <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                                     <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" style={{ width: `${kpis.avgScore}%` }}></div>
                                 </div>
                             </div>
 
-                            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                            <div className="rounded-xl border border-border bg-card p-5">
                                 <div className="flex justify-between items-start mb-4">
-                                    <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Lead Response Time</span>
+                                    <span className="text-[13px] font-medium text-muted-foreground">Lead Response Time</span>
                                     <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
                                         <span className="material-symbols-outlined text-xl">bolt</span>
                                     </div>
                                 </div>
                                 <div className="flex items-end gap-3">
-                                    <span className="text-[28px] font-bold text-white leading-none">{kpis.responseTime}</span>
-                                    <span className="text-sm font-semibold text-emerald-400 mb-1">-15m</span>
+                                    <span className="text-2xl font-semibold text-foreground leading-none">{kpis.responseTime}</span>
+                                    <span className="text-sm font-medium text-emerald-600 mb-1">-15m</span>
                                 </div>
-                                <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                                     <div className="h-full bg-purple-500 w-[85%] rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
                                 </div>
                             </div>
@@ -729,26 +729,26 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                             {/* AI Insights Panel - Hidden in Kanban view */}
                             {viewMode === "list" && (
                                 <div className="col-span-3">
-                                    <div className="bg-[#111827] text-white rounded-xl shadow-xl overflow-hidden h-full flex flex-col border border-slate-800">
-                                        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
+                                    <div className="rounded-xl border border-border bg-card shadow-none overflow-hidden h-full flex flex-col">
+                                        <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
                                             <div className="flex items-center gap-3">
                                                 <span className="material-symbols-outlined text-yellow-400">bolt</span>
-                                                <h3 className="text-[11px] font-bold uppercase tracking-widest">AI Insights</h3>
+                                                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-foreground">AI Insights</h3>
                                             </div>
                                             <span className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                                         </div>
                                         <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                                             {/* Deal at Risk */}
-                                            <div className="bg-white/5 border border-white/10 rounded-xl p-5 relative overflow-hidden group">
+                                            <div className="rounded-xl border border-border bg-muted/20 p-5 relative overflow-hidden">
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <span className="material-symbols-outlined text-yellow-400 text-sm">warning</span>
                                                     <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-tighter">Deal at Risk</span>
                                                 </div>
-                                                <h4 className="text-sm font-bold mb-2">Acme Corp HQ - Phase II</h4>
-                                                <p className="text-[12px] text-slate-400 mb-5 leading-relaxed">
+                                                <h4 className="text-sm font-semibold mb-2 text-foreground">Acme Corp HQ - Phase II</h4>
+                                                <p className="text-[12px] text-muted-foreground mb-5 leading-relaxed">
                                                     Decision maker hasn't opened proposal for 5 days. Competitive threat detected.
                                                 </p>
-                                                <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded-lg text-xs transition uppercase tracking-wider">
+                                                <button className="w-full h-9 rounded-md bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-semibold text-xs transition uppercase tracking-wider">
                                                     Priority Outreach
                                                 </button>
                                             </div>
@@ -760,28 +760,28 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                     <button className="text-[10px] text-blue-400 font-bold hover:underline">VIEW ALL</button>
                                                 </div>
                                                 <div className="space-y-3">
-                                                    <div className="bg-white/5 p-4 rounded-xl flex items-center gap-4 group cursor-pointer hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">
+                                                    <div className="rounded-xl border border-border bg-muted/20 p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/40 transition-colors">
                                                         <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
                                                             <span className="material-symbols-outlined">alternate_email</span>
                                                         </div>
                                                         <div>
-                                                            <p className="text-[13px] font-bold">Follow up - Globtel</p>
-                                                            <p className="text-[11px] text-slate-500 font-medium">High velocity activity.</p>
+                                                            <p className="text-[13px] font-semibold text-foreground">Follow up - Globtel</p>
+                                                            <p className="text-[11px] text-muted-foreground font-medium">High velocity activity.</p>
                                                         </div>
                                                     </div>
-                                                    <div className="bg-white/5 p-4 rounded-xl flex items-center gap-4 group cursor-pointer hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">
+                                                    <div className="rounded-xl border border-border bg-muted/20 p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/40 transition-colors">
                                                         <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                                                             <span className="material-symbols-outlined text-lg">check_circle_outline</span>
                                                         </div>
                                                         <div>
-                                                            <p className="text-[13px] font-bold">Contract - Urban</p>
-                                                            <p className="text-[11px] text-slate-500 font-medium">Review is complete.</p>
+                                                            <p className="text-[13px] font-semibold text-foreground">Contract - Urban</p>
+                                                            <p className="text-[11px] text-muted-foreground font-medium">Review is complete.</p>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="p-6 bg-white/[0.02] border-t border-white/10">
+                                        <div className="p-6 bg-muted/20 border-t border-border">
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sales Velocity</span>
                                                 <span className="text-xs font-bold text-emerald-500">+14.2%</span>
