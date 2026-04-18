@@ -1,18 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { loginUser } from '@/app/actions/user-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { signIn } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Building2 } from 'lucide-react'
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
   const [loginError, setLoginError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
+  const reason = searchParams.get('reason')
+  const sessionNotice = useMemo(() => {
+    if (reason === 'session_expired') {
+      return 'Session expired. Please re-login.'
+    }
+    return null
+  }, [reason])
 
   async function handleLogin(formData: FormData) {
     setLoginError(null)
@@ -55,6 +64,12 @@ export default function LoginPage() {
             <h1 className="text-xl font-medium text-foreground">Welcome back</h1>
             <p className="mt-1 text-sm text-muted-foreground">Sign in to continue to your workspace.</p>
           </div>
+
+          {sessionNotice && (
+            <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              {sessionNotice}
+            </p>
+          )}
 
           <form action={handleLogin} className="space-y-4">
             <div className="space-y-2">

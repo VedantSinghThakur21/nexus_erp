@@ -10,7 +10,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest, tenantAdminRequest } from '@/app/lib/api'
 import { canAccessModule } from '@/lib/role-permissions'
 
 // ============================================================================
@@ -90,6 +90,23 @@ export async function requireAuth(callbackUrl?: string): Promise<AuthSession> {
     redirect(loginUrl)
   }
   
+  // Validate current backend auth to avoid blank pages when token/session is expired.
+  try {
+    await frappeRequest('frappe.auth.get_logged_user', 'GET')
+  } catch (error: any) {
+    const message = String(error?.message || '')
+    if (
+      message.includes('SESSION_EXPIRED') ||
+      message.includes('AuthenticationError') ||
+      message.toLowerCase().includes('session expired')
+    ) {
+      const loginUrl = callbackUrl
+        ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}&reason=session_expired`
+        : '/login?reason=session_expired'
+      redirect(loginUrl)
+    }
+  }
+
   return session
 }
 
@@ -131,29 +148,28 @@ export async function getUserRoles(userEmail?: string): Promise<string[]> {
   }
   
   try {
-    // SECURITY FIX: tenantAdminRequest uses master credentials against the current
-    // tenant site. This ensures:
-    //   1. The User doc is fetched from the right site (not from master).
-    //   2. Frappe's role-table masking does not hide roles from non-admin callers.
-    const response = await tenantAdminRequest('frappe.client.get', 'POST', {
-      doctype: 'User',
-      name: email,
-    }) as Record<string, unknown>
-    
-    const user = (response as any)?.message || response
-    
-    if (user && Array.isArray((user as Record<string, unknown>).roles)) {
-      const roles = (user as { roles: Array<{ role?: string; name?: string }> }).roles
-      return roles
-        .map(r => r.role || r.name)
-        .filter((r): r is string => !!r && r !== 'All')
+    const authRolesResponse = await frappeRequest('frappe.auth.get_roles', 'GET') as any
+    const authRoles = Array.isArray(authRolesResponse?.message) ? authRolesResponse.message : authRolesResponse
+    if (Array.isArray(authRoles) && authRoles.length > 0) {
+      return authRoles.filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
     }
-    
-    return []
+
+    const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Has Role',
+      fields: ['role'],
+      filters: [['parent', '=', email], ['parenttype', '=', 'User']],
+      limit_page_length: 200,
+    }) as any[]
+
+    if (Array.isArray(roleRows)) {
+      return roleRows
+        .map(r => r?.role)
+        .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
+    }
   } catch (error) {
     console.error(`[getUserRoles] Failed to fetch roles for ${email}:`, error)
-    return []
   }
+  return []
 }
 
 /**

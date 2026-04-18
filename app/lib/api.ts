@@ -307,6 +307,23 @@ function parseErrorMessage(data: Record<string, unknown>): string {
   return 'Request failed'
 }
 
+function isAuthenticationFailure(status: number, data: Record<string, unknown>): boolean {
+  if (status !== 401 && status !== 403) return false
+
+  const excType = String(data.exc_type || '')
+  const exception = String(data.exception || '')
+  const message = parseErrorMessage(data)
+  const sessionExpired = data.session_expired === 1 || data.session_expired === true
+
+  return (
+    sessionExpired ||
+    excType.includes('AuthenticationError') ||
+    exception.includes('AuthenticationError') ||
+    message.includes('AuthenticationError') ||
+    message.toLowerCase().includes('session expired')
+  )
+}
+
 function isDoctypeRolePermissionError(data: Record<string, unknown>): boolean {
   if (data.exc_type !== 'PermissionError') return false
   return parseErrorMessage(data).includes('does not have doctype access via role permission')
@@ -471,6 +488,9 @@ export async function frappeRequest(
       }
 
       logApiError(endpoint, response.status, siteName, authSource, data)
+      if (isAuthenticationFailure(response.status, data)) {
+        throw new Error(`SESSION_EXPIRED: ${parseErrorMessage(data)}`)
+      }
       const errorMessage = parseErrorMessage(data)
       throw new Error(errorMessage)
     }

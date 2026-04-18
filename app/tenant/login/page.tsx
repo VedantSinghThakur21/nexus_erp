@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,12 +17,16 @@ import Link from 'next/link'
 export default function TenantLoginPage() {
   const tenant = useClientTenant()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [usernameOrEmail, setUsernameOrEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const sessionNotice = searchParams.get('reason') === 'session_expired'
+    ? 'Session expired. Please re-login.'
+    : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -70,6 +74,12 @@ export default function TenantLoginPage() {
             <h2 className="text-xl font-medium text-foreground">Sign in</h2>
             <p className="text-sm text-muted-foreground">Enter credentials to access your workspace.</p>
           </div>
+
+            {sessionNotice && (
+              <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                {sessionNotice}
+              </div>
+            )}
 
             {error && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
