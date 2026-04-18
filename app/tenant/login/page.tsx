@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,7 @@ import Link from 'next/link'
  * Tenant-specific login page (tesla.avariq.in/login)
  * Tenant-scoped login using the shared auth visual system.
  */
-export default function TenantLoginPage() {
+function TenantLoginPageContent() {
   const tenant = useClientTenant()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -154,5 +154,23 @@ export default function TenantLoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TenantLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div suppressHydrationWarning className="min-h-screen bg-muted/40 px-4 py-8">
+          <div className="mx-auto flex min-h-[80vh] w-full max-w-md items-center">
+            <div className="w-full rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground md:p-8">
+              Loading login...
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <TenantLoginPageContent />
+    </Suspense>
   )
 }
