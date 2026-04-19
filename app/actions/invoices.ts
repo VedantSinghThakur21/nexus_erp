@@ -71,7 +71,7 @@ async function createItemViaProvisioning(itemData: Record<string, unknown>) {
   try {
     const context = await getTenantContext()
     if (!context.isTenant || !context.subdomain) {
-      return null
+      return { item: null, error: 'Not in tenant context' }
     }
 
     const { createTenantItemWithDefaults } = await import('@/lib/provisioning-client')
