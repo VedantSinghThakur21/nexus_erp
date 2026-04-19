@@ -129,8 +129,8 @@ export default function Pricing() {
                 href={plan.href}
                 className={`w-full flex items-center justify-center gap-2 px-6 py-4 font-semibold text-sm tracking-tight transition-all ${
                   plan.highlight
-                    ? "bg-white text-black hover:bg-neutral-200"
-                    : "bg-white/5 text-white border border-white/10 hover:bg-white/10"
+                    ? "bg-background text-black hover:bg-neutral-200"
+                    : "bg-background/5 text-white border border-white/10 hover:bg-background/10"
                 }`}
               >
                 {plan.cta}

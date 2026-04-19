@@ -235,7 +235,7 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  className="h-9 w-full pl-9 md:w-72"
+                  className="h-9 w-full pl-9 md:w-72 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                   placeholder="Search invoices..."
                   type="text"
                   value={searchQuery}

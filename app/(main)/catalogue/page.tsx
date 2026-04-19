@@ -171,7 +171,7 @@ export default function CataloguePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-foreground flex flex-col overflow-hidden">
       {/* Header */}
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <CreateItemDialog />
@@ -228,7 +228,7 @@ export default function CataloguePage() {
             {/* Left Sidebar - Filters */}
             <aside className="col-span-12 lg:col-span-3 xl:col-span-2 space-y-8">
               <div>
-                <h5 className="text-[11px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 mb-4 border-b dark:border-slate-800 pb-2">Categories</h5>
+                <h5 className="text-[11px] uppercase font-bold tracking-widest text-muted-foreground  mb-4 border-b dark:border-slate-800 pb-2">Categories</h5>
                 <div className="space-y-3">
                   {categories.map(category => (
                     <label key={category} className="flex items-center group cursor-pointer">
@@ -238,21 +238,21 @@ export default function CataloguePage() {
                         className="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-4 w-4"
                         type="checkbox"
                       />
-                      <span className="ml-3 text-sm text-slate-700 dark:text-slate-300 group-hover:text-primary">{category}</span>
+                      <span className="ml-3 text-sm text-slate-700  group-hover:text-primary">{category}</span>
                       <span className="ml-auto text-xs text-slate-400">{getCategoryCount(category)}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <h5 className="text-[11px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 mb-4 border-b dark:border-slate-800 pb-2">Price Range</h5>
+                <h5 className="text-[11px] uppercase font-bold tracking-widest text-muted-foreground  mb-4 border-b dark:border-slate-800 pb-2">Price Range</h5>
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="flex-1">
                     <label className="text-[10px] text-slate-400 mb-1 block">MIN</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
                       <input
-                        className="w-full pl-6 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-sm"
+                        className="w-full pl-6 pr-3 py-1.5 bg-card border border-slate-200 rounded text-sm bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         type="text"
                         value={minPrice}
                         onChange={(e) => setMinPrice(parseInt(e.target.value) || 0)}
@@ -264,7 +264,7 @@ export default function CataloguePage() {
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
                       <input
-                        className="w-full pl-6 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-sm"
+                        className="w-full pl-6 pr-3 py-1.5 bg-card border border-slate-200 rounded text-sm bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         type="text"
                         value={maxPrice}
                         onChange={(e) => setMaxPrice(parseInt(e.target.value) || 5000)}
@@ -273,7 +273,7 @@ export default function CataloguePage() {
                   </div>
                 </div>
                 <input
-                  className="w-full"
+                  className="w-full bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                   type="range"
                   min="0"
                   max="5000"
@@ -289,7 +289,7 @@ export default function CataloguePage() {
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                   <input
-                    className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full pl-12 pr-4 py-2.5 bg-card border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     placeholder="Search items by name, code, or description..."
                     type="text"
                     value={searchQuery}
@@ -305,7 +305,7 @@ export default function CataloguePage() {
                         onClick={() => toggleCategory(category)}
                         className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center ${isActive
                             ? 'bg-midnight-blue text-white'
-                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition'
+                            : 'bg-card dark:bg-background border border-slate-200 dark:border-slate-800 text-slate-600  hover:bg-slate-50 transition'
                           }`}
                       >
                         <span className="material-symbols-outlined text-sm mr-2">
@@ -321,12 +321,12 @@ export default function CataloguePage() {
               {/* Items Grid */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {filteredItems.length === 0 ? (
-                  <div className="col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
+                  <div className="col-span-2 bg-card dark:bg-background border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
                     <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="material-symbols-outlined text-3xl text-slate-400">inventory_2</span>
                     </div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No items found</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                    <p className="text-sm text-muted-foreground  mb-6">
                       {allItems.length === 0
                         ? "Get started by adding your first item to the catalogue."
                         : "Try adjusting your filters or search query."}
@@ -335,12 +335,12 @@ export default function CataloguePage() {
                   </div>
                 ) : (
                   paginatedItems.map(item => (
-                    <div key={item.item_code} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm group hover:shadow-md transition">
+                    <div key={item.item_code} className="bg-card dark:bg-background border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm group hover:shadow-md transition">
                       <div className="p-6">
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">{item.item_name}</h3>
-                            <p className="text-xs text-slate-500 uppercase font-medium">{item.item_code}</p>
+                            <p className="text-xs text-muted-foreground uppercase font-medium">{item.item_code}</p>
                           </div>
                           <span className="bg-blue-100 dark:bg-blue-900/40 text-primary text-[10px] font-bold px-2 py-1 rounded uppercase">{item.item_group}</span>
                         </div>
@@ -357,7 +357,7 @@ export default function CataloguePage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-slate-500 line-clamp-2">{item.description || 'No description available.'}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{item.description || 'No description available.'}</p>
                         </div>
                         <div className="mt-6 flex items-baseline space-x-1">
                           <span className="text-xl font-bold">₹{Math.round(item.standard_rate || 0).toLocaleString('en-IN')}</span>
@@ -375,14 +375,14 @@ export default function CataloguePage() {
                       <div className="flex border-t border-slate-100 dark:border-slate-800">
                         <button
                           onClick={() => handleQuickView(item.item_code)}
-                          className="flex-1 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center"
+                          className="flex-1 py-3 text-xs font-medium text-slate-600  hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center"
                         >
                           <span className="material-symbols-outlined text-sm mr-1">visibility</span> Details
                         </button>
                         <div className="w-px bg-slate-100 dark:bg-slate-800"></div>
                         <button
                           onClick={() => setEditingItem(item)}
-                          className="flex-1 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center"
+                          className="flex-1 py-3 text-xs font-medium text-slate-600  hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center"
                         >
                           <span className="material-symbols-outlined text-sm mr-1">edit</span> Edit
                         </button>
@@ -394,15 +394,15 @@ export default function CataloguePage() {
 
               {/* Pagination Controls */}
               {filteredItems.length > itemsPerPage && (
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-border/40 dark:border-slate-800">
+                  <p className="text-sm text-slate-600 ">
                     Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredItems.length)} of {filteredItems.length} items
                   </p>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600  hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       <span className="material-symbols-outlined text-sm">chevron_left</span>
                     </button>
@@ -413,7 +413,7 @@ export default function CataloguePage() {
                           onClick={() => setCurrentPage(page)}
                           className={`px-3 py-2 text-sm font-medium rounded-lg transition ${currentPage === page
                               ? 'bg-primary text-white'
-                              : 'border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                              : 'border border-slate-200 dark:border-slate-800 text-slate-600  hover:bg-slate-50 dark:hover:bg-slate-800'
                             }`}
                         >
                           {page}
@@ -423,7 +423,7 @@ export default function CataloguePage() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600  hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       <span className="material-symbols-outlined text-sm">chevron_right</span>
                     </button>
@@ -457,7 +457,7 @@ export default function CataloguePage() {
                 <span className="material-symbols-outlined text-3xl mb-4 text-blue-400">help_center</span>
                 <h4 className="font-bold mb-2">Need Workspace Help?</h4>
                 <p className="text-sm text-slate-300 mb-4">Our enterprise support team is available 24/7 to help you optimize your catalogue.</p>
-                <button className="w-full py-2.5 bg-white text-midnight-blue rounded-lg font-bold text-sm hover:bg-slate-100 transition">Contact Support</button>
+                <button className="w-full py-2.5 bg-background text-midnight-blue rounded-lg font-bold text-sm hover:bg-slate-100 transition">Contact Support</button>
               </div>
             </aside>
           </div>
@@ -474,12 +474,12 @@ export default function CataloguePage() {
       {/* Quick View Modal */}
       {selectedItem && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedItem(null)}>
-          <div className="bg-white dark:bg-slate-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card dark:bg-background rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{selectedItem.item_name}</h3>
-                  <p className="text-sm text-slate-500 mt-1">Code: {selectedItem.item_code}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Code: {selectedItem.item_code}</p>
                 </div>
                 <button onClick={() => setSelectedItem(null)} className="text-slate-400 hover:text-slate-600">
                   <span className="material-symbols-outlined">close</span>
@@ -494,21 +494,21 @@ export default function CataloguePage() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Availability</p>
+                      <p className="text-xs text-muted-foreground  mb-1">Availability</p>
                       <p className="text-2xl font-bold">{selectedItem.stock_qty !== null ? selectedItem.stock_qty : '∞'}</p>
-                      <p className="text-xs text-slate-500">{selectedItem.available ? 'In Stock' : 'Service'}</p>
+                      <p className="text-xs text-muted-foreground">{selectedItem.available ? 'In Stock' : 'Service'}</p>
                     </div>
                     <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Rate</p>
+                      <p className="text-xs text-muted-foreground  mb-1">Rate</p>
                       <p className="text-2xl font-bold">₹{(selectedItem.current_price || selectedItem.standard_rate || 0).toLocaleString('en-IN')}</p>
-                      <p className="text-xs text-slate-500">Per day</p>
+                      <p className="text-xs text-muted-foreground">Per day</p>
                     </div>
                   </div>
 
                   {selectedItem.description && (
                     <div>
                       <h4 className="font-semibold text-sm mb-2">Description</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">{selectedItem.description}</p>
+                      <p className="text-sm text-slate-600 ">{selectedItem.description}</p>
                     </div>
                   )}
 

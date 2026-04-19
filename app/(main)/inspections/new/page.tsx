@@ -21,7 +21,7 @@ export default async function NewInspectionPage({ searchParams }: { searchParams
         </Link>
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">New Inspection</h1>
-          <p className="text-slate-500">
+          <p className="text-muted-foreground">
             {params.booking
               ? `Quality check for Booking #${params.booking}`
               : 'Record a quality check for an asset'}

@@ -129,7 +129,7 @@ export default function OnboardingPage() {
                                     placeholder="My Company"
                                     required
                                     disabled={isLoading}
-                                    className="pl-10"
+                                    className="pl-10 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                             </div>
                             <p className="text-xs text-muted-foreground">

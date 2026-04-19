@@ -172,7 +172,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-foreground min-h-screen flex flex-col">
       {/* Header */}
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <InviteTeamMemberDialog />
@@ -183,7 +183,7 @@ export default function TeamPage() {
         <main className="flex-1 flex items-center justify-center p-8">
           <div className="text-center space-y-3">
             <span className="material-symbols-outlined text-[48px] text-slate-300">lock</span>
-            <p className="text-slate-500 font-medium">You don&apos;t have permission to manage the team.</p>
+            <p className="text-muted-foreground font-medium">You don&apos;t have permission to manage the team.</p>
             <p className="text-slate-400 text-sm">This page is restricted to System Administrators.</p>
             <Link href="/dashboard" className="inline-block mt-2 text-sm font-semibold text-primary hover:underline">
               Back to Dashboard
@@ -218,7 +218,7 @@ export default function TeamPage() {
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                   Team Members
                 </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-muted-foreground ">
                   Manage your organization's team members and their access with AI insights
                 </p>
               </div>
@@ -307,20 +307,20 @@ export default function TeamPage() {
                     <div className="w-1.5 h-7 bg-blue-500 rounded-full"></div>
                     <div className="w-1.5 h-8 bg-blue-600 rounded-full"></div>
                   </div>
-                  <button className="bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors shadow-sm">
+                  <button className="bg-card dark:bg-slate-800 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors shadow-sm">
                     Ask AI: Review permission risks
                   </button>
                 </div>
               </div>
 
               {/* Team Members List */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+              <div className="bg-card dark:bg-background border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
                   <div>
                     <h2 className="text-lg font-bold text-slate-800 dark:text-white">
                       Active Team Members ({filteredMembers.length})
                     </h2>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted-foreground">
                       All users with active access to the workspace
                     </p>
                   </div>
@@ -337,7 +337,7 @@ export default function TeamPage() {
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredMembers.length === 0 ? (
                     <div className="p-12 text-center">
-                      <p className="text-slate-500 dark:text-slate-400 mb-4">
+                      <p className="text-muted-foreground  mb-4">
                         No team members found matching your search.
                       </p>
                     </div>
@@ -373,7 +373,7 @@ export default function TeamPage() {
                                     {roleLabel}
                                   </span>
                                 ) : (
-                                  <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded-full uppercase tracking-wide">
+                                  <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600  text-[10px] font-bold rounded-full uppercase tracking-wide">
                                     {roleLabel}
                                   </span>
                                 )}
@@ -397,7 +397,7 @@ export default function TeamPage() {
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-8 text-sm text-slate-500">
+                              <div className="flex items-center gap-8 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-2">
                                   <span className="material-symbols-outlined text-[18px]">mail</span>
                                   {member.email}
@@ -421,7 +421,7 @@ export default function TeamPage() {
                                 className={`transition-colors flex items-center gap-2 text-sm font-semibold ${
                                   hasBrokenAccess
                                     ? 'text-amber-600 dark:text-amber-400 hover:text-amber-700'
-                                    : 'text-slate-600 dark:text-slate-400 hover:text-primary'
+                                    : 'text-slate-600  hover:text-primary'
                                 }`}
                               >
                                 <span className="material-symbols-outlined text-[20px]">
@@ -454,13 +454,13 @@ export default function TeamPage() {
               </div>
 
               {/* Team Member Limits */}
-              <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+              <div className="bg-slate-100 dark:bg-background border border-slate-200 dark:border-slate-800 rounded-xl p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="max-w-3xl">
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    <h4 className="text-sm font-bold text-slate-800 ">
                       Team Member Limits
                     </h4>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Your current plan allows for 10 team members. You have used{" "}
                       {teamMembers.length} of your slots. Upgrade your plan to add more users
                       to your organization and unlock advanced permission controls.
@@ -480,7 +480,7 @@ export default function TeamPage() {
             </>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="text-slate-500">Loading team members...</div>
+              <div className="text-muted-foreground">Loading team members...</div>
             </div>
           )}
         </div>

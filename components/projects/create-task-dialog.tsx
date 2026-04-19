@@ -38,7 +38,7 @@ export function CreateTaskDialog({ projectId }: { projectId: string }) {
           <Plus className="h-4 w-4" /> Add Task
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
         </DialogHeader>

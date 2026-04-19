@@ -153,7 +153,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
       case 'To Deliver and Bill': return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400'
       case 'Completed': return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
       case 'Cancelled': return 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
-      default: return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
+      default: return 'bg-slate-100 dark:bg-slate-800 text-slate-700 '
     }
   }
 
@@ -270,7 +270,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
 
         {/* AI Alert Banner */}
         {aiLoading ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl flex items-center gap-5 shadow-sm animate-pulse">
+            <div className="bg-slate-50 dark:bg-background border border-slate-200 dark:border-slate-800 p-5 rounded-xl flex items-center gap-5 shadow-sm animate-pulse">
                 <div className="bg-slate-200 dark:bg-slate-800 h-10 w-10 rounded-full"></div>
                 <div className="flex-1 space-y-2">
                     <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4"></div>
@@ -310,7 +310,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
               <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-lg p-1 gap-1">
                 <button
                   onClick={goToPreviousMonth}
-                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all text-slate-600 dark:text-slate-300"
+                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all text-slate-600 "
                 >
                   <span className="material-icons-round text-base leading-none">chevron_left</span>
                 </button>
@@ -322,7 +322,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                 </button>
                 <button
                   onClick={goToNextMonth}
-                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all text-slate-600 dark:text-slate-300"
+                  className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all text-slate-600 "
                 >
                   <span className="material-icons-round text-base leading-none">chevron_right</span>
                 </button>
@@ -343,46 +343,46 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                 <span className="material-icons-round absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">filter_alt</span>
                 <span className="material-icons-round absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">expand_more</span>
               </div>
-              <button className="p-2 border border-slate-200 dark:border-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all text-slate-500">
+              <button className="p-2 border border-slate-200 dark:border-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all text-muted-foreground">
                 <span className="material-symbols-outlined text-lg">settings</span>
               </button>
             </div>
           </div>
 
           {/* Calendar Header */}
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800/50 bg-slate-50 dark:bg-slate-900/30">
-            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">SUNDAY</div>
-            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">MONDAY</div>
-            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">TUESDAY</div>
-            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">WEDNESDAY</div>
-            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">THURSDAY</div>
-            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">FRIDAY</div>
-            <div className="py-2.5 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">SATURDAY</div>
+          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800/50 bg-slate-50 dark:bg-background/30">
+            <div className="py-2.5 text-center text-[10px] font-bold text-muted-foreground  uppercase tracking-widest">SUNDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-muted-foreground  uppercase tracking-widest">MONDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-muted-foreground  uppercase tracking-widest">TUESDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-muted-foreground  uppercase tracking-widest">WEDNESDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-muted-foreground  uppercase tracking-widest">THURSDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-muted-foreground  uppercase tracking-widest">FRIDAY</div>
+            <div className="py-2.5 text-center text-[10px] font-bold text-muted-foreground  uppercase tracking-widest">SATURDAY</div>
           </div>
 
           {/* Calendar Grid */}
-          <div className="calendar-grid bg-slate-100 dark:bg-slate-900/30 gap-[1px]">
+          <div className="calendar-grid bg-slate-100 dark:bg-background/30 gap-[1px]">
             {renderCalendar()}
           </div>
 
           {/* Calendar Legend */}
-          <div className="p-4 bg-slate-50 dark:bg-slate-900/30 flex items-center justify-center gap-8 border-t border-slate-200 dark:border-slate-800/50">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">CALENDAR LEGEND:</span>
+          <div className="p-4 bg-slate-50 dark:bg-background/30 flex items-center justify-center gap-8 border-t border-border/40 dark:border-slate-800/50">
+            <span className="text-[10px] font-bold text-muted-foreground  uppercase tracking-widest">CALENDAR LEGEND:</span>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Draft</span>
+              <span className="text-xs text-slate-600  font-medium">Draft</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-              <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">To Deliver and Bill</span>
+              <span className="text-xs text-slate-600  font-medium">To Deliver and Bill</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Completed</span>
+              <span className="text-xs text-slate-600  font-medium">Completed</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-              <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Cancelled</span>
+              <span className="text-xs text-slate-600  font-medium">Cancelled</span>
             </div>
           </div>
         </section>
@@ -392,7 +392,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
           <div className="flex justify-between items-end">
             <div>
               <h3 className="text-xl font-bold">All Bookings</h3>
-              <p className="text-sm text-slate-500">Overview of recent and pending reservations</p>
+              <p className="text-sm text-muted-foreground">Overview of recent and pending reservations</p>
             </div>
             <button className="text-primary hover:text-blue-700 text-sm font-bold uppercase tracking-wide border-b border-primary/20 pb-0.5">
               View Complete Archive
@@ -401,8 +401,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
 
           <div className="grid gap-4">
             {filteredBookings.length === 0 ? (
-              <div className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
-                <p className="text-slate-500">No bookings found</p>
+              <div className="bg-card dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
+                <p className="text-muted-foreground">No bookings found</p>
                 <p className="text-sm text-slate-400 mt-1">Adjust filters or create a new booking</p>
               </div>
             ) : (
@@ -432,7 +432,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-6 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-6 text-xs text-muted-foreground ">
                           <div className="flex items-center gap-1.5">
                             <span className="material-icons-round text-sm">badge</span>
                             <span className="font-mono">{booking.name}</span>
@@ -453,7 +453,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                           <div className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">GRAND TOTAL</div>
                         </div>
                         <div className="flex items-center gap-2" onClick={e => e.preventDefault()}>
-                          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 rounded text-xs font-medium">
+                          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 text-slate-700  rounded text-xs font-medium">
                             View
                           </span>
                         </div>

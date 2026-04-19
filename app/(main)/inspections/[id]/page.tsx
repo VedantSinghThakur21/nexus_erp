@@ -47,7 +47,7 @@ export default async function InspectionDetailPage({ params }: { params: Promise
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             Quality Inspection
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">{inspection.name}</p>
+          <p className="text-muted-foreground  mt-1">{inspection.name}</p>
         </div>
         <div className="flex gap-2 items-center">
           <UpdateInspectionDialog inspection={inspection} />
@@ -65,16 +65,16 @@ export default async function InspectionDetailPage({ params }: { params: Promise
         <CardContent className="space-y-6">
           <div className="grid md:grid-cols-3 gap-6">
             <div>
-              <label className="text-sm font-medium text-slate-500 flex items-center gap-2">
+              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Truck className="h-4 w-4" />
                 Asset / Equipment
               </label>
-              <p className="text-slate-900 dark:text-slate-200 mt-1">
+              <p className="text-slate-900  mt-1">
                 {inspection.reference_name}
               </p>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-500 flex items-center gap-2">
+              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <ClipboardCheck className="h-4 w-4" />
                 Inspection Type
               </label>
@@ -83,24 +83,24 @@ export default async function InspectionDetailPage({ params }: { params: Promise
               </p>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-500 flex items-center gap-2">
+              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Inspection Date
               </label>
-              <p className="text-slate-900 dark:text-slate-200 mt-1">{inspection.report_date}</p>
+              <p className="text-slate-900  mt-1">{inspection.report_date}</p>
             </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm font-medium text-slate-500 flex items-center gap-2">
+              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Inspected By
               </label>
-              <p className="text-slate-900 dark:text-slate-200 mt-1">{inspection.inspected_by || 'N/A'}</p>
+              <p className="text-slate-900  mt-1">{inspection.inspected_by || 'N/A'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-500">Result Status</label>
+              <label className="text-sm font-medium text-muted-foreground">Result Status</label>
               <div className="mt-1">
                 <Badge className={statusColors[inspection.status] || 'bg-slate-100 text-slate-800'}>
                   {inspection.status === 'Accepted' ? 'Passed - Ready to Rent' : 'Failed - Needs Repair'}
@@ -112,12 +112,12 @@ export default async function InspectionDetailPage({ params }: { params: Promise
           {/* Remarks */}
           {inspection.remarks && (
             <div>
-              <label className="text-sm font-medium text-slate-500 flex items-center gap-2 mb-2">
+              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2 mb-2">
                 <FileText className="h-4 w-4" />
                 Remarks / Observations
               </label>
-              <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+              <div className="p-4 bg-slate-50 dark:bg-background rounded-lg border border-slate-200 dark:border-slate-800">
+                <p className="text-slate-700  whitespace-pre-wrap">
                   {inspection.remarks}
                 </p>
               </div>
@@ -134,12 +134,12 @@ export default async function InspectionDetailPage({ params }: { params: Promise
         <CardContent>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-slate-500">Reference Type</label>
-              <p className="text-slate-900 dark:text-slate-200 mt-1">{inspection.reference_type}</p>
+              <label className="text-sm font-medium text-muted-foreground">Reference Type</label>
+              <p className="text-slate-900  mt-1">{inspection.reference_type}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-500">Reference ID</label>
-              <p className="text-slate-900 dark:text-slate-200 mt-1">{inspection.reference_name}</p>
+              <label className="text-sm font-medium text-muted-foreground">Reference ID</label>
+              <p className="text-slate-900  mt-1">{inspection.reference_name}</p>
             </div>
           </div>
         </CardContent>

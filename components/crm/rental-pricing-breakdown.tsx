@@ -40,12 +40,12 @@ export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
       <CardContent className="space-y-5 pt-5">
         {/* Duration Info */}
         {item.rental_start_date && item.rental_end_date && (
-          <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+          <div className="bg-background/60 dark:bg-background/60 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
               <div className="flex-1">
                 <p className="font-semibold text-sm text-slate-900 dark:text-white mb-2">Rental Period</p>
-                <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <div className="flex items-center gap-2 text-sm text-slate-700 ">
                   <span>
                     {new Date(item.rental_start_date).toLocaleDateString('en-IN', { 
                       day: '2-digit', 
@@ -75,7 +75,7 @@ export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
 
         {/* Operator Info */}
         {item.requires_operator && (
-          <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-green-200 dark:border-green-800">
+          <div className="bg-background/60 dark:bg-background/60 rounded-lg p-4 border border-green-200 dark:border-green-800">
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
               <div className="flex-1">
@@ -95,7 +95,7 @@ export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
                     )}
                   </Badge>
                   {item.operator_included && item.operator_name && (
-                    <span className="text-xs text-slate-600 dark:text-slate-400">
+                    <span className="text-xs text-slate-600 ">
                       {item.operator_name}
                     </span>
                   )}
@@ -106,14 +106,14 @@ export function RentalPricingBreakdown({ item }: RentalPricingBreakdownProps) {
         )}
 
         {/* Cost Components */}
-        <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-3">
+        <div className="bg-background/60 dark:bg-background/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+          <p className="text-xs font-semibold text-slate-700  uppercase tracking-wide mb-3">
             Cost Components
           </p>
           <div className="space-y-2">
             {componentDetails.map((component, idx) => (
               <div key={idx} className="flex justify-between items-center py-1.5 px-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                <span className="text-sm text-slate-600 dark:text-slate-400">{component.label}</span>
+                <span className="text-sm text-slate-600 ">{component.label}</span>
                 <span className={`font-semibold text-sm ${component.color}`}>
                   ₹{component.value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>

@@ -117,7 +117,7 @@ export default function CreatePricingRulePage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             Create Pricing Rule
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-muted-foreground mt-1">
             Set up automated conditional pricing for your business
           </p>
         </div>
@@ -149,7 +149,7 @@ export default function CreatePricingRulePage() {
                   onChange={(e) => setTitle(e.target.value)}
                   required
                 />
-                <p className="text-xs text-slate-500">A descriptive name for this pricing rule</p>
+                <p className="text-xs text-muted-foreground">A descriptive name for this pricing rule</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -176,7 +176,7 @@ export default function CreatePricingRulePage() {
                       </SelectTrigger>
                       <SelectContent>
                         {itemGroups.length === 0 ? (
-                          <div className="px-2 py-1 text-sm text-slate-500">Loading item groups...</div>
+                          <div className="px-2 py-1 text-sm text-muted-foreground">Loading item groups...</div>
                         ) : (
                           itemGroups.map((group) => (
                             <SelectItem key={group} value={group}>
@@ -186,7 +186,7 @@ export default function CreatePricingRulePage() {
                         )}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-slate-500">Required when applying rule to Item Group</p>
+                    <p className="text-xs text-muted-foreground">Required when applying rule to Item Group</p>
                   </div>
                 )}
               </div>
@@ -247,7 +247,7 @@ export default function CreatePricingRulePage() {
                     />
                     <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   </div>
-                  <p className="text-xs text-slate-500">Enter the percentage discount to apply</p>
+                  <p className="text-xs text-muted-foreground">Enter the percentage discount to apply</p>
                 </div>
               )}
 
@@ -266,7 +266,7 @@ export default function CreatePricingRulePage() {
                     />
                     <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   </div>
-                  <p className="text-xs text-slate-500">Enter the fixed discount amount</p>
+                  <p className="text-xs text-muted-foreground">Enter the fixed discount amount</p>
                 </div>
               )}
 
@@ -285,7 +285,7 @@ export default function CreatePricingRulePage() {
                     />
                     <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   </div>
-                  <p className="text-xs text-slate-500">Enter the new rate to override the default price</p>
+                  <p className="text-xs text-muted-foreground">Enter the new rate to override the default price</p>
                 </div>
               )}
             </CardContent>
@@ -346,7 +346,7 @@ export default function CreatePricingRulePage() {
                     value={minQty}
                     onChange={(e) => setMinQty(e.target.value)}
                   />
-                  <p className="text-xs text-slate-500">Rule applies when quantity exceeds this</p>
+                  <p className="text-xs text-muted-foreground">Rule applies when quantity exceeds this</p>
                 </div>
 
                 <div className="space-y-2">
@@ -359,7 +359,7 @@ export default function CreatePricingRulePage() {
                     value={maxQty}
                     onChange={(e) => setMaxQty(e.target.value)}
                   />
-                  <p className="text-xs text-slate-500">Rule applies when quantity is below this</p>
+                  <p className="text-xs text-muted-foreground">Rule applies when quantity is below this</p>
                 </div>
               </div>
 
@@ -395,7 +395,7 @@ export default function CreatePricingRulePage() {
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Higher priority rules are applied first when multiple rules match
                 </p>
               </div>

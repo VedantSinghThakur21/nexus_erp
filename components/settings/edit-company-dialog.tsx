@@ -58,7 +58,7 @@ export function EditCompanyDialog({ company }: EditCompanyDialogProps) {
           Edit Company
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Edit Company Details</DialogTitle>
           <DialogDescription>
@@ -86,7 +86,7 @@ export function EditCompanyDialog({ company }: EditCompanyDialogProps) {
               placeholder="e.g., 29ABCDE1234F1Z5"
               maxLength={15}
             />
-            <p className="text-xs text-slate-500">15-character GST Identification Number</p>
+            <p className="text-xs text-muted-foreground">15-character GST Identification Number</p>
           </div>
 
           <div className="space-y-2">

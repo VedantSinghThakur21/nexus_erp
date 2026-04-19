@@ -47,7 +47,7 @@ export function CreateLeadDialog() {
           <Plus className="mr-2 h-4 w-4" /> New Lead
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Create New Lead</DialogTitle>
           <DialogDescription>
@@ -57,19 +57,19 @@ export function CreateLeadDialog() {
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="first_name" className="text-right">Name</Label>
-            <Input id="first_name" name="first_name" className="col-span-3" required />
+            <Input id="first_name" name="first_name" className="col-span-3 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0" required />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="company" className="text-right">Company</Label>
-            <Input id="company" name="company" className="col-span-3" />
+            <Input id="company" name="company" className="col-span-3 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="email" className="text-right">Email</Label>
-            <Input id="email" name="email" type="email" className="col-span-3" required />
+            <Input id="email" name="email" type="email" className="col-span-3 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0" required />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">Phone</Label>
-            <Input id="phone" name="phone" className="col-span-3" />
+            <Input id="phone" name="phone" className="col-span-3 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0" />
           </div>
           
           <div className="flex justify-end mt-4">

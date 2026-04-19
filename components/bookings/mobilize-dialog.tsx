@@ -50,7 +50,7 @@ export function MobilizeDialog({ booking, operators }: { booking: any, operators
             Mobilize (Send to Site)
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Mobilize Asset</DialogTitle>
         </DialogHeader>

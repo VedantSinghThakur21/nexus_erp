@@ -40,8 +40,8 @@ export function InvoicesGrid({ invoices, page, pageSize, total, onPageChange }: 
                 </Link>
                 <Badge className="ml-auto">{inv.status}</Badge>
               </div>
-              <div className="text-slate-700 dark:text-slate-200 font-medium">{inv.customer_name}</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Due: {inv.due_date}</div>
+              <div className="text-slate-700  font-medium">{inv.customer_name}</div>
+              <div className="text-xs text-muted-foreground ">Due: {inv.due_date}</div>
               <div className="text-lg font-bold text-slate-900 dark:text-white mt-2">{inv.currency} {Number(inv.grand_total ?? 0).toLocaleString()}</div>
               <div className="flex gap-2 mt-3">
                 <a href={`/print/invoice/${inv.name}`} target="_blank" className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
@@ -56,7 +56,7 @@ export function InvoicesGrid({ invoices, page, pageSize, total, onPageChange }: 
       {/* Pagination Controls */}
       <div className="flex justify-center items-center gap-2 mt-4">
         <button
-          className="px-3 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-50"
+          className="px-3 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700  disabled:opacity-50"
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
         >
@@ -64,7 +64,7 @@ export function InvoicesGrid({ invoices, page, pageSize, total, onPageChange }: 
         </button>
         <span className="mx-2 text-sm">Page {page} of {totalPages}</span>
         <button
-          className="px-3 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-50"
+          className="px-3 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700  disabled:opacity-50"
           onClick={() => onPageChange(page + 1)}
           disabled={page === totalPages}
         >

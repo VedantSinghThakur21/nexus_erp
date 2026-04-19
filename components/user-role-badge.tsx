@@ -51,7 +51,7 @@ const getRoleColor = (role: string): string => {
     case 'Stock User':
       return 'bg-orange-500/10 text-orange-600 dark:text-orange-300 border-orange-500/20'
     default:
-      return 'bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20'
+      return 'bg-slate-500/10 text-slate-700  border-slate-500/20'
   }
 }
 
@@ -99,11 +99,11 @@ export function UserRoleList() {
   const { roles, loading } = useUser()
 
   if (loading) {
-    return <div className="text-xs text-slate-500 animate-pulse">Loading roles...</div>
+    return <div className="text-xs text-muted-foreground animate-pulse">Loading roles...</div>
   }
 
   if (roles.length === 0) {
-    return <div className="text-xs text-slate-500">No roles assigned</div>
+    return <div className="text-xs text-muted-foreground">No roles assigned</div>
   }
 
   return (

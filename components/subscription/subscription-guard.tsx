@@ -35,7 +35,7 @@ export function SubscriptionGuard({
     <Card className="border-2 border-dashed border-slate-300 bg-slate-50">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Lock className="h-5 w-5 text-slate-500" />
+          <Lock className="h-5 w-5 text-muted-foreground" />
           <CardTitle className="text-lg">Upgrade Required</CardTitle>
         </div>
         <CardDescription>

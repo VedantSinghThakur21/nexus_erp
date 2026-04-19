@@ -141,7 +141,7 @@ export default function AgentsPage() {
   }, [messages]);
 
   return (
-    <div className="bg-slate-50 dark:bg-midnight-blue text-slate-900 dark:text-slate-100 flex flex-col h-screen overflow-hidden">
+    <div className="bg-slate-50 dark:bg-midnight-blue text-slate-900 dark:text-foreground flex flex-col h-screen overflow-hidden">
       {/* Debug Toggle Button */}
       {showDebug && (
         <div className="fixed bottom-20 right-4 w-96 max-h-96 bg-black text-green-400 p-4 rounded-lg shadow-2xl overflow-y-auto font-mono text-xs z-50">
@@ -265,14 +265,14 @@ export default function AgentsPage() {
                           </h4>
                         </div>
                       )}
-                      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl rounded-tl-none shadow-sm">
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-xs">
+                      <div className="bg-card dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl rounded-tl-none shadow-sm">
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-slate-700  leading-relaxed text-xs">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                         </div>
                       </div>
                       {isFirstMessage && (
                         <div className="space-y-2">
-                          <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-0.5 tracking-wider">
+                          <p className="text-[8px] font-bold text-slate-400  uppercase ml-0.5 tracking-wider">
                             Try asking:
                           </p>
                           <div className="flex flex-wrap gap-1.5">
@@ -280,7 +280,7 @@ export default function AgentsPage() {
                               onClick={() => {
                                 setInput("Show me all leads");
                               }}
-                              className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                              className="px-3 py-1.5 bg-card dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600  rounded-full transition-all hover:shadow-md font-medium"
                             >
                               'Show me all leads'
                             </button>
@@ -288,7 +288,7 @@ export default function AgentsPage() {
                               onClick={() => {
                                 setInput("Find available 50T Cranes");
                               }}
-                              className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                              className="px-3 py-1.5 bg-card dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600  rounded-full transition-all hover:shadow-md font-medium"
                             >
                               'Find available 50T Cranes'
                             </button>
@@ -296,7 +296,7 @@ export default function AgentsPage() {
                               onClick={() => {
                                 setInput("Create a lead for Acme Corp");
                               }}
-                              className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600 dark:text-slate-300 rounded-full transition-all hover:shadow-md font-medium"
+                              className="px-3 py-1.5 bg-card dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600  rounded-full transition-all hover:shadow-md font-medium"
                             >
                               'Create a lead for Acme Corp'
                             </button>
@@ -332,8 +332,8 @@ export default function AgentsPage() {
                       <rect fill="white" height="10" rx="2" width="4" x="48" y="20"></rect>
                     </svg>
                   </div>
-                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-2xl rounded-tl-none shadow-sm flex-1">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <div className="bg-card dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-2xl rounded-tl-none shadow-sm flex-1">
+                    <p className="text-sm font-medium text-slate-700 ">
                       Fetching data from ERPNext Database...
                     </p>
                   </div>
@@ -345,15 +345,15 @@ export default function AgentsPage() {
           </div>
 
           {/* Sidebar */}
-          <aside className="w-72 border-l border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-midnight-blue/20 p-5 hidden xl:block overflow-y-auto">
+          <aside className="w-72 border-l border-slate-200 dark:border-slate-800 bg-background/50 dark:bg-midnight-blue/20 p-5 hidden xl:block overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h4 className="font-bold text-[8px] dark:text-slate-300 uppercase tracking-[0.15em] text-slate-500">
+              <h4 className="font-bold text-[8px]  uppercase tracking-[0.15em] text-muted-foreground">
                 Action Preview
               </h4>
               <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
             </div>
             <div className="space-y-4">
-              <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
+              <div className="p-3 bg-card dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
                 <p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">
                   Source Module
                 </p>
@@ -361,7 +361,7 @@ export default function AgentsPage() {
                   CRM / Leads
                 </p>
               </div>
-              <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
+              <div className="p-3 bg-card dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
                 <p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">
                   Last Sync
                 </p>
@@ -374,16 +374,16 @@ export default function AgentsPage() {
                   Quick Shortcuts
                 </h5>
                 <div className="space-y-1.5">
-                  <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group">
-                    <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-accent text-xs">
+                  <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-background dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group">
+                    <span className="font-medium text-slate-600  group-hover:text-accent text-xs">
                       Export as CSV
                     </span>
                     <span className="material-symbols-outlined text-slate-400 text-base group-hover:text-accent">
                       download
                     </span>
                   </button>
-                  <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group">
-                    <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-accent text-xs">
+                  <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-background dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group">
+                    <span className="font-medium text-slate-600  group-hover:text-accent text-xs">
                       Open in ERPNext
                     </span>
                     <span className="material-symbols-outlined text-slate-400 text-base group-hover:text-accent">
@@ -396,7 +396,7 @@ export default function AgentsPage() {
                 <h5 className="text-[7px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-1.5 tracking-wider">
                   Agent Intelligence
                 </h5>
-                <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-[10px] text-slate-600  leading-relaxed">
                   Based on current leads, I suggest prioritizing{" "}
                   <strong>Global Tech Corp</strong> due to high interest score (8.9/10).
                 </p>
@@ -406,10 +406,10 @@ export default function AgentsPage() {
         </div>
 
         {/* Footer */}
-        <footer className="p-4 bg-white dark:bg-midnight-blue border-t border-slate-200 dark:border-slate-800">
+        <footer className="p-4 bg-card dark:bg-midnight-blue border-t border-border/40 dark:border-slate-800">
           <div className="max-w-5xl mx-auto">
             <form onSubmit={handleCustomSubmit}>
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 pr-1.5 shadow-inner focus-within:ring-2 focus-within:ring-accent/20 transition-all">
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-background/80 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 pr-1.5 shadow-inner focus-within:ring-2 focus-within:ring-accent/20 transition-all">
                 <button
                   type="button"
                   className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
@@ -419,7 +419,7 @@ export default function AgentsPage() {
                 <input
                   value={input}
                   onChange={handleInputChange}
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-xs text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 py-2 outline-none"
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-xs text-slate-700 placeholder-slate-400 dark:placeholder-slate-500 py-2 outline-none bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                   placeholder="Type your request (e.g., 'Draft invoice for ACME corp')..."
                   type="text"
                   disabled={isLoading}

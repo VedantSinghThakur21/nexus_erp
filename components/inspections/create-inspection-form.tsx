@@ -105,7 +105,7 @@ export function CreateInspectionForm({ machines, defaultMachine, bookingId }: { 
                         <Textarea
                             name="notes"
                             placeholder="Note any scratches, fuel levels, or damages..."
-                            className="min-h-[100px]"
+                            className="min-h-[100px] bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                     </div>
                 </CardContent>

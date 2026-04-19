@@ -42,7 +42,7 @@ export function AIFraudCheck({ payment }: { payment: any }) {
 
   if (loading) {
     return (
-      <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-bold rounded border bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
+      <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-bold rounded border bg-slate-50 text-muted-foreground border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
         <Loader2 className="h-3 w-3 animate-spin mr-1" /> ANALYZING
       </span>
     );

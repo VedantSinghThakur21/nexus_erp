@@ -205,7 +205,7 @@ function FunnelStage({ stage, count, value, index, total, maxValue }: FunnelStag
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: index * 0.1 + 0.2 }}
-        className="text-xs font-medium text-slate-600 dark:text-slate-400"
+        className="text-xs font-medium text-slate-600 "
       >
         ₹{(Number(value ?? 0) / 100000).toFixed(1)}L
       </motion.div>
@@ -368,7 +368,7 @@ export function AnimatedProgressRing({
           {Math.round(safePercentage)}%
         </span>
         {label && (
-          <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <span className="text-xs text-muted-foreground  mt-1">
             {label}
           </span>
         )}

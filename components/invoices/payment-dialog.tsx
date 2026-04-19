@@ -96,7 +96,7 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
           Record Payment
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
@@ -107,8 +107,8 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
 
           <div className="grid gap-4 py-4">
             {/* Outstanding Amount Display */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
-              <div className="text-sm text-slate-500">Outstanding Amount</div>
+            <div className="p-4 bg-slate-50 dark:bg-background rounded-lg">
+              <div className="text-sm text-muted-foreground">Outstanding Amount</div>
               <div className="text-2xl font-bold text-slate-900 dark:text-white">
                 {invoice.currency} {outstandingAmount.toLocaleString()}
               </div>

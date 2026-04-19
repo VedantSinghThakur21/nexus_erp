@@ -102,13 +102,13 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
   // Helper: Get status badge styling
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      'Draft': 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200',
+      'Draft': 'bg-slate-100 dark:bg-slate-700 text-slate-700 ',
       'Open': 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 border border-blue-100 dark:border-blue-900',
       'Sent': 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 border border-blue-100 dark:border-blue-900',
-      'Cancelled': 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700',
+      'Cancelled': 'bg-slate-100 dark:bg-slate-800 text-muted-foreground border border-slate-200 dark:border-slate-700',
       'Ordered': 'bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-200 border border-green-100 dark:border-green-900'
     }
-    return styles[status] || 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+    return styles[status] || 'bg-slate-100 dark:bg-slate-700 text-slate-700 '
   }
 
   // Helper: Get AI insight badge
@@ -227,7 +227,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
         </div>
 
         {/* Main Content */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="bg-card dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="p-8 border-b border-slate-100 dark:border-slate-700">
             {/* Tabs */}
             <div className="flex items-center gap-10 mb-8 border-b border-slate-100 dark:border-slate-700">
@@ -237,7 +237,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   onClick={() => setSelectedTab(tab.filter)}
                   className={`text-[16px] font-bold pb-4 transition-all ${selectedTab === tab.filter
                       ? 'text-slate-900 dark:text-white border-b-4 border-blue-600'
-                      : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium'
+                      : 'text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 font-medium'
                     }`}
                 >
                   {tab.name} ({tab.filter === "all" ? quotations.length : draftQuotations.length + proposalOpportunities.length})
@@ -250,7 +250,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
               <div className="flex-1 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <Input
-                  className="h-10 w-full pl-12"
+                  className="h-10 w-full pl-12 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                   placeholder="Search by ID, customer name, or item..."
                   type="text"
                   value={searchQuery}
@@ -259,7 +259,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
               </div>
               <div className="flex items-center gap-3">
                 <select
-                  className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm py-3 px-4 pr-10 focus:ring-blue-600 shadow-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  className="bg-slate-50 dark:bg-background border border-slate-200 dark:border-slate-700 rounded-xl text-sm py-3 px-4 pr-10 focus:ring-blue-600 shadow-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -269,7 +269,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   <option value="cancelled">Cancelled</option>
                 </select>
                 <select
-                  className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm py-3 px-4 pr-10 focus:ring-blue-600 shadow-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  className="bg-slate-50 dark:bg-background border border-slate-200 dark:border-slate-700 rounded-xl text-sm py-3 px-4 pr-10 focus:ring-blue-600 shadow-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50"
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
                 >
@@ -290,7 +290,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
             <div className="flex justify-between items-center mb-2 px-2">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Active Quotations</h3>
-                <p className="text-[14px] text-slate-500 mt-1">Showing {filteredQuotations.length} results from all channels</p>
+                <p className="text-[14px] text-muted-foreground mt-1">Showing {filteredQuotations.length} results from all channels</p>
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-xs text-slate-400 font-medium bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full uppercase tracking-widest">Last synced: 2m ago</span>
@@ -299,7 +299,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
 
             {/* Quotation Cards */}
             {readyQuotationsAndOpportunities.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
+              <div className="text-center py-12 text-muted-foreground">
                 No quotations found
               </div>
             ) : (
@@ -311,7 +311,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   return (
                     <div
                       key={quotation.name}
-                      className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-white dark:bg-slate-800/50 relative cursor-pointer"
+                      className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-card dark:bg-slate-800/50 relative cursor-pointer"
                       onClick={() => router.push(`/crm/quotations/${quotation.name}`)}
                     >
                       <div className="absolute top-10 right-10 flex items-center gap-4">
@@ -345,7 +345,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                             <User className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Customer</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Customer</p>
                             <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{quotation.customer_name || quotation.party_name}</p>
                           </div>
                         </div>
@@ -355,7 +355,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                             <Calendar className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Valid till</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Valid till</p>
                             <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">
                               {new Date(quotation.valid_till).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </p>
@@ -368,17 +368,17 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                             <DollarSign className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Amount</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Amount</p>
                             <p className="text-[20px] font-bold text-slate-900 dark:text-white leading-tight">{formatCurrency(quotation.grand_total)}</p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 shrink-0">
+                          <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-background flex items-center justify-center text-slate-400 shrink-0">
                             <Package className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Items</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Items</p>
                             <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{quotation.total_qty || 0} SKUs</p>
                           </div>
                         </div>
@@ -390,7 +390,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   return (
                     <div
                       key={opp.name}
-                      className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-white dark:bg-slate-800/50 relative"
+                      className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-card dark:bg-slate-800/50 relative"
                     >
                       <div className="absolute top-10 right-10 flex items-center gap-4">
                         <Link href={`/crm/quotations/new?opportunity=${opp.name}`}>
@@ -414,7 +414,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                             <User className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Customer</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Customer</p>
                             <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{opp.customer_name || opp.party_name}</p>
                           </div>
                         </div>
@@ -423,7 +423,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                             <Calendar className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Expected Closing</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Expected Closing</p>
                             <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{new Date(opp.expected_closing).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                           </div>
                         </div>
@@ -432,16 +432,16 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                             <DollarSign className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Amount</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Amount</p>
                             <p className="text-[20px] font-bold text-slate-900 dark:text-white leading-tight">{formatCurrency(opp.opportunity_amount)}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 shrink-0">
+                          <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-background flex items-center justify-center text-slate-400 shrink-0">
                             <Package className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mb-1">Stage</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Stage</p>
                             <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">Proposal/Price Quote</p>
                           </div>
                         </div>
@@ -455,15 +455,15 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-2 py-6 border-t border-slate-200 dark:border-slate-800 mt-6">
-                <div className="text-sm text-slate-600 dark:text-slate-400">
+              <div className="flex items-center justify-between px-2 py-6 border-t border-border/40 dark:border-slate-800 mt-6">
+                <div className="text-sm text-slate-600 ">
                   Showing <span className="font-semibold text-slate-900 dark:text-white">{startIndex + 1}</span> to <span className="font-semibold text-slate-900 dark:text-white">{Math.min(endIndex, filteredQuotations.length)}</span> of <span className="font-semibold text-slate-900 dark:text-white">{filteredQuotations.length}</span> quotations
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-slate-700  bg-card dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Previous
                   </button>
@@ -485,7 +485,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                           onClick={() => setCurrentPage(pageNum)}
                           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === pageNum
                               ? "bg-blue-600 text-white"
-                              : "text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                              : "text-slate-700  bg-card dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
                             }`}
                         >
                           {pageNum}
@@ -496,7 +496,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-slate-700  bg-card dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Next
                   </button>

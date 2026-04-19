@@ -80,7 +80,7 @@ function ActionItem({ text, checked, onToggle }: { text: string; checked: boolea
           <span className="material-symbols-outlined text-white" style={{ fontSize: 11 }}>check</span>
         )}
       </span>
-      <span className={`text-[11px] leading-relaxed ${checked ? "line-through text-slate-500" : "text-slate-300"}`}>
+      <span className={`text-[11px] leading-relaxed ${checked ? "line-through text-muted-foreground" : "text-slate-300"}`}>
         {text}
       </span>
     </button>
@@ -120,7 +120,7 @@ function RiskCard({
           <span className="text-slate-700">·</span>
           <button
             onClick={onDismiss}
-            className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-0.5 transition-colors"
+            className="text-[10px] text-muted-foreground hover:text-slate-300 flex items-center gap-0.5 transition-colors"
           >
             <span className="material-symbols-outlined text-[12px]">close</span>
             Dismiss
@@ -229,7 +229,7 @@ export function AICrmInsights({
       </div>
       <div className="flex items-center gap-2">
         {insights && (
-          <button onClick={handleGenerateInsights} title="Re-run analysis" className="text-slate-500 hover:text-white transition">
+          <button onClick={handleGenerateInsights} title="Re-run analysis" className="text-muted-foreground hover:text-white transition">
             <span className="material-symbols-outlined text-sm">refresh</span>
           </button>
         )}
@@ -253,7 +253,7 @@ export function AICrmInsights({
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-white animate-pulse">Analyzing Pipeline…</p>
-            <p className="text-[10px] text-slate-500 mt-1">Evaluating risk & closing drivers</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Evaluating risk & closing drivers</p>
           </div>
           {/* Skeleton shimmer */}
           <div className="w-full space-y-2 mt-2">
@@ -276,24 +276,24 @@ export function AICrmInsights({
         <div className="grid grid-cols-2 gap-3 mb-5">
           <div className="bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700/50">
             <p className="text-2xl font-bold text-amber-400">{atRiskDeals.length}</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">At-Risk Deals</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">At-Risk Deals</p>
           </div>
           <div className="bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700/50">
             <p className="text-2xl font-bold text-emerald-400">{highProbOpportunities.length}</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Hot Prospects</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Hot Prospects</p>
           </div>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center text-center px-2">
           <span className="material-symbols-outlined text-4xl text-slate-700 mb-3">analytics</span>
           <h3 className="text-white font-semibold text-sm mb-1">Pipeline Intelligence Ready</h3>
-          <p className="text-[11px] text-slate-500 leading-relaxed mb-5">
+          <p className="text-[11px] text-muted-foreground leading-relaxed mb-5">
             AI will analyze your {atRiskDeals.length + highProbOpportunities.length} active pipeline deals, identify risk patterns, and generate prioritized action steps — all in one click.
           </p>
           <button
             onClick={handleGenerateInsights}
             disabled={!hasAccess || !hasData}
-            className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-muted-foreground text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-sm">auto_awesome</span>
             {!hasAccess ? "Access Restricted" : !hasData ? "No Pipeline Data Yet" : "Generate Executive Summary"}
@@ -339,7 +339,7 @@ export function AICrmInsights({
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold transition-all ${
                   activeTab === tab.id
                     ? "bg-slate-700 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-300"
+                    : "text-muted-foreground hover:text-slate-300"
                 }`}
               >
                 {tab.label}
@@ -365,15 +365,15 @@ export function AICrmInsights({
                   <PipelineHealthGauge score={healthScore} />
                   <div className="space-y-2 flex-1 pl-4">
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">Hot Prospects</span>
+                      <span className="text-muted-foreground">Hot Prospects</span>
                       <span className="font-bold text-emerald-400">{highProbOpportunities.length}</span>
                     </div>
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">At Risk</span>
+                      <span className="text-muted-foreground">At Risk</span>
                       <span className="font-bold text-amber-400">{atRiskDeals.length}</span>
                     </div>
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">Actions Done</span>
+                      <span className="text-muted-foreground">Actions Done</span>
                       <span className="font-bold text-blue-400">{doneCount}/{allActions.length}</span>
                     </div>
                   </div>
@@ -410,7 +410,7 @@ export function AICrmInsights({
                 {/* Top prospects quick-links */}
                 {(insights.opportunity_analysis?.top_prospects ?? []).length > 0 && (
                   <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Top Prospects</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Top Prospects</p>
                     {insights.opportunity_analysis!.top_prospects.slice(0, 3).map((name, i) => {
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       const deal = highProbOpportunities.find((o: any) =>
@@ -437,7 +437,7 @@ export function AICrmInsights({
                           <div className="min-w-0 flex-1">
                             <p className="text-[12px] font-semibold text-white truncate">{name}</p>
                             {deal && (
-                              <p className="text-[10px] text-slate-500">
+                              <p className="text-[10px] text-muted-foreground">
                                 {deal.probability}% · ₹{Number(deal.opportunity_amount || 0).toLocaleString("en-IN")}
                               </p>
                             )}
@@ -458,7 +458,7 @@ export function AICrmInsights({
                   <div className="text-center py-10">
                     <span className="material-symbols-outlined text-4xl text-emerald-600">check_circle</span>
                     <p className="text-sm font-semibold text-white mt-2">All risks addressed</p>
-                    <p className="text-[11px] text-slate-500 mt-1">No active risk signals identified.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">No active risk signals identified.</p>
                   </div>
                 )}
 
@@ -512,7 +512,7 @@ export function AICrmInsights({
                 {/* Progress bar */}
                 {allActions.length > 0 && (
                   <div className="mb-3">
-                    <div className="flex justify-between text-[10px] text-slate-500 mb-1.5">
+                    <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
                       <span>{doneCount} of {allActions.length} completed</span>
                       <span>{Math.round((doneCount / allActions.length) * 100)}%</span>
                     </div>
@@ -528,7 +528,7 @@ export function AICrmInsights({
                 {allActions.length === 0 ? (
                   <div className="text-center py-10">
                     <span className="material-symbols-outlined text-4xl text-slate-700">task_alt</span>
-                    <p className="text-sm text-slate-500 mt-2">No actions generated yet.</p>
+                    <p className="text-sm text-muted-foreground mt-2">No actions generated yet.</p>
                   </div>
                 ) : (
                   allActions.map((action, i) => (

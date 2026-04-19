@@ -88,7 +88,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-slate-500 dark:text-slate-400">Loading settings...</div>
+        <div className="text-muted-foreground ">Loading settings...</div>
       </div>
     );
   }
@@ -100,12 +100,12 @@ export default function SettingsPage() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-sm text-muted-foreground  mt-1">
               Manage your organization, profile, and team settings
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <button className="px-4 py-2 text-sm font-medium text-slate-600  border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               View Logs
             </button>
             <button className="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg shadow-sm hover:bg-blue-600 transition-colors">
@@ -120,7 +120,7 @@ export default function SettingsPage() {
         <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl shadow-blue-500/10">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-background/20 backdrop-blur-md rounded-xl flex items-center justify-center">
                 <span className="material-symbols-outlined">psychology</span>
               </div>
               <div>
@@ -134,14 +134,14 @@ export default function SettingsPage() {
               <div className="hidden sm:block text-right mr-2">
                 <span className="text-xs text-blue-200 block uppercase font-semibold">Activity Trend</span>
                 <div className="flex gap-1 items-end h-6 mt-1">
-                  <div className="w-1 bg-white/30 h-2 rounded-full"></div>
-                  <div className="w-1 bg-white/50 h-4 rounded-full"></div>
-                  <div className="w-1 bg-white h-5 rounded-full"></div>
-                  <div className="w-1 bg-white/40 h-3 rounded-full"></div>
-                  <div className="w-1 bg-white h-6 rounded-full"></div>
+                  <div className="w-1 bg-background/30 h-2 rounded-full"></div>
+                  <div className="w-1 bg-background/50 h-4 rounded-full"></div>
+                  <div className="w-1 bg-background h-5 rounded-full"></div>
+                  <div className="w-1 bg-background/40 h-3 rounded-full"></div>
+                  <div className="w-1 bg-background h-6 rounded-full"></div>
                 </div>
               </div>
-              <button className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-blue-50 transition-colors flex items-center gap-2">
+              <button className="bg-background text-blue-600 px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-blue-50 transition-colors flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">security</span>
                 Audit Security
               </button>
@@ -178,7 +178,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-end justify-between mt-2">
               <span className="text-3xl font-bold text-white leading-none">99.8%</span>
-              <span className="text-slate-500 text-[12px]">Uptime</span>
+              <span className="text-muted-foreground text-[12px]">Uptime</span>
             </div>
           </div>
           <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
@@ -200,7 +200,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Appearance Section */}
-        <section className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
           <div className="p-6">
             <div className="flex items-center gap-2 text-slate-900 dark:text-white mb-6">
               <span className="material-symbols-outlined text-slate-400">palette</span>
@@ -214,7 +214,7 @@ export default function SettingsPage() {
                     Under Development
                   </span>
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-muted-foreground ">
                   Switch between light and dark mode
                 </p>
               </div>
@@ -226,7 +226,7 @@ export default function SettingsPage() {
               >
                 <span className="sr-only">Toggle theme</span>
                 <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform flex items-center justify-center ${
+                  className={`inline-block h-6 w-6 transform rounded-full bg-background shadow-md transition-transform flex items-center justify-center ${
                     isDark ? "translate-x-7" : "translate-x-1"
                   }`}
                 >
@@ -249,30 +249,30 @@ export default function SettingsPage() {
         <CrmSetupSection />
 
         {/* My Profile Section */}
-        <section className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
           <div className="p-6">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-wider">
               My Profile
             </h2>
             {profile ? (
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-navy-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-xl">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-navy-800 rounded-full flex items-center justify-center text-slate-600  font-bold text-xl">
                   {getInitials(profile.first_name || profile.full_name)}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                     {profile.full_name}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{profile.name}</p>
+                  <p className="text-sm text-muted-foreground ">{profile.name}</p>
                   <div className="mt-2">
-                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-600  text-xs px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700">
                       {profile.role_profile_name || "System User"}
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-muted-foreground ">
                 Please log in to view your profile.
               </p>
             )}
@@ -280,7 +280,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Company Settings */}
-        <section className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
           <div className="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2 text-slate-900 dark:text-white">
               <span className="material-symbols-outlined text-slate-400">business</span>
@@ -332,8 +332,8 @@ export default function SettingsPage() {
                 </div>
               </>
             ) : (
-              <div className="col-span-2 p-8 text-center text-slate-500 border-dashed border-2 rounded-xl">
-                <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-3">
+              <div className="col-span-2 p-8 text-center text-muted-foreground border-dashed border-2 rounded-xl">
+                <span className="material-symbols-outlined text-6xl text-slate-300  mb-3">
                   business
                 </span>
                 <p className="font-semibold">No company found</p>
@@ -344,7 +344,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Bank Accounts */}
-        <section className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
           <div className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-900 dark:text-white">
               <span className="material-symbols-outlined text-slate-400">account_balance</span>
@@ -355,13 +355,13 @@ export default function SettingsPage() {
           <div className="px-6 pb-6">
             {bankAccounts.length === 0 ? (
               <div className="border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl py-12 flex flex-col items-center justify-center text-center">
-                <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-6xl mb-4">
+                <span className="material-symbols-outlined text-slate-200  text-6xl mb-4">
                   account_balance
                 </span>
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
                   No bank accounts found
                 </h4>
-                <p className="text-[12px] text-slate-500 mt-1">
+                <p className="text-[12px] text-muted-foreground mt-1">
                   Add your first bank account for invoices and quotations
                 </p>
               </div>
@@ -423,8 +423,8 @@ export default function SettingsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {taxTemplates.length === 0 ? (
-              <div className="col-span-full p-8 text-center text-slate-500 border-2 border-dashed rounded-lg bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-3">
+              <div className="col-span-full p-8 text-center text-muted-foreground border-2 border-dashed rounded-lg bg-slate-50 dark:bg-background border-slate-200 dark:border-slate-800">
+                <span className="material-symbols-outlined text-6xl text-slate-300  mb-3">
                   description
                 </span>
                 <p className="font-semibold">No tax templates found</p>
@@ -434,12 +434,12 @@ export default function SettingsPage() {
               taxTemplates.map((template) => (
                 <div
                   key={template.name}
-                  className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
                 >
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                     {template.title || template.name}
                   </h4>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
+                  <p className="text-[12px] text-muted-foreground  mt-1 uppercase tracking-wider">
                     {template.company}
                   </p>
                   {template.is_default === 1 && (

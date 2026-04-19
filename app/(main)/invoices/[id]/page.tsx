@@ -7,6 +7,7 @@ import Link from "next/link"
 import { InvoiceActions } from "@/components/invoices/invoice-actions"
 import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
 import { Invoice } from "@/app/actions/invoices"
+import { StatusBadge } from "@/components/ui/status-badge"
 
 // Fetch single invoice with child items
 async function getInvoice(id: string): Promise<Invoice | null> {
@@ -66,16 +67,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <div>
                 <div className="flex items-center gap-3">
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{invoice.name}</h1>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        invoice.status === 'Paid' ? 'bg-green-100 text-green-800' : 
-                        invoice.status === 'Overdue' ? 'bg-red-100 text-red-800' : 
-                        invoice.docstatus === 2 ? 'bg-slate-200 text-slate-600' : 
-                        'bg-yellow-100 text-yellow-800'
-                    }`}>
-                        {invoice.status}
-                    </span>
+                    <StatusBadge status={invoice.docstatus === 2 ? "Cancelled" : invoice.status} />
                 </div>
-                <p className="text-slate-500">{invoice.customer_name}</p>
+                <p className="text-muted-foreground">{invoice.customer_name}</p>
             </div>
         </div>
         
@@ -89,13 +83,13 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between items-center">
                     <CardTitle className="text-base">Invoice Items</CardTitle>
-                    <span className="text-xs text-slate-500 uppercase font-medium">{invoice.currency}</span>
+                    <span className="text-xs text-muted-foreground uppercase font-medium">{invoice.currency}</span>
                 </div>
             </CardHeader>
             <CardContent className="p-0">
                 {/* Items Table */}
                 <div>
-                    <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                    <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-background px-4 py-3 text-xs font-medium text-muted-foreground border-b border-slate-200 dark:border-slate-800">
                         <div className="col-span-1">#</div>
                         <div className="col-span-5">Item & Description</div>
                         <div className="col-span-2">HSN/SAC</div>
@@ -112,8 +106,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                             return (
                                 <div key={idx} className="px-4 py-3">
                                     {/* Item Header */}
-                                    <div className="grid grid-cols-12 gap-2 text-sm text-slate-700 dark:text-slate-300">
-                                        <div className="col-span-1 text-slate-500">{idx + 1}</div>
+                                    <div className="grid grid-cols-12 gap-2 text-sm text-slate-700 ">
+                                        <div className="col-span-1 text-muted-foreground">{idx + 1}</div>
                                         <div className="col-span-5">
                                             <div className="flex items-center gap-2">
                                                 <div className="font-medium">{item.item_name || item.item_code}</div>
@@ -124,32 +118,32 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                                                 )}
                                             </div>
                                             {item.description && (
-                                                <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{item.description}</div>
+                                                <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.description}</div>
                                             )}
                                         </div>
-                                        <div className="col-span-2 text-xs text-slate-500 flex items-center">{item.gst_hsn_code || "—"}</div>
+                                        <div className="col-span-2 text-xs text-muted-foreground flex items-center">{item.gst_hsn_code || "—"}</div>
                                         <div className="col-span-1 text-right">{item.qty}</div>
                                         <div className="col-span-3 text-right font-medium">{item.amount.toLocaleString()}</div>
                                     </div>
 
                                     {/* Rental Details */}
                                     {isRental && (
-                                        <div className="mt-3 ml-8 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
-                                            <h5 className="font-semibold text-xs mb-2 flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                                        <div className="mt-3 ml-8 p-3 bg-slate-50 dark:bg-background rounded-lg border border-slate-200 dark:border-slate-800">
+                                            <h5 className="font-semibold text-xs mb-2 flex items-center gap-2 text-slate-700 ">
                                                 <Clock className="h-3 w-3" />
                                                 Rental Details
                                             </h5>
                                             <div className="grid grid-cols-4 gap-3 mb-3 text-xs">
                                                 <div>
-                                                    <p className="text-slate-500">Type</p>
+                                                    <p className="text-muted-foreground">Type</p>
                                                     <p className="font-medium capitalize">{item.custom_rental_type || item.rental_type || 'N/A'}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-slate-500">Duration</p>
+                                                    <p className="text-muted-foreground">Duration</p>
                                                     <p className="font-medium">{item.custom_rental_duration || item.rental_duration || 'N/A'} {item.custom_rental_type || item.rental_type || ''}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-slate-500">Start Date</p>
+                                                    <p className="text-muted-foreground">Start Date</p>
                                                     <p className="font-medium">
                                                         {item.custom_rental_start_date || item.rental_start_date ? 
                                                             new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 
@@ -157,7 +151,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-slate-500">End Date</p>
+                                                    <p className="text-muted-foreground">End Date</p>
                                                     <p className="font-medium">
                                                         {item.custom_rental_end_date || item.rental_end_date ? 
                                                             new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 
@@ -167,7 +161,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                                             </div>
 
                                             {(item.custom_operator_included || item.operator_included) && (
-                                                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-2">
+                                                <div className="flex items-center gap-2 text-xs text-slate-600  mb-2">
                                                     <User className="h-3 w-3" />
                                                     <span>Operator Included</span>
                                                 </div>
@@ -216,17 +210,17 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 </div>
 
                 {/* Totals Section */}
-                <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-lg border-t border-slate-200 dark:border-slate-800">
+                <div className="p-6 bg-slate-50/50 dark:bg-background/50 rounded-b-lg border-t border-border/40 dark:border-slate-800">
                     <div className="flex flex-col gap-2 max-w-[250px] ml-auto">
                         <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Net Total</span>
-                            <span className="text-slate-700 dark:text-slate-300">{netTotal.toLocaleString()}</span>
+                            <span className="text-muted-foreground">Net Total</span>
+                            <span className="text-slate-700 ">{netTotal.toLocaleString()}</span>
                         </div>
                         
                         {/* Tax Breakdown */}
                         {invoice.taxes && invoice.taxes.length > 0 ? (
                             invoice.taxes.map((tax: any, i: number) => (
-                                <div key={i} className="flex justify-between text-xs text-slate-500">
+                                <div key={i} className="flex justify-between text-xs text-muted-foreground">
                                     <span>{tax.description}</span>
                                     <span>{(tax.tax_amount_after_discount_amount || tax.tax_amount)?.toLocaleString()}</span>
                                 </div>
@@ -234,14 +228,14 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                         ) : (
                             /* Fallback if taxes array is empty but total tax exists */
                             totalTax > 0 && (
-                                <div className="flex justify-between text-xs text-slate-500">
+                                <div className="flex justify-between text-xs text-muted-foreground">
                                     <span>Total Tax</span>
                                     <span>{totalTax.toLocaleString()}</span>
                                 </div>
                             )
                         )}
 
-                        <div className="flex justify-between text-lg font-bold border-t border-slate-200 dark:border-slate-700 pt-3 mt-1 text-slate-900 dark:text-white">
+                        <div className="flex justify-between text-lg font-bold border-t border-border/40 dark:border-slate-700 pt-3 mt-1 text-slate-900 dark:text-white">
                             <span>Grand Total</span>
                             <span>{invoice.currency} {grandTotal.toLocaleString()}</span>
                         </div>
@@ -256,15 +250,15 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">Details</CardTitle></CardHeader>
                 <CardContent className="space-y-4 text-sm">
                     <div>
-                        <label className="text-xs text-slate-500 block mb-1">Invoice Date</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Invoice Date</label>
                         <p className="font-medium text-slate-900 dark:text-white">{invoice.posting_date}</p>
                     </div>
                     <div>
-                        <label className="text-xs text-slate-500 block mb-1">Due Date</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Due Date</label>
                         <p className="font-medium text-slate-900 dark:text-white">{invoice.due_date}</p>
                     </div>
                     <div>
-                        <label className="text-xs text-slate-500 block mb-1">Place of Supply</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Place of Supply</label>
                         <p className="font-medium text-slate-900 dark:text-white">{invoice.place_of_supply || "—"}</p>
                     </div>
                 </CardContent>
@@ -272,7 +266,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
             <Card>
                 <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">Bank Details</CardTitle></CardHeader>
-                <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+                <CardContent className="space-y-3 text-sm text-slate-600 ">
                      {bank ? (
                         <>
                             <div className="flex justify-between"><span>Bank:</span> <span className="font-medium text-slate-900 dark:text-white">{bank.bank}</span></div>

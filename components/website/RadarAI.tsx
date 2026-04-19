@@ -16,12 +16,12 @@ export default function RadarAI() {
 
           {/* Crosshair */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-full h-[1px] bg-white/5" />
-            <div className="absolute h-full w-[1px] bg-white/5" />
+            <div className="w-full h-[1px] bg-background/5" />
+            <div className="absolute h-full w-[1px] bg-background/5" />
           </div>
 
           {/* Primary Blip with Tooltip */}
-          <div className="absolute top-[30%] left-[60%] w-2 h-2 bg-white rounded-full shadow-[0_0_10px_white]">
+          <div className="absolute top-[30%] left-[60%] w-2 h-2 bg-background rounded-full shadow-[0_0_10px_white]">
             <div className="absolute left-6 top-1/2 -translate-y-1/2 w-48 p-3 glass-panel rounded border border-orange-500/30">
               <div className="flex items-start gap-2">
                 <div className="mt-1 w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse shrink-0" />

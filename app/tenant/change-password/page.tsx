@@ -52,7 +52,7 @@ export default function ChangePasswordPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-white/5 border border-white/10 flex items-center justify-center">
+            <div className="w-10 h-10 bg-background/5 border border-white/10 flex items-center justify-center">
               <Box className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold tracking-tight text-xl text-white">
@@ -147,7 +147,7 @@ export default function ChangePasswordPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-black hover:bg-neutral-200 py-6 rounded-none font-medium text-sm tracking-wide"
+            className="w-full bg-background text-black hover:bg-neutral-200 py-6 rounded-none font-medium text-sm tracking-wide"
           >
             {loading ? (
               <>

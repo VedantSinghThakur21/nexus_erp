@@ -85,7 +85,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             {order.name}
           </h1>
-          <p className="text-slate-500">
+          <p className="text-muted-foreground">
             Customer: {order.customer_name || order.customer}
           </p>
         </div>
@@ -110,7 +110,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
       <div className="grid md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Transaction Date</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Transaction Date</CardTitle>
             <Calendar className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
@@ -124,7 +124,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Delivery Date</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Delivery Date</CardTitle>
             <Calendar className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
@@ -135,7 +135,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             <div className="mt-3">
               <form action={updateDeliveryAction} className="flex items-center gap-2">
                 <input type="hidden" name="id" value={order.name} />
-                <select name="delivery_status" defaultValue={order.delivery_status || 'Not Delivered'} className="px-2 py-1 border rounded bg-white dark:bg-slate-900 text-sm">
+                <select name="delivery_status" defaultValue={order.delivery_status || 'Not Delivered'} className="px-2 py-1 border rounded bg-card dark:bg-background text-sm">
                   <option>Not Delivered</option>
                   <option>Fully Delivered</option>
                   <option>Partly Delivered</option>
@@ -150,7 +150,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Currency</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Currency</CardTitle>
             <Building2 className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
@@ -160,7 +160,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Grand Total</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Grand Total</CardTitle>
             <Building2 className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
@@ -181,37 +181,37 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4" suppressHydrationWarning>
               {order.quotation_no && (
                 <div>
-                  <p className="text-sm text-slate-500">Quotation Reference</p>
+                  <p className="text-sm text-muted-foreground">Quotation Reference</p>
                   <p className="font-medium">{order.quotation_no}</p>
                 </div>
               )}
               {order.po_no && (
                 <div>
-                  <p className="text-sm text-slate-500">PO Number</p>
+                  <p className="text-sm text-muted-foreground">PO Number</p>
                   <p className="font-medium">{order.po_no}</p>
                 </div>
               )}
               {order.po_date && (
                 <div>
-                  <p className="text-sm text-slate-500">PO Date</p>
+                  <p className="text-sm text-muted-foreground">PO Date</p>
                   <p className="font-medium">{new Date(order.po_date).toLocaleDateString('en-IN')}</p>
                 </div>
               )}
               {order.territory && (
                 <div>
-                  <p className="text-sm text-slate-500">Territory</p>
+                  <p className="text-sm text-muted-foreground">Territory</p>
                   <p className="font-medium">{order.territory}</p>
                 </div>
               )}
               {order.contact_email && (
                 <div>
-                  <p className="text-sm text-slate-500">Contact Email</p>
+                  <p className="text-sm text-muted-foreground">Contact Email</p>
                   <p className="font-medium text-blue-600">{order.contact_email}</p>
                 </div>
               )}
               {order.taxes_and_charges && (
                 <div>
-                  <p className="text-sm text-slate-500">Tax Template</p>
+                  <p className="text-sm text-muted-foreground">Tax Template</p>
                   <p className="font-medium">{order.taxes_and_charges}</p>
                 </div>
               )}
@@ -219,8 +219,8 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
 
             {/* Terms */}
             {order.terms && (
-              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <p className="text-sm text-slate-500 mb-2">Terms & Conditions</p>
+              <div className="mt-4 pt-4 border-t border-border/40 dark:border-slate-700">
+                <p className="text-sm text-muted-foreground mb-2">Terms & Conditions</p>
                 <p className="text-sm whitespace-pre-wrap">{order.terms}</p>
               </div>
             )}
@@ -245,11 +245,11 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                 return (
                   <div key={idx} className="border rounded-lg overflow-hidden">
                     {/* Item Header */}
-                    <div className="bg-slate-50 dark:bg-slate-900 p-4 border-b">
+                    <div className="bg-slate-50 dark:bg-background p-4 border-b">
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-semibold text-lg">{item.item_name || item.item_code || 'N/A'}</h3>
-                          <p className="text-sm text-slate-500 mt-1">{item.description || 'No description'}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{item.description || 'No description'}</p>
                         </div>
                         {isRental && (
                           <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
@@ -262,41 +262,41 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                     {/* Standard Item Details */}
                     <div className="p-4 grid grid-cols-4 gap-4">
                       <div>
-                        <p className="text-xs text-slate-500">Item Code</p>
+                        <p className="text-xs text-muted-foreground">Item Code</p>
                         <p className="font-medium">{item.item_code || 'N/A'}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">Quantity</p>
+                        <p className="text-xs text-muted-foreground">Quantity</p>
                         <p className="font-medium">{item.qty || 0}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">Rate</p>
+                        <p className="text-xs text-muted-foreground">Rate</p>
                         <p className="font-medium">₹{(item.rate || 0).toLocaleString('en-IN')}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">Amount</p>
+                        <p className="text-xs text-muted-foreground">Amount</p>
                         <p className="font-medium text-lg">₹{(item.amount || 0).toLocaleString('en-IN')}</p>
                       </div>
                     </div>
 
                     {/* Rental Details */}
                     {isRental && (
-                      <div className="border-t bg-slate-50/50 dark:bg-slate-900/50 p-4">
+                      <div className="border-t bg-slate-50/50 dark:bg-background/50 p-4">
                         <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                           <Clock className="h-4 w-4" />
                           Rental Details
                         </h4>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                           <div>
-                            <p className="text-xs text-slate-500">Rental Type</p>
+                            <p className="text-xs text-muted-foreground">Rental Type</p>
                             <p className="font-medium capitalize">{item.custom_rental_type || item.rental_type || 'N/A'}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500">Duration</p>
+                            <p className="text-xs text-muted-foreground">Duration</p>
                             <p className="font-medium">{item.custom_rental_duration || item.rental_duration || 'N/A'} {item.custom_rental_type || item.rental_type || ''}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500">Start Date</p>
+                            <p className="text-xs text-muted-foreground">Start Date</p>
                             <p className="font-medium">
                               {item.custom_rental_start_date || item.rental_start_date ?
                                 new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN') :
@@ -307,7 +307,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500">End Date</p>
+                            <p className="text-xs text-muted-foreground">End Date</p>
                             <p className="font-medium">
                               {item.custom_rental_end_date || item.rental_end_date ?
                                 new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN') :
@@ -367,16 +367,16 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
               })}
 
               {/* Totals */}
-              <div className="border rounded-lg bg-slate-50 dark:bg-slate-900 p-4">
+              <div className="border rounded-lg bg-slate-50 dark:bg-background p-4">
                 <div className="flex justify-end gap-12">
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between gap-8">
-                      <span className="text-slate-500">Net Total:</span>
+                      <span className="text-muted-foreground">Net Total:</span>
                       <span className="font-medium">₹{(order.net_total || 0).toLocaleString('en-IN')}</span>
                     </div>
                     {(order.total_taxes_and_charges || 0) > 0 && (
                       <div className="flex justify-between gap-8">
-                        <span className="text-slate-500">Taxes:</span>
+                        <span className="text-muted-foreground">Taxes:</span>
                         <span className="font-medium">₹{(order.total_taxes_and_charges || 0).toLocaleString('en-IN')}</span>
                       </div>
                     )}
@@ -389,7 +389,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
               </div>
             </div>
           ) : (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
               <p>No items added to this sales order.</p>
             </div>

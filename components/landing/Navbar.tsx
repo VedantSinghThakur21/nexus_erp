@@ -17,7 +17,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 dark:bg-slate-950/80 dark:border-slate-800">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-slate-200 dark:bg-slate-950/80 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -34,7 +34,7 @@ const Navbar = () => {
               <a
                 key={link.label}
                 href={link.href}
-                className="text-slate-600 hover:text-blue-600 transition-colors duration-200 text-sm font-medium dark:text-slate-300 dark:hover:text-white"
+                className="text-slate-600 hover:text-blue-600 transition-colors duration-200 text-sm font-medium  dark:hover:text-white"
               >
                 {link.label}
               </a>
@@ -66,19 +66,19 @@ const Navbar = () => {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="md:hidden py-4 border-t border-border/40 dark:border-slate-800">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
-                  className="text-slate-600 hover:text-blue-600 transition-colors duration-200 block px-2 py-1 dark:text-slate-300"
+                  className="text-slate-600 hover:text-blue-600 transition-colors duration-200 block px-2 py-1 "
                   onClick={() => setIsOpen(false)}
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="flex flex-col gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col gap-2 pt-4 border-t border-border/40 dark:border-slate-800">
                 <Link href="/login" onClick={() => setIsOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">
                     Sign In

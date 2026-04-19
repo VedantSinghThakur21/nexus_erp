@@ -83,7 +83,7 @@ export function EditItemDialog({ item }: EditItemDialogProps) {
           Edit
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle>Edit Item</DialogTitle>
           <DialogDescription>
@@ -103,9 +103,9 @@ export function EditItemDialog({ item }: EditItemDialogProps) {
                   id="item_code"
                   value={item.item_code}
                   disabled
-                  className="bg-slate-100 dark:bg-slate-800"
+                  className="bg-slate-100 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-                <p className="text-xs text-slate-500">Cannot be changed after creation</p>
+                <p className="text-xs text-muted-foreground">Cannot be changed after creation</p>
               </div>
 
               {/* Item Name */}
@@ -183,7 +183,7 @@ export function EditItemDialog({ item }: EditItemDialogProps) {
                     step="1"
                     placeholder="5"
                   />
-                  <p className="text-xs text-slate-500">Minimum stock before reorder</p>
+                  <p className="text-xs text-muted-foreground">Minimum stock before reorder</p>
                 </div>
               )}
             </div>

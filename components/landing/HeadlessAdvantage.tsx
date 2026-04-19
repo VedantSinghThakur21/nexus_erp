@@ -23,14 +23,14 @@ const HeadlessAdvantage = () => {
   ];
 
   return (
-    <section className="py-24 relative bg-white dark:bg-slate-950" id="features">
+    <section className="py-24 relative bg-card dark:bg-slate-950" id="features">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/50 to-white dark:from-slate-950 dark:via-slate-900/50 dark:to-slate-950" />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-xs text-slate-500 mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-background text-xs text-muted-foreground mb-4">
             <Server className="w-3 h-3" />
             The Headless Advantage
           </div>
@@ -39,7 +39,7 @@ const HeadlessAdvantage = () => {
             <br />
             <span className="text-blue-600">traditional ERPs</span>
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mx-auto">
+          <p className="text-lg text-slate-600  mx-auto">
             Legacy ERPs lock you into rigid workflows and outdated interfaces. 
             Nexus gives you the power with none of the constraints.
           </p>
@@ -50,7 +50,7 @@ const HeadlessAdvantage = () => {
           {advantages.map((advantage, index) => (
             <div
               key={advantage.title}
-              className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 group"
+              className="p-6 rounded-2xl bg-card dark:bg-background border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 group"
             >
               {/* Icon */}
               <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-4 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
@@ -66,7 +66,7 @@ const HeadlessAdvantage = () => {
               <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                 {advantage.title}
               </h3>
-              <p className="text-slate-600 dark:text-slate-400">
+              <p className="text-slate-600 ">
                 {advantage.description}
               </p>
             </div>
@@ -74,11 +74,11 @@ const HeadlessAdvantage = () => {
         </div>
 
         {/* VS Traditional */}
-        <div className="mt-16 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="mt-16 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-background/50">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Traditional ERP */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-slate-500">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <div className="w-2 h-2 rounded-full bg-slate-400" />
                 <span className="text-sm font-medium">Traditional ERP</span>
               </div>
@@ -90,7 +90,7 @@ const HeadlessAdvantage = () => {
                   "Rigid, predefined workflows",
                   "No native AI capabilities",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-slate-500">
+                  <li key={item} className="flex items-start gap-2 text-muted-foreground">
                     <span className="text-red-500 mt-1">✗</span>
                     {item}
                   </li>

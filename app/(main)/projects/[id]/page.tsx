@@ -56,7 +56,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             {project.project_name}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">{project.notes || 'No description'}</p>
+          <p className="text-muted-foreground  mt-1">{project.notes || 'No description'}</p>
         </div>
         <div className="flex gap-2 items-center">
           <UpdateProjectDialog project={project} />
@@ -119,21 +119,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-3 gap-6">
             <div>
-              <label className="text-sm font-medium text-slate-500">Status</label>
-              <p className="text-slate-900 dark:text-slate-200 mt-1">{project.status}</p>
+              <label className="text-sm font-medium text-muted-foreground">Status</label>
+              <p className="text-slate-900  mt-1">{project.status}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-500">Priority</label>
-              <p className="text-slate-900 dark:text-slate-200 mt-1">{project.priority}</p>
+              <label className="text-sm font-medium text-muted-foreground">Priority</label>
+              <p className="text-slate-900  mt-1">{project.priority}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-500">Due Date</label>
-              <p className="text-slate-900 dark:text-slate-200 mt-1">{project.expected_end_date || 'No deadline'}</p>
+              <label className="text-sm font-medium text-muted-foreground">Due Date</label>
+              <p className="text-slate-900  mt-1">{project.expected_end_date || 'No deadline'}</p>
             </div>
           </div>
           
           <div>
-            <label className="text-sm font-medium text-slate-500 mb-2 block">Progress</label>
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">Progress</label>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Completion</span>
@@ -169,7 +169,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <div className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer">
                     <div className="flex-1">
                       <div className="font-medium text-slate-900 dark:text-white">{order.customer_name}</div>
-                      <div className="text-sm text-slate-500 mt-1">
+                      <div className="text-sm text-muted-foreground mt-1">
                         {order.transaction_date} • {order.items?.[0]?.item_name || 'Equipment'}
                       </div>
                     </div>
@@ -197,7 +197,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </CardHeader>
         <CardContent>
           {tasks.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-muted-foreground">
               <FolderKanban className="h-12 w-12 mx-auto mb-4 text-slate-300" />
               <p>No tasks yet. Create one to get started.</p>
             </div>
@@ -207,7 +207,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <div key={task.name} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-200 transition-all">
                   <div className="flex-1">
                     <div className="font-medium text-slate-900 dark:text-white">{task.subject}</div>
-                    <div className="flex items-center gap-3 mt-2 text-sm text-slate-500">
+                    <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {task.exp_end_date || 'No deadline'}

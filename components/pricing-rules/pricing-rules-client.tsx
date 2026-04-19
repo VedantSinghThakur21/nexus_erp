@@ -135,11 +135,11 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
           </div>
 
           {/* Search and Filters */}
-          <div className="bg-white dark:bg-sidebar-dark p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4">
+          <div className="bg-card dark:bg-sidebar-dark p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-lg">search</span>
               <Input
-                className="h-9 w-full pl-10"
+                className="h-9 w-full pl-10 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 placeholder="Search by rule name..."
                 type="text"
                 value={searchQuery}
@@ -148,7 +148,7 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
             </div>
             <div className="flex gap-4">
               <select
-                className="min-w-[160px] py-2 pl-3 pr-10 bg-slate-50 dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary transition-all text-slate-700 dark:text-slate-300 cursor-pointer outline-none"
+                className="min-w-[160px] py-2 pl-3 pr-10 bg-slate-50 dark:bg-background border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary transition-all text-slate-700  cursor-pointer outline-none"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -157,7 +157,7 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                 <option>Inactive</option>
               </select>
               <select
-                className="min-w-[180px] py-2 pl-3 pr-10 bg-slate-50 dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary transition-all text-slate-700 dark:text-slate-300 cursor-pointer outline-none"
+                className="min-w-[180px] py-2 pl-3 pr-10 bg-slate-50 dark:bg-background border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary transition-all text-slate-700  cursor-pointer outline-none"
                 value={businessTypeFilter}
                 onChange={(e) => setBusinessTypeFilter(e.target.value)}
               >
@@ -169,26 +169,26 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
           </div>
 
           {/* Rules List */}
-          <div className="bg-white dark:bg-sidebar-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="bg-card dark:bg-sidebar-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800">
               <h5 className="font-bold text-slate-900 dark:text-white">Pricing Rules ({filteredRules.length})</h5>
-              <p className="text-xs text-slate-500 mt-0.5">Manage and monitor your pricing rules</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Manage and monitor your pricing rules</p>
             </div>
 
             {filteredRules.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 text-center">
-                <div className="w-24 h-24 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-6">
-                  <span className="material-symbols-outlined text-slate-300 dark:text-slate-700 text-5xl">inventory_2</span>
+                <div className="w-24 h-24 bg-slate-50 dark:bg-background rounded-full flex items-center justify-center mb-6">
+                  <span className="material-symbols-outlined text-slate-300  text-5xl">inventory_2</span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">No pricing rules found</h3>
-                <p className="text-sm text-slate-500 mt-2 max-w-xs px-4">
+                <p className="text-sm text-muted-foreground mt-2 max-w-xs px-4">
                   {searchQuery || statusFilter !== "All Status"
                     ? "Try adjusting your filters"
                     : "Get started by creating your first pricing rule to automate your sales workflow."}
                 </p>
                 {!searchQuery && statusFilter === "All Status" && (
                   <Link href="/pricing-rules/new">
-                    <button className="mt-8 bg-slate-900 dark:bg-primary hover:bg-slate-800 dark:hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-md">
+                    <button className="mt-8 bg-background dark:bg-primary hover:bg-slate-800 dark:hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-md">
                       <span className="material-symbols-outlined text-xl">add</span> Create First Rule
                     </button>
                   </Link>
@@ -199,7 +199,7 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                 {filteredRules.map((rule) => (
                   <div
                     key={rule.name}
-                    className="flex flex-col md:flex-row md:items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-lg hover:shadow-md transition-shadow bg-slate-50 dark:bg-slate-900/50"
+                    className="flex flex-col md:flex-row md:items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-lg hover:shadow-md transition-shadow bg-slate-50 dark:bg-background/50"
                   >
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3 flex-wrap">
@@ -208,18 +208,18 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                         </h3>
                         <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider ${rule.disable === 0
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 '
                           }`}>
                           {rule.disable === 0 ? "Active" : "Inactive"}
                         </span>
                         {rule.priority && (
-                          <span className="px-2.5 py-0.5 text-[10px] font-bold rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                          <span className="px-2.5 py-0.5 text-[10px] font-bold rounded bg-slate-100 dark:bg-slate-800 text-slate-600  border border-slate-200 dark:border-slate-700">
                             Priority: {rule.priority}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-4 text-xs text-slate-600 dark:text-slate-400">
+                      <div className="flex flex-wrap gap-4 text-xs text-slate-600 ">
                         <span className="flex items-center gap-1">
                           <strong>Apply On:</strong> {rule.apply_on}
                           {rule.item_groups && rule.item_groups.length > 0 && ` (${rule.item_groups.map(ig => ig.item_group).join(', ')})`}
@@ -246,7 +246,7 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
+                      <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
                         {rule.customer_group && (
                           <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                             Customer Group: {rule.customer_group}
@@ -275,7 +275,7 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                     <div className="flex items-center gap-2 mt-4 md:mt-0">
                       <button
                         className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${rule.disable === 0
-                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-700  hover:bg-slate-200 dark:hover:bg-slate-700'
                             : 'bg-primary text-white hover:bg-blue-700'
                           }`}
                         onClick={() => onToggleStatus(rule.name, rule.disable || 0)}
@@ -283,7 +283,7 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
                         {rule.disable === 0 ? "Disable" : "Enable"}
                       </button>
                       <Link href={`/pricing-rules/${rule.name}`}>
-                        <button className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
+                        <button className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700  hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
                           Edit
                         </button>
                       </Link>

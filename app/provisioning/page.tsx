@@ -143,7 +143,7 @@ export default function ProvisioningPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
-      <Card className="w-full max-w-lg border-slate-800 bg-slate-900/50 backdrop-blur text-slate-200">
+      <Card className="w-full max-w-lg border-slate-800 bg-background/50 backdrop-blur text-slate-200">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mb-4">
             {phase === 'done' ? (
@@ -237,7 +237,7 @@ export default function ProvisioningPage() {
                   className="h-2 bg-slate-800"
                   indicatorClassName="bg-blue-600 transition-all duration-1000"
                 />
-                <p className="text-xs text-slate-500 text-right">{progress}% complete</p>
+                <p className="text-xs text-muted-foreground text-right">{progress}% complete</p>
               </div>
 
               <div className="space-y-3">
@@ -258,7 +258,7 @@ export default function ProvisioningPage() {
                           ? 'bg-green-500/20 border-green-500/50 text-green-500'
                           : isStepActive
                           ? 'bg-blue-600/20 border-blue-600/50 text-blue-500 animate-pulse'
-                          : 'bg-slate-800 border-slate-700 text-slate-500'
+                          : 'bg-slate-800 border-slate-700 text-muted-foreground'
                       }`}>
                         {isPast ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                       </div>

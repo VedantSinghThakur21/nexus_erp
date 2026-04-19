@@ -22,8 +22,6 @@ import {
   ReceiptText,
   Settings,
   ShoppingCart,
-  Sun,
-  Moon,
   Users,
 } from 'lucide-react'
 import { useUser } from '@/contexts/user-context'
@@ -36,6 +34,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { cn } from '@/lib/utils'
 
 const COLLAPSE_STORAGE_KEY = 'nexus.sidebar.collapsed'
@@ -177,9 +176,9 @@ function SidebarNav({
                     href={item.href}
                     onClick={onNavigate}
                     className={cn(
-                      'group flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                      'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors',
                       collapsed && 'justify-center px-2',
-                      isActive && 'bg-accent text-accent-foreground'
+                      isActive && 'font-medium bg-accent text-accent-foreground'
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -204,27 +203,10 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loggingOut, setLoggingOut] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
     getUserProfile().then(setProfile).catch(() => setProfile(null))
   }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const saved = localStorage.getItem('nexus.theme')
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const shouldUseDark = saved ? saved === 'dark' : prefersDark
-    document.documentElement.classList.toggle('dark', shouldUseDark)
-    setIsDarkMode(shouldUseDark)
-  }, [])
-
-  function toggleTheme() {
-    const next = !isDarkMode
-    setIsDarkMode(next)
-    document.documentElement.classList.toggle('dark', next)
-    localStorage.setItem('nexus.theme', next ? 'dark' : 'light')
-  }
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -281,14 +263,6 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
           </Button>
           <Button
             variant="ghost"
-            className="w-full justify-start text-sm"
-            onClick={toggleTheme}
-          >
-            {isDarkMode ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-            {isDarkMode ? 'Light mode' : 'Dark mode'}
-          </Button>
-          <Button
-            variant="ghost"
             className="w-full justify-start text-sm text-destructive hover:text-destructive"
             onClick={handleLogout}
             disabled={loggingOut}
@@ -322,27 +296,30 @@ export function AppSidebar() {
     <>
       <div
         className={cn(
-          'hidden h-screen shrink-0 border-r border-border bg-background md:flex md:flex-col',
-          collapsed ? 'w-16' : 'w-60'
+          'hidden h-screen shrink-0 border-r border-border/60 bg-card md:flex md:flex-col',
+          collapsed ? 'w-16' : 'w-[220px]'
         )}
       >
-        <div className="flex h-14 items-center justify-between border-b border-border px-3">
+        <div className="flex h-14 items-center justify-between border-b border-border/60 px-3">
           <Link href="/dashboard" className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Building2 className="h-4 w-4" />
             </div>
             {!collapsed && <span className="text-sm font-medium">Nexus ERP</span>}
           </Link>
-          {!collapsed && (
-            <Button size="icon-sm" variant="ghost" onClick={toggleCollapsed} className="h-7 w-7">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          )}
-          {collapsed && (
-            <Button size="icon-sm" variant="ghost" onClick={toggleCollapsed} className="h-7 w-7">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {!collapsed && <ThemeToggle />}
+            {!collapsed && (
+              <Button size="icon-sm" variant="ghost" onClick={toggleCollapsed} className="h-7 w-7">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
+            {collapsed && (
+              <Button size="icon-sm" variant="ghost" onClick={toggleCollapsed} className="h-7 w-7">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <SidebarNav collapsed={collapsed} />
         <SidebarUser collapsed={collapsed} />

@@ -35,7 +35,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               {payment.docstatus === 1 ? 'Submitted' : payment.docstatus === 2 ? 'Cancelled' : 'Draft'}
             </Badge>
           </div>
-          <p className="text-slate-500">{payment.party_name}</p>
+          <p className="text-muted-foreground">{payment.party_name}</p>
         </div>
       </div>
 
@@ -49,7 +49,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
             {/* Payment Type & Mode */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-slate-500">Payment Type</label>
+                <label className="text-sm text-muted-foreground">Payment Type</label>
                 <div className="flex items-center gap-2 mt-1">
                   <Receipt className="h-4 w-4 text-slate-600" />
                   <Badge variant={payment.payment_type === 'Receive' ? 'default' : 'secondary'}>
@@ -58,7 +58,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
                 </div>
               </div>
               <div>
-                <label className="text-sm text-slate-500">Mode of Payment</label>
+                <label className="text-sm text-muted-foreground">Mode of Payment</label>
                 <div className="flex items-center gap-2 mt-1">
                   <CreditCard className="h-4 w-4 text-slate-600" />
                   <span className="font-medium">{payment.mode_of_payment || '-'}</span>
@@ -68,7 +68,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
 
             {/* Posting Date */}
             <div>
-              <label className="text-sm text-slate-500">Posting Date</label>
+              <label className="text-sm text-muted-foreground">Posting Date</label>
               <div className="flex items-center gap-2 mt-1">
                 <Calendar className="h-4 w-4 text-slate-600" />
                 <span className="font-medium">
@@ -83,7 +83,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
 
             {/* Party Details */}
             <div className="border-t pt-4">
-              <label className="text-sm text-slate-500">Party Type</label>
+              <label className="text-sm text-muted-foreground">Party Type</label>
               <div className="flex items-center gap-2 mt-1">
                 <Building2 className="h-4 w-4 text-slate-600" />
                 <span className="font-medium">{payment.party_type}</span>
@@ -91,7 +91,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
             </div>
 
             <div>
-              <label className="text-sm text-slate-500">Party Name</label>
+              <label className="text-sm text-muted-foreground">Party Name</label>
               <p className="font-medium mt-1">{payment.party_name}</p>
             </div>
 
@@ -118,7 +118,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
             {/* Reference Details */}
             {(payment.reference_no || payment.reference_date) && (
               <div className="border-t pt-4">
-                <label className="text-sm text-slate-500 mb-2 block">Reference Details</label>
+                <label className="text-sm text-muted-foreground mb-2 block">Reference Details</label>
                 <div className="bg-slate-50 p-3 rounded-md space-y-1">
                   {payment.reference_no && (
                     <div className="flex justify-between">
@@ -141,7 +141,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
             {/* Linked Invoices */}
             {payment.references && payment.references.length > 0 && (
               <div className="border-t pt-4">
-                <label className="text-sm text-slate-500 mb-3 block">Linked Invoices</label>
+                <label className="text-sm text-muted-foreground mb-3 block">Linked Invoices</label>
                 <div className="space-y-2">
                   {payment.references.map((ref: any, idx: number) => (
                     <Link 
@@ -157,7 +157,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
                         <div className="font-semibold text-slate-900">
                           ₹{(ref.allocated_amount || 0).toLocaleString('en-IN')}
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-muted-foreground">
                           Outstanding: ₹{(ref.outstanding_amount || 0).toLocaleString('en-IN')}
                         </div>
                       </div>
@@ -177,16 +177,16 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <label className="text-xs text-slate-500">Paid From</label>
+                <label className="text-xs text-muted-foreground">Paid From</label>
                 <p className="text-sm font-medium mt-1">{payment.paid_from || '-'}</p>
               </div>
               <div>
-                <label className="text-xs text-slate-500">Paid To</label>
+                <label className="text-xs text-muted-foreground">Paid To</label>
                 <p className="text-sm font-medium mt-1">{payment.paid_to || '-'}</p>
               </div>
               {payment.paid_from_account_currency && (
                 <div>
-                  <label className="text-xs text-slate-500">Currency</label>
+                  <label className="text-xs text-muted-foreground">Currency</label>
                   <p className="text-sm font-medium mt-1">{payment.paid_from_account_currency}</p>
                 </div>
               )}
@@ -199,7 +199,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
             </CardHeader>
             <CardContent className="space-y-3 text-xs text-slate-600">
               <div>
-                <label className="text-slate-500">Created</label>
+                <label className="text-muted-foreground">Created</label>
                 <p className="mt-1">
                   {new Date(payment.creation!).toLocaleDateString('en-IN', {
                     day: '2-digit',
@@ -211,7 +211,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
                 </p>
               </div>
               <div>
-                <label className="text-slate-500">Modified</label>
+                <label className="text-muted-foreground">Modified</label>
                 <p className="mt-1">
                   {new Date(payment.modified!).toLocaleDateString('en-IN', {
                     day: '2-digit',
@@ -224,7 +224,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               </div>
               {payment.owner && (
                 <div>
-                  <label className="text-slate-500">Owner</label>
+                  <label className="text-muted-foreground">Owner</label>
                   <p className="mt-1">{payment.owner}</p>
                 </div>
               )}

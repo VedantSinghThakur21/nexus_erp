@@ -108,11 +108,11 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
           {/* Projects Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.length === 0 ? (
-              <div className="col-span-full border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center p-12 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
-                <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform mb-4">
+              <div className="col-span-full border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center p-12 bg-slate-50/50 dark:bg-background/50 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                <div className="w-12 h-12 bg-card dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform mb-4">
                   <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors text-2xl">add</span>
                 </div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Start New Project</p>
+                <p className="text-sm font-semibold text-slate-600 ">Start New Project</p>
                 <p className="text-xs text-slate-400 mt-1">Initialize with AI assistance</p>
               </div>
             ) : (
@@ -126,7 +126,7 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
                     blue: { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-300' },
                     amber: { bg: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-300' },
                     red: { bg: 'bg-red-100 dark:bg-red-900/50', text: 'text-red-700 dark:text-red-300' },
-                    slate: { bg: 'bg-slate-100 dark:bg-slate-800/50', text: 'text-slate-700 dark:text-slate-300' },
+                    slate: { bg: 'bg-slate-100 dark:bg-slate-800/50', text: 'text-slate-700 ' },
                   }
 
                   const insightColors: Record<string, { bg: string; text: string; icon: string }> = {
@@ -134,7 +134,7 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
                     blue: { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-600 dark:text-blue-400', icon: 'blue' },
                     amber: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-600 dark:text-amber-400', icon: 'amber' },
                     red: { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-600 dark:text-red-400', icon: 'red' },
-                    slate: { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-600 dark:text-slate-400', icon: 'slate' },
+                    slate: { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-600 ', icon: 'slate' },
                   }
 
                   const currentHealth = healthColors[health.color] || healthColors.slate
@@ -166,8 +166,8 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
                             {/* Progress Bar */}
                             <div>
                               <div className="flex justify-between items-center mb-2">
-                                <span className="text-[14px] text-slate-500 dark:text-slate-400">Completion</span>
-                                <span className="text-[16px] font-semibold text-slate-700 dark:text-slate-200">
+                                <span className="text-[14px] text-muted-foreground ">Completion</span>
+                                <span className="text-[16px] font-semibold text-slate-700 ">
                                   {project.percent_complete}%
                                 </span>
                               </div>
@@ -202,11 +202,11 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
                 })}
 
                 {/* New Project Card */}
-                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center p-8 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
-                  <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform mb-4">
+                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center p-8 bg-slate-50/50 dark:bg-background/50 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                  <div className="w-12 h-12 bg-card dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform mb-4">
                     <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors text-2xl">add</span>
                   </div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Start New Project</p>
+                  <p className="text-sm font-semibold text-slate-600 ">Start New Project</p>
                   <p className="text-xs text-slate-400 mt-1">Initialize with AI assistance</p>
                 </div>
               </>

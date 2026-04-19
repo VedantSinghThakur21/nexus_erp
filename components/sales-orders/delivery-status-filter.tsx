@@ -67,7 +67,7 @@ export function DeliveryStatusFilter({ selectedStatuses = [], onStatusesChange }
         {selected.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleClear} className="text-slate-600 dark:text-slate-400 cursor-pointer">
+            <DropdownMenuItem onClick={handleClear} className="text-slate-600  cursor-pointer">
               Clear all
             </DropdownMenuItem>
           </>

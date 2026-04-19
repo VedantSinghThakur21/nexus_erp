@@ -152,7 +152,7 @@ export default function ERPNextLeadForm() {
               <div>
                 <Label>Salutation</Label>
                 <select
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  className="w-full mt-1 px-3 py-2 bg-card dark:bg-background border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.salutation}
                   onChange={(e) => updateField('salutation', e.target.value)}
                 >
@@ -186,7 +186,7 @@ export default function ERPNextLeadForm() {
               <div>
                 <Label>Gender</Label>
                 <select
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  className="w-full mt-1 px-3 py-2 bg-card dark:bg-background border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.gender || ''}
                   onChange={(e) => updateField('gender', e.target.value)}
                 >
@@ -279,7 +279,7 @@ export default function ERPNextLeadForm() {
                 <Label>Industry *</Label>
                 <select
                   required
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  className="w-full mt-1 px-3 py-2 bg-card dark:bg-background border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.industry}
                   onChange={e => updateField('industry', e.target.value)}
                 >
@@ -316,7 +316,7 @@ export default function ERPNextLeadForm() {
               <div>
                 <Label>Number of Employees</Label>
                 <select
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  className="w-full mt-1 px-3 py-2 bg-card dark:bg-background border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.no_of_employees}
                   onChange={(e) => updateField('no_of_employees', e.target.value)}
                 >
@@ -350,7 +350,7 @@ export default function ERPNextLeadForm() {
                 <Label>Lead Source *</Label>
                 <select
                   required
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  className="w-full mt-1 px-3 py-2 bg-card dark:bg-background border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.source}
                   onChange={(e) => updateField('source', e.target.value)}
                 >
@@ -370,7 +370,7 @@ export default function ERPNextLeadForm() {
               <div>
                 <Label>Lead Status</Label>
                 <select
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  className="w-full mt-1 px-3 py-2 bg-card dark:bg-background border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.status}
                   onChange={(e) => updateField('status', e.target.value)}
                 >
@@ -391,7 +391,7 @@ export default function ERPNextLeadForm() {
               <div>
                 <Label>Assigned To</Label>
                 <select
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  className="w-full mt-1 px-3 py-2 bg-card dark:bg-background border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.assigned_to}
                   onChange={(e) => updateField('assigned_to', e.target.value)}
                 >
@@ -468,7 +468,7 @@ export default function ERPNextLeadForm() {
                 <Label>Country *</Label>
                 <select
                   required
-                  className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+                  className="w-full mt-1 px-3 py-2 bg-card dark:bg-background border border-slate-300 dark:border-slate-700 rounded-lg"
                   value={formData.country}
                   onChange={(e) => updateField('country', e.target.value)}
                 >
@@ -530,7 +530,7 @@ export default function ERPNextLeadForm() {
           <h1 className="text-2xl lg:text-4xl font-bold text-slate-900 dark:text-white">
             Create New Lead
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-slate-600  mt-1">
             Enter the details below to add a new prospect to the system.
           </p>
         </div>
@@ -553,7 +553,7 @@ export default function ERPNextLeadForm() {
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
         <span>CRM</span>
         <ChevronRight className="w-4 h-4" />
         <span>Leads</span>
@@ -566,7 +566,7 @@ export default function ERPNextLeadForm() {
         <div className="col-span-12 lg:col-span-3">
           <AnimatedCard>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+              <CardTitle className="text-sm font-medium text-slate-600 ">
                 SECTIONS
               </CardTitle>
             </CardHeader>
@@ -581,7 +581,7 @@ export default function ERPNextLeadForm() {
                       onClick={() => setActiveSection(section.id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${activeSection === section.id
                           ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600'
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          : 'text-slate-700  hover:bg-slate-50 dark:hover:bg-slate-800/50'
                         }`}
                     >
                       <Icon className="w-5 h-5" />

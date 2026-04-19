@@ -167,18 +167,18 @@ export default function OAuthLoginPage() {
 
         {/* Info Text */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             You will be redirected to the authentication server
           </p>
         </div>
 
         {/* Development Info */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+          <div className="mt-8 p-4 bg-muted rounded-lg">
             <h3 className="mb-2 text-sm font-medium text-foreground">
               Development Info
             </h3>
-            <div className="space-y-1 text-xs text-gray-600">
+            <div className="space-y-1 text-xs text-muted-foreground">
               <p>
                 <strong>Auth URL:</strong>{' '}
                 {process.env.NEXT_PUBLIC_OAUTH_AUTH_URL || 'http://auth.localhost:8080'}

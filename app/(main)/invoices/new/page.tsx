@@ -207,7 +207,7 @@ export default function NewInvoicePage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">New GST Invoice</h1>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               {linkedSalesOrder
                 ? <>Creating invoice from Sales Order <span className="font-semibold text-blue-600">{linkedSalesOrder}</span></>
                 : 'Create a compliant tax invoice'
@@ -229,7 +229,7 @@ export default function NewInvoicePage() {
         {/* Supplier & Customer Details */}
         <div className="grid md:grid-cols-2 gap-6 items-start">
           <Card className="h-full flex flex-col">
-            <CardHeader className="pb-2"><CardTitle className="text-base text-slate-500">Bill To (Customer)</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-base text-muted-foreground">Bill To (Customer)</CardTitle></CardHeader>
             <CardContent className="space-y-4 flex-1">
               <div className="grid gap-2">
                 <Label>Customer Name <span className="text-red-500">*</span></Label>
@@ -237,7 +237,7 @@ export default function NewInvoicePage() {
 
                 {/* Dynamic Customer Info */}
                 {customerDetails ? (
-                  <div className="mt-2 text-xs text-slate-500 bg-slate-50 p-3 rounded border border-slate-100 space-y-1">
+                  <div className="mt-2 text-xs text-muted-foreground bg-slate-50 p-3 rounded border border-slate-100 space-y-1">
                     {customerDetails.tax_id && <p><strong>GSTIN:</strong> {customerDetails.tax_id}</p>}
                     {customerDetails.primary_address ? (
                       <p className="whitespace-pre-wrap">{customerDetails.primary_address}</p>
@@ -266,7 +266,7 @@ export default function NewInvoicePage() {
           </Card>
 
           <Card className="h-full flex flex-col">
-            <CardHeader className="pb-2"><CardTitle className="text-base text-slate-500">Invoice Details</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-base text-muted-foreground">Invoice Details</CardTitle></CardHeader>
             <CardContent className="space-y-4 flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
@@ -298,15 +298,15 @@ export default function NewInvoicePage() {
               </div>
 
               {/* DYNAMIC COMPANY DETAILS */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded border text-sm text-slate-600 flex-1">
+              <div className="p-3 bg-slate-50 dark:bg-background rounded border text-sm text-slate-600 flex-1">
                 <div className="flex gap-2 items-center mb-2">
                   <Building2 className="h-4 w-4 text-slate-400" />
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-slate-800 ">
                     {companyInfo?.name || "Loading Company..."}
                   </span>
                 </div>
                 <div className="ml-6 space-y-1">
-                  <p className="text-xs text-slate-500">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
+                  <p className="text-xs text-muted-foreground">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
                 </div>
               </div>
             </CardContent>
@@ -323,7 +323,7 @@ export default function NewInvoicePage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="border-t">
-              <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b">
+              <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-background px-4 py-3 text-xs font-medium text-muted-foreground border-b">
                 <div className="col-span-1 text-center">#</div>
                 <div className="col-span-4">Description / Item</div>
                 <div className="col-span-2">HSN/SAC</div>
@@ -399,10 +399,10 @@ export default function NewInvoicePage() {
             </div>
           </div>
 
-          <Card className="bg-slate-50/50 dark:bg-slate-900/50">
+          <Card className="bg-slate-50/50 dark:bg-background/50">
             <CardContent className="p-6 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Subtotal</span>
+                <span className="text-muted-foreground">Subtotal</span>
                 <span>₹ {subTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
 
@@ -416,13 +416,13 @@ export default function NewInvoicePage() {
                     </div>
                   ))}
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Total Tax</span>
+                    <span className="text-muted-foreground">Total Tax</span>
                     <span>₹ {taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </>
               ) : taxTemplate && taxTemplate !== 'none' ? (
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Tax (Loading...)</span>
+                  <span className="text-muted-foreground">Tax (Loading...)</span>
                   <span>₹ {taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
               ) : null}

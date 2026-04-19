@@ -70,7 +70,7 @@ export function SalesOrderActions({ orderId, currentStatus, docStatus, canCreate
     <div className="flex gap-3 items-center">
       {/* Read-only status badge — ERPNext calculates this automatically */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-500">Status:</span>
+        <span className="text-sm text-muted-foreground">Status:</span>
         <Badge className={STATUS_COLORS[currentStatus] || 'bg-slate-100 text-slate-700'}>
           {currentStatus}
         </Badge>

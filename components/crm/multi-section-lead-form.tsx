@@ -94,7 +94,7 @@ export default function NewLeadPage() {
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
               Create New Lead
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            <p className="text-sm text-slate-600  mt-1">
               Enter the details below to add a new prospect to the system.
             </p>
           </div>
@@ -118,7 +118,7 @@ export default function NewLeadPage() {
         {/* Sidebar Navigation */}
         <AnimatedCard className="lg:col-span-1 h-fit" variant="glass" delay={0.1}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300">SECTIONS</CardTitle>
+            <CardTitle className="text-sm font-semibold text-slate-700 ">SECTIONS</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
@@ -131,7 +131,7 @@ export default function NewLeadPage() {
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                       activeSection === section.id
                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        : 'text-slate-600  hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -165,7 +165,7 @@ export default function NewLeadPage() {
                         onChange={handleChange}
                         placeholder="e.g., Jane"
                         required
-                        className="mt-1.5"
+                        className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
 
@@ -178,7 +178,7 @@ export default function NewLeadPage() {
                         onChange={handleChange}
                         placeholder="e.g., Doe"
                         required
-                        className="mt-1.5"
+                        className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
 
@@ -192,7 +192,7 @@ export default function NewLeadPage() {
                         onChange={handleChange}
                         placeholder="jane@company.com"
                         required
-                        className="mt-1.5"
+                        className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
 
@@ -204,7 +204,7 @@ export default function NewLeadPage() {
                         value={formData.job_title}
                         onChange={handleChange}
                         placeholder="e.g., Purchasing Manager"
-                        className="mt-1.5"
+                        className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
 
@@ -217,7 +217,7 @@ export default function NewLeadPage() {
                         value={formData.mobile_no}
                         onChange={handleChange}
                         placeholder="+1 555-0100"
-                        className="mt-1.5"
+                        className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
 
@@ -230,7 +230,7 @@ export default function NewLeadPage() {
                         value={formData.phone}
                         onChange={handleChange}
                         placeholder="+1 555-0101"
-                        className="mt-1.5"
+                        className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
                   </div>
@@ -256,7 +256,7 @@ export default function NewLeadPage() {
                         value={formData.company_name}
                         onChange={handleChange}
                         placeholder="e.g., Acme Corp"
-                        className="mt-1.5"
+                        className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
 
@@ -272,7 +272,7 @@ export default function NewLeadPage() {
                           value={formData.website}
                           onChange={handleChange}
                           placeholder="example.com"
-                          className="pl-[70px]"
+                          className="pl-[70px] bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </div>
                     </div>
@@ -280,7 +280,7 @@ export default function NewLeadPage() {
                     <div>
                       <Label htmlFor="industry">Industry</Label>
                       <Select name="industry" value={formData.industry} onValueChange={(val) => handleSelectChange("industry", val)}>
-                        <SelectTrigger className="mt-1.5">
+                        <SelectTrigger className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                           <SelectValue placeholder="Select Industry" />
                         </SelectTrigger>
                         <SelectContent>
@@ -306,7 +306,7 @@ export default function NewLeadPage() {
                           value={formData.annual_revenue}
                           onChange={handleChange}
                           placeholder="0.00"
-                          className="pl-7"
+                          className="pl-7 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </div>
                     </div>
@@ -328,7 +328,7 @@ export default function NewLeadPage() {
                     <div>
                       <Label htmlFor="source">Lead Source</Label>
                       <Select name="source" value={formData.source} onValueChange={(val) => handleSelectChange("source", val)}>
-                        <SelectTrigger className="mt-1.5">
+                        <SelectTrigger className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                           <SelectValue placeholder="Select Source" />
                         </SelectTrigger>
                         <SelectContent>
@@ -344,7 +344,7 @@ export default function NewLeadPage() {
                     <div>
                       <Label htmlFor="status">Lead Status</Label>
                       <Select name="status" value={formData.status} onValueChange={(val) => handleSelectChange("status", val)}>
-                        <SelectTrigger className="mt-1.5">
+                        <SelectTrigger className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                           <SelectValue placeholder="Open" />
                         </SelectTrigger>
                         <SelectContent>
@@ -358,7 +358,7 @@ export default function NewLeadPage() {
                     <div>
                       <Label htmlFor="assigned_to">Assigned To</Label>
                       <Select name="assigned_to" value={formData.assigned_to} onValueChange={(val) => handleSelectChange("assigned_to", val)}>
-                        <SelectTrigger className="mt-1.5">
+                        <SelectTrigger className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                           <SelectValue placeholder="Alex Morgan" />
                         </SelectTrigger>
                         <SelectContent>
@@ -391,7 +391,7 @@ export default function NewLeadPage() {
                         value={formData.street}
                         onChange={handleChange}
                         placeholder="123 Business Blvd, Suite 200"
-                        className="mt-1.5"
+                        className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
 
@@ -404,7 +404,7 @@ export default function NewLeadPage() {
                           value={formData.city}
                           onChange={handleChange}
                           placeholder="New York"
-                          className="mt-1.5"
+                          className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </div>
 
@@ -416,7 +416,7 @@ export default function NewLeadPage() {
                           value={formData.state}
                           onChange={handleChange}
                           placeholder="NY"
-                          className="mt-1.5"
+                          className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </div>
 
@@ -428,7 +428,7 @@ export default function NewLeadPage() {
                           value={formData.zip_code}
                           onChange={handleChange}
                           placeholder="10001"
-                          className="mt-1.5"
+                          className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </div>
                     </div>
@@ -436,7 +436,7 @@ export default function NewLeadPage() {
                     <div>
                       <Label htmlFor="country">Country</Label>
                       <Select name="country" value={formData.country} onValueChange={(val) => handleSelectChange("country", val)}>
-                        <SelectTrigger className="mt-1.5">
+                        <SelectTrigger className="mt-1.5 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                           <SelectValue placeholder="United States" />
                         </SelectTrigger>
                         <SelectContent>
@@ -470,7 +470,7 @@ export default function NewLeadPage() {
                       onChange={handleChange}
                       placeholder="Add any initial notes about the lead, meeting summary, or next steps here..."
                       rows={6}
-                      className="mt-1.5 resize-none"
+                      className="mt-1.5 resize-none bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
                 </div>

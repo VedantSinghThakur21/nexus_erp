@@ -61,7 +61,7 @@ export default function SignupPage() {
                   placeholder="John Doe"
                   required
                   disabled={isLoading}
-                  className="h-10 pr-10"
+                  className="h-10 pr-10 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
@@ -76,7 +76,7 @@ export default function SignupPage() {
                   placeholder="Acme Corporation"
                   required
                   disabled={isLoading}
-                  className="h-10 pr-10"
+                  className="h-10 pr-10 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
@@ -93,7 +93,7 @@ export default function SignupPage() {
                   placeholder="admin@acmecorp.com"
                   required
                   disabled={isLoading}
-                  className="h-10 pr-10"
+                  className="h-10 pr-10 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
@@ -110,7 +110,7 @@ export default function SignupPage() {
                   required
                   disabled={isLoading}
                   minLength={8}
-                  className="h-10 pr-10"
+                  className="h-10 pr-10 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>

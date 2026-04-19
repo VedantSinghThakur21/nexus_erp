@@ -45,7 +45,7 @@ export function CrmSetupSection() {
   }
 
   return (
-    <section className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+    <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
       <div className="p-6">
         <div className="flex items-center gap-2 text-slate-900 dark:text-white mb-6">
           <span className="material-symbols-outlined text-slate-400">settings_suggest</span>
@@ -57,7 +57,7 @@ export function CrmSetupSection() {
             <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-1">
               Initialize CRM Master Data
             </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <p className="text-sm text-muted-foreground  mb-4">
               Set up default Opportunity Types and Sales Stages for your CRM module. 
               This creates standard values like &quot;Sales&quot;, &quot;Rental&quot;, &quot;Prospecting&quot;, &quot;Qualification&quot;, etc.
             </p>
@@ -82,7 +82,7 @@ export function CrmSetupSection() {
                     {result.message}
                   </p>
                   {result.success && result.results && (
-                    <div className="mt-2 text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                    <div className="mt-2 text-xs text-slate-600  space-y-1">
                       <div>
                         Opportunity Types: {result.results.opportunityTypes.created} created, 
                         {' '}{result.results.opportunityTypes.existing} already existed

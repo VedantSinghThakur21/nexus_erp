@@ -75,11 +75,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{lead.lead_name}</h1>
-          <p className="text-slate-500">{lead.company_name}</p>
+          <p className="text-muted-foreground">{lead.company_name}</p>
         </div>
         <div className="flex gap-2 items-center">
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                lead.status === 'Lead' ? 'bg-gray-100 text-gray-800' :
+                lead.status === 'Lead' ? 'bg-secondary text-gray-800' :
                 lead.status === 'Open' ? 'bg-blue-100 text-blue-800' : 
                 lead.status === 'Replied' ? 'bg-cyan-100 text-cyan-800' :
                 lead.status === 'Interested' ? 'bg-purple-100 text-purple-800' :
@@ -138,16 +138,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="text-sm font-medium text-slate-500">Source</label>
-                    <p className="text-slate-900 dark:text-slate-200">{lead.source || "Unknown"}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Source</label>
+                    <p className="text-slate-900 ">{lead.source || "Unknown"}</p>
                 </div>
                 <div>
-                    <label className="text-sm font-medium text-slate-500">Territory</label>
-                    <p className="text-slate-900 dark:text-slate-200">{lead.territory || "All Territories"}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Territory</label>
+                    <p className="text-slate-900 ">{lead.territory || "All Territories"}</p>
                 </div>
                 <div className="col-span-2">
-                    <label className="text-sm font-medium text-slate-500">Notes</label>
-                    <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-md text-sm text-slate-700 dark:text-slate-300 min-h-[100px]">
+                    <label className="text-sm font-medium text-muted-foreground">Notes</label>
+                    <div className="mt-2 p-3 bg-slate-50 dark:bg-background rounded-md text-sm text-slate-700  min-h-[100px]">
                         {/* We use a safe fallback if notes are HTML from ERPNext */}
                         {lead.notes ? (
                             <div className="whitespace-pre-wrap">{lead.notes}</div>

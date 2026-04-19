@@ -90,7 +90,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                                 {booking.status}
                             </Badge>
                         </div>
-                        <p className="text-slate-500">Created on {booking.transaction_date}</p>
+                        <p className="text-muted-foreground">Created on {booking.transaction_date}</p>
                     </div>
                 </div>
 
@@ -158,27 +158,27 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                            <span className="text-slate-500">Asset / Item</span>
+                            <span className="text-muted-foreground">Asset / Item</span>
                             <span className="font-medium font-mono">{assetName}</span>
                         </div>
                         <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                            <span className="text-slate-500">Start Date</span>
+                            <span className="text-muted-foreground">Start Date</span>
                             <span className="font-medium">{booking.transaction_date}</span>
                         </div>
                         {booking.items?.[0] && (
                             <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                                <span className="text-slate-500">End Date</span>
+                                <span className="text-muted-foreground">End Date</span>
                                 <span className="font-medium">{booking.items[0].delivery_date}</span>
                             </div>
                         )}
                         <div className="flex justify-between py-2">
-                            <span className="text-slate-500">Rate</span>
+                            <span className="text-muted-foreground">Rate</span>
                             <span className="font-medium">₹{booking.items?.[0]?.rate?.toLocaleString('en-IN')}</span>
                         </div>
 
-                        <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded border border-slate-100 dark:border-slate-800">
+                        <div className="mt-4 p-3 bg-slate-50 dark:bg-background rounded border border-slate-100 dark:border-slate-800">
                             <div className="flex justify-between items-center text-xs">
-                                <span className="font-semibold text-slate-600 dark:text-slate-400">Logistics Status</span>
+                                <span className="font-semibold text-slate-600 ">Logistics Status</span>
                                 <span className={isMobilized ? (isReturned ? "text-blue-600 font-bold" : "text-green-600 font-bold") : "text-orange-500 font-bold"}>
                                     {isReturned ? "Returned" : isMobilized ? "On Site" : "Pending Dispatch"}
                                 </span>
@@ -198,11 +198,11 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                                <span className="text-slate-500">Customer</span>
+                                <span className="text-muted-foreground">Customer</span>
                                 <span className="font-medium">{booking.customer_name}</span>
                             </div>
                             <div className="flex justify-between py-2">
-                                <span className="text-slate-500">Total Value</span>
+                                <span className="text-muted-foreground">Total Value</span>
                                 <span className="font-bold text-lg">₹{booking.grand_total?.toLocaleString('en-IN')}</span>
                             </div>
                         </CardContent>
@@ -219,12 +219,12 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-slate-500 text-sm">Assigned Operator</span>
-                                    <Badge variant="outline" className="bg-white dark:bg-slate-950 font-medium">
+                                    <span className="text-muted-foreground text-sm">Assigned Operator</span>
+                                    <Badge variant="outline" className="bg-card dark:bg-slate-950 font-medium">
                                         {assignedOperator}
                                     </Badge>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 mt-2">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                                     <FileText className="h-3 w-3" />
                                     <span>Delivery Note Generated</span>
                                 </div>
@@ -258,10 +258,10 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                     ) : (
                         <div className="divide-y">
                             {inspections.map((insp: any) => (
-                                <Link key={insp.name} href={`/inspections/${insp.name}`} className="flex items-center justify-between py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 px-2 rounded transition-colors">
+                                <Link key={insp.name} href={`/inspections/${insp.name}`} className="flex items-center justify-between py-3 hover:bg-slate-50 dark:hover:bg-background/50 px-2 rounded transition-colors">
                                     <div>
                                         <p className="text-sm font-medium">{insp.inspection_type}</p>
-                                        <p className="text-xs text-slate-500">{insp.report_date} • By {insp.inspected_by}</p>
+                                        <p className="text-xs text-muted-foreground">{insp.report_date} • By {insp.inspected_by}</p>
                                     </div>
                                     <Badge variant={insp.status === 'Accepted' ? 'default' : 'secondary'}
                                         className={insp.status === 'Accepted' ? 'bg-green-100 text-green-700' : ''}

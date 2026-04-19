@@ -37,15 +37,15 @@ export default function AccessDeniedPage() {
         <CardContent className="space-y-6">
           <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="text-sm font-medium text-slate-700 ">
                 Your Role:
               </span>
               <UserRoleBadge variant="compact" />
             </div>
 
             {requiredRole && (
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="pt-3 border-t border-border/40 dark:border-slate-700">
+                <span className="text-xs text-muted-foreground ">
                   Required role: <span className="font-semibold">{requiredRole}</span>
                 </span>
               </div>
@@ -53,7 +53,7 @@ export default function AccessDeniedPage() {
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-slate-600 ">
               If you believe you should have access to this module, please contact your system administrator.
             </p>
           </div>

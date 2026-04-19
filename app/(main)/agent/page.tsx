@@ -93,7 +93,7 @@ export default function AgentInboxPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <PageHeader>
-        <Button onClick={triggerScan} className="bg-slate-900 text-white hover:bg-slate-800">
+        <Button onClick={triggerScan} className="bg-background text-white hover:bg-slate-800">
           Run Safe Scan
         </Button>
       </PageHeader>
@@ -107,7 +107,7 @@ export default function AgentInboxPage() {
 
         {rolesLoading || !canAccess('agent-inbox') ? null : (
           <>
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-slate-200 bg-background p-5 shadow-sm">
           <h1 className="text-xl font-semibold text-slate-900">Agent Inbox</h1>
           <p className="mt-1 text-sm text-slate-600">
             Suggestions stay pending until someone approves or rejects them.
@@ -121,11 +121,11 @@ export default function AgentInboxPage() {
         )}
 
         {loading ? (
-          <section className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+          <section className="rounded-xl border border-slate-200 bg-background p-6 text-sm text-muted-foreground">
             Loading agent inbox...
           </section>
         ) : items.length === 0 ? (
-          <section className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+          <section className="rounded-xl border border-slate-200 bg-background p-6 text-sm text-muted-foreground">
             No pending actions. Trigger a scan to generate one safe suggestion.
           </section>
         ) : (

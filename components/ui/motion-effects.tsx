@@ -141,7 +141,7 @@ export function RippleEffect({ children, className }: RippleEffectProps) {
       {ripples.map((ripple) => (
         <motion.span
           key={ripple.id}
-          className="absolute rounded-full bg-white/30"
+          className="absolute rounded-full bg-background/30"
           initial={{
             width: 0,
             height: 0,

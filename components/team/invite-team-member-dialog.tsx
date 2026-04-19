@@ -88,7 +88,7 @@ export function InviteTeamMemberDialog() {
         </button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         {invited ? (
           /* ── Success state: show temp password ── */
           <>
@@ -114,12 +114,12 @@ export function InviteTeamMemberDialog() {
                   don&apos;t receive it. They can change it after their first login.
                 </p>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-700 rounded px-3 py-2 text-sm font-mono tracking-wider select-all">
+                  <code className="flex-1 bg-card dark:bg-background border border-amber-200 dark:border-amber-700 rounded px-3 py-2 text-sm font-mono tracking-wider select-all">
                     {invited.tempPassword}
                   </code>
                   <button
                     onClick={() => copyPassword(invited.tempPassword)}
-                    className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 text-amber-800 dark:text-amber-300 hover:bg-amber-50 transition-colors"
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-amber-300 dark:border-amber-700 bg-card dark:bg-slate-800 text-amber-800 dark:text-amber-300 hover:bg-amber-50 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[16px]">
                       {copied ? 'check' : 'content_copy'}
@@ -129,7 +129,7 @@ export function InviteTeamMemberDialog() {
                 </div>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-xs text-muted-foreground  space-y-1">
                 <div><strong>Login URL:</strong> {typeof window !== 'undefined' ? window.location.origin + '/login' : 'Your site URL'}</div>
                 <div><strong>Email:</strong> {invited.email}</div>
               </div>
@@ -193,7 +193,7 @@ export function InviteTeamMemberDialog() {
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-slate-700  border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 Cancel
               </button>

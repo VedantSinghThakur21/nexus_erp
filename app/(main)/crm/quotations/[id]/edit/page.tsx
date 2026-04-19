@@ -399,7 +399,7 @@ export default function EditQuotationPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             Edit Quotation: {quotationId}
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-muted-foreground mt-1">
             Update the quotation details below
           </p>
         </div>
@@ -498,7 +498,7 @@ export default function EditQuotationPage() {
             <CardContent>
               <div className="border-t">
                 {/* Header Row */}
-                <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b">
+                <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-background px-4 py-3 text-xs font-medium text-muted-foreground border-b">
                   <div className="col-span-1 text-center">#</div>
                   <div className="col-span-4">Item / Description</div>
                   <div className="col-span-1 text-right">Qty *</div>
@@ -512,11 +512,11 @@ export default function EditQuotationPage() {
                   {items.map((item, index) => (
                     <div key={item.id} className="border rounded-lg overflow-hidden">
                       {/* Item Header */}
-                      <div className="bg-slate-50 dark:bg-slate-900 p-4 border-b">
+                      <div className="bg-slate-50 dark:bg-background p-4 border-b">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-sm text-slate-500">#{index + 1}</span>
+                              <span className="text-sm text-muted-foreground">#{index + 1}</span>
                               {item.is_rental && (
                                 <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                                   Rental Item
@@ -525,7 +525,7 @@ export default function EditQuotationPage() {
                             </div>
                             <div className="space-y-2">
                               <div>
-                                <Label className="text-xs text-slate-500">Item Code</Label>
+                                <Label className="text-xs text-muted-foreground">Item Code</Label>
                                 <ItemSearch
                                   value={item.item_code}
                                   onChange={(code, desc, name) => {
@@ -538,7 +538,7 @@ export default function EditQuotationPage() {
                                 />
                               </div>
                               <div>
-                                <Label className="text-xs text-slate-500">Description</Label>
+                                <Label className="text-xs text-muted-foreground">Description</Label>
                                 <Input
                                   placeholder="Description"
                                   value={item.description}
@@ -564,7 +564,7 @@ export default function EditQuotationPage() {
                       <div className="p-4">
                         <div className="grid grid-cols-3 gap-4 mb-4">
                           <div>
-                            <Label className="text-xs text-slate-500">Quantity *</Label>
+                            <Label className="text-xs text-muted-foreground">Quantity *</Label>
                             <Input
                               type="number"
                               min="0.01"
@@ -577,7 +577,7 @@ export default function EditQuotationPage() {
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-slate-500">Rate *</Label>
+                            <Label className="text-xs text-muted-foreground">Rate *</Label>
                             <Input
                               type="number"
                               min="0"
@@ -590,7 +590,7 @@ export default function EditQuotationPage() {
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-slate-500">Amount</Label>
+                            <Label className="text-xs text-muted-foreground">Amount</Label>
                             <div className="h-9 flex items-center text-sm font-medium">
                               ₹{item.amount.toLocaleString('en-IN')}
                             </div>
@@ -610,25 +610,25 @@ export default function EditQuotationPage() {
                               </h4>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <div>
-                                  <p className="text-xs text-slate-500 mb-1">Duration</p>
+                                  <p className="text-xs text-muted-foreground mb-1">Duration</p>
                                   <p className="font-medium">{item.rental_duration || 'N/A'} {item.rental_type ? item.rental_type.charAt(0).toUpperCase() + item.rental_type.slice(1) : ''}</p>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-slate-500 mb-1">Start Date</p>
+                                  <p className="text-xs text-muted-foreground mb-1">Start Date</p>
                                   <p className="font-medium">
                                     {item.rental_start_date ? new Date(item.rental_start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                                   </p>
                                   {item.rental_start_time && <p className="text-xs text-slate-400">{item.rental_start_time}</p>}
                                 </div>
                                 <div>
-                                  <p className="text-xs text-slate-500 mb-1">End Date</p>
+                                  <p className="text-xs text-muted-foreground mb-1">End Date</p>
                                   <p className="font-medium">
                                     {item.rental_end_date ? new Date(item.rental_end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                                   </p>
                                   {item.rental_end_time && <p className="text-xs text-slate-400">{item.rental_end_time}</p>}
                                 </div>
                                 <div>
-                                  <p className="text-xs text-slate-500 mb-1">Operator</p>
+                                  <p className="text-xs text-muted-foreground mb-1">Operator</p>
                                   {item.operator_included ? (
                                     <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Included</Badge>
                                   ) : (
@@ -787,7 +787,7 @@ export default function EditQuotationPage() {
                                   />
                                 </div>
                                 <div>
-                                  <Label className="text-xs text-slate-700 dark:text-slate-300">Other</Label>
+                                  <Label className="text-xs text-slate-700 ">Other</Label>
                                   <Input
                                     type="number"
                                     min="0"
@@ -824,7 +824,7 @@ export default function EditQuotationPage() {
                   <div className="flex justify-end">
                     <div className="w-80 space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Net Total:</span>
+                        <span className="text-muted-foreground">Net Total:</span>
                         <span className="font-medium">₹{netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
 
@@ -838,13 +838,13 @@ export default function EditQuotationPage() {
                             </div>
                           ))}
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Total Taxes:</span>
+                            <span className="text-muted-foreground">Total Taxes:</span>
                             <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                         </>
                       ) : taxTemplate && taxTemplate !== 'none' ? (
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Taxes (Loading...):</span>
+                          <span className="text-muted-foreground">Taxes (Loading...):</span>
                           <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ) : null}
@@ -870,15 +870,15 @@ export default function EditQuotationPage() {
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
               <div>
-                <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Company Details</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Company Details</Label>
                 <div className="space-y-1 text-sm">
                   <p className="font-medium text-base">{companyInfo?.name || "Loading Company..."}</p>
-                  <p className="text-xs text-slate-500">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
+                  <p className="text-xs text-muted-foreground">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
                 </div>
               </div>
 
               <div>
-                <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Bank Details</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Bank Details</Label>
                 {bankInfo ? (
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between"><span>Bank:</span> <span className="font-medium">{bankInfo.bank}</span></div>

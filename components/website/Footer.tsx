@@ -8,7 +8,7 @@ export default function Footer() {
           href="/"
           className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
         >
-          <div className="w-4 h-4 bg-white/20" />
+          <div className="w-4 h-4 bg-background/20" />
           <span className="font-bold text-white tracking-tighter">nexuserp</span>
         </Link>
         <div className="text-neutral-600 text-sm font-mono">

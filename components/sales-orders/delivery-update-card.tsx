@@ -61,7 +61,7 @@ export function DeliveryUpdateCard({ deliveryDate, deliveryStatus, orderId }: De
           Update
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Update Delivery Details</DialogTitle>
           <DialogDescription>
@@ -78,7 +78,7 @@ export function DeliveryUpdateCard({ deliveryDate, deliveryStatus, orderId }: De
               <input
                 id="delivery-date"
                 type="date"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />

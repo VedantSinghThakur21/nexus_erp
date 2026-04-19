@@ -56,7 +56,7 @@ const BentoFeatures = () => {
             <br />
             <span className="text-blue-600">unified</span>
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mx-auto">
+          <p className="text-lg text-slate-600  mx-auto">
             One platform for your entire business operations. 
             Modular, connected, and powered by AI.
           </p>
@@ -67,7 +67,7 @@ const BentoFeatures = () => {
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all duration-300 group relative overflow-hidden ${
+              className={`p-6 rounded-2xl bg-card dark:bg-background border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all duration-300 group relative overflow-hidden ${
                 feature.size === "large" ? "md:col-span-2 lg:col-span-2" : ""
               }`}
             >
@@ -84,7 +84,7 @@ const BentoFeatures = () => {
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm text-muted-foreground  leading-relaxed">
                   {feature.description}
                 </p>
 

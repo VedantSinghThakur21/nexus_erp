@@ -44,7 +44,7 @@ export function ThemeToggle() {
           "shadow-lg",
           isDark 
             ? "bg-slate-950" 
-            : "bg-white"
+            : "bg-background"
         )}
         initial={false}
         animate={{

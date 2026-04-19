@@ -511,7 +511,7 @@ export default function NewQuotationPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             {opportunityId ? 'Create Quotation from Opportunity' : 'Create New Quotation'}
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-muted-foreground mt-1">
             {opportunityId
               ? `Creating quotation for opportunity ${opportunityId}`
               : 'Fill in the details below to create a new quotation'}
@@ -656,7 +656,7 @@ export default function NewQuotationPage() {
                 <div className="flex items-center gap-4">
                   <Label htmlFor="category-filter" className="text-sm font-normal whitespace-nowrap">Filter by Category:</Label>
                   <Select value={selectedItemGroup} onValueChange={setSelectedItemGroup}>
-                    <SelectTrigger className="w-[200px] h-9">
+                    <SelectTrigger className="w-[200px] h-9 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -675,7 +675,7 @@ export default function NewQuotationPage() {
             <CardContent>
               <div suppressHydrationWarning className="border-t">
                 {/* Header Row */}
-                <div suppressHydrationWarning className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-xs font-medium text-slate-500 border-b">
+                <div suppressHydrationWarning className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-background px-4 py-3 text-xs font-medium text-muted-foreground border-b">
                   <div suppressHydrationWarning className="col-span-1 text-center">#</div>
                   <div suppressHydrationWarning className="col-span-3">Item / Description</div>
                   <div suppressHydrationWarning className="col-span-1 text-right">Qty *</div>
@@ -690,7 +690,7 @@ export default function NewQuotationPage() {
                   {items.map((item, index) => (
                     <div key={item.id} className="space-y-3">
                       {/* Main Item Row */}
-                      <div className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 dark:hover:bg-slate-900/50 group">
+                      <div className="grid grid-cols-12 gap-2 px-4 py-2 items-start hover:bg-slate-50/50 dark:hover:bg-background/50 group">
                         <div className="col-span-1 pt-2 text-center text-sm text-slate-400">
                           <span className="group-hover:hidden">{index + 1}</span>
                           <Trash2
@@ -873,7 +873,7 @@ export default function NewQuotationPage() {
                   <div className="flex justify-end">
                     <div className="w-80 space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Net Total:</span>
+                        <span className="text-muted-foreground">Net Total:</span>
                         <span className="font-medium">₹{netTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
 
@@ -887,13 +887,13 @@ export default function NewQuotationPage() {
                             </div>
                           ))}
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Total Taxes:</span>
+                            <span className="text-muted-foreground">Total Taxes:</span>
                             <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                         </>
                       ) : taxTemplate && taxTemplate !== 'none' ? (
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Taxes (Loading...):</span>
+                          <span className="text-muted-foreground">Taxes (Loading...):</span>
                           <span className="font-medium">₹{totalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ) : null}
@@ -919,15 +919,15 @@ export default function NewQuotationPage() {
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
               <div>
-                <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Company Details</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Company Details</Label>
                 <div className="space-y-1 text-sm">
                   <p className="font-medium text-base">{companyInfo?.name || "Loading Company..."}</p>
-                  <p className="text-xs text-slate-500">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
+                  <p className="text-xs text-muted-foreground">GSTIN: {companyInfo?.gstin || "Not Set"}</p>
                 </div>
               </div>
 
               <div>
-                <Label className="text-xs text-slate-500 uppercase tracking-wide mb-2 block">Bank Details</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">Bank Details</Label>
                 {bankInfo ? (
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between"><span>Bank:</span> <span className="font-medium">{bankInfo.bank}</span></div>
@@ -962,7 +962,7 @@ export default function NewQuotationPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Select a tax template or <Link href="/settings" className="text-blue-600 hover:underline">create one in Settings</Link>
                 </p>
               </div>

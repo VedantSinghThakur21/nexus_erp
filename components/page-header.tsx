@@ -71,7 +71,7 @@ export function PageHeader({
                     search
                 </span>
                 <Input
-                    className="h-9 rounded-md border-border bg-muted/40 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="h-9 rounded-md border-border bg-muted/40 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     placeholder={searchPlaceholder}
                     type="text"
                     value={searchQuery}

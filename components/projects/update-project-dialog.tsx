@@ -39,7 +39,7 @@ export function UpdateProjectDialog({ project }: { project: Project }) {
           <Edit className="h-4 w-4" /> Edit Project
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Update Project</DialogTitle>
         </DialogHeader>

@@ -30,7 +30,7 @@ export default function ProvisioningStatusPage({
 
       <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl space-y-6 text-slate-50">
-          <Badge variant="secondary" className="border-white/15 bg-white/10 px-3 py-1 text-slate-100 shadow-sm backdrop-blur">
+          <Badge variant="secondary" className="border-white/15 bg-background/10 px-3 py-1 text-foreground shadow-sm backdrop-blur">
             <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
             Provisioning in progress
           </Badge>
@@ -46,17 +46,17 @@ export default function ProvisioningStatusPage({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/8 p-4 backdrop-blur">
+            <div className="rounded-2xl border border-white/10 bg-background/8 p-4 backdrop-blur">
               <ShieldCheck className="mb-3 h-5 w-5 text-sky-300" />
               <p className="text-sm font-medium text-white">Pending record created</p>
               <p className="mt-1 text-sm leading-6 text-slate-300">The master tenant record is registered before the worker runs.</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/8 p-4 backdrop-blur">
+            <div className="rounded-2xl border border-white/10 bg-background/8 p-4 backdrop-blur">
               <Sparkles className="mb-3 h-5 w-5 text-amber-300" />
               <p className="text-sm font-medium text-white">Background provisioning</p>
               <p className="mt-1 text-sm leading-6 text-slate-300">The Python worker is creating the site and installing the app stack.</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/8 p-4 backdrop-blur">
+            <div className="rounded-2xl border border-white/10 bg-background/8 p-4 backdrop-blur">
               <MailCheck className="mb-3 h-5 w-5 text-emerald-300" />
               <p className="text-sm font-medium text-white">Secure email delivery</p>
               <p className="mt-1 text-sm leading-6 text-slate-300">When the workspace is ready, you’ll get the login link by email.</p>
@@ -70,13 +70,13 @@ export default function ProvisioningStatusPage({
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-white/15 bg-white/8 text-slate-100 hover:bg-white/12 hover:text-white">
+            <Button asChild size="lg" variant="outline" className="border-white/15 bg-background/8 text-foreground hover:bg-background/12 hover:text-white">
               <Link href="/onboarding">Return to onboarding</Link>
             </Button>
           </div>
         </div>
 
-        <Card className="w-full max-w-xl border-white/10 bg-slate-950/70 text-slate-100 shadow-2xl shadow-slate-950/30 backdrop-blur-xl">
+        <Card className="w-full max-w-xl border-white/10 bg-slate-950/70 text-foreground shadow-2xl shadow-slate-950/30 backdrop-blur-xl">
           <CardHeader className="space-y-3 border-b border-white/10 pb-6">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/20">
@@ -92,10 +92,10 @@ export default function ProvisioningStatusPage({
           </CardHeader>
 
           <CardContent className="space-y-6 pt-6">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div className="rounded-2xl border border-white/10 bg-background/5 p-5">
               <div className="mb-4 flex items-center justify-between text-sm text-slate-300">
                 <span>Provisioning stages</span>
-                <span className="font-medium text-slate-100">Email notification pending</span>
+                <span className="font-medium text-foreground">Email notification pending</span>
               </div>
 
               <div className="space-y-4">

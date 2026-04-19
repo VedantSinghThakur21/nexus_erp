@@ -106,36 +106,36 @@ export function OrganizationHeader() {
       <CardContent>
         <div className="grid grid-cols-4 gap-4">
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-slate-500" />
+            <Users className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-slate-500">Team Members</p>
+              <p className="text-xs text-muted-foreground">Team Members</p>
               <p className="font-semibold">
                 {organization.usage.users} / {plan.features.maxUsers === -1 ? '∞' : plan.features.maxUsers}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-slate-500" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-slate-500">Leads</p>
+              <p className="text-xs text-muted-foreground">Leads</p>
               <p className="font-semibold">
                 {organization.usage.leads} / {plan.features.maxLeads === -1 ? '∞' : plan.features.maxLeads}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-slate-500" />
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-slate-500">Projects</p>
+              <p className="text-xs text-muted-foreground">Projects</p>
               <p className="font-semibold">
                 {organization.usage.projects} / {plan.features.maxProjects === -1 ? '∞' : plan.features.maxProjects}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Receipt className="h-4 w-4 text-slate-500" />
+            <Receipt className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-slate-500">Invoices</p>
+              <p className="text-xs text-muted-foreground">Invoices</p>
               <p className="font-semibold">
                 {organization.usage.invoices} / {plan.features.maxInvoices === -1 ? '∞' : plan.features.maxInvoices}
               </p>

@@ -108,7 +108,7 @@ export function CustomerPricingAnalytics({ customerName }: CustomerPricingAnalyt
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <AlertCircle className="h-12 w-12 text-slate-400 mb-3" />
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-slate-600 ">
               No pricing rules have been applied to this customer yet
             </p>
           </div>
@@ -131,8 +131,8 @@ export function CustomerPricingAnalytics({ customerName }: CustomerPricingAnalyt
       <CardContent className="space-y-4">
         {/* Stats Summary */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-sm text-slate-600 dark:text-slate-400">Total Rules Applied</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-background">
+            <p className="text-sm text-slate-600 ">Total Rules Applied</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">
               {analytics.total_rules_applied}
             </p>
@@ -172,14 +172,14 @@ export function CustomerPricingAnalytics({ customerName }: CustomerPricingAnalyt
         {/* Recent Applications */}
         {analytics.recent_applications.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <h4 className="text-sm font-medium text-slate-700  mb-2">
               Recent Applications
             </h4>
             <div className="space-y-2">
               {analytics.recent_applications.map((app, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-background p-3 dark:border-slate-800 dark:bg-background"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -190,10 +190,10 @@ export function CustomerPricingAnalytics({ customerName }: CustomerPricingAnalyt
                         {app.transaction_name}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                    <p className="text-xs text-slate-600 ">
                       {app.rule_title}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       {new Date(app.date).toLocaleDateString()}
                     </p>
                   </div>

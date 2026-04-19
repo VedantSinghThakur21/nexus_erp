@@ -45,7 +45,7 @@ const AgenticAI = () => {
   ];
 
   return (
-    <section className="py-24 relative bg-white dark:bg-slate-950 overflow-hidden" id="agents">
+    <section className="py-24 relative bg-card dark:bg-slate-950 overflow-hidden" id="agents">
       {/* Background Effect */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[100px]" />
 
@@ -61,7 +61,7 @@ const AgenticAI = () => {
             <br />
             <span className="text-blue-600">AI Workforce</span>
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mx-auto">
+          <p className="text-lg text-slate-600  mx-auto">
             Autonomous AI agents that work 24/7. They don't just assist — 
             they execute. Trained on your business data, aligned with your goals.
           </p>
@@ -72,7 +72,7 @@ const AgenticAI = () => {
           {agents.map((agent, index) => (
             <div
               key={agent.name}
-              className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${agent.borderColor}`}
+              className={`p-6 rounded-2xl bg-card dark:bg-background border border-slate-200 dark:border-slate-800 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${agent.borderColor}`}
             >
               {/* Gradient overlay on hover */}
               <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none ${agent.bgColor.replace('/10', '')}`} />
@@ -86,14 +86,14 @@ const AgenticAI = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white">{agent.name}</h3>
-                      <p className="text-sm text-slate-500 font-medium">{agent.role}</p>
+                      <p className="text-sm text-muted-foreground font-medium">{agent.role}</p>
                     </div>
                   </div>
                   <div className={`w-2 h-2 rounded-full ${agent.color.replace('text-', 'bg-')} animate-pulse`} />
                 </div>
 
                 {/* Description */}
-                <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm leading-relaxed">
+                <p className="text-slate-600  mb-6 text-sm leading-relaxed">
                   {agent.description}
                 </p>
 
@@ -109,7 +109,7 @@ const AgenticAI = () => {
 
         {/* Bottom CTA */}
         <div className="mt-12 text-center">
-          <p className="text-slate-500 mb-4">
+          <p className="text-muted-foreground mb-4">
             Custom agents built for your specific workflows
           </p>
           <a href="#" className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-2 transition-colors">

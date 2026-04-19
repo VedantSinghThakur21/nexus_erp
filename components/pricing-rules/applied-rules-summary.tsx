@@ -27,7 +27,7 @@ export function AppliedRulesSummary({ appliedRules }: AppliedRulesSummaryProps) 
   return (
     <div className="flex items-center gap-3 px-1 py-2 text-sm">
       <Tag className="h-4 w-4 text-green-600 shrink-0" />
-      <span className="text-slate-600 dark:text-slate-400">
+      <span className="text-slate-600 ">
         {appliedRules.length === 1 ? '1 pricing rule' : `${appliedRules.length} pricing rules`} applied
       </span>
       {appliedRules.map((rule, i) => (

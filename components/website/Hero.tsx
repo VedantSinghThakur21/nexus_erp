@@ -22,7 +22,7 @@ export default function Hero() {
       <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
         <div className="flex flex-col items-center text-center mb-16">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-background/5 backdrop-blur-sm mb-8">
             <Satellite className="w-4 h-4 text-orange-500" />
             <span className="font-mono text-[10px] text-neutral-400 uppercase tracking-[0.2em]">
               Live Fleet Telemetry Active
@@ -45,7 +45,7 @@ export default function Hero() {
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <Link
               href="/signup"
-              className="group relative px-8 py-4 bg-white text-black font-semibold tracking-tight transition-all hover:scale-105 overflow-hidden text-center"
+              className="group relative px-8 py-4 bg-background text-black font-semibold tracking-tight transition-all hover:scale-105 overflow-hidden text-center"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent translate-x-[-100%] group-hover:animate-beam z-20" />
               <span className="relative z-10 flex items-center justify-center gap-2">
@@ -53,7 +53,7 @@ export default function Hero() {
                 <ArrowUpRight className="w-4 h-4" />
               </span>
             </Link>
-            <button className="px-8 py-4 bg-transparent border border-white/10 text-white font-medium hover:bg-white/5 transition-colors font-mono text-sm flex items-center justify-center gap-2">
+            <button className="px-8 py-4 bg-transparent border border-white/10 text-white font-medium hover:bg-background/5 transition-colors font-mono text-sm flex items-center justify-center gap-2">
               <PlayCircle className="w-5 h-5" />
               WATCH_DEMO_01
             </button>
@@ -106,7 +106,7 @@ export default function Hero() {
                     </span>
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   </div>
-                  <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden mb-1">
+                  <div className="h-1 w-full bg-background/10 rounded-full overflow-hidden mb-1">
                     <div className="h-full w-[75%] bg-green-500" />
                   </div>
                   <span className="text-[10px] text-neutral-500 font-mono">
@@ -138,7 +138,7 @@ export default function Hero() {
                   Notifications
                 </h3>
                 <div className="space-y-4">
-                  <div className="p-3 rounded border border-white/5 bg-white/5">
+                  <div className="p-3 rounded border border-white/5 bg-background/5">
                     <div className="text-xs text-orange-500 mb-1">
                       MAINTENANCE ALERT
                     </div>

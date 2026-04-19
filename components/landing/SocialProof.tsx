@@ -9,9 +9,9 @@ const SocialProof = () => {
   ];
 
   return (
-    <section className="py-16 border-y border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+    <section className="py-16 border-y border-slate-200 dark:border-slate-800 bg-card dark:bg-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 mb-8">
+        <p className="text-center text-sm font-medium text-muted-foreground  mb-8">
           Trusted by forward-thinking companies
         </p>
         

@@ -76,9 +76,9 @@ export default function NewOperatorPage() {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-foreground min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white dark:bg-navy-deep border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+      <header className="bg-card dark:bg-navy-deep border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <Link href="/operators">
             <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -87,7 +87,7 @@ export default function NewOperatorPage() {
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Add Operator</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Create a new crew member</p>
+            <p className="text-sm text-muted-foreground ">Create a new crew member</p>
           </div>
         </div>
       </header>
@@ -96,7 +96,7 @@ export default function NewOperatorPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-8 max-w-4xl mx-auto w-full">
           {/* Form Card */}
-          <div className="bg-white dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg p-8">
+          <div className="bg-card dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Message */}
               {error && (
@@ -119,7 +119,7 @@ export default function NewOperatorPage() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       First Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -128,12 +128,12 @@ export default function NewOperatorPage() {
                       value={formData.first_name}
                       onChange={handleInputChange}
                       placeholder="John"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-slate-500 transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-muted-foreground transition-all bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       Last Name
                     </label>
                     <input
@@ -142,11 +142,11 @@ export default function NewOperatorPage() {
                       value={formData.last_name}
                       onChange={handleInputChange}
                       placeholder="Doe"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-slate-500 transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-muted-foreground transition-all bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       Email
                     </label>
                     <input
@@ -155,11 +155,11 @@ export default function NewOperatorPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       placeholder="john@example.com"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-slate-500 transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-muted-foreground transition-all bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       Phone Number
                     </label>
                     <input
@@ -168,21 +168,21 @@ export default function NewOperatorPage() {
                       value={formData.phone}
                       onChange={handleInputChange}
                       placeholder="+1 (555) 123-4567"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-slate-500 transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-muted-foreground transition-all bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       Gender <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="gender"
                       value={formData.gender}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-background border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
                       required
                     >
                       <option value="Male">Male</option>
@@ -191,7 +191,7 @@ export default function NewOperatorPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       Date of Birth <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -199,7 +199,7 @@ export default function NewOperatorPage() {
                       name="date_of_birth"
                       value={formData.date_of_birth}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                       required
                     />
                   </div>
@@ -207,7 +207,7 @@ export default function NewOperatorPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       Date of Joining
                     </label>
                     <input
@@ -215,21 +215,21 @@ export default function NewOperatorPage() {
                       name="date_of_joining"
                       value={formData.date_of_joining}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
                 </div>
               </div>
 
               {/* License Information Section */}
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="pt-4 border-t border-border/40 dark:border-slate-700">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined">badge</span>
                   License Information
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       License Number
                     </label>
                     <input
@@ -238,14 +238,14 @@ export default function NewOperatorPage() {
                       value={formData.license_number}
                       onChange={handleInputChange}
                       placeholder="DL-2024-001234"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-slate-500 transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white dark:placeholder:text-muted-foreground transition-all bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    <p className="text-xs text-muted-foreground  mt-1">
                       Operator or equipment license number
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700  mb-2">
                       License Expiry Date
                     </label>
                     <input
@@ -253,9 +253,9 @@ export default function NewOperatorPage() {
                       name="license_expiry"
                       value={formData.license_expiry}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-white transition-all bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    <p className="text-xs text-muted-foreground  mt-1">
                       License validity date
                     </p>
                   </div>
@@ -263,11 +263,11 @@ export default function NewOperatorPage() {
               </div>
 
               {/* Form Actions */}
-              <div className="pt-6 border-t border-slate-200 dark:border-slate-700 flex items-center gap-4 justify-end">
+              <div className="pt-6 border-t border-border/40 dark:border-slate-700 flex items-center gap-4 justify-end">
                 <Link href="/operators">
                   <button
                     type="button"
-                    className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                    className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700  rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                   >
                     Cancel
                   </button>
@@ -302,7 +302,7 @@ export default function NewOperatorPage() {
         </div>
 
         {/* Footer */}
-        <footer className="bg-white dark:bg-navy-deep border-t border-slate-200 dark:border-slate-800 px-8 py-4 flex justify-between items-center mt-auto">
+        <footer className="bg-card dark:bg-navy-deep border-t border-border/40 dark:border-slate-800 px-8 py-4 flex justify-between items-center mt-auto">
           <div className="flex items-center gap-6">
             <span className="flex items-center gap-2 text-[12px] text-emerald-500 font-semibold">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>

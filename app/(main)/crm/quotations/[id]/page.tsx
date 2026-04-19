@@ -7,6 +7,7 @@ import Link from "next/link"
 import { DeleteQuotationButton } from "@/components/crm/delete-quotation-button"
 import { RentalPricingBreakdown } from "@/components/crm/rental-pricing-breakdown"
 import { QuotationActions } from "@/components/crm/quotation-actions"
+import { StatusBadge } from "@/components/ui/status-badge"
 
 export default async function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -53,13 +54,6 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
   }
 
   // Status colors
-  const statusColors: Record<string, string> = {
-    'Draft': 'bg-slate-100 text-slate-800',
-    'Open': 'bg-blue-100 text-blue-800',
-    'Ordered': 'bg-green-100 text-green-800',
-    'Lost': 'bg-red-100 text-red-800'
-  }
-
   // Check if expired
   const isExpired = quotation.valid_till && new Date(quotation.valid_till) < new Date()
 
@@ -75,10 +69,10 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
       {/* Header Section */}
       <div suppressHydrationWarning className="flex justify-between items-start">
         <div suppressHydrationWarning>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             {quotation.name}
           </h1>
-          <p className="text-slate-500">
+          <p className="text-muted-foreground">
             {quotation.quotation_to === 'Customer' ? 'Customer' : 'Lead'}: {quotation.customer_name || quotation.party_name}
           </p>
         </div>
@@ -87,9 +81,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
             ...quotation,
             docstatus: quotation.docstatus ?? 0
           }} />
-          <Badge className={statusColors[quotation.status] || 'bg-slate-100 text-slate-800'}>
-            {quotation.status}
-          </Badge>
+          <StatusBadge status={quotation.status} />
           {isExpired && quotation.status === 'Open' && (
             <Badge className="bg-orange-100 text-orange-800">Expired</Badge>
           )}
@@ -100,7 +92,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
       <div suppressHydrationWarning className="grid md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Transaction Date</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Transaction Date</CardTitle>
             <Calendar className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
@@ -114,7 +106,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Valid Until</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Valid Until</CardTitle>
             <Calendar className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
@@ -126,7 +118,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Currency</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Currency</CardTitle>
             <Building2 className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
@@ -194,11 +186,11 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                 return (
                   <div suppressHydrationWarning key={idx} className="border rounded-lg overflow-hidden">
                     {/* Item Header */}
-                    <div suppressHydrationWarning className="bg-slate-50 dark:bg-slate-900 p-4 border-b">
+                    <div suppressHydrationWarning className="bg-slate-50 dark:bg-background p-4 border-b">
                       <div suppressHydrationWarning className="flex justify-between items-start">
                         <div suppressHydrationWarning>
                           <h3 className="font-semibold text-lg">{item.item_name || item.item_code || 'N/A'}</h3>
-                          <p className="text-sm text-slate-500 mt-1">{item.description || 'No description'}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{item.description || 'No description'}</p>
                         </div>
                         {isRental && (
                           <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
@@ -211,19 +203,19 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                     {/* Standard Item Details */}
                     <div suppressHydrationWarning className="p-4 grid grid-cols-4 gap-4">
                       <div suppressHydrationWarning>
-                        <p className="text-xs text-slate-500">Item Code</p>
+                        <p className="text-xs text-muted-foreground">Item Code</p>
                         <p className="font-medium">{item.item_code || 'N/A'}</p>
                       </div>
                       <div suppressHydrationWarning>
-                        <p className="text-xs text-slate-500">Quantity</p>
+                        <p className="text-xs text-muted-foreground">Quantity</p>
                         <p className="font-medium">{item.qty || 0}</p>
                       </div>
                       <div suppressHydrationWarning>
-                        <p className="text-xs text-slate-500">Rate</p>
+                        <p className="text-xs text-muted-foreground">Rate</p>
                         <p className="font-medium">₹{(item.rate || 0).toLocaleString('en-IN')}</p>
                       </div>
                       <div suppressHydrationWarning>
-                        <p className="text-xs text-slate-500">Amount</p>
+                        <p className="text-xs text-muted-foreground">Amount</p>
                         <p className="font-medium text-lg">₹{(item.amount || 0).toLocaleString('en-IN')}</p>
                       </div>
                     </div>
@@ -231,13 +223,13 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                     {/* Rental Details */}
                     {isRental && (
                       <div suppressHydrationWarning className="border-t bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-900/80 dark:to-blue-950/30 p-6">
-                        <h4 className="font-semibold text-base mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                        <h4 className="font-semibold text-base mb-4 flex items-center gap-2 text-slate-800 ">
                           <Clock className="h-5 w-5 text-blue-600" />
                           Rental Details
                         </h4>
                         <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                          <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Rental Type</p>
+                          <div suppressHydrationWarning className="bg-background/60 dark:bg-background/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-medium text-muted-foreground  uppercase tracking-wide mb-2">Rental Type</p>
                             <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                               {(() => {
                                 const rentalType = item.custom_rental_type || item.rental_type || 'N/A'
@@ -248,11 +240,11 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                               })()}
                             </Badge>
                           </div>
-                          <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Duration</p>
+                          <div suppressHydrationWarning className="bg-background/60 dark:bg-background/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-medium text-muted-foreground  uppercase tracking-wide mb-2">Duration</p>
                             <p className="text-lg font-semibold text-slate-900 dark:text-white">
                               {item.custom_rental_duration || item.rental_duration || '0'}{' '}
-                              <span className="text-sm font-normal text-slate-600 dark:text-slate-400">
+                              <span className="text-sm font-normal text-slate-600 ">
                                 {(() => {
                                   const rentalType = item.custom_rental_type || item.rental_type || ''
                                   if (typeof rentalType === 'string' && rentalType.length > 0 && !rentalType.includes('\n')) {
@@ -263,8 +255,8 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                               </span>
                             </p>
                           </div>
-                          <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Start Date</p>
+                          <div suppressHydrationWarning className="bg-background/60 dark:bg-background/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-medium text-muted-foreground  uppercase tracking-wide mb-2">Start Date</p>
                             <p className="font-semibold text-slate-900 dark:text-white">
                               {item.custom_rental_start_date || item.rental_start_date ? 
                                 new Date(item.custom_rental_start_date || item.rental_start_date).toLocaleDateString('en-IN', { 
@@ -275,13 +267,13 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                                 'N/A'}
                             </p>
                             {(item.custom_rental_start_time || item.rental_start_time) && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              <p className="text-xs text-muted-foreground  mt-1">
                                 {(item.custom_rental_start_time || item.rental_start_time).substring(0, 5)}
                               </p>
                             )}
                           </div>
-                          <div suppressHydrationWarning className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">End Date</p>
+                          <div suppressHydrationWarning className="bg-background/60 dark:bg-background/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                            <p className="text-xs font-medium text-muted-foreground  uppercase tracking-wide mb-2">End Date</p>
                             <p className="font-semibold text-slate-900 dark:text-white">
                               {item.custom_rental_end_date || item.rental_end_date ? 
                                 new Date(item.custom_rental_end_date || item.rental_end_date).toLocaleDateString('en-IN', { 
@@ -292,7 +284,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                                 'N/A'}
                             </p>
                             {(item.custom_rental_end_time || item.rental_end_time) && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              <p className="text-xs text-muted-foreground  mt-1">
                                 {(item.custom_rental_end_time || item.rental_end_time).substring(0, 5)}
                               </p>
                             )}
@@ -300,12 +292,12 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
                         </div>
 
                         {(item.custom_operator_included || item.operator_included) && (
-                          <div className="mt-4 bg-white/60 dark:bg-slate-900/60 rounded-lg p-4 border border-green-200 dark:border-green-800 flex items-center gap-3">
+                          <div className="mt-4 bg-background/60 dark:bg-background/60 rounded-lg p-4 border border-green-200 dark:border-green-800 flex items-center gap-3">
                             <User className="h-5 w-5 text-green-600" />
                             <div>
                               <p className="text-sm font-semibold text-slate-900 dark:text-white">Operator Included</p>
                               {(item.custom_operator_name || item.operator_name) && (
-                                <p className="text-xs text-slate-600 dark:text-slate-400">Assigned: {item.custom_operator_name || item.operator_name}</p>
+                                <p className="text-xs text-slate-600 ">Assigned: {item.custom_operator_name || item.operator_name}</p>
                               )}
                             </div>
                           </div>
@@ -336,16 +328,16 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
               })}
 
               {/* Totals */}
-              <div suppressHydrationWarning className="border rounded-lg bg-slate-50 dark:bg-slate-900 p-4">
+              <div suppressHydrationWarning className="border rounded-lg bg-slate-50 dark:bg-background p-4">
                 <div suppressHydrationWarning className="flex justify-end gap-12">
                   <div suppressHydrationWarning className="space-y-2 text-sm">
                     <div suppressHydrationWarning className="flex justify-between gap-8">
-                      <span className="text-slate-500">Net Total:</span>
+                      <span className="text-muted-foreground">Net Total:</span>
                       <span className="font-medium">₹{(quotation.net_total || 0).toLocaleString('en-IN')}</span>
                     </div>
                     {(quotation.total_taxes_and_charges || 0) > 0 && (
                       <div suppressHydrationWarning className="flex justify-between gap-8">
-                        <span className="text-slate-500">Taxes:</span>
+                        <span className="text-muted-foreground">Taxes:</span>
                         <span className="font-medium">₹{(quotation.total_taxes_and_charges || 0).toLocaleString('en-IN')}</span>
                       </div>
                     )}
@@ -358,7 +350,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
               </div>
             </div>
           ) : (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
               <p>No items added to this quotation.</p>
             </div>
@@ -373,7 +365,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+            <div className="text-sm text-slate-700  whitespace-pre-wrap">
               {quotation.terms}
             </div>
           </CardContent>

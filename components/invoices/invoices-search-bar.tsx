@@ -19,7 +19,7 @@ export function InvoicesSearchBar({ onSearch, placeholder = "Search invoices..."
     >
       <input
         type="text"
-        className="w-full px-3 py-2 border rounded bg-white dark:bg-slate-900 text-sm"
+        className="w-full px-3 py-2 border rounded bg-card text-sm bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
         placeholder={placeholder}
         value={value}
         onChange={e => setValue(e.target.value)}

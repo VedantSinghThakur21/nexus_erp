@@ -60,7 +60,7 @@ export function CreateBankAccountDialog() {
           Add Bank Account
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Add Bank Account</DialogTitle>
           <DialogDescription>
@@ -99,7 +99,7 @@ export function CreateBankAccountDialog() {
               placeholder="e.g., HDFC0001234"
               maxLength={11}
             />
-            <p className="text-xs text-slate-500">11-character code for Indian banks</p>
+            <p className="text-xs text-muted-foreground">11-character code for Indian banks</p>
           </div>
 
           <div className="flex items-center space-x-2">

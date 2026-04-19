@@ -106,7 +106,7 @@ export function CreateItemDialog() {
           Add New Item
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle>Create New Item</DialogTitle>
           <DialogDescription>
@@ -128,7 +128,7 @@ export function CreateItemDialog() {
                   placeholder="e.g., CRANE-001"
                   required
                 />
-                <p className="text-xs text-slate-500">Unique identifier for the item</p>
+                <p className="text-xs text-muted-foreground">Unique identifier for the item</p>
               </div>
 
               {/* Item Name */}
@@ -235,7 +235,7 @@ export function CreateItemDialog() {
                     step="1"
                     placeholder="5"
                   />
-                  <p className="text-xs text-slate-500">Minimum stock level before reorder</p>
+                  <p className="text-xs text-muted-foreground">Minimum stock level before reorder</p>
                 </div>
               </div>
             )}
@@ -257,7 +257,7 @@ export function CreateItemDialog() {
                       setSelectedBrand(value)
                     }
                   }}>
-                    <SelectTrigger className="flex-1">
+                    <SelectTrigger className="flex-1 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                       <SelectValue placeholder="Select brand (optional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -313,7 +313,7 @@ export function CreateItemDialog() {
         {/* New Brand Dialog */}
         {showNewBrandDialog && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-slate-900 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="bg-card dark:bg-background rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
               <h3 className="text-lg font-semibold mb-4">Add New Brand</h3>
               <div className="space-y-4">
                 <div className="grid gap-2">

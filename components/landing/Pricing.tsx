@@ -71,7 +71,7 @@ const Pricing = () => {
             <br />
             <span className="text-blue-600">pricing</span>
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mx-auto">
+          <p className="text-lg text-slate-600  mx-auto">
             Start free, scale as you grow. No hidden fees, no surprises.
           </p>
         </div>
@@ -83,8 +83,8 @@ const Pricing = () => {
               key={plan.name}
               className={`relative rounded-2xl border p-8 transition-all duration-300 ${
                 plan.popular
-                  ? "border-blue-600 bg-white dark:bg-slate-900 shadow-xl scale-105 z-10"
-                  : "border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 hover:border-blue-600/30"
+                  ? "border-blue-600 bg-card dark:bg-background shadow-xl scale-105 z-10"
+                  : "border-slate-200 dark:border-slate-800 bg-background/50 dark:bg-background/50 hover:border-blue-600/30"
               }`}
             >
               {/* Popular Badge */}
@@ -103,9 +103,9 @@ const Pricing = () => {
                   <span className="text-4xl font-bold text-slate-900 dark:text-white">
                     {plan.price}
                   </span>
-                  <span className="text-slate-500">{plan.period}</span>
+                  <span className="text-muted-foreground">{plan.period}</span>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                   {plan.description}
                 </p>
               </div>
@@ -115,7 +115,7 @@ const Pricing = () => {
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
                     <Check className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                    <span className="text-sm text-slate-600 dark:text-slate-300">{feature}</span>
+                    <span className="text-sm text-slate-600 ">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -135,7 +135,7 @@ const Pricing = () => {
         </div>
 
         {/* Bottom Note */}
-        <p className="text-center text-sm text-slate-500 mt-12">
+        <p className="text-center text-sm text-muted-foreground mt-12">
           All plans include a 14-day free trial. No credit card required.
         </p>
       </div>

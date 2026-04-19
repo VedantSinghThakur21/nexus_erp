@@ -92,7 +92,7 @@ export function CreateBookingDialog({
           {available ? 'Book Now' : 'Out of Stock'}
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Book {itemName}</DialogTitle>
           <DialogDescription>
@@ -109,7 +109,7 @@ export function CreateBookingDialog({
               </SelectTrigger>
               <SelectContent>
                 {customers.length === 0 ? (
-                  <div className="p-2 text-sm text-slate-500">No customers found</div>
+                  <div className="p-2 text-sm text-muted-foreground">No customers found</div>
                 ) : (
                   customers.map((customer) => (
                     <SelectItem key={customer.name} value={customer.name}>
@@ -148,7 +148,7 @@ export function CreateBookingDialog({
               </SelectTrigger>
               <SelectContent>
                 {projects.length === 0 ? (
-                  <div className="p-2 text-sm text-slate-500">No projects found</div>
+                  <div className="p-2 text-sm text-muted-foreground">No projects found</div>
                 ) : (
                   projects.map((project) => (
                     <SelectItem key={project.name} value={project.name}>

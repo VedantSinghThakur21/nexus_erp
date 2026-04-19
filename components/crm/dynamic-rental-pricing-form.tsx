@@ -99,7 +99,7 @@ export function DynamicRentalPricingForm({
         {showComponentSelector && availableToAdd.length > 0 && (
           <Card className="border-2 border-purple-300 dark:border-purple-700">
             <CardContent className="p-3">
-              <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+              <p className="text-xs text-slate-600  mb-2">
                 Select components to add:
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -173,7 +173,7 @@ export function DynamicRentalPricingForm({
                     required={isRequired}
                   />
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-5 min-w-[80px] text-right">
+                <div className="text-xs text-muted-foreground  mt-5 min-w-[80px] text-right">
                   {currency}{Number(rawValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
@@ -193,7 +193,7 @@ export function DynamicRentalPricingForm({
           </div>
         </div>
 
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-muted-foreground ">
           Add only the components you need for this rental. Total will be automatically calculated.
         </p>
       </CardContent>

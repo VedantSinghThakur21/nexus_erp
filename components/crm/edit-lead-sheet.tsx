@@ -129,7 +129,7 @@ export function EditLeadSheet({ lead }: { lead: any }) {
                 id="notes" 
                 name="notes" 
                 defaultValue={lead.notes} 
-                className="min-h-[100px]"
+                className="min-h-[100px] bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 placeholder="Enter meeting notes, customer needs, etc." 
             />
           </div>

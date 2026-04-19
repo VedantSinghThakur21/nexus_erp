@@ -46,7 +46,7 @@ export function ConvertLeadDialog({ leadId, leadName }: { leadId: string; leadNa
           Convert to Opportunity
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bg-card border-border">
         <DialogHeader>
           <DialogTitle>Convert Lead to Opportunity</DialogTitle>
           <DialogDescription>

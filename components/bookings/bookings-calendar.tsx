@@ -103,7 +103,7 @@ export function BookingsCalendar({ bookings }: { bookings: Booking[] }) {
   
   // Add empty cells for days before month starts
   for (let i = 0; i < firstDayOfMonth; i++) {
-    calendarDays.push(<div key={`empty-${i}`} className="min-h-[100px] bg-slate-50/50 dark:bg-slate-900/50" />)
+    calendarDays.push(<div key={`empty-${i}`} className="min-h-[100px] bg-slate-50/50 dark:bg-background/50" />)
   }
   
   // Add days of month
@@ -116,7 +116,7 @@ export function BookingsCalendar({ bookings }: { bookings: Booking[] }) {
       <div 
         key={day} 
         className={`min-h-[100px] border border-slate-200 dark:border-slate-800 p-2 ${
-          isToday ? 'bg-blue-50 dark:bg-blue-950/20 ring-2 ring-blue-600' : 'bg-white dark:bg-slate-900'
+          isToday ? 'bg-blue-50 dark:bg-blue-950/20 ring-2 ring-blue-600' : 'bg-card dark:bg-background'
         }`}
       >
         <div className={`text-sm font-semibold mb-1 ${isToday ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>
@@ -136,7 +136,7 @@ export function BookingsCalendar({ bookings }: { bookings: Booking[] }) {
             </Link>
           ))}
           {dayBookings.length > 2 && (
-            <div className="text-xs text-slate-500 px-1 font-medium">
+            <div className="text-xs text-muted-foreground px-1 font-medium">
               +{dayBookings.length - 2} more
             </div>
           )}
@@ -168,9 +168,9 @@ export function BookingsCalendar({ bookings }: { bookings: Booking[] }) {
           </div>
           
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-500" />
+            <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] h-9">
+              <SelectTrigger className="w-[180px] h-9 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -197,11 +197,11 @@ export function BookingsCalendar({ bookings }: { bookings: Booking[] }) {
         
         {/* Legend */}
         <div className="mt-4 pt-4 border-t flex items-center gap-4 flex-wrap">
-          <span className="text-xs font-semibold text-slate-500">Status:</span>
+          <span className="text-xs font-semibold text-muted-foreground">Status:</span>
           {Object.entries(statusColors).map(([status, color]) => (
             <div key={status} className="flex items-center gap-1">
               <div className={`w-3 h-3 rounded ${color}`} />
-              <span className="text-xs text-slate-600 dark:text-slate-400">{status}</span>
+              <span className="text-xs text-slate-600 ">{status}</span>
             </div>
           ))}
         </div>

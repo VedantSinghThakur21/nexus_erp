@@ -19,9 +19,9 @@ export function AnimatedCard({
   ...props
 }: AnimatedCardProps) {
   const variantStyles = {
-    default: "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+    default: "bg-card dark:bg-background border border-slate-200 dark:border-slate-800",
     neon: "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-slate-800 border border-blue-200 dark:border-blue-900/50",
-    glass: "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50",
+    glass: "bg-background/80 dark:bg-background/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50",
   };
 
   return (
@@ -123,7 +123,7 @@ export function AnimatedBadge({
   className,
 }: AnimatedBadgeProps) {
   const variantStyles = {
-    default: "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100",
+    default: "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-foreground",
     success: "bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-400",
     warning: "bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-400",
     error: "bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-400",
@@ -197,7 +197,7 @@ export function AnimatedStatCard({
         "rounded-xl p-6 shadow-sm",
         variant === 'neon'
           ? "bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/50"
-          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+          : "bg-card dark:bg-background border border-slate-200 dark:border-slate-800"
       )}
     >
       <div className="flex items-start justify-between">
@@ -206,7 +206,7 @@ export function AnimatedStatCard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: delay + 0.1 }}
-            className="text-sm font-medium text-slate-600 dark:text-slate-400"
+            className="text-sm font-medium text-slate-600 "
           >
             {title}
           </motion.p>

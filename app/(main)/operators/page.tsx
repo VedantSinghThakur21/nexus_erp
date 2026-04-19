@@ -61,7 +61,7 @@ export default function OperatorsPage() {
   }, [operators, searchTerm, statusFilter]);
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-foreground min-h-screen flex flex-col">
       {/* Header */}
       <PageHeader>
         <Link href="/operators/new">
@@ -81,7 +81,7 @@ export default function OperatorsPage() {
                 <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                   Operators
                 </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-muted-foreground ">
                   Manage drivers, riggers, and field staff intelligence
                 </p>
               </div>
@@ -177,7 +177,7 @@ export default function OperatorsPage() {
               {/* AI Intelligence Banner */}
               <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 p-6 rounded-xl flex flex-wrap items-center justify-between gap-6 shadow-sm">
                 <div className="flex items-center gap-6">
-                  <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm text-primary">
+                  <div className="p-4 bg-card dark:bg-background rounded-2xl shadow-sm text-primary">
                     <span className="material-symbols-outlined text-[28px]">auto_awesome</span>
                   </div>
                   <div>
@@ -205,7 +205,7 @@ export default function OperatorsPage() {
                       />
                     </svg>
                   </div>
-                  <button className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 shadow-sm hover:shadow-md transition-all">
+                  <button className="bg-card dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-3 shadow-sm hover:shadow-md transition-all">
                     <span className="material-symbols-outlined text-[20px]">psychology</span>
                     Ask AI: Optimize crew assignment
                   </button>
@@ -213,13 +213,13 @@ export default function OperatorsPage() {
               </div>
 
               {/* Filters */}
-              <div className="bg-white dark:bg-navy-deep p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-wrap gap-4 items-center shadow-sm">
+              <div className="bg-card dark:bg-navy-deep p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-wrap gap-4 items-center shadow-sm">
                 <div className="relative flex-1 min-w-[320px]">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">
                     search
                   </span>
                   <input
-                    className="w-full pl-12 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary dark:text-white placeholder:text-slate-400"
+                    className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary focus:border-primary dark:text-white placeholder:text-slate-400 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                     placeholder="Search by name, skill or license..."
                     type="text"
                     value={searchTerm}
@@ -228,7 +228,7 @@ export default function OperatorsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <select
-                    className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg text-sm py-2.5 px-4 focus:ring-primary focus:border-primary dark:text-white min-w-[180px]"
+                    className="bg-slate-50 dark:bg-background border-slate-200 dark:border-slate-700 rounded-lg text-sm py-2.5 px-4 focus:ring-primary focus:border-primary dark:text-white min-w-[180px]"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
@@ -248,7 +248,7 @@ export default function OperatorsPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-3">
                     Active Crew{" "}
-                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs px-2.5 py-1 rounded-full">
+                    <span className="bg-slate-100 dark:bg-slate-800 text-muted-foreground text-xs px-2.5 py-1 rounded-full">
                       {filteredOperators.length}
                     </span>
                   </h3>
@@ -259,16 +259,16 @@ export default function OperatorsPage() {
                 </div>
 
                 {filteredOperators.length === 0 ? (
-                  <div className="bg-white dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-2xl min-h-[450px] flex flex-col items-center justify-center text-center p-12 shadow-sm">
-                    <div className="w-20 h-20 bg-slate-50 dark:bg-slate-900/80 rounded-full flex items-center justify-center mb-8">
-                      <span className="material-symbols-outlined text-slate-200 dark:text-slate-800 text-[48px]">
+                  <div className="bg-card dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-2xl min-h-[450px] flex flex-col items-center justify-center text-center p-12 shadow-sm">
+                    <div className="w-20 h-20 bg-slate-50 dark:bg-background/80 rounded-full flex items-center justify-center mb-8">
+                      <span className="material-symbols-outlined text-slate-200  text-[48px]">
                         person_off
                       </span>
                     </div>
                     <h4 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">
                       No operators found
                     </h4>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-md mb-10 leading-relaxed text-base">
+                    <p className="text-muted-foreground  max-w-md mb-10 leading-relaxed text-base">
                       Add your first crew member to start assigning them to projects and tracking
                       their efficiency with our AI-driven workforce intelligence engine.
                     </p>
@@ -284,7 +284,7 @@ export default function OperatorsPage() {
                     {filteredOperators.map((operator) => (
                       <div
                         key={operator.name}
-                        className="bg-white dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:shadow-lg transition-all group cursor-pointer"
+                        className="bg-card dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:shadow-lg transition-all group cursor-pointer"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-4">
@@ -304,18 +304,18 @@ export default function OperatorsPage() {
 
                         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2 text-sm">
                           {operator.cell_number && (
-                            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                            <div className="flex items-center gap-2 text-slate-600 ">
                               <span className="material-symbols-outlined text-[18px]">phone</span>
                               {operator.cell_number}
                             </div>
                           )}
                           {operator.bio && (
-                            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                            <div className="flex items-center gap-2 text-slate-600 ">
                               <span className="material-symbols-outlined text-[18px]">badge</span>
                               {operator.bio}
                             </div>
                           )}
-                          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                          <div className="flex items-center gap-2 text-slate-600 ">
                             <span className="material-symbols-outlined text-[18px]">
                               calendar_today
                             </span>
@@ -334,7 +334,7 @@ export default function OperatorsPage() {
             </>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="text-slate-500">Loading operators...</div>
+              <div className="text-muted-foreground">Loading operators...</div>
             </div>
           )}
         </div>

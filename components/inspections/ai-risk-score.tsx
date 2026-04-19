@@ -66,7 +66,7 @@ export function AIRiskScore({ inspection }: { inspection: any }) {
                 onClick={calculateRisk} 
                 variant="outline" 
                 size="sm"
-                className="bg-white hover:bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-slate-900 dark:hover:bg-indigo-950/50 dark:border-indigo-800"
+                className="bg-background hover:bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-background dark:hover:bg-indigo-950/50 dark:border-indigo-800"
             >
               Analyze Risk
             </Button>
@@ -91,7 +91,7 @@ export function AIRiskScore({ inspection }: { inspection: any }) {
         {result && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className={`p-5 rounded-xl border flex items-center gap-4 ${getRiskColor(result?.risk_score || 0)}`}>
-               <div className="bg-white/50 dark:bg-black/20 p-3 rounded-full shadow-sm">
+               <div className="bg-background/50 dark:bg-black/20 p-3 rounded-full shadow-sm">
                  {getRiskIcon(result?.risk_score || 0)}
                </div>
                <div className="flex-1">
@@ -114,19 +114,19 @@ export function AIRiskScore({ inspection }: { inspection: any }) {
             </div>
             
             {result?.recommendation && (
-              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-center">
+              <div className="p-4 bg-card dark:bg-background rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-sm font-bold text-slate-700  uppercase tracking-widest text-center">
                  {result.recommendation}
               </div>
             )}
             
             {result?.critical_issues && result.critical_issues.length > 0 && (
                 <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2 px-1 text-red-600 dark:text-red-400 flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 px-1 text-red-600 dark:text-red-400 flex items-center gap-2">
                        <AlertTriangle className="w-4 h-4" /> Detected Risk Factors
                     </h4>
                     <ul className="space-y-2">
                         {result.critical_issues.map((issue: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300 bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-3 rounded-lg">
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-700  bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-3 rounded-lg">
                                 <span className="bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
                                 {issue}
                             </li>
@@ -139,7 +139,7 @@ export function AIRiskScore({ inspection }: { inspection: any }) {
         
         {!result && !loading && !error && (
             <div className="text-center p-6">
-                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                <p className="text-sm text-muted-foreground  max-w-sm mx-auto">
                     Click "Analyze Risk" to evaluate this inspection and surface potential issues using our AI engine.
                 </p>
             </div>

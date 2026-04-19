@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Printer, FileText, Trash2, CheckCircle, X, Loader2 } from "lucide-react"
+import { Printer, FileText, Trash2, X, Mail, ShoppingCart } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { submitQuotation, cancelQuotation, deleteQuotation } from "@/app/actions/crm"
+import { ActionButton } from "@/components/ui/action-button"
 
 interface QuotationActionsProps {
   quotation: {
@@ -82,14 +83,56 @@ export function QuotationActions({ quotation }: QuotationActionsProps) {
 
       {/* Submit Button (Only for Draft) */}
       {quotation.docstatus === 0 && (
-        <Button 
-          onClick={() => handleAction('submit')} 
-          disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-          Submit
-        </Button>
+        <ActionButton
+          module="quotations"
+          action="edit"
+          label="Submit Quotation"
+          icon={<FileText className="h-3.5 w-3.5" />}
+          onAction={async () => {
+            const res = await fetch(`/api/sales/quotations/${encodeURIComponent(quotation.name)}/submit`, { method: "POST" })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || data.error || "Unable to submit quotation")
+          }}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+
+      {quotation.docstatus === 1 && (
+        <ActionButton
+          module="quotations"
+          action="create"
+          label="Create Sales Order"
+          icon={<ShoppingCart className="h-3.5 w-3.5" />}
+          onAction={async () => {
+            const res = await fetch(`/api/sales/quotations/${encodeURIComponent(quotation.name)}/create-sales-order`, { method: "POST" })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || data.error || "Unable to create sales order")
+            if (data.sales_order_name) {
+              router.push(`/sales-orders/${encodeURIComponent(data.sales_order_name)}`)
+            }
+          }}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+
+      {quotation.docstatus === 1 && (
+        <ActionButton
+          module="quotations"
+          action="edit"
+          label="Send by Email"
+          icon={<Mail className="h-3.5 w-3.5" />}
+          variant="outline"
+          onAction={async () => {
+            const res = await fetch(`/api/sales/quotations/${encodeURIComponent(quotation.name)}/send-email`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ recipientEmail: "" }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || data.error || "Unable to queue email")
+          }}
+          onSuccess={() => router.refresh()}
+        />
       )}
 
       {/* Cancel Button (Only for Submitted) */}

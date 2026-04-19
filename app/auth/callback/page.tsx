@@ -91,8 +91,8 @@ function AuthCallbackContent() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+      <div className="flex items-center justify-center min-h-screen bg-muted">
+        <div className="w-full max-w-md p-8 bg-background rounded-lg shadow-lg">
           <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
             <svg
               className="w-6 h-6 text-red-600"
@@ -109,11 +109,11 @@ function AuthCallbackContent() {
             </svg>
           </div>
           
-          <h1 className="mb-2 text-2xl font-bold text-center text-gray-900">
+          <h1 className="mb-2 text-2xl font-bold text-center text-foreground">
             Authentication Failed
           </h1>
           
-          <p className="mb-6 text-center text-gray-600">
+          <p className="mb-6 text-center text-muted-foreground">
             {error}
           </p>
           
@@ -127,7 +127,7 @@ function AuthCallbackContent() {
             
             <button
               onClick={() => router.push('/')}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+              className="flex-1 px-4 py-2 text-gray-700 bg-secondary rounded-lg hover:bg-gray-200 transition"
             >
               Go Home
             </button>
@@ -138,17 +138,17 @@ function AuthCallbackContent() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+    <div className="flex items-center justify-center min-h-screen bg-muted">
+      <div className="w-full max-w-md p-8 bg-background rounded-lg shadow-lg">
         <div className="flex items-center justify-center mb-6">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
         
-        <h1 className="mb-2 text-2xl font-bold text-center text-gray-900">
+        <h1 className="mb-2 text-2xl font-bold text-center text-foreground">
           Completing Authentication
         </h1>
         
-        <p className="text-center text-gray-600">
+        <p className="text-center text-muted-foreground">
           Please wait while we log you in...
         </p>
       </div>
@@ -159,12 +159,12 @@ function AuthCallbackContent() {
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+      <div className="flex items-center justify-center min-h-screen bg-muted">
+        <div className="w-full max-w-md p-8 bg-background rounded-lg shadow-lg">
           <div className="flex items-center justify-center mb-6">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
-          <h1 className="mb-2 text-2xl font-bold text-center text-gray-900">
+          <h1 className="mb-2 text-2xl font-bold text-center text-foreground">
             Loading...
           </h1>
         </div>

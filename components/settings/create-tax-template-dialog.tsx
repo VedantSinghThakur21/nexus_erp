@@ -131,7 +131,7 @@ export function CreateTaxTemplateDialog() {
           New Tax Template
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle>Create Tax Template</DialogTitle>
           <DialogDescription>
@@ -175,7 +175,7 @@ export function CreateTaxTemplateDialog() {
 
             <div className="space-y-4">
               {taxRows.map((row, index) => (
-                <div key={row.id} className="space-y-3 p-4 border rounded-lg bg-white dark:bg-slate-800">
+                <div key={row.id} className="space-y-3 p-4 border rounded-lg bg-card dark:bg-slate-800">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-slate-900 dark:text-white">Tax Row {index + 1}</span>
                     <Button
@@ -193,16 +193,16 @@ export function CreateTaxTemplateDialog() {
                     <div className="space-y-2">
                       <Label className="text-sm">Account Head *</Label>
                       {loadingAccounts ? (
-                        <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-slate-100 dark:bg-slate-900">
+                        <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-slate-100 dark:bg-background">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-sm text-slate-500">Loading accounts...</span>
+                          <span className="text-sm text-muted-foreground">Loading accounts...</span>
                         </div>
                       ) : availableAccounts.length > 0 ? (
                         <Select 
                           value={row.account_head} 
                           onValueChange={(value) => updateTaxRow(row.id, 'account_head', value)}
                         >
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                             <SelectValue placeholder="Select tax account" />
                           </SelectTrigger>
                           <SelectContent>
@@ -248,7 +248,7 @@ export function CreateTaxTemplateDialog() {
                         value={row.charge_type} 
                         onValueChange={(value) => updateTaxRow(row.id, 'charge_type', value)}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -263,7 +263,7 @@ export function CreateTaxTemplateDialog() {
               ))}
             </div>
 
-            <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1 bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
+            <div className="text-xs text-slate-600  space-y-1 bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
               <p className="font-semibold text-blue-900 dark:text-blue-100">Account Selection:</p>
               <p>✓ Select tax accounts from the dropdown (fetched from your ERPNext Chart of Accounts)</p>
               <p>✓ Common tax accounts: Look for "Output Tax CGST", "Output Tax SGST", "Output Tax IGST"</p>

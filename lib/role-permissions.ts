@@ -203,75 +203,46 @@ export function getPrimaryRole(userRoles: string[]): string {
  */
 export const ACTION_PERMISSIONS: Record<string, Record<string, string[]>> = {
   crm: {
-    create: ['Sales Manager'],
-    edit:   ['Sales Manager'],
-    delete: ['Sales Manager'],
-    convert: ['Sales Manager'],
+    create: ['System Manager', 'Sales Manager'],
+    edit: ['System Manager', 'Sales Manager'],
+    delete: ['System Manager', 'Sales Manager'],
+    convert: ['System Manager', 'Sales Manager'],
+    view: ['System Manager', 'Sales Manager', 'Sales User'],
   },
   quotations: {
-    create: ['Sales Manager'],
-    edit:   ['Sales Manager'],
-    delete: ['Sales Manager'],
-  },
-  'sales-orders': {
-    create: ['Sales Manager', 'Accounts Manager'],
-    edit:   ['Sales Manager', 'Accounts Manager'],
-    delete: ['Sales Manager'],
+    create: ['System Manager', 'Sales Manager'],
+    edit: ['System Manager', 'Sales Manager'],
+    delete: ['System Manager', 'Sales Manager'],
+    view: ['System Manager', 'Sales Manager', 'Sales User', 'Accounts Manager'],
   },
   invoices: {
-    create: ['Sales Manager', 'Accounts Manager'],
-    edit:   ['Sales Manager', 'Accounts Manager'],
-    delete: ['Accounts Manager'],
+    create: ['System Manager', 'Sales Manager', 'Accounts Manager'],
+    edit: ['System Manager', 'Sales Manager', 'Accounts Manager'],
+    delete: ['System Manager', 'Accounts Manager'],
+    view: ['System Manager', 'Sales Manager', 'Sales User', 'Accounts Manager', 'Accounts User', 'Projects Manager'],
   },
   payments: {
-    create: ['Accounts Manager'],
-    edit:   ['Accounts Manager'],
-    delete: ['Accounts Manager'],
+    create: ['System Manager', 'Accounts Manager'],
+    edit: ['System Manager', 'Accounts Manager'],
+    delete: ['System Manager', 'Accounts Manager'],
+    view: ['System Manager', 'Sales Manager', 'Accounts Manager', 'Accounts User', 'Projects Manager'],
   },
   projects: {
-    create: ['Projects Manager'],
-    edit:   ['Projects Manager', 'Sales Manager'],
-    delete: ['Projects Manager'],
+    create: ['System Manager', 'Projects Manager'],
+    edit: ['System Manager', 'Sales Manager', 'Projects Manager'],
+    delete: ['System Manager', 'Projects Manager'],
+    view: ['System Manager', 'Sales Manager', 'Accounts Manager', 'Projects Manager', 'Projects User'],
   },
   bookings: {
-    create: ['Sales Manager', 'Projects Manager'],
-    edit:   ['Sales Manager', 'Projects Manager'],
-    delete: ['Sales Manager', 'Projects Manager'],
+    create: ['System Manager', 'Sales Manager', 'Projects Manager'],
+    edit: ['System Manager', 'Sales Manager', 'Projects Manager'],
+    delete: ['System Manager', 'Sales Manager', 'Projects Manager'],
+    view: ['System Manager', 'Sales Manager', 'Sales User', 'Accounts Manager', 'Projects Manager', 'Projects User', 'Stock Manager'],
   },
-  catalogue: {
-    create: ['Sales Manager', 'Stock Manager'],
-    edit:   ['Sales Manager', 'Stock Manager'],
-    delete: ['Stock Manager'],
-  },
-  operators: {
-    create: ['Projects Manager', 'Stock Manager'],
-    edit:   ['Projects Manager', 'Stock Manager'],
-    delete: ['Projects Manager', 'Stock Manager'],
-  },
-  agents: {
-    create: ['Projects Manager', 'Stock Manager'],
-    edit:   ['Projects Manager', 'Stock Manager'],
-    delete: ['Projects Manager', 'Stock Manager'],
-  },
-  'agent-inbox': {
-    create: ['Sales Manager', 'Sales User'],
-    edit: ['Sales Manager', 'Sales User'],
-    delete: ['Sales Manager'],
-  },
-  inspections: {
-    create: ['Projects Manager', 'Stock Manager'],
-    edit:   ['Projects Manager', 'Stock Manager'],
-    delete: ['Projects Manager'],
-  },
-  'pricing-rules': {
-    create: ['Sales Manager', 'Accounts Manager'],
-    edit:   ['Sales Manager', 'Accounts Manager'],
-    delete: ['Accounts Manager'],
-  },
-  team: {
-    create: ['Sales Manager', 'Projects Manager', 'Stock Manager'],
-    edit:   ['Sales Manager', 'Projects Manager', 'Stock Manager'],
-    delete: ['Sales Manager', 'Projects Manager', 'Stock Manager'],
+  agent: {
+    view: ['System Manager', 'Sales Manager', 'Projects Manager'],
+    approve: ['System Manager', 'Sales Manager', 'Projects Manager'],
+    rollback: ['System Manager'],
   },
 }
 
@@ -280,6 +251,14 @@ export const ACTION_PERMISSIONS: Record<string, Record<string, string[]>> = {
  * System Manager can always perform any action.
  */
 export function canPerformAction(
+  module: string,
+  action: string,
+  userRoles: string[],
+): boolean {
+  return canPerform(module, action, userRoles)
+}
+
+export function canPerform(
   module: string,
   action: string,
   userRoles: string[],

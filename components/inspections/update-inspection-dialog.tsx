@@ -38,7 +38,7 @@ export function UpdateInspectionDialog({ inspection }: { inspection: any }) {
           <Edit className="h-4 w-4" /> Update Status
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
           <DialogTitle>Update Inspection</DialogTitle>
         </DialogHeader>
@@ -64,7 +64,7 @@ export function UpdateInspectionDialog({ inspection }: { inspection: any }) {
               name="remarks" 
               placeholder="Note any scratches, fuel levels, or damages..." 
               defaultValue={inspection.remarks || ''}
-              className="min-h-[100px]"
+              className="min-h-[100px] bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </div>
 

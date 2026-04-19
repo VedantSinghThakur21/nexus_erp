@@ -147,7 +147,7 @@ export default function ExampleAPIPage() {
             {backendURL || 'Loading...'}
           </code>
 
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
+          <p className="text-sm text-muted-foreground dark:text-muted-foreground/70 mt-3">
             ✓ Credentials live in httpOnly cookies (not localStorage)<br />
             ✓ All API calls run through /api/proxy/* server route<br />
             ✓ Client JS never sees raw API keys or secrets
@@ -232,14 +232,14 @@ export default function ExampleAPIPage() {
       </div>
       
       {/* Code Examples */}
-      <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg mb-6">
+      <div className="bg-muted dark:bg-gray-900 p-6 rounded-lg mb-6">
         <h2 className="text-xl font-semibold mb-4">Usage Examples</h2>
         
         <div className="space-y-6">
           {/* Example 1: Get Backend URL */}
           <div>
             <h3 className="font-medium mb-2">1. Get Backend URL</h3>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
+            <pre className="bg-secondary dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
 {`import { getBackendURL } from '@/lib/api-client'
 
 // Default configuration (auto-detects local/prod)
@@ -260,7 +260,7 @@ const customURL = getBackendURL({
           {/* Example 2: GET Request */}
           <div>
             <h3 className="font-medium mb-2">2. GET Request</h3>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
+            <pre className="bg-secondary dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
 {`import { api } from '@/lib/api-client'
 
 try {
@@ -280,7 +280,7 @@ try {
           {/* Example 3: POST Request */}
           <div>
             <h3 className="font-medium mb-2">3. POST Request</h3>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
+            <pre className="bg-secondary dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
 {`import { api } from '@/lib/api-client'
 
 const newProject = await api.post('/projects', {
@@ -295,7 +295,7 @@ console.log('Created:', newProject)`}
           {/* Example 4: Error Handling */}
           <div>
             <h3 className="font-medium mb-2">4. Error Handling</h3>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
+            <pre className="bg-secondary dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
 {`import { api, APIError } from '@/lib/api-client'
 
 try {
@@ -326,7 +326,7 @@ try {
           {/* Example 5: Custom Headers */}
           <div>
             <h3 className="font-medium mb-2">5. Custom Headers</h3>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
+            <pre className="bg-secondary dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">
 {`import { api } from '@/lib/api-client'
 
 const data = await api.get('/reports', {

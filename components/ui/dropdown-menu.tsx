@@ -30,7 +30,7 @@ export function DropdownMenu({ trigger, children, className }: DropdownMenuProps
         {trigger}
       </span>
       {open && (
-        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-48 bg-card dark:bg-background border border-slate-200 dark:border-slate-700 rounded shadow-lg z-50">
           {children}
         </div>
       )}
@@ -51,7 +51,7 @@ export function DropdownMenuItem({ children, onClick, className }: { children: R
 }
 
 export function DropdownMenuSeparator() {
-  return <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
+  return <div className="my-1 border-t border-border/40 dark:border-slate-700" />
 }
 
 export function DropdownMenuCheckboxItem({ children, checked, onCheckedChange, className }: { children: React.ReactNode, checked?: boolean, onCheckedChange?: (checked: boolean) => void, className?: string }) {

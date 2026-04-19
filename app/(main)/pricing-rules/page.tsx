@@ -65,7 +65,7 @@ export default function PricingRulesPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
-        <div className="text-slate-500">Loading pricing rules...</div>
+        <div className="text-muted-foreground">Loading pricing rules...</div>
       </div>
     );
   }

@@ -22,13 +22,13 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
   updateOpportunitySalesStage,
-  createQuotationFromOpportunity,
   markOpportunityAsWon,
   markOpportunityAsLost,
   reopenOpportunity
 } from "@/app/actions/crm"
 import { useRouter } from "next/navigation"
-import { ArrowRight, FileText, CheckCircle, XCircle, RotateCcw } from "lucide-react"
+import { ArrowRight, FileText, CheckCircle, XCircle, RotateCcw, UserCheck, CalendarPlus } from "lucide-react"
+import { ActionButton } from "@/components/ui/action-button"
 
 interface OpportunityActionsProps {
   opportunity: {
@@ -51,6 +51,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedStage, setSelectedStage] = useState(opportunity.sales_stage)
   const [lostReason, setLostReason] = useState('')
+  const followUpDate = new Date().toISOString().slice(0, 10)
   const router = useRouter()
 
   const handleUpdateStage = async () => {
@@ -65,19 +66,6 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
     } catch (error) {
       console.error("Stage update failed:", error)
       alert("Failed to update stage. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleCreateQuotation = async () => {
-    setIsLoading(true)
-    try {
-      const quotation = await createQuotationFromOpportunity(typeof opportunity.name === "string" ? opportunity.name : "")
-      router.push(`/crm/quotations/${encodeURIComponent(typeof quotation.name === "string" ? quotation.name : "")}`)
-    } catch (error) {
-      console.error("Quotation creation failed:", error)
-      alert("Failed to create quotation. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -138,7 +126,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
               Update Sales Stage
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
               <DialogTitle>Update Sales Stage</DialogTitle>
               <DialogDescription>
@@ -178,14 +166,21 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
 
       {/* Create Quotation */}
       {isOpen && !isWon && !isLost && opportunity.sales_stage === 'Proposal/Price Quote' && (
-        <Button 
-          className="w-full gap-2" 
-          onClick={handleCreateQuotation}
-          disabled={isLoading}
-        >
-          <FileText className="h-4 w-4" />
-          {isLoading ? "Creating..." : "Create Quotation"}
-        </Button>
+        <ActionButton
+          module="quotations"
+          action="create"
+          label="Create Quotation"
+          icon={<FileText className="h-3.5 w-3.5" />}
+          onAction={async () => {
+            const res = await fetch(`/api/crm/opportunities/${encodeURIComponent(opportunity.name)}/create-quotation`, {
+              method: "POST",
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || data.error || "Failed to create quotation")
+            router.push(`/crm/quotations/${encodeURIComponent(data.quotation_name)}`)
+          }}
+          onSuccess={() => router.refresh()}
+        />
       )}
 
       {/* Mark as Won */}
@@ -202,6 +197,47 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
 
       {/* Mark as Lost */}
       {isOpen && !isWon && !isLost && (
+        <>
+          <ActionButton
+            module="crm"
+            action="convert"
+            label="Convert to Customer"
+            icon={<UserCheck className="h-3.5 w-3.5" />}
+            variant="outline"
+            onAction={async () => {
+              const res = await fetch(`/api/crm/opportunities/${encodeURIComponent(opportunity.name)}/convert`, {
+                method: "POST",
+              })
+              if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.message || data.error || "Conversion failed")
+              }
+            }}
+            onSuccess={() => router.refresh()}
+          />
+          <ActionButton
+            module="crm"
+            action="create"
+            label="Schedule Follow-up"
+            icon={<CalendarPlus className="h-3.5 w-3.5" />}
+            variant="outline"
+            onAction={async () => {
+              const res = await fetch(`/api/crm/opportunities/${encodeURIComponent(opportunity.name)}/follow-up`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ date: followUpDate }),
+              })
+              if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.message || data.error || "Unable to schedule follow-up")
+              }
+            }}
+            onSuccess={() => router.refresh()}
+          />
+        </>
+      )}
+
+      {isOpen && !isWon && !isLost && (
         <Dialog open={isLostDialogOpen} onOpenChange={setIsLostDialogOpen}>
           <DialogTrigger asChild>
             <Button className="w-full gap-2" variant="destructive">
@@ -209,7 +245,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
               Mark as Lost
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
               <DialogTitle>Mark Opportunity as Lost</DialogTitle>
               <DialogDescription>
@@ -233,9 +269,15 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
               <Button variant="outline" onClick={() => setIsLostDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleMarkAsLost} disabled={isLoading}>
-                {isLoading ? "Updating..." : "Mark as Lost"}
-              </Button>
+              <ActionButton
+                module="crm"
+                action="edit"
+                label={isLoading ? "Updating..." : "Mark Lost"}
+                icon={<XCircle className="h-3.5 w-3.5" />}
+                variant="destructive"
+                onAction={handleMarkAsLost}
+                onSuccess={() => router.refresh()}
+              />
             </DialogFooter>
           </DialogContent>
         </Dialog>

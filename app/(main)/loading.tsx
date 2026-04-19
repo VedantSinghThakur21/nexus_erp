@@ -5,7 +5,7 @@ export default function Loading() {
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center gap-2">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-sm text-slate-500">Loading workspace...</p>
+        <p className="text-sm text-muted-foreground">Loading workspace...</p>
       </div>
     </div>
   )

@@ -154,7 +154,7 @@ export default function EditPricingRulePage({ params }: { params: Promise<{ name
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Edit Pricing Rule
               </h1>
-              <p className="text-slate-500 mt-1">{ruleName}</p>
+              <p className="text-muted-foreground mt-1">{ruleName}</p>
             </div>
             <Button
               variant="destructive"
@@ -198,14 +198,14 @@ export default function EditPricingRulePage({ params }: { params: Promise<{ name
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Apply On</Label>
-                  <Input value={applyOn} disabled className="bg-slate-100 dark:bg-slate-800" />
-                  <p className="text-xs text-slate-500">Cannot be changed after creation</p>
+                  <Input value={applyOn} disabled className="bg-slate-100 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  <p className="text-xs text-muted-foreground">Cannot be changed after creation</p>
                 </div>
 
                 {applyOn === "Item Group" && (
                   <div className="space-y-2">
                     <Label>Item Group</Label>
-                    <Input value={itemGroup || "All Groups"} disabled className="bg-slate-100 dark:bg-slate-800" />
+                    <Input value={itemGroup || "All Groups"} disabled className="bg-slate-100 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0" />
                   </div>
                 )}
               </div>
@@ -383,7 +383,7 @@ export default function EditPricingRulePage({ params }: { params: Promise<{ name
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Higher priority rules are applied first
                 </p>
               </div>

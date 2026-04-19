@@ -100,13 +100,13 @@ export function EditPermissionsDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <DialogContent className="sm:max-w-[500px] bg-card border-border">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold text-slate-900 dark:text-white">
                         Edit Permissions
                     </DialogTitle>
-                    <DialogDescription className="text-slate-500 dark:text-slate-400">
-                        Manage access roles for <span className="font-medium text-slate-700 dark:text-slate-300">{user.full_name}</span> ({user.name}).
+                    <DialogDescription className="text-muted-foreground ">
+                        Manage access roles for <span className="font-medium text-slate-700 ">{user.full_name}</span> ({user.name}).
                     </DialogDescription>
                 </DialogHeader>
 
@@ -126,7 +126,7 @@ export function EditPermissionsDialog({
                                     <div
                                         className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected
                                             ? "bg-blue-600 border-blue-600"
-                                            : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                            : "border-slate-300 dark:border-slate-600 bg-card dark:bg-slate-800"
                                             }`}
                                     >
                                         {isSelected && (
@@ -136,10 +136,10 @@ export function EditPermissionsDialog({
                                         )}
                                     </div>
                                     <div>
-                                        <h4 className={`text-sm font-medium ${isSelected ? "text-blue-900 dark:text-blue-100" : "text-slate-900 dark:text-slate-100"}`}>
+                                        <h4 className={`text-sm font-medium ${isSelected ? "text-blue-900 dark:text-blue-100" : "text-slate-900 dark:text-foreground"}`}>
                                             {ROLE_DISPLAY_NAMES[role] || role}
                                         </h4>
-                                        <p className={`text-xs ${isSelected ? "text-blue-700 dark:text-blue-300" : "text-slate-500 dark:text-slate-400"}`}>
+                                        <p className={`text-xs ${isSelected ? "text-blue-700 dark:text-blue-300" : "text-muted-foreground "}`}>
                                             {role === "System Manager" ? "Full administrative access to all modules." : `Access to ${role.replace(" Manager", "").replace(" User", "")} module.`}
                                         </p>
                                     </div>

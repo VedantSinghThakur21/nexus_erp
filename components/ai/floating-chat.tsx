@@ -114,7 +114,7 @@ export function FloatingAIChat() {
                 </div>
                 <div>
                   <SheetTitle className="text-lg font-semibold">AI Assistant</SheetTitle>
-                  <p className="text-sm text-gray-500">How can I help you today?</p>
+                  <p className="text-sm text-muted-foreground">How can I help you today?</p>
                 </div>
               </div>
             </div>
@@ -123,11 +123,11 @@ export function FloatingAIChat() {
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Chat Messages Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4">
+              <div className="bg-secondary dark:bg-gray-800 rounded-xl p-4">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   👋 Hello! I'm your AI assistant. I can help you with:
                 </p>
-                <ul className="text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1 ml-4 list-disc">
+                <ul className="text-sm text-muted-foreground dark:text-muted-foreground/70 mt-2 space-y-1 ml-4 list-disc">
                   <li>Creating and managing opportunities</li>
                   <li>Generating quotations and invoices</li>
                   <li>Analyzing your sales pipeline</li>
@@ -145,14 +145,14 @@ export function FloatingAIChat() {
 
                   <div className={`rounded-2xl px-4 py-2 max-w-[80%] text-sm ${msg.role === 'user'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
+                      : 'bg-secondary dark:bg-gray-800 text-gray-800 dark:text-gray-200'
                     }`}>
                     {msg.content}
                   </div>
 
                   {msg.role === 'user' && (
                     <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                      <User className="h-4 w-4 text-gray-600" />
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                   )}
                 </div>
@@ -161,7 +161,7 @@ export function FloatingAIChat() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t p-4 bg-white dark:bg-slate-950 shrink-0">
+            <div className="border-t p-4 bg-card dark:bg-slate-950 shrink-0">
               <ChatInput onSend={handleSend} isLoading={isLoading} />
             </div>
           </div>
@@ -193,7 +193,7 @@ function ChatInput({ onSend, isLoading }: { onSend: (msg: string) => void, isLoa
         <input
           type="text"
           placeholder="Ask me anything..."
-          className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-transparent"
+          className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-transparent bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -208,7 +208,7 @@ function ChatInput({ onSend, isLoading }: { onSend: (msg: string) => void, isLoa
           {isLoading ? '...' : <Send className="h-4 w-4" />}
         </Button>
       </div>
-      <p className="text-xs text-gray-500 mt-2 text-center">
+      <p className="text-xs text-muted-foreground mt-2 text-center">
         Press Enter to send
       </p>
     </>

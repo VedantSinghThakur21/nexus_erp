@@ -47,13 +47,13 @@ export function InboxCard({
   const parsed = parsePayload(item.payload)
 
   return (
-    <Card className="border-slate-200 bg-white shadow-sm">
+    <Card className="border-slate-200 bg-background shadow-sm">
       <CardHeader className="space-y-2">
         <CardTitle className="text-base text-slate-900">{parsed.title}</CardTitle>
         <CardDescription className="text-slate-600">{parsed.reason}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-2 text-xs text-slate-500 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground md:grid-cols-2">
           <p><span className="font-semibold text-slate-700">Action:</span> {item.action_type}</p>
           <p><span className="font-semibold text-slate-700">Tenant:</span> {item.tenant}</p>
           <p><span className="font-semibold text-slate-700">Triggered by:</span> {item.triggered_by}</p>

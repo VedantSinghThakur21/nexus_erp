@@ -23,7 +23,7 @@ import { useToastHelpers } from "@/components/ui/toast"
 
 // Define the columns for your pipeline (Updated with proper ERPNext Lead statuses)
 const COLUMNS = [
-  { id: 'Lead', title: 'New Lead', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  { id: 'Lead', title: 'New Lead', color: 'bg-secondary text-gray-700 border-border' },
   { id: 'Open', title: 'Open', color: 'bg-blue-100 text-blue-700 border-blue-200' },
   { id: 'Replied', title: 'Replied', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
   { id: 'Interested', title: 'Interested', color: 'bg-purple-100 text-purple-700 border-purple-200' },
@@ -157,9 +157,9 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
           {COLUMNS.map((col) => (
             <div key={col.id} className="w-80 flex-shrink-0 flex flex-col gap-4">
               {/* Column Header */}
-              <div className={`flex items-center justify-between p-2 rounded-lg border-t-4 ${col.color.split(' ')[0]} bg-white dark:bg-slate-800 shadow-sm`}>
-                <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">{col.title}</span>
-                <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-900">
+              <div className={`flex items-center justify-between p-2 rounded-lg border-t-4 ${col.color.split(' ')[0]} bg-card dark:bg-slate-800 shadow-sm`}>
+                <span className="font-semibold text-sm text-slate-700 ">{col.title}</span>
+                <Badge variant="secondary" className="bg-slate-100 dark:bg-background">
                   {items.filter(l => l.status === col.id).length}
                 </Badge>
               </div>
@@ -173,7 +173,7 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
 
       {/* Conversion Confirmation Dialog */}
       <Dialog open={isConversionDialogOpen} onOpenChange={handleConversionDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle>Convert to Opportunity?</DialogTitle>
             <DialogDescription>
@@ -181,7 +181,7 @@ export function KanbanBoard({ leads }: { leads: any[] }) {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Do you want to proceed with creating an Opportunity? You can set the initial details below.
             </p>
 
@@ -277,13 +277,13 @@ function DraggableCard({ lead }: { lead: any }) {
               {lead.lead_name}
             </Link>
           </div>
-          <div className="text-xs text-slate-500 line-clamp-1">
+          <div className="text-xs text-muted-foreground line-clamp-1">
             {lead.company_name || "Individual"}
           </div>
           {(lead.email_id || lead.mobile_no) && (
             <div className="pt-2 flex flex-wrap gap-2">
-              {lead.email_id && <Badge variant="outline" className="text-[10px] h-5 px-1 font-normal text-slate-500 bg-slate-50">✉️</Badge>}
-              {lead.mobile_no && <Badge variant="outline" className="text-[10px] h-5 px-1 font-normal text-slate-500 bg-slate-50">📞</Badge>}
+              {lead.email_id && <Badge variant="outline" className="text-[10px] h-5 px-1 font-normal text-muted-foreground bg-slate-50">✉️</Badge>}
+              {lead.mobile_no && <Badge variant="outline" className="text-[10px] h-5 px-1 font-normal text-muted-foreground bg-slate-50">📞</Badge>}
             </div>
           )}
         </CardContent>
