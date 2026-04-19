@@ -254,6 +254,11 @@ export async function createItem(formData: FormData) {
         return { success: true }
       }
 
+      const isPermissionError =
+        message.includes('Insufficient Permission') ||
+        message.includes('does not have access to this document') ||
+        message.includes('PermissionError')
+
       if (
         message.includes('Default Unit of Measure') ||
         message.includes('Could not find UOM') ||
@@ -317,6 +322,13 @@ export async function createItem(formData: FormData) {
 
         const retriedItem = { ...itemData, item_group: fallbackGroup, stock_uom: fallbackUom }
         await frappeRequest('frappe.client.insert', 'POST', { doc: retriedItem })
+      } else if (isPermissionError) {
+        return {
+          success: false,
+          error: provisioningResult.error
+            ? `Your ERP user does not have permission to create Items, and the provisioning fallback is unavailable: ${provisioningResult.error}`
+            : 'Your ERP user does not have permission to create Items. Ask your workspace admin to grant Item create permission.'
+        }
       } else {
         throw error
       }

@@ -448,8 +448,14 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
       try {
         const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
-        apiKey = provKeys.api_key
-        apiSecret = provKeys.api_secret
+        // Some older/partially deployed provisioning builds can return null/invalid
+        // payloads with HTTP 200. Guard shape before reading properties.
+        if (provKeys && typeof provKeys === 'object' && 'api_key' in provKeys && 'api_secret' in provKeys) {
+          apiKey = typeof provKeys.api_key === 'string' ? provKeys.api_key : null
+          apiSecret = typeof provKeys.api_secret === 'string' ? provKeys.api_secret : null
+        } else {
+          throw new Error('Provisioning response missing api_key/api_secret')
+        }
       } catch (apiError: any) {
         // Non-fatal: if provisioning endpoint is unavailable (e.g. old service image),
         // we fall back natively to sid session cookies in frappeRequest.
