@@ -94,11 +94,42 @@ export async function createItem(formData: FormData) {
   try {
     await ensureItemGroups()
 
+    const requestedGroup = (formData.get('item_group') as string) || ''
+    let finalItemGroup = requestedGroup
+    try {
+      const groupMatch = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Item Group',
+        filters: `[["name", "=", "${requestedGroup}"], ["is_group", "=", 0]]`,
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as Array<{ name: string }>
+
+      if (!groupMatch?.length) {
+        const availableGroups = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Item Group',
+          filters: '[["is_group", "=", 0]]',
+          fields: '["name"]',
+          limit_page_length: 1,
+          order_by: 'name asc'
+        }) as Array<{ name: string }>
+
+        if (availableGroups?.[0]?.name) {
+          finalItemGroup = availableGroups[0].name
+        } else {
+          throw new Error('No leaf Item Group exists on this tenant site.')
+        }
+      }
+    } catch (groupResolveError) {
+      if (!finalItemGroup) {
+        throw groupResolveError
+      }
+    }
+
     const itemData: any = {
       doctype: 'Item',
       item_code: formData.get('item_code') as string,
       item_name: formData.get('item_name') as string,
-      item_group: formData.get('item_group') as string,
+      item_group: finalItemGroup,
       description: formData.get('description') as string,
       standard_rate: parseFloat(formData.get('standard_rate') as string),
       is_stock_item: formData.get('is_stock_item') === '1' ? 1 : 0,
@@ -730,26 +761,45 @@ export async function getItemGroups() {
     }) as any[]
     return groups.map((g: any) => g.name) as string[]
   } catch (error) {
-    return ['Heavy Equipment Rental', 'Construction Services', 'Consulting']
+    return []
   }
 }
 
 // Ensure required Item Groups exist in ERPNext
 export async function ensureItemGroups() {
   try {
-    // Step 1: Find the actual root item group (the top-level parent)
+    // Step 1: Resolve a valid root Item Group for this tenant.
     let rootGroup = 'All Item Groups'
-    try {
-      const rootGroups = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Item Group',
-        filters: '[["is_group", "=", 1], ["parent_item_group", "=", ""]]',
-        fields: '["name"]',
-        limit_page_length: 1
-      }) as { name: string }[]
-      if (rootGroups && rootGroups.length > 0) {
-        rootGroup = rootGroups[0].name
-      }
-    } catch (e) {
+    const allGroups = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Item Group',
+      fields: '["name", "item_group_name", "is_group", "parent_item_group"]',
+      limit_page_length: 500,
+      order_by: 'creation asc'
+    }) as Array<{
+      name: string
+      item_group_name?: string
+      is_group?: number
+      parent_item_group?: string
+    }>
+
+    const rootCandidate =
+      allGroups.find((g) => g.name === 'All Item Groups') ||
+      allGroups.find((g) => g.item_group_name === 'All Item Groups') ||
+      allGroups.find((g) => g.is_group === 1 && (!g.parent_item_group || g.parent_item_group === g.name)) ||
+      allGroups.find((g) => g.is_group === 1)
+
+    if (rootCandidate?.name) {
+      rootGroup = rootCandidate.name
+    } else {
+      // No root exists yet - create one and use returned doc name.
+      const createdRoot = await frappeRequest('frappe.client.insert', 'POST', {
+        doc: {
+          doctype: 'Item Group',
+          item_group_name: 'All Item Groups',
+          is_group: 1
+        }
+      }) as { name?: string }
+      rootGroup = createdRoot?.name || 'All Item Groups'
     }
 
     const requiredGroups = [
@@ -763,20 +813,48 @@ export async function ensureItemGroups() {
         // Use get_list instead of get to avoid 404 throws
         const existing = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Item Group',
-          filters: `[["item_group_name", "=", "${group.name}"]]`,
+          filters: `[["name", "=", "${group.name}"]]`,
           fields: '["name"]',
           limit_page_length: 1
         }) as { name: string }[]
 
         if (!existing || existing.length === 0) {
-          await frappeRequest('frappe.client.insert', 'POST', {
-            doc: {
-              doctype: 'Item Group',
-              item_group_name: group.name,
-              parent_item_group: group.parent,
-              is_group: 0
+          try {
+            await frappeRequest('frappe.client.insert', 'POST', {
+              doc: {
+                doctype: 'Item Group',
+                item_group_name: group.name,
+                parent_item_group: group.parent,
+                is_group: 0
+              }
+            })
+          } catch (insertError: any) {
+            // Retry once with any available group parent if tenant root naming differs.
+            const errorMessage = String(insertError?.message || '')
+            if (errorMessage.includes('Could not find Parent Item Group')) {
+              const fallbackRoot = await frappeRequest('frappe.client.get_list', 'GET', {
+                doctype: 'Item Group',
+                filters: '[["is_group", "=", 1]]',
+                fields: '["name"]',
+                limit_page_length: 1
+              }) as { name: string }[]
+
+              if (fallbackRoot?.[0]?.name) {
+                await frappeRequest('frappe.client.insert', 'POST', {
+                  doc: {
+                    doctype: 'Item Group',
+                    item_group_name: group.name,
+                    parent_item_group: fallbackRoot[0].name,
+                    is_group: 0
+                  }
+                })
+              } else {
+                throw insertError
+              }
+            } else {
+              throw insertError
             }
-          })
+          }
         }
       } catch (e: any) {
       }

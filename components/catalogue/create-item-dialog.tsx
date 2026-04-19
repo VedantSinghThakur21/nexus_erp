@@ -21,19 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Plus } from "lucide-react"
-import { createItem, getBrands, createBrand, type Brand } from "@/app/actions/invoices"
+import { createItem, getBrands, createBrand, getItemGroups, type Brand } from "@/app/actions/invoices"
 import { useRouter } from "next/navigation"
-
-const ITEM_GROUPS = [
-  'Heavy Equipment Rental',
-  'Construction Services',
-  'Consulting',
-]
 
 export function CreateItemDialog() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState('')
+  const [itemGroups, setItemGroups] = useState<string[]>([])
   const [isStockItem, setIsStockItem] = useState('1')
   const [brands, setBrands] = useState<Brand[]>([])
   const [selectedBrand, setSelectedBrand] = useState('')
@@ -46,12 +41,21 @@ export function CreateItemDialog() {
   useEffect(() => {
     if (open) {
       loadBrands()
+      loadItemGroups()
     }
   }, [open])
 
   async function loadBrands() {
     const brandsList = await getBrands()
     setBrands(brandsList)
+  }
+
+  async function loadItemGroups() {
+    const groups = await getItemGroups()
+    setItemGroups(groups)
+    if (groups.length > 0 && !selectedGroup) {
+      setSelectedGroup(groups[0])
+    }
   }
 
   async function handleCreateBrand() {
@@ -73,6 +77,10 @@ export function CreateItemDialog() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!selectedGroup) {
+      alert("No Item Group found in this tenant. Please create one in ERPNext first.")
+      return
+    }
     setLoading(true)
     
     const formData = new FormData(e.currentTarget)
@@ -152,12 +160,17 @@ export function CreateItemDialog() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ITEM_GROUPS.map(group => (
+                    {itemGroups.map(group => (
                       <SelectItem key={group} value={group}>{group}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <input type="hidden" name="item_group" value={selectedGroup} />
+                {itemGroups.length === 0 && (
+                  <p className="text-xs text-destructive">
+                    No Item Group available in this tenant.
+                  </p>
+                )}
               </div>
 
               {/* Stock Item */}
@@ -201,8 +214,8 @@ export function CreateItemDialog() {
                 <Input
                   id="stock_uom"
                   name="stock_uom"
-                  placeholder="Unit"
-                  defaultValue="Unit"
+                  placeholder="Nos"
+                  defaultValue="Nos"
                   required
                 />
               </div>
@@ -304,7 +317,7 @@ export function CreateItemDialog() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || itemGroups.length === 0}>
               {loading ? "Creating..." : "Create Item"}
             </Button>
           </div>
