@@ -67,6 +67,21 @@ async function getProvisioningCatalogDefaults() {
   }
 }
 
+async function createItemViaProvisioning(itemData: Record<string, unknown>) {
+  try {
+    const context = await getTenantContext()
+    if (!context.isTenant || !context.subdomain) {
+      return null
+    }
+
+    const { createTenantItemWithDefaults } = await import('@/lib/provisioning-client')
+    const response = await createTenantItemWithDefaults(context.subdomain, itemData)
+    return { item: response.item, error: null as string | null }
+  } catch (error: any) {
+    return { item: null, error: error?.message || 'Provisioning fallback unavailable' }
+  }
+}
+
 // GET BRANDS
 export async function getBrands() {
   try {
@@ -233,10 +248,17 @@ export async function createItem(formData: FormData) {
     } catch (error: any) {
       // Some tenants have unexpected/missing Item Group or UOM links.
       const message = String(error?.message || '')
+      const provisioningResult = await createItemViaProvisioning(itemData)
+      if (provisioningResult.item?.name) {
+        revalidatePath('/catalogue')
+        return { success: true }
+      }
+
       if (
         message.includes('Default Unit of Measure') ||
         message.includes('Could not find UOM') ||
-        message.includes('Could not find Item Group')
+        message.includes('Could not find Item Group') ||
+        message.includes('No permission for UOM')
       ) {
         let fallbackGroup = itemData.item_group
         let fallbackUom = itemData.stock_uom
@@ -271,7 +293,10 @@ export async function createItem(formData: FormData) {
         } catch { }
 
         if (!fallbackUom) {
-          throw error
+          return {
+            success: false,
+            error: `Unable to resolve Item Group/UOM from ERP defaults. ${provisioningResult.error || ''}`.trim()
+          }
         }
 
         const retriedItem = { ...itemData, item_group: fallbackGroup, stock_uom: fallbackUom }

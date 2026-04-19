@@ -1171,6 +1171,114 @@ except Exception as exc:
     print(json.dumps({{"error": str(exc)}}))
 """
 
+
+@app.post("/api/v1/create-item/{subdomain}")
+async def create_item_with_defaults(subdomain: str, request: Request, _auth: bool = Depends(verify_api_secret)):
+    """
+    Create Item with ignore_permissions, resolving valid Item Group and UOM in tenant context.
+    """
+    import re
+
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    payload = await request.json()
+    site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+    safe_payload = json.dumps(payload)
+
+    create_code = f"""import json
+
+data = json.loads({json.dumps(safe_payload)})
+
+preferred_groups = [
+    "Heavy Equipment Rental",
+    "Equipment",
+    "Service",
+]
+preferred_uoms = ["Nos", "Unit"]
+
+item_groups = frappe.get_all(
+    "Item Group",
+    filters={{"is_group": 0}},
+    fields=["name"],
+    order_by="name asc",
+    limit=200,
+)
+uoms = frappe.get_all(
+    "UOM",
+    fields=["name"],
+    order_by="name asc",
+    limit=200,
+)
+
+group_names = [g.get("name") for g in item_groups if g.get("name")]
+uom_names = [u.get("name") for u in uoms if u.get("name")]
+
+requested_group = (data.get("item_group") or "").strip()
+requested_uom = (data.get("stock_uom") or "").strip()
+
+resolved_group = requested_group if requested_group in group_names else None
+if not resolved_group:
+    for name in preferred_groups:
+        if name in group_names:
+            resolved_group = name
+            break
+if not resolved_group and group_names:
+    resolved_group = group_names[0]
+
+resolved_uom = requested_uom if requested_uom in uom_names else None
+if not resolved_uom:
+    for name in preferred_uoms:
+        if name in uom_names:
+            resolved_uom = name
+            break
+if not resolved_uom and uom_names:
+    resolved_uom = uom_names[0]
+
+if not resolved_group:
+    raise Exception("No Item Group found in tenant")
+if not resolved_uom:
+    raise Exception("No UOM found in tenant")
+
+doc = {{
+    "doctype": "Item",
+    "item_code": data.get("item_code"),
+    "item_name": data.get("item_name"),
+    "item_group": resolved_group,
+    "description": data.get("description") or "",
+    "standard_rate": float(data.get("standard_rate") or 0),
+    "is_stock_item": 1 if str(data.get("is_stock_item")) in ["1", "true", "True"] else 0,
+    "stock_uom": resolved_uom,
+}}
+
+if data.get("brand"):
+    doc["brand"] = data.get("brand")
+if data.get("manufacturer"):
+    doc["manufacturer"] = data.get("manufacturer")
+if data.get("opening_stock") not in [None, ""]:
+    doc["opening_stock"] = float(data.get("opening_stock"))
+if data.get("reorder_level") not in [None, ""]:
+    doc["reorder_level"] = float(data.get("reorder_level"))
+
+item = frappe.get_doc(doc)
+item.insert(ignore_permissions=True)
+frappe.db.commit()
+
+print(json.dumps({{
+    "name": item.name,
+    "item_group": resolved_group,
+    "stock_uom": resolved_uom,
+}}))
+"""
+
+    try:
+        output = run_frappe_code(site_name, create_code)
+        created = _parse_json_output(output)
+        return {"success": True, "site": site_name, "item": created}
+    except Exception as e:
+        logger.error(f"create-item failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
     try:
         output = run_frappe_code(site_name, gen_code)
         result = _parse_json_output(output)

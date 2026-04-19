@@ -203,6 +203,32 @@ export async function getTenantCatalogDefaults(subdomain: string): Promise<{
 }
 
 /**
+ * Create an Item on a tenant site via provisioning service with ignore_permissions.
+ * The service resolves valid Item Group/UOM links against tenant masters.
+ */
+export async function createTenantItemWithDefaults(
+  subdomain: string,
+  itemData: Record<string, unknown>,
+): Promise<{
+  success: boolean
+  site: string
+  item: {
+    name: string
+    item_group: string
+    stock_uom: string
+  }
+}> {
+  return serviceRequest(
+    `/api/v1/create-item/${encodeURIComponent(subdomain)}`,
+    {
+      method: 'POST',
+      body: itemData,
+      timeout: 45_000,
+    },
+  )
+}
+
+/**
  * Generate API key + secret for any user on a tenant site.
  * Bypasses Frappe's System Manager restriction via ignore_permissions=True.
  * Called during login when the generate_keys RPC fails with PermissionError.
