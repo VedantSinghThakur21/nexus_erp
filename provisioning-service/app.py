@@ -1057,6 +1057,79 @@ print(json.dumps(result))
 
 
 
+@app.get("/api/v1/catalog-defaults/{subdomain}")
+async def get_catalog_defaults(subdomain: str, _auth: bool = Depends(verify_api_secret)):
+    """
+    Return tenant-valid Item Group and UOM defaults from ERPNext.
+    Uses bench execute context, so it bypasses regular API role visibility issues.
+    """
+    import re
+
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+
+    defaults_code = """import json
+
+preferred_groups = [
+    "Heavy Equipment Rental",
+    "Equipment",
+    "Service",
+]
+preferred_uoms = ["Nos", "Unit"]
+
+item_groups = frappe.get_all(
+    "Item Group",
+    filters={"is_group": 0},
+    fields=["name"],
+    order_by="name asc",
+    limit=200,
+)
+uoms = frappe.get_all(
+    "UOM",
+    fields=["name"],
+    order_by="name asc",
+    limit=200,
+)
+
+group_names = [g.get("name") for g in item_groups if g.get("name")]
+uom_names = [u.get("name") for u in uoms if u.get("name")]
+
+resolved_group = None
+for name in preferred_groups:
+    if name in group_names:
+        resolved_group = name
+        break
+if not resolved_group and group_names:
+    resolved_group = group_names[0]
+
+resolved_uom = None
+for name in preferred_uoms:
+    if name in uom_names:
+        resolved_uom = name
+        break
+if not resolved_uom and uom_names:
+    resolved_uom = uom_names[0]
+
+print(json.dumps({
+    "item_group": resolved_group,
+    "stock_uom": resolved_uom,
+    "item_groups": group_names,
+    "uoms": uom_names,
+}))
+"""
+
+    try:
+        output = run_frappe_code(site_name, defaults_code)
+        defaults = _parse_json_output(output)
+        return {"success": True, "site": site_name, "defaults": defaults}
+    except Exception as e:
+        logger.error(f"catalog-defaults failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 
 @app.post("/api/v1/generate-user-keys/{subdomain}")
 async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool = Depends(verify_api_secret)):

@@ -183,6 +183,26 @@ export async function seedTenantDefaults(subdomain: string): Promise<{
 }
 
 /**
+ * Fetch tenant-specific catalogue defaults from ERPNext via ignore_permissions.
+ * Returns resolved values that are safe to use for Item creation links.
+ */
+export async function getTenantCatalogDefaults(subdomain: string): Promise<{
+  success: boolean
+  site: string
+  defaults: {
+    item_group: string | null
+    stock_uom: string | null
+    item_groups: string[]
+    uoms: string[]
+  }
+}> {
+  return serviceRequest(
+    `/api/v1/catalog-defaults/${encodeURIComponent(subdomain)}`,
+    { timeout: 30_000 },
+  )
+}
+
+/**
  * Generate API key + secret for any user on a tenant site.
  * Bypasses Frappe's System Manager restriction via ignore_permissions=True.
  * Called during login when the generate_keys RPC fails with PermissionError.

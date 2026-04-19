@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Plus } from "lucide-react"
-import { createItem, getBrands, createBrand, getItemGroups, ensureItemGroups, type Brand } from "@/app/actions/invoices"
+import { createItem, getBrands, createBrand, getItemGroups, getUOMs, ensureItemGroups, type Brand } from "@/app/actions/invoices"
 import { useRouter } from "next/navigation"
 
 export function CreateItemDialog() {
@@ -30,7 +30,10 @@ export function CreateItemDialog() {
   const [selectedGroup, setSelectedGroup] = useState('')
   const [manualGroup, setManualGroup] = useState('')
   const [itemGroups, setItemGroups] = useState<string[]>([])
+  const [uoms, setUoms] = useState<string[]>([])
   const [isStockItem, setIsStockItem] = useState('1')
+  const [selectedUom, setSelectedUom] = useState('')
+  const [manualUom, setManualUom] = useState('')
   const [brands, setBrands] = useState<Brand[]>([])
   const [selectedBrand, setSelectedBrand] = useState('')
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false)
@@ -43,6 +46,7 @@ export function CreateItemDialog() {
     if (open) {
       loadBrands()
       loadItemGroups()
+      loadUOMs()
     }
   }, [open])
 
@@ -58,6 +62,14 @@ export function CreateItemDialog() {
     setItemGroups(groups)
     if (groups.length > 0 && !selectedGroup) {
       setSelectedGroup(groups[0])
+    }
+  }
+
+  async function loadUOMs() {
+    const fetchedUoms = await getUOMs()
+    setUoms(fetchedUoms)
+    if (fetchedUoms.length > 0 && !selectedUom) {
+      setSelectedUom(fetchedUoms[0])
     }
   }
 
@@ -81,14 +93,20 @@ export function CreateItemDialog() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const resolvedGroup = selectedGroup || manualGroup
+    const resolvedUom = selectedUom || manualUom
     if (!resolvedGroup.trim()) {
       alert("Item Group is required.")
+      return
+    }
+    if (!resolvedUom.trim()) {
+      alert("Unit of Measure is required.")
       return
     }
     setLoading(true)
     
     const formData = new FormData(e.currentTarget)
     formData.append('item_group', resolvedGroup)
+    formData.set('stock_uom', resolvedUom)
     formData.append('is_stock_item', isStockItem)
     if (selectedBrand) {
       formData.append('brand', selectedBrand)
@@ -101,6 +119,8 @@ export function CreateItemDialog() {
       e.currentTarget.reset()
       setSelectedGroup('')
       setIsStockItem('1')
+      setSelectedUom('')
+      setManualUom('')
       setSelectedBrand('')
       // Refresh the page to show the new item
       router.refresh()
@@ -227,13 +247,35 @@ export function CreateItemDialog() {
               {/* UOM */}
               <div className="grid gap-2">
                 <Label htmlFor="stock_uom">Unit of Measure *</Label>
-                <Input
-                  id="stock_uom"
-                  name="stock_uom"
-                  placeholder="Nos"
-                  defaultValue="Nos"
-                  required
-                />
+                {uoms.length > 0 ? (
+                  <>
+                    <Select value={selectedUom} onValueChange={setSelectedUom} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select UOM" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uoms.map(uom => (
+                          <SelectItem key={uom} value={uom}>{uom}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <input type="hidden" name="stock_uom" value={selectedUom} />
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      id="stock_uom"
+                      name="stock_uom"
+                      value={manualUom}
+                      onChange={(e) => setManualUom(e.target.value)}
+                      placeholder="Enter existing UOM"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Could not load UOM list due role permissions. Enter an existing UOM manually.
+                    </p>
+                  </>
+                )}
               </div>
 
               {/* Opening Stock */}
