@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Printer, FileText, Trash2, X, Mail, ShoppingCart } from "lucide-react"
+import { Printer, FileText, Trash2, X, Mail, ShoppingCart, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { submitQuotation, cancelQuotation, deleteQuotation } from "@/app/actions/crm"
