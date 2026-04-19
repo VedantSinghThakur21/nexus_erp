@@ -18,7 +18,7 @@ export default async function CustomersPage() {
           <p className="text-muted-foreground">View all converted customers</p>
         </div>
         
-        <Link href="/crm">
+        <Link href="/crm/leads">
           <Button variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to Leads
           </Button>

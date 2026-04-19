@@ -124,7 +124,7 @@ export default function ERPNextLeadForm() {
     try {
       const result = await createLead(formData)
       if (result.success) {
-        router.push('/crm')
+        router.push('/crm/leads')
       } else {
         // Parse error message for better user experience
         let errorMsg = result.error || 'Failed to create lead'

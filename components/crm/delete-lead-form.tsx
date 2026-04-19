@@ -27,7 +27,7 @@ export function DeleteLeadForm({ leadId }: DeleteLeadFormProps) {
       alert('Failed to delete lead: ' + result.error)
       setIsDeleting(false)
     } else {
-      router.push('/crm')
+      router.push('/crm/leads')
       router.refresh()
     }
   }

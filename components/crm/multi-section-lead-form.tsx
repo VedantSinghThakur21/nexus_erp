@@ -62,7 +62,7 @@ export default function NewLeadPage() {
 
     try {
       await createLead(formData)
-      router.push('/crm')
+      router.push('/crm/leads')
     } catch (error) {
       console.error('Failed to create lead:', error)
       alert('Failed to create lead. Please try again.')
@@ -84,7 +84,7 @@ export default function NewLeadPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/crm">
+          <Link href="/crm/leads">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -100,7 +100,7 @@ export default function NewLeadPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.push('/crm')}>
+          <Button variant="outline" onClick={() => router.push('/crm/leads')}>
             Cancel
           </Button>
           <AnimatedButton 

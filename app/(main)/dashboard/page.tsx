@@ -324,7 +324,7 @@ export default function DashboardPage() {
               <Card className="rounded-xl border border-border bg-card shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-base">High-Probability Opportunities</CardTitle>
-                  <Link href="/crm">
+                  <Link href="/crm/opportunities">
                     <Button variant="ghost" size="sm">View pipeline</Button>
                   </Link>
                 </CardHeader>
