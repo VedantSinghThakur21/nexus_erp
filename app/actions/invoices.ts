@@ -96,16 +96,78 @@ export async function createItem(formData: FormData) {
     if (!requestedGroup.trim()) {
       return { success: false, error: 'Item Group is required.' }
     }
+    const requestedUom = ((formData.get('stock_uom') as string) || '').trim() || 'Nos'
+
+    let resolvedGroup = requestedGroup
+    let resolvedUom = requestedUom
+
+    // Best-effort: validate links and fallback to first accessible values.
+    try {
+      const groupByName = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Item Group',
+        filters: `[["name", "=", "${requestedGroup}"]]`,
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as Array<{ name: string }>
+
+      const groupByTitle = groupByName.length > 0
+        ? groupByName
+        : await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Item Group',
+          filters: `[["item_group_name", "=", "${requestedGroup}"]]`,
+          fields: '["name"]',
+          limit_page_length: 1
+        }) as Array<{ name: string }>
+
+      if (groupByTitle.length > 0) {
+        resolvedGroup = groupByTitle[0].name
+      } else {
+        const fallbackGroup = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Item Group',
+          filters: '[["is_group", "=", 0]]',
+          fields: '["name"]',
+          limit_page_length: 1,
+          order_by: 'name asc'
+        }) as Array<{ name: string }>
+        if (fallbackGroup.length > 0) {
+          resolvedGroup = fallbackGroup[0].name
+        }
+      }
+    } catch {
+      // Ignore permission-related lookup failures; insert may still succeed.
+    }
+
+    try {
+      const uom = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'UOM',
+        filters: `[["name", "=", "${requestedUom}"]]`,
+        fields: '["name"]',
+        limit_page_length: 1
+      }) as Array<{ name: string }>
+      if (uom.length === 0) {
+        const fallbackUom = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'UOM',
+          fields: '["name"]',
+          limit_page_length: 1,
+          order_by: 'name asc'
+        }) as Array<{ name: string }>
+        if (fallbackUom.length > 0) {
+          resolvedUom = fallbackUom[0].name
+        }
+      }
+    } catch {
+      // Ignore permission-related lookup failures; retry branch below still handles it.
+    }
 
     const itemData: any = {
       doctype: 'Item',
       item_code: formData.get('item_code') as string,
       item_name: formData.get('item_name') as string,
-      item_group: requestedGroup,
+      item_group: resolvedGroup,
       description: formData.get('description') as string,
       standard_rate: parseFloat(formData.get('standard_rate') as string),
       is_stock_item: formData.get('is_stock_item') === '1' ? 1 : 0,
-      stock_uom: (formData.get('stock_uom') as string) || 'Nos',
+      stock_uom: resolvedUom,
     }
 
     // Add optional fields if provided
@@ -122,14 +184,37 @@ export async function createItem(formData: FormData) {
     try {
       await frappeRequest('frappe.client.insert', 'POST', { doc: itemData })
     } catch (error: any) {
-      // Some tenants miss "Unit" UOM by default; retry with a safer ERPNext default.
+      // Some tenants have unexpected/missing Item Group or UOM links.
       const message = String(error?.message || '')
       if (
         message.includes('Default Unit of Measure') ||
         message.includes('Could not find UOM') ||
         message.includes('Could not find Item Group')
       ) {
-        const retriedItem = { ...itemData, stock_uom: 'Nos' }
+        let fallbackGroup = itemData.item_group
+        let fallbackUom = itemData.stock_uom
+        try {
+          const groups = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Item Group',
+            filters: '[["is_group", "=", 0]]',
+            fields: '["name"]',
+            limit_page_length: 1,
+            order_by: 'name asc'
+          }) as Array<{ name: string }>
+          if (groups.length > 0) fallbackGroup = groups[0].name
+        } catch { }
+
+        try {
+          const uoms = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'UOM',
+            fields: '["name"]',
+            limit_page_length: 1,
+            order_by: 'name asc'
+          }) as Array<{ name: string }>
+          if (uoms.length > 0) fallbackUom = uoms[0].name
+        } catch { }
+
+        const retriedItem = { ...itemData, item_group: fallbackGroup, stock_uom: fallbackUom }
         await frappeRequest('frappe.client.insert', 'POST', { doc: retriedItem })
       } else {
         throw error
