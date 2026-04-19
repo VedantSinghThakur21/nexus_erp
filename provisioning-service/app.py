@@ -605,9 +605,10 @@ user.send_welcome_email = 1
 user.role_profile_name = None
 user.flags.no_welcome_mail = False
 frappe.utils.password.update_password(email, pwd)
+owner_roles = ["System Manager", "Sales Manager", "Accounts Manager", "Projects Manager", "Stock Manager", "Employee", "All"]
 user.roles = []
-for role_name in ["System Manager", "All"]:
-    user.append("roles", {{"role": role_name, "doctype": "Has Role"}})
+for role_name in owner_roles:
+    user.append("roles", {"role": role_name, "doctype": "Has Role"})
 user.save(ignore_permissions=True)
 
 frappe.db.commit()
@@ -631,11 +632,11 @@ import json
 email = {json.dumps(str(req.admin_email))}
 user = frappe.get_doc("User", email)
 current_roles = [r.role for r in user.roles]
-required = {{"System Manager", "All"}}
+required = {"System Manager", "Sales Manager", "Accounts Manager", "Projects Manager", "Stock Manager", "Employee", "All"}
 if set(current_roles) != required:
     user.roles = []
-    user.append("roles", {{"role": "System Manager", "doctype": "Has Role"}})
-    user.append("roles", {{"role": "All", "doctype": "Has Role"}})
+    for r in required:
+        user.append("roles", {"role": r, "doctype": "Has Role"})
     user.save(ignore_permissions=True)
     frappe.db.commit()
     current_roles = [r.role for r in user.roles]
@@ -1001,6 +1002,45 @@ for stage_name in sales_stages:
         }).insert(ignore_permissions=True)
         created_stages.append(stage_name)
 result["sales_stages"] = f"seeded: {created_stages}" if created_stages else "all exist"
+
+# Fix DocPerms for dropdowns so standard users can read them
+docperms_fixed = []
+read_doctypes = ["Item Group", "Brand", "Opportunity Type", "Sales Stage", "Designation"]
+for dt in read_doctypes:
+    if not frappe.db.exists("DocPerm", {"parent": dt, "role": "All", "permlevel": 0}):
+        try:
+            doc = frappe.new_doc("DocPerm")
+            doc.parent = dt
+            doc.parenttype = "DocType"
+            doc.parentfield = "permissions"
+            doc.role = "All"
+            doc.permlevel = 0
+            doc.read = 1
+            doc.insert(ignore_permissions=True)
+            docperms_fixed.append(dt)
+        except Exception:
+            pass
+result["docperms"] = f"fixed read access: {docperms_fixed}" if docperms_fixed else "all ok"
+
+# Self-heal existing System Managers by guaranteeing they have all domain manager roles
+sm_users = frappe.get_all("Has Role", filters={"role": "System Manager", "parenttype": "User"}, fields=["parent"])
+healed_users = []
+domain_roles = ["Sales Manager", "Accounts Manager", "Projects Manager", "Stock Manager", "Employee"]
+for ur in sm_users:
+    user_email = ur.get("parent")
+    if user_email and user_email != "Administrator":
+        user_doc = frappe.get_doc("User", user_email)
+        current_roles = [r.role for r in user_doc.roles]
+        added = False
+        for r in domain_roles:
+            if r not in current_roles:
+                user_doc.append("roles", {"role": r, "doctype": "Has Role"})
+                added = True
+        if added:
+            user_doc.save(ignore_permissions=True)
+            healed_users.append(user_email)
+if healed_users:
+    result["healed_users"] = healed_users
 
 frappe.db.commit()
 print(json.dumps(result))
