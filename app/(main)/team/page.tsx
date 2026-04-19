@@ -224,8 +224,8 @@ export default function TeamPage() {
               </div>
 
               {/* KPI Cards - Matching Leads Page Styling */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="relative rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       Total Users
@@ -236,10 +236,10 @@ export default function TeamPage() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-white">{kpis.totalUsers}</p>
+                  <p className="text-3xl font-bold text-foreground">{kpis.totalUsers}</p>
                 </div>
 
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                <div className="relative rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       Active Today
@@ -250,10 +250,10 @@ export default function TeamPage() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-white">{kpis.activeToday}</p>
+                  <p className="text-3xl font-bold text-foreground">{kpis.activeToday}</p>
                 </div>
 
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                <div className="relative rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       Pending Invites
@@ -264,10 +264,10 @@ export default function TeamPage() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-white">{kpis.pendingInvites}</p>
+                  <p className="text-3xl font-bold text-foreground">{kpis.pendingInvites}</p>
                 </div>
 
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                <div className="relative rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       AI Productivity Score
@@ -278,7 +278,7 @@ export default function TeamPage() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-white">{kpis.productivityScore}</p>
+                  <p className="text-3xl font-bold text-foreground">{kpis.productivityScore}</p>
                 </div>
               </div>
 

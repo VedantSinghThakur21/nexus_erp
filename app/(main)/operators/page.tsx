@@ -87,8 +87,8 @@ export default function OperatorsPage() {
               </div>
 
               {/* KPI Cards */}
-              <div className="grid grid-cols-4 gap-6">
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="relative rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       Total Staff
@@ -98,10 +98,10 @@ export default function OperatorsPage() {
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">{kpis.total}</span>
+                    <span className="text-[28px] font-bold text-foreground leading-none">{kpis.total}</span>
                     <span className="text-sm font-semibold text-blue-400 mb-1">Active crew</span>
                   </div>
-                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"
                       style={{ width: `${Math.min(kpis.total * 12, 100)}%` }}
@@ -109,7 +109,7 @@ export default function OperatorsPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                <div className="relative rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       On-Field
@@ -119,12 +119,12 @@ export default function OperatorsPage() {
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">{kpis.onField}</span>
+                    <span className="text-[28px] font-bold text-foreground leading-none">{kpis.onField}</span>
                     <span className="text-sm font-semibold text-emerald-400 mb-1 flex items-center gap-0.5">
                       <span className="material-symbols-outlined text-xs">bolt</span>Live
                     </span>
                   </div>
-                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                       style={{ width: `${Math.min(kpis.onField * 25, 100)}%` }}
@@ -132,7 +132,7 @@ export default function OperatorsPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                <div className="relative rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       Avg. Utilization
@@ -142,12 +142,12 @@ export default function OperatorsPage() {
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">
+                    <span className="text-[28px] font-bold text-foreground leading-none">
                       {kpis.utilization}
                     </span>
                     <span className="text-sm font-semibold text-slate-400 mb-1">Baseline</span>
                   </div>
-                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"
                       style={{ width: `${parseInt(kpis.utilization)}%` }}
@@ -155,7 +155,7 @@ export default function OperatorsPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl relative group">
+                <div className="relative rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       AI Efficiency Score
@@ -165,10 +165,10 @@ export default function OperatorsPage() {
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">N/A</span>
+                    <span className="text-[28px] font-bold text-foreground leading-none">N/A</span>
                     <span className="text-sm font-semibold text-slate-400 mb-1">Pending</span>
                   </div>
-                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div className="h-full bg-slate-700 w-0 rounded-full"></div>
                   </div>
                 </div>
@@ -213,7 +213,7 @@ export default function OperatorsPage() {
               </div>
 
               {/* Filters */}
-              <div className="bg-card dark:bg-navy-deep p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-wrap gap-4 items-center shadow-sm">
+              <div className="bg-card p-5 rounded-xl border border-border flex flex-wrap gap-4 items-center shadow-sm">
                 <div className="relative flex-1 min-w-[320px]">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">
                     search
@@ -259,7 +259,7 @@ export default function OperatorsPage() {
                 </div>
 
                 {filteredOperators.length === 0 ? (
-                  <div className="bg-card dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-2xl min-h-[450px] flex flex-col items-center justify-center text-center p-12 shadow-sm">
+                  <div className="bg-card border border-border rounded-2xl min-h-[450px] flex flex-col items-center justify-center text-center p-12 shadow-sm">
                     <div className="w-20 h-20 bg-slate-50 dark:bg-background/80 rounded-full flex items-center justify-center mb-8">
                       <span className="material-symbols-outlined text-slate-200  text-[48px]">
                         person_off
@@ -284,7 +284,7 @@ export default function OperatorsPage() {
                     {filteredOperators.map((operator) => (
                       <div
                         key={operator.name}
-                        className="bg-card dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:shadow-lg transition-all group cursor-pointer"
+                        className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all group cursor-pointer"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-4">

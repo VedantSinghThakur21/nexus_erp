@@ -101,8 +101,8 @@ export default function InspectionsPage() {
               </div>
 
               {/* KPI Cards */}
-              <div className="grid grid-cols-4 gap-6">
-                <div className="bg-[#111827] dark:bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       Total Inspections
@@ -112,12 +112,12 @@ export default function InspectionsPage() {
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">
+                    <span className="text-[28px] font-bold text-foreground leading-none">
                       {kpis.total}
                     </span>
                     <span className="text-sm font-semibold text-slate-400 mb-1">Across all assets</span>
                   </div>
-                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"
                       style={{ width: `${Math.min(kpis.total * 10, 100)}%` }}
@@ -125,7 +125,7 @@ export default function InspectionsPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#111827] dark:bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
+                <div className="rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       Pending PDI
@@ -135,7 +135,7 @@ export default function InspectionsPage() {
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">
+                    <span className="text-[28px] font-bold text-foreground leading-none">
                       {kpis.pending}
                     </span>
                     <span className="text-sm font-semibold text-orange-400 mb-1 flex items-center gap-0.5">
@@ -143,7 +143,7 @@ export default function InspectionsPage() {
                       Awaiting
                     </span>
                   </div>
-                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-orange-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.5)]"
                       style={{ width: `${Math.min(kpis.pending * 15, 100)}%` }}
@@ -151,7 +151,7 @@ export default function InspectionsPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#111827] dark:bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
+                <div className="rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       Pass Rate
@@ -161,12 +161,12 @@ export default function InspectionsPage() {
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">
+                    <span className="text-[28px] font-bold text-foreground leading-none">
                       {kpis.passRate}
                     </span>
                     <span className="text-sm font-semibold text-emerald-400 mb-1">Quality standard</span>
                   </div>
-                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                       style={{ width: `${parseInt(kpis.passRate)}%` }}
@@ -174,7 +174,7 @@ export default function InspectionsPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#111827] dark:bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
+                <div className="rounded-xl border border-border bg-card p-6 shadow-none">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">
                       Fleet Risk Score
@@ -190,7 +190,7 @@ export default function InspectionsPage() {
                     </div>
                   </div>
                   <div className="flex items-end gap-3">
-                    <span className="text-[28px] font-bold text-white leading-none">{kpis.avgRiskScore}/100</span>
+                    <span className="text-[28px] font-bold text-foreground leading-none">{kpis.avgRiskScore}/100</span>
                     <span className={`text-sm font-semibold mb-1 ${
                       kpis.avgRiskScore >= 70 ? 'text-red-400' :
                       kpis.avgRiskScore >= 40 ? 'text-amber-400' :
@@ -199,7 +199,7 @@ export default function InspectionsPage() {
                       {kpis.avgRiskScore >= 70 ? 'Critical' : kpis.avgRiskScore >= 40 ? 'Moderate' : 'Healthy'}
                     </span>
                   </div>
-                  <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="mt-5 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div 
                       className={`h-full rounded-full shadow-sm ${
                         kpis.avgRiskScore >= 70 ? 'bg-red-500 shadow-red-500/50' :

@@ -155,8 +155,8 @@ export default function CataloguePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background-light dark:bg-background-dark">
-        <div className="max-w-[1600px] mx-auto p-8">
+      <div className="app-content">
+        <div className="w-full">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded w-1/4" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -171,18 +171,18 @@ export default function CataloguePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-foreground flex flex-col overflow-hidden">
+    <div className="app-shell flex flex-col overflow-hidden">
       {/* Header */}
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <CreateItemDialog />
       </PageHeader>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-background-dark custom-scrollbar">
-        <div className="max-w-full mx-auto space-y-8">
+      <main className="app-content flex-1 overflow-y-auto custom-scrollbar">
+        <div className="w-full space-y-8">
           {/* KPI Cards - Matching Leads Dashboard Style */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="relative flex min-h-[160px] flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-none">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
@@ -191,11 +191,11 @@ export default function CataloguePage() {
                     <span className="material-symbols-outlined text-xl">inventory_2</span>
                   </div>
                 </div>
-                <h3 className="text-4xl font-bold text-white mb-1">{totalItems}</h3>
+                <h3 className="mb-1 text-4xl font-bold text-foreground">{totalItems}</h3>
                 <p className="text-sm text-slate-400">{categories.length - 1} categories</p>
               </div>
             </div>
-            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50">
+            <div className="relative flex min-h-[160px] flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-none">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
@@ -204,11 +204,11 @@ export default function CataloguePage() {
                     <span className="material-symbols-outlined text-xl">check_circle</span>
                   </div>
                 </div>
-                <h3 className="text-4xl font-bold text-white mb-1">{availableItems}</h3>
+                <h3 className="mb-1 text-4xl font-bold text-foreground">{availableItems}</h3>
                 <p className="text-sm text-slate-400">Ready to book</p>
               </div>
             </div>
-            <div className="bg-[#111827] p-7 rounded-2xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-slate-800/50">
+            <div className="relative flex min-h-[160px] flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-none">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
@@ -217,7 +217,7 @@ export default function CataloguePage() {
                     <span className="material-symbols-outlined text-xl">filter_alt</span>
                   </div>
                 </div>
-                <h3 className="text-4xl font-bold text-white mb-1">{filteredItems.length}</h3>
+                <h3 className="mb-1 text-4xl font-bold text-foreground">{filteredItems.length}</h3>
                 <p className="text-sm text-slate-400">Showing {selectedCategories.has('All') ? 'All' : Array.from(selectedCategories).join(', ')}</p>
               </div>
             </div>

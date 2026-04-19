@@ -156,20 +156,20 @@ export default function SettingsPage() {
         </div>
 
         {/* KPI Cards - Matching Leads Page Styling */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-none">
             <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
               Team Size
             </span>
             <div className="flex items-end justify-between mt-2">
-              <span className="text-3xl font-bold text-white leading-none">{team.length}</span>
+              <span className="text-3xl font-bold text-foreground leading-none">{team.length}</span>
               <span className="text-emerald-400 text-[12px] flex items-center gap-1 font-medium bg-emerald-400/10 px-2 py-1 rounded-full">
                 <span className="material-symbols-outlined text-[12px]">trending_up</span>
                 +{team.filter((u) => u.enabled).length}
               </span>
             </div>
           </div>
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-none">
             <div className="flex items-center justify-between">
               <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
                 System Health
@@ -177,21 +177,21 @@ export default function SettingsPage() {
               <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
             </div>
             <div className="flex items-end justify-between mt-2">
-              <span className="text-3xl font-bold text-white leading-none">99.8%</span>
+              <span className="text-3xl font-bold text-foreground leading-none">99.8%</span>
               <span className="text-muted-foreground text-[12px]">Uptime</span>
             </div>
           </div>
-          <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-xl">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-none">
             <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
               Security Score
             </span>
             <div className="flex items-end justify-between mt-2">
-              <span className="text-3xl font-bold text-white leading-none">A+</span>
+              <span className="text-3xl font-bold text-foreground leading-none">A+</span>
               <div className="flex -space-x-2">
-                <div className="w-6 h-6 rounded-full border-2 border-[#111827] bg-blue-500 flex items-center justify-center text-[8px] font-bold text-white">
+                <div className="w-6 h-6 rounded-full border-2 border-card bg-blue-500 flex items-center justify-center text-[8px] font-bold text-white">
                   MFA
                 </div>
-                <div className="w-6 h-6 rounded-full border-2 border-[#111827] bg-indigo-500 flex items-center justify-center text-[8px] font-bold text-white">
+                <div className="w-6 h-6 rounded-full border-2 border-card bg-indigo-500 flex items-center justify-center text-[8px] font-bold text-white">
                   SSL
                 </div>
               </div>
@@ -200,7 +200,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Appearance Section */}
-        <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <section className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
           <div className="p-6">
             <div className="flex items-center gap-2 text-slate-900 dark:text-white mb-6">
               <span className="material-symbols-outlined text-slate-400">palette</span>
@@ -249,14 +249,14 @@ export default function SettingsPage() {
         <CrmSetupSection />
 
         {/* My Profile Section */}
-        <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <section className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
           <div className="p-6">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-wider">
               My Profile
             </h2>
             {profile ? (
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-navy-800 rounded-full flex items-center justify-center text-slate-600  font-bold text-xl">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600  font-bold text-xl">
                   {getInitials(profile.first_name || profile.full_name)}
                 </div>
                 <div className="flex-1">
@@ -280,7 +280,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Company Settings */}
-        <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <section className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
           <div className="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2 text-slate-900 dark:text-white">
               <span className="material-symbols-outlined text-slate-400">business</span>
@@ -344,7 +344,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Bank Accounts */}
-        <section className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <section className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
           <div className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-900 dark:text-white">
               <span className="material-symbols-outlined text-slate-400">account_balance</span>
@@ -434,7 +434,7 @@ export default function SettingsPage() {
               taxTemplates.map((template) => (
                 <div
                   key={template.name}
-                  className="bg-card dark:bg-navy-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-card border border-border p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
                 >
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                     {template.title || template.name}

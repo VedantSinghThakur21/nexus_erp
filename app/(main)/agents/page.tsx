@@ -172,34 +172,34 @@ export default function AgentsPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* KPI Cards - Matching Leads Page Styling */}
         <section className="app-content grid w-full grid-cols-1 gap-4 md:grid-cols-3 md:pb-0">
-          <div className="bg-[#111827] p-4 rounded-xl border border-slate-800 shadow-lg flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-none transition-all">
             <div>
               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
                 Total Queries
               </p>
-              <h3 className="text-xl font-bold text-white mt-0.5">{kpis.totalQueries}</h3>
+              <h3 className="mt-0.5 text-xl font-bold text-foreground">{kpis.totalQueries}</h3>
             </div>
             <div className="p-2 bg-slate-700/50 rounded-lg text-slate-300">
               <span className="material-symbols-outlined text-xl">query_stats</span>
             </div>
           </div>
-          <div className="bg-[#111827] p-4 rounded-xl border border-slate-800 shadow-lg flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-none transition-all">
             <div>
               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
                 Accuracy
               </p>
-              <h3 className="text-xl font-bold text-white mt-0.5">{kpis.accuracy}</h3>
+              <h3 className="mt-0.5 text-xl font-bold text-foreground">{kpis.accuracy}</h3>
             </div>
             <div className="p-2 bg-green-500/10 rounded-lg text-green-400">
               <span className="material-symbols-outlined text-xl">verified</span>
             </div>
           </div>
-          <div className="bg-[#111827] p-4 rounded-xl border border-slate-800 shadow-lg flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-none transition-all">
             <div>
               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
                 Efficiency Boost
               </p>
-              <h3 className="text-xl font-bold text-white mt-0.5">{kpis.efficiencyBoost}</h3>
+              <h3 className="mt-0.5 text-xl font-bold text-foreground">{kpis.efficiencyBoost}</h3>
             </div>
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
               <span className="material-symbols-outlined text-xl">trending_up</span>
@@ -233,7 +233,7 @@ export default function AgentsPage() {
 
                 return (
                   <div key={m.id} className="flex gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-midnight-blue flex-shrink-0 flex items-center justify-center p-2 shadow-lg border border-slate-700">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card p-2 shadow-none">
                       <svg
                         className="w-full h-full"
                         fill="none"
@@ -311,7 +311,7 @@ export default function AgentsPage() {
               {/* Loading Indicator */}
               {isLoading && messages[messages.length - 1]?.role === "user" && (
                 <div className="flex gap-5">
-                  <div className="w-10 h-10 rounded-xl bg-midnight-blue flex-shrink-0 flex items-center justify-center p-1.5 shadow-md border border-slate-700">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card p-1.5 shadow-none">
                     <svg
                       className="w-full h-full"
                       fill="none"
@@ -345,7 +345,7 @@ export default function AgentsPage() {
           </div>
 
           {/* Sidebar */}
-          <aside className="w-72 border-l border-slate-200 dark:border-slate-800 bg-background/50 dark:bg-midnight-blue/20 p-5 hidden xl:block overflow-y-auto">
+          <aside className="hidden w-72 overflow-y-auto border-l border-border bg-background/50 p-5 xl:block">
             <div className="flex items-center justify-between mb-5">
               <h4 className="font-bold text-[8px]  uppercase tracking-[0.15em] text-muted-foreground">
                 Action Preview
@@ -406,7 +406,7 @@ export default function AgentsPage() {
         </div>
 
         {/* Footer */}
-        <footer className="p-4 bg-card dark:bg-midnight-blue border-t border-border/40 dark:border-slate-800">
+        <footer className="border-t border-border/40 bg-card p-4">
           <div className="max-w-5xl mx-auto">
             <form onSubmit={handleCustomSubmit}>
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-background/80 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 pr-1.5 shadow-inner focus-within:ring-2 focus-within:ring-accent/20 transition-all">

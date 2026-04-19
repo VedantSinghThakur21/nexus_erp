@@ -76,9 +76,9 @@ export default function NewOperatorPage() {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-foreground min-h-screen flex flex-col">
+    <div className="app-shell min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-card dark:bg-navy-deep border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <Link href="/operators">
             <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -96,7 +96,7 @@ export default function NewOperatorPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-8 max-w-4xl mx-auto w-full">
           {/* Form Card */}
-          <div className="bg-card dark:bg-navy-deep border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg p-8">
+          <div className="bg-card border border-border rounded-2xl shadow-lg p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Message */}
               {error && (
@@ -302,7 +302,7 @@ export default function NewOperatorPage() {
         </div>
 
         {/* Footer */}
-        <footer className="bg-card dark:bg-navy-deep border-t border-border/40 dark:border-slate-800 px-8 py-4 flex justify-between items-center mt-auto">
+        <footer className="bg-card border-t border-border/40 px-8 py-4 flex justify-between items-center mt-auto">
           <div className="flex items-center gap-6">
             <span className="flex items-center gap-2 text-[12px] text-emerald-500 font-semibold">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
