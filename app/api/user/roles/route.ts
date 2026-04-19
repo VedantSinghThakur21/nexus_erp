@@ -3,13 +3,14 @@
  *
  * Fetches current user's roles from Frappe ERPNext backend.
  * Uses multiple fallback strategies:
- *   1. tenantAdminRequest → frappe.client.get_list on Has Role
- *   2. role_profile_name mapping
- *   3. Provisioning service (ignore_permissions) as last resort
+ *   1. Provisioning service (ignore_permissions) — most reliable
+ *   2. tenantAdminRequest → frappe.client.get_list on Has Role (fallback)
+ *   3. role_profile_name mapping (last resort)
  *
- * Security fix: always uses master credentials against the TENANT site so that
- * (a) the user doc actually exists on that site, and
- * (b) the roles child table is not masked by Frappe's per-user permission rules.
+ * The provisioning service is primary because tenant users' own API keys
+ * typically lack read access to the Has Role child table (403 PermissionError).
+ * The provisioning service bypasses this via ignore_permissions=True on the
+ * Frappe side.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -73,31 +74,63 @@ export async function GET(_request: NextRequest) {
       throw new Error('No user logged in')
     }
 
-    // ── Step 2: Fetch roles from Has Role child table ────────────────────────
+    // ── Step 2: Fetch roles via provisioning service (PRIMARY) ─────────────
+    // The provisioning service uses ignore_permissions=True on the Frappe side,
+    // so it works regardless of the tenant user's own role permissions.
+    // This is the most reliable strategy — tenantAdminRequest uses the user's
+    // own API keys which typically lack read access to the Has Role child table.
     let roles: string[] = []
     let roleProfileName: string | null = null
 
-    try {
-      const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Has Role',
-        fields: ['role'],
-        filters: [['parent', '=', userEmail], ['parenttype', '=', 'User']],
-        limit_page_length: 200,
-      }) as any[]
+    const context = await getTenantContext()
 
-      if (Array.isArray(roleRows)) {
-        roles = roleRows
-          .map((row: any) => row?.role)
-          .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
-      }
-    } catch (rolesListErr: any) {
-      const message = String(rolesListErr?.message || 'Unknown error')
-      if (shouldLogRoleApi(`roles-list-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
-        console.warn(`[/api/user/roles] Has Role lookup failed for ${userEmail}:`, message)
+    if (context.subdomain) {
+      try {
+        const { getUserRoles } = await import('@/lib/provisioning-client')
+        const provRoleData = await getUserRoles(context.subdomain, userEmail)
+        roles = provRoleData.roles || []
+        roleProfileName = provRoleData.role_profile_name || null
+
+        if (roles.length === 0 && roleProfileName) {
+          roles = PROFILE_ROLES[roleProfileName] || []
+        }
+
+        if (roles.length > 0 && process.env.NODE_ENV === 'development') {
+          console.log(`[/api/user/roles] Got ${roles.length} roles from provisioning service for ${userEmail}`)
+        }
+      } catch (provErr: any) {
+        const message = String(provErr?.message || 'Unknown error')
+        if (shouldLogRoleApi(`prov-primary-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
+          console.warn(`[/api/user/roles] Provisioning service failed for ${userEmail}:`, message)
+        }
       }
     }
 
-    // ── Step 2b: Optional role profile fetch via get_value ───────────────────
+    // ── Step 3: Fallback — direct Has Role query via tenant credentials ──────
+    // Only attempted if provisioning service was unavailable or returned nothing.
+    if (roles.length === 0) {
+      try {
+        const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Has Role',
+          fields: ['role'],
+          filters: [['parent', '=', userEmail], ['parenttype', '=', 'User']],
+          limit_page_length: 200,
+        }) as any[]
+
+        if (Array.isArray(roleRows)) {
+          roles = roleRows
+            .map((row: any) => row?.role)
+            .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
+        }
+      } catch (rolesListErr: any) {
+        const message = String(rolesListErr?.message || 'Unknown error')
+        if (shouldLogRoleApi(`roles-list-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
+          console.warn(`[/api/user/roles] Has Role lookup failed for ${userEmail}:`, message)
+        }
+      }
+    }
+
+    // ── Step 3b: Optional role profile fetch via get_value ───────────────────
     if (!roleProfileName) {
       try {
         const profile = await tenantAdminRequest('frappe.client.get_value', 'GET', {
@@ -111,43 +144,12 @@ export async function GET(_request: NextRequest) {
       }
     }
 
-    // ── Step 3: If roles empty but role_profile_name set → derive roles ──────
+    // ── Step 4: If roles still empty but role_profile_name set → derive ──────
     if (roles.length === 0 && roleProfileName) {
       if (process.env.NODE_ENV === 'development') {
         console.log(`[/api/user/roles] Deriving roles from profile "${roleProfileName}" for ${userEmail}`)
       }
       roles = PROFILE_ROLES[roleProfileName] || []
-    }
-
-    // ── Step 4: Provisioning service fallback (ignore_permissions) ───────────
-    if (roles.length === 0) {
-      try {
-        const context = await getTenantContext()
-        if (context.subdomain) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[/api/user/roles] Trying provisioning service for ${userEmail} on ${context.subdomain}`)
-          }
-          const { getUserRoles } = await import('@/lib/provisioning-client')
-          const provRoleData = await getUserRoles(context.subdomain, userEmail)
-          roles = provRoleData.roles || []
-          roleProfileName = provRoleData.role_profile_name || null
-
-          if (roles.length === 0 && roleProfileName) {
-            roles = PROFILE_ROLES[roleProfileName] || []
-          }
-
-          if (roles.length > 0) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log(`[/api/user/roles] Got ${roles.length} roles from provisioning service for ${userEmail}`)
-            }
-          }
-        }
-      } catch (provErr: any) {
-        const message = String(provErr?.message || 'Unknown error')
-        if (shouldLogRoleApi(`prov-fallback-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
-          console.warn(`[/api/user/roles] Provisioning service fallback failed:`, message)
-        }
-      }
     }
 
     // ── Step 5: Absolute last resort ─────────────────────────────────────────

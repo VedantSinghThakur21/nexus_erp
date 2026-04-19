@@ -37,6 +37,14 @@ export interface ProvisionResult {
   api_secret?: string
   error?: string
   steps_completed?: string[]
+  checks?: {
+    site_alive: boolean
+    user_exists: boolean
+    roles_correct: boolean
+    api_key_valid: boolean
+    docperms_set: boolean
+  }
+  warnings?: string[]
 }
 
 export interface SubdomainCheckResult {
@@ -222,6 +230,46 @@ export async function getUserRoles(
       method: 'POST',
       body: { user_email: userEmail },
       timeout,
+    },
+  )
+}
+
+/**
+ * Create a tenant user from invite type or direct role assignment.
+ */
+export async function createTenantUser(
+  subdomain: string,
+  payload: {
+    user_email: string
+    first_name: string
+    last_name?: string
+    invite_type?: 'admin' | 'sales' | 'accounts' | 'projects' | 'member'
+    role?: 'Sales User' | 'Accounts User' | 'Projects User' | 'Stock Manager' | 'Stock User'
+  },
+): Promise<{ success: boolean; user_email: string; roles: string[] }> {
+  return serviceRequest(
+    `/api/v1/create-tenant-user/${encodeURIComponent(subdomain)}`,
+    {
+      method: 'POST',
+      body: payload as unknown as Record<string, unknown>,
+      timeout: 30_000,
+    },
+  )
+}
+
+/**
+ * Change tenant user role and clear sessions.
+ */
+export async function changeTenantUserRole(
+  subdomain: string,
+  payload: { user_email: string; new_role: string },
+): Promise<{ success: boolean; user_email: string; roles: string[] }> {
+  return serviceRequest(
+    `/api/v1/change-tenant-user-role/${encodeURIComponent(subdomain)}`,
+    {
+      method: 'POST',
+      body: payload as unknown as Record<string, unknown>,
+      timeout: 30_000,
     },
   )
 }

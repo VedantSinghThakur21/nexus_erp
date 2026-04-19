@@ -10,10 +10,8 @@ import { getTenantContext, tenantAdminRequest } from '@/app/lib/api'
  *
  * Server-side utilities for protecting API routes.
  *
- * Security note: all role fetches use `tenantAdminRequest` (master credentials +
- * current-tenant site override) so that:
- *   1. The User doc is fetched from the correct site (not from master).
- *   2. Frappe's role-table masking does not hide roles from non-admin callers.
+ * Role fetches primarily use the provisioning service (ignore_permissions=True)
+ * with a fallback to direct Has Role queries via tenant credentials.
  */
 
 type AuthResult = {
@@ -62,9 +60,26 @@ export async function requireAuth(): Promise<AuthResult> {
 /**
  * Fetch user roles from the current tenant's Frappe site.
  *
- * Uses Has Role child-table query for broad Frappe compatibility.
+ * Primary: provisioning service (uses ignore_permissions=True).
+ * Fallback: direct Has Role child-table query via tenant credentials.
  */
 async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
+  // ── Primary: provisioning service ──────────────────────────────────────────
+  try {
+    const context = await getTenantContext()
+    if (context.subdomain) {
+      const { getUserRoles } = await import('@/lib/provisioning-client')
+      const provRoleData = await getUserRoles(context.subdomain, userEmail)
+      if (Array.isArray(provRoleData.roles)) {
+        const roles = provRoleData.roles.filter((r): r is string => typeof r === 'string' && r !== 'All')
+        if (roles.length > 0) return roles
+      }
+    }
+  } catch {
+    // Provisioning service unavailable — fall through to direct query.
+  }
+
+  // ── Fallback: direct Has Role query ────────────────────────────────────────
   try {
     const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Has Role',
@@ -78,45 +93,13 @@ async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
         .map(r => r?.role)
         .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
 
-      if (roles.length > 0) {
-        return roles
-      }
+      if (roles.length > 0) return roles
     }
   } catch (error) {
     const message = String((error as Error)?.message || '')
-    const isPermissionError = message.includes('PermissionError')
-
-    if (!isPermissionError) {
+    if (!message.includes('PermissionError')) {
       console.error(`[API Auth] Failed to fetch roles for ${userEmail}:`, error)
     }
-
-    if (isPermissionError) {
-      try {
-        const context = await getTenantContext()
-        if (context.subdomain) {
-          const { getUserRoles } = await import('@/lib/provisioning-client')
-          const provRoleData = await getUserRoles(context.subdomain, userEmail)
-          if (Array.isArray(provRoleData.roles)) {
-            return provRoleData.roles.filter((r): r is string => typeof r === 'string' && r !== 'All')
-          }
-        }
-      } catch (fallbackError) {
-        console.error(`[API Auth] Provisioning fallback failed for ${userEmail}:`, fallbackError)
-      }
-    }
-  }
-
-  try {
-    const context = await getTenantContext()
-    if (context.subdomain) {
-      const { getUserRoles } = await import('@/lib/provisioning-client')
-      const provRoleData = await getUserRoles(context.subdomain, userEmail)
-      if (Array.isArray(provRoleData.roles)) {
-        return provRoleData.roles.filter((r): r is string => typeof r === 'string' && r !== 'All')
-      }
-    }
-  } catch {
-    // Return least-privileged default when role lookup fails.
   }
 
   return []
