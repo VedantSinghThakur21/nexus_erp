@@ -260,6 +260,13 @@ export async function createItem(formData: FormData) {
         message.includes('Could not find Item Group') ||
         message.includes('No permission for UOM')
       ) {
+        if (provisioningResult.error) {
+          return {
+            success: false,
+            error: `ERP fallback unavailable while resolving Item Group/UOM. ${provisioningResult.error}`
+          }
+        }
+
         let fallbackGroup = itemData.item_group
         let fallbackUom = itemData.stock_uom
 
@@ -296,6 +303,15 @@ export async function createItem(formData: FormData) {
           return {
             success: false,
             error: `Unable to resolve Item Group/UOM from ERP defaults. ${provisioningResult.error || ''}`.trim()
+          }
+        }
+
+        // Avoid retrying with the exact same unresolved UOM value (e.g., Nos on tenants where it doesn't exist).
+        const originalUom = String(itemData.stock_uom || '').trim()
+        if (String(fallbackUom || '').trim() === originalUom) {
+          return {
+            success: false,
+            error: 'Unable to resolve a valid UOM from ERP defaults. Please restart provisioning-service and verify catalog-defaults endpoint.'
           }
         }
 
