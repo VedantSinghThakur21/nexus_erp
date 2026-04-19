@@ -1003,6 +1003,20 @@ for stage_name in sales_stages:
         created_stages.append(stage_name)
 result["sales_stages"] = f"seeded: {created_stages}" if created_stages else "all exist"
 
+# Standard UOMs (Unit of Measure)
+uoms = ["Nos", "Unit", "Kg", "M", "Hr", "Day", "Month", "Hour"]
+created_uoms = []
+for uom_name in uoms:
+    if not frappe.db.exists("UOM", uom_name):
+        frappe.get_doc({
+            "doctype": "UOM",
+            "uom_name": uom_name,
+            "must_be_whole_number": 1 if uom_name in ("Nos", "Unit") else 0
+        }).insert(ignore_permissions=True)
+        created_uoms.append(uom_name)
+result["uoms"] = f"seeded: {created_uoms}" if created_uoms else "all exist"
+
+
 # Fix DocPerms for dropdowns so standard users can read them
 docperms_fixed = []
 read_doctypes = ["Item Group", "Brand", "Opportunity Type", "Sales Stage", "Designation"]
