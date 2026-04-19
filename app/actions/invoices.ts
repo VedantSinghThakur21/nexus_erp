@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest } from "@/app/lib/api"
+import { frappeRequest, getTenantContext } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
 import { canCreateInvoice, incrementUsage } from "./usage-limits"
 import { headers } from "next/headers"
@@ -768,9 +768,25 @@ export async function getItemGroups() {
 // Ensure required Item Groups exist in ERPNext
 export async function ensureItemGroups() {
   try {
+    // Resolve the current tenant's site so we can target it with master credentials.
+    // Item Group is a setup/provisioning operation — tenant users lack write access.
+    const context = await getTenantContext()
+    const siteOverride = context.isTenant ? context.siteName : undefined
+
+    // Helper: run a request with master creds targeting the tenant site
+    const adminRequest = (
+      endpoint: string,
+      method: 'GET' | 'POST',
+      body: Record<string, unknown> | null = null
+    ) =>
+      frappeRequest(endpoint, method, body, {
+        useMasterCredentials: true,
+        siteOverride,
+      })
+
     // Step 1: Resolve a valid root Item Group for this tenant.
     let rootGroup = 'All Item Groups'
-    const allGroups = await frappeRequest('frappe.client.get_list', 'GET', {
+    const allGroups = await adminRequest('frappe.client.get_list', 'GET', {
       doctype: 'Item Group',
       fields: '["name", "item_group_name", "is_group", "parent_item_group"]',
       limit_page_length: 500,
@@ -792,7 +808,7 @@ export async function ensureItemGroups() {
       rootGroup = rootCandidate.name
     } else {
       // No root exists yet - create one and use returned doc name.
-      const createdRoot = await frappeRequest('frappe.client.insert', 'POST', {
+      const createdRoot = await adminRequest('frappe.client.insert', 'POST', {
         doc: {
           doctype: 'Item Group',
           item_group_name: 'All Item Groups',
@@ -811,7 +827,7 @@ export async function ensureItemGroups() {
     for (const group of requiredGroups) {
       try {
         // Use get_list instead of get to avoid 404 throws
-        const existing = await frappeRequest('frappe.client.get_list', 'GET', {
+        const existing = await adminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Item Group',
           filters: `[["name", "=", "${group.name}"]]`,
           fields: '["name"]',
@@ -820,7 +836,7 @@ export async function ensureItemGroups() {
 
         if (!existing || existing.length === 0) {
           try {
-            await frappeRequest('frappe.client.insert', 'POST', {
+            await adminRequest('frappe.client.insert', 'POST', {
               doc: {
                 doctype: 'Item Group',
                 item_group_name: group.name,
@@ -832,7 +848,7 @@ export async function ensureItemGroups() {
             // Retry once with any available group parent if tenant root naming differs.
             const errorMessage = String(insertError?.message || '')
             if (errorMessage.includes('Could not find Parent Item Group')) {
-              const fallbackRoot = await frappeRequest('frappe.client.get_list', 'GET', {
+              const fallbackRoot = await adminRequest('frappe.client.get_list', 'GET', {
                 doctype: 'Item Group',
                 filters: '[["is_group", "=", 1]]',
                 fields: '["name"]',
@@ -840,7 +856,7 @@ export async function ensureItemGroups() {
               }) as { name: string }[]
 
               if (fallbackRoot?.[0]?.name) {
-                await frappeRequest('frappe.client.insert', 'POST', {
+                await adminRequest('frappe.client.insert', 'POST', {
                   doc: {
                     doctype: 'Item Group',
                     item_group_name: group.name,
