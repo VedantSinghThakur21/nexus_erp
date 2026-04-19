@@ -76,7 +76,7 @@ export default function InspectionsPage() {
   });
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-950 text-slate-800  transition-colors duration-200 min-h-screen flex flex-col">
+    <div className="app-shell flex flex-col">
       {/* Header */}
       <PageHeader searchPlaceholder="Ask AI anything about inspections...">
         <Link href="/inspections/new">
@@ -87,8 +87,8 @@ export default function InspectionsPage() {
       </PageHeader>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-[1600px] mx-auto p-8 space-y-8">
+      <main className="app-content">
+        <div className="w-full space-y-8">
           {!loading ? (
             <>
               <div>

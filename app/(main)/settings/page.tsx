@@ -87,16 +87,16 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="app-content flex min-h-[50vh] items-center justify-center">
         <div className="text-muted-foreground ">Loading settings...</div>
       </div>
     );
   }
 
   return (
-    <main className="w-full min-h-screen overflow-y-auto bg-slate-50 dark:bg-midnight-blue">
+    <main className="app-content w-full bg-background">
       {/* Header */}
-      <header className="p-8 pb-4">
+      <header className="pb-4">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
@@ -115,7 +115,7 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <div className="p-8 pt-4 w-full space-y-6">
+      <div className="pt-4 w-full space-y-6">
         {/* Smart Configuration Assistant Banner */}
         <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl shadow-blue-500/10">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">

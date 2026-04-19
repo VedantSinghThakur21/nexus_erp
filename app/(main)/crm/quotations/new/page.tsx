@@ -499,8 +499,8 @@ export default function NewQuotationPage() {
   }
 
   return (
-    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
-      <div suppressHydrationWarning className="max-w-6xl mx-auto">
+    <div suppressHydrationWarning className="app-content min-w-0 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div suppressHydrationWarning className="w-full">
         {/* Header */}
         <div suppressHydrationWarning className="mb-6">
           <Link href="/crm/quotations">

@@ -377,7 +377,7 @@ export default function EditQuotationPage() {
 
   if (fetching) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8 flex items-center justify-center">
+      <div className="app-content min-w-0 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
           <p className="text-slate-600">Loading quotation data...</p>
@@ -387,8 +387,8 @@ export default function EditQuotationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="app-content min-w-0 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div className="w-full">
         {/* Header */}
         <div className="mb-6">
           <Link href={`/crm/quotations/${encodeURIComponent(quotationId)}`}>

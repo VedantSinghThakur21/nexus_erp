@@ -141,7 +141,7 @@ export default function AgentsPage() {
   }, [messages]);
 
   return (
-    <div className="bg-slate-50 dark:bg-midnight-blue text-slate-900 dark:text-foreground flex flex-col h-screen overflow-hidden">
+    <div className="app-shell flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden">
       {/* Debug Toggle Button */}
       {showDebug && (
         <div className="fixed bottom-20 right-4 w-96 max-h-96 bg-black text-green-400 p-4 rounded-lg shadow-2xl overflow-y-auto font-mono text-xs z-50">
@@ -171,7 +171,7 @@ export default function AgentsPage() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* KPI Cards - Matching Leads Page Styling */}
-        <section className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+        <section className="app-content grid w-full grid-cols-1 gap-4 md:grid-cols-3 md:pb-0">
           <div className="bg-[#111827] p-4 rounded-xl border border-slate-800 shadow-lg flex items-center justify-between transition-all hover:shadow-xl">
             <div>
               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">

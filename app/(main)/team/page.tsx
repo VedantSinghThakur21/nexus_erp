@@ -172,7 +172,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-foreground min-h-screen flex flex-col">
+    <div className="app-shell flex flex-col">
       {/* Header */}
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <InviteTeamMemberDialog />
@@ -209,8 +209,8 @@ export default function TeamPage() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-8 max-w-[1920px] mx-auto w-full space-y-8">
+      <main className="app-content flex-1">
+        <div className="w-full space-y-8">
           {!loading ? (
             <>
               {/* Page Title */}

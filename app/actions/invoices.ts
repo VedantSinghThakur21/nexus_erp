@@ -92,6 +92,8 @@ export async function createBrand(brandName: string) {
 // CREATE/UPDATE ITEM
 export async function createItem(formData: FormData) {
   try {
+    await ensureItemGroups()
+
     const itemData: any = {
       doctype: 'Item',
       item_code: formData.get('item_code') as string,
@@ -100,7 +102,7 @@ export async function createItem(formData: FormData) {
       description: formData.get('description') as string,
       standard_rate: parseFloat(formData.get('standard_rate') as string),
       is_stock_item: formData.get('is_stock_item') === '1' ? 1 : 0,
-      stock_uom: formData.get('stock_uom') as string || 'Unit',
+      stock_uom: (formData.get('stock_uom') as string) || 'Nos',
     }
 
     // Add optional fields if provided
@@ -114,7 +116,24 @@ export async function createItem(formData: FormData) {
     if (openingStock) itemData.opening_stock = parseFloat(openingStock)
     if (reorderLevel) itemData.reorder_level = parseFloat(reorderLevel)
 
-    await frappeRequest('frappe.client.insert', 'POST', { doc: itemData })
+    try {
+      await frappeRequest('frappe.client.insert', 'POST', { doc: itemData })
+    } catch (error: any) {
+      // Some tenants miss "Unit" UOM by default; retry with a safer ERPNext default.
+      const message = String(error?.message || '')
+      if (
+        message.includes('Default Unit of Measure') ||
+        message.includes('Could not find UOM') ||
+        message.includes('Could not find Item Group')
+      ) {
+        await ensureItemGroups()
+        const retriedItem = { ...itemData, stock_uom: 'Nos' }
+        await frappeRequest('frappe.client.insert', 'POST', { doc: retriedItem })
+      } else {
+        throw error
+      }
+    }
+
     revalidatePath('/catalogue')
     return { success: true }
   } catch (error: any) {
