@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Plus } from "lucide-react"
-import { createItem, getBrands, createBrand, getItemGroups, type Brand } from "@/app/actions/invoices"
+import { createItem, getBrands, createBrand, getItemGroups, ensureItemGroups, type Brand } from "@/app/actions/invoices"
 import { useRouter } from "next/navigation"
 
 export function CreateItemDialog() {
@@ -51,6 +51,8 @@ export function CreateItemDialog() {
   }
 
   async function loadItemGroups() {
+    // Seed default item groups if none exist (uses master credentials server-side)
+    await ensureItemGroups()
     const groups = await getItemGroups()
     setItemGroups(groups)
     if (groups.length > 0 && !selectedGroup) {
