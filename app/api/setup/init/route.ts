@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { frappeRequest } from '@/app/lib/api'
+import { frappeRequest, getTenantContext } from '@/app/lib/api'
 import { getTenant } from '@/lib/tenant'
 import { seedTenantDefaults } from '@/lib/provisioning-client'
 import { requireAuth } from '@/app/api/_lib/auth'
@@ -26,6 +26,19 @@ export async function GET(request: NextRequest) {
     }
 
     const results: Record<string, string> = {}
+
+    // Resolve tenant site for master-credential writes (System Manager ops).
+    const tenantCtx = await getTenantContext()
+    const siteOverride = tenantCtx.isTenant ? tenantCtx.siteName : undefined
+    const adminWrite = (
+      endpoint: string,
+      method: 'GET' | 'POST',
+      body: Record<string, unknown> | null = null
+    ) =>
+      frappeRequest(endpoint, method, body, {
+        useMasterCredentials: true,
+        siteOverride,
+      })
 
     // 1. Check if Price List already exists
     try {
@@ -118,7 +131,7 @@ export async function GET(request: NextRequest) {
             const created: string[] = []
             for (const modeName of defaultModes) {
                 try {
-                    await frappeRequest('frappe.client.insert', 'POST', {
+                    await adminWrite('frappe.client.insert', 'POST', {
                         doc: {
                             doctype: 'Mode of Payment',
                             mode_of_payment: modeName,
@@ -181,7 +194,7 @@ export async function GET(request: NextRequest) {
             // Ensure root group exists
             let rootGroup = 'All Item Groups'
             try {
-                const roots = await frappeRequest('frappe.client.get_list', 'GET', {
+                const roots = await adminWrite('frappe.client.get_list', 'GET', {
                     doctype: 'Item Group',
                     fields: '["name"]',
                     filters: JSON.stringify([['is_group', '=', 1]]),
@@ -189,7 +202,7 @@ export async function GET(request: NextRequest) {
                 }) as { name: string }[]
                 if (roots?.[0]?.name) rootGroup = roots[0].name
                 else {
-                    const r = await frappeRequest('frappe.client.insert', 'POST', {
+                    const r = await adminWrite('frappe.client.insert', 'POST', {
                         doc: { doctype: 'Item Group', item_group_name: 'All Item Groups', is_group: 1 }
                     }) as { name: string }
                     rootGroup = r.name
@@ -200,7 +213,7 @@ export async function GET(request: NextRequest) {
             const created: string[] = []
             for (const groupName of leafGroups) {
                 try {
-                    await frappeRequest('frappe.client.insert', 'POST', {
+                    await adminWrite('frappe.client.insert', 'POST', {
                         doc: { doctype: 'Item Group', item_group_name: groupName, parent_item_group: rootGroup, is_group: 0 }
                     })
                     created.push(groupName)
@@ -227,7 +240,7 @@ export async function GET(request: NextRequest) {
         for (const desig of defaultDesignations) {
             if (!existingNames.includes(desig)) {
                 try {
-                    await frappeRequest('frappe.client.insert', 'POST', {
+                    await adminWrite('frappe.client.insert', 'POST', {
                         doc: { doctype: 'Designation', designation_name: desig }
                     })
                     created.push(desig)
@@ -267,7 +280,7 @@ export async function GET(request: NextRequest) {
         for (const profile of defaultRoleProfiles) {
             if (!existingNames.includes(profile.name)) {
                 try {
-                    await frappeRequest('frappe.client.insert', 'POST', {
+                    await adminWrite('frappe.client.insert', 'POST', {
                         doc: {
                             doctype: 'Role Profile',
                             role_profile: profile.name,
@@ -300,7 +313,7 @@ export async function GET(request: NextRequest) {
         for (const gender of defaultGenders) {
             if (!existingNames.includes(gender)) {
                 try {
-                    await frappeRequest('frappe.client.insert', 'POST', {
+                    await adminWrite('frappe.client.insert', 'POST', {
                         doc: { doctype: 'Gender', gender: gender }
                     })
                     created.push(gender)

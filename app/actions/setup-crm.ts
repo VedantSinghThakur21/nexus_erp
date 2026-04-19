@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest } from '@/app/lib/api'
+import { frappeRequest, getTenantContext } from '@/app/lib/api'
 
 /**
  * Setup CRM Master Data for a newly provisioned tenant
@@ -33,7 +33,23 @@ interface SetupResult {
 export async function setupCrmMasterData(): Promise<SetupResult> {
   try {
     console.log('[CRM Setup] Starting CRM master data setup...')
-    
+
+    // CRM setup doctypes (Opportunity Type, Sales Stage) require System Manager.
+    // Use master credentials targeting the tenant site so regular users can trigger
+    // this from the Settings page without a PermissionError.
+    const context = await getTenantContext()
+    const siteOverride = context.isTenant ? context.siteName : undefined
+
+    const adminRequest = (
+      endpoint: string,
+      method: 'GET' | 'POST',
+      body: Record<string, unknown> | null = null
+    ) =>
+      frappeRequest(endpoint, method, body, {
+        useMasterCredentials: true,
+        siteOverride,
+      })
+
     const results = {
       opportunityTypes: { created: 0, existing: 0, failed: 0 },
       salesStages: { created: 0, existing: 0, failed: 0 }
@@ -42,7 +58,7 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
     // Setup Opportunity Types
     for (const typeName of DEFAULT_OPPORTUNITY_TYPES) {
       try {
-        const existing = await frappeRequest('frappe.client.get_list', 'GET', {
+        const existing = await adminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Opportunity Type',
           filters: { name: typeName },
           limit_page_length: 1
@@ -54,7 +70,7 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
           continue
         }
 
-        await frappeRequest('frappe.client.insert', 'POST', {
+        await adminRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Opportunity Type',
             name: typeName
@@ -72,7 +88,7 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
     // Setup Sales Stages
     for (const stageName of DEFAULT_SALES_STAGES) {
       try {
-        const existing = await frappeRequest('frappe.client.get_list', 'GET', {
+        const existing = await adminRequest('frappe.client.get_list', 'GET', {
           doctype: 'Sales Stage',
           filters: { name: stageName },
           limit_page_length: 1
@@ -84,7 +100,7 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
           continue
         }
 
-        await frappeRequest('frappe.client.insert', 'POST', {
+        await adminRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Sales Stage',
             stage_name: stageName
