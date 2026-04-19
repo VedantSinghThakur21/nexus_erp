@@ -179,7 +179,6 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
             if (!res.ok) throw new Error(data.message || data.error || "Failed to create quotation")
             router.push(`/crm/quotations/${encodeURIComponent(data.quotation_name)}`)
           }}
-          onSuccess={() => router.refresh()}
         />
       )}
 
