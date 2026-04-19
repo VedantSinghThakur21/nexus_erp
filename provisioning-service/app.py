@@ -889,7 +889,7 @@ else:
 @app.post("/api/v1/seed-defaults/{subdomain}")
 async def seed_tenant_defaults(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """
-    Re-seed tree defaults (Territory, Customer Group) for an existing tenant.
+    Re-seed tree defaults (Territory, Customer Group, Item Groups, CRM data) for an existing tenant.
     Uses ignore_permissions=True so regular tenant users don't need System Manager.
     Idempotent — safe to call multiple times.
     """
@@ -897,7 +897,7 @@ async def seed_tenant_defaults(subdomain: str, _auth: bool = Depends(verify_api_
 
     seed_code = """import json
 
-result = {"territory": "skipped", "customer_group": "skipped"}
+result = {"territory": "skipped", "customer_group": "skipped", "item_groups": "skipped", "opportunity_types": "skipped", "sales_stages": "skipped"}
 
 # Territory tree (All Territories → India)
 territory_root = frappe.get_all("Territory", filters={"parent_territory": ""}, fields=["name"], limit=1)
@@ -940,6 +940,68 @@ if not cg_root_list:
 else:
     result["customer_group"] = f"exists: {cg_root_list[0].get('name')}"
 
+# Item Group tree (All Item Groups → leaf groups for equipment rental)
+ig_leaves = frappe.get_all("Item Group", filters={"is_group": 0}, fields=["name"], limit=1)
+if not ig_leaves:
+    # Ensure root group exists
+    ig_roots = frappe.get_all("Item Group", filters={"is_group": 1}, fields=["name"], limit=1)
+    root_group = ig_roots[0].get("name") if ig_roots else "All Item Groups"
+    if not ig_roots:
+        frappe.get_doc({
+            "doctype": "Item Group",
+            "item_group_name": "All Item Groups",
+            "is_group": 1,
+        }).insert(ignore_permissions=True)
+        root_group = "All Item Groups"
+
+    leaf_groups = [
+        "Heavy Equipment Rental",
+        "Construction Services",
+        "Consulting",
+        "Crane",
+        "Service",
+        "Spare Parts",
+        "Equipment",
+        "Consumables",
+    ]
+    created_groups = []
+    for group_name in leaf_groups:
+        if not frappe.db.exists("Item Group", group_name):
+            frappe.get_doc({
+                "doctype": "Item Group",
+                "item_group_name": group_name,
+                "parent_item_group": root_group,
+                "is_group": 0,
+            }).insert(ignore_permissions=True)
+            created_groups.append(group_name)
+    result["item_groups"] = f"seeded: {created_groups}" if created_groups else "seeded (all already existed)"
+else:
+    result["item_groups"] = f"exists: {len(ig_leaves)}+ groups"
+
+# Opportunity Types (for CRM)
+opp_types = ["Sales", "Rental", "Maintenance", "Service"]
+created_opp = []
+for opp_name in opp_types:
+    if not frappe.db.exists("Opportunity Type", opp_name):
+        frappe.get_doc({
+            "doctype": "Opportunity Type",
+            "name": opp_name,
+        }).insert(ignore_permissions=True)
+        created_opp.append(opp_name)
+result["opportunity_types"] = f"seeded: {created_opp}" if created_opp else "all exist"
+
+# Sales Stages (for CRM)
+sales_stages = ["Prospecting", "Qualification", "Needs Analysis", "Proposal", "Negotiation", "Won", "Lost"]
+created_stages = []
+for stage_name in sales_stages:
+    if not frappe.db.exists("Sales Stage", stage_name):
+        frappe.get_doc({
+            "doctype": "Sales Stage",
+            "stage_name": stage_name,
+        }).insert(ignore_permissions=True)
+        created_stages.append(stage_name)
+result["sales_stages"] = f"seeded: {created_stages}" if created_stages else "all exist"
+
 frappe.db.commit()
 print(json.dumps(result))
 """
@@ -952,6 +1014,8 @@ print(json.dumps(result))
     except Exception as e:
         logger.error(f"seed-defaults failed for {site_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 @app.post("/api/v1/generate-user-keys/{subdomain}")

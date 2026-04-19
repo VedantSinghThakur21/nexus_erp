@@ -1,25 +1,14 @@
 'use server'
 
-import { frappeRequest, getTenantContext } from '@/app/lib/api'
+import { getTenantContext } from '@/app/lib/api'
 
 /**
  * Setup CRM Master Data for a newly provisioned tenant
  * Creates default Opportunity Types and Sales Stages
- * 
- * This should be called after successful tenant provisioning
- * or can be run manually for existing tenants
+ *
+ * Delegates to the provisioning service which runs with ignore_permissions=True,
+ * so regular tenant users (who lack System Manager) can trigger this from Settings.
  */
-
-const DEFAULT_OPPORTUNITY_TYPES = ['Sales', 'Rental', 'Maintenance', 'Service']
-const DEFAULT_SALES_STAGES = [
-  'Prospecting',
-  'Qualification', 
-  'Needs Analysis',
-  'Proposal',
-  'Negotiation',
-  'Won',
-  'Lost'
-]
 
 interface SetupResult {
   success: boolean
@@ -32,96 +21,32 @@ interface SetupResult {
 
 export async function setupCrmMasterData(): Promise<SetupResult> {
   try {
-    console.log('[CRM Setup] Starting CRM master data setup...')
+    console.log('[CRM Setup] Starting CRM master data setup via provisioning service...')
 
-    // CRM setup doctypes (Opportunity Type, Sales Stage) require System Manager.
-    // Use master credentials targeting the tenant site so regular users can trigger
-    // this from the Settings page without a PermissionError.
     const context = await getTenantContext()
-    const siteOverride = context.isTenant ? context.siteName : undefined
-
-    const adminRequest = (
-      endpoint: string,
-      method: 'GET' | 'POST',
-      body: Record<string, unknown> | null = null
-    ) =>
-      frappeRequest(endpoint, method, body, {
-        useMasterCredentials: true,
-        siteOverride,
-      })
-
-    const results = {
-      opportunityTypes: { created: 0, existing: 0, failed: 0 },
-      salesStages: { created: 0, existing: 0, failed: 0 }
+    if (!context.isTenant || !context.subdomain) {
+      return { success: false, error: 'Not in a tenant context' }
     }
 
-    // Setup Opportunity Types
-    for (const typeName of DEFAULT_OPPORTUNITY_TYPES) {
-      try {
-        const existing = await adminRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Opportunity Type',
-          filters: { name: typeName },
-          limit_page_length: 1
-        }) as any[]
+    const { seedTenantDefaults } = await import('@/lib/provisioning-client')
+    const seedResult = await seedTenantDefaults(context.subdomain)
 
-        if (existing && existing.length > 0) {
-          console.log(`[CRM Setup] Opportunity Type "${typeName}" already exists`)
-          results.opportunityTypes.existing++
-          continue
-        }
+    // Parse provisioning service result into the expected format
+    const oppResult = String(seedResult.result?.opportunity_types || '')
+    const stageResult = String(seedResult.result?.sales_stages || '')
 
-        await adminRequest('frappe.client.insert', 'POST', {
-          doc: {
-            doctype: 'Opportunity Type',
-            name: typeName
-          }
-        })
-        
-        console.log(`[CRM Setup] Created Opportunity Type: ${typeName}`)
-        results.opportunityTypes.created++
-      } catch (error: any) {
-        console.error(`[CRM Setup] Failed to create Opportunity Type "${typeName}":`, error.message)
-        results.opportunityTypes.failed++
-      }
-    }
+    const oppCreated = oppResult.startsWith('seeded: ') ? oppResult.replace('seeded: ', '').split(',').filter(Boolean).length : 0
+    const stageCreated = stageResult.startsWith('seeded: ') ? stageResult.replace('seeded: ', '').split(',').filter(Boolean).length : 0
 
-    // Setup Sales Stages
-    for (const stageName of DEFAULT_SALES_STAGES) {
-      try {
-        const existing = await adminRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Sales Stage',
-          filters: { name: stageName },
-          limit_page_length: 1
-        }) as any[]
-
-        if (existing && existing.length > 0) {
-          console.log(`[CRM Setup] Sales Stage "${stageName}" already exists`)
-          results.salesStages.existing++
-          continue
-        }
-
-        await adminRequest('frappe.client.insert', 'POST', {
-          doc: {
-            doctype: 'Sales Stage',
-            stage_name: stageName
-          }
-        })
-        
-        console.log(`[CRM Setup] Created Sales Stage: ${stageName}`)
-        results.salesStages.created++
-      } catch (error: any) {
-        console.error(`[CRM Setup] Failed to create Sales Stage "${stageName}":`, error.message)
-        results.salesStages.failed++
-      }
-    }
-
-    console.log('[CRM Setup] Setup complete:', results)
+    console.log('[CRM Setup] Setup complete:', seedResult.result)
 
     return {
       success: true,
-      results
+      results: {
+        opportunityTypes: { created: oppCreated, existing: oppCreated === 0 ? 4 : 0, failed: 0 },
+        salesStages: { created: stageCreated, existing: stageCreated === 0 ? 7 : 0, failed: 0 },
+      }
     }
-
   } catch (error: any) {
     console.error('[CRM Setup] Error:', error)
     return {
@@ -130,6 +55,3 @@ export async function setupCrmMasterData(): Promise<SetupResult> {
     }
   }
 }
-
-
-

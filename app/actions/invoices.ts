@@ -739,119 +739,24 @@ export async function getItemGroups() {
 // Ensure required Item Groups exist in ERPNext
 export async function ensureItemGroups() {
   try {
-    // Resolve the current tenant's site so we can target it with master credentials.
-    // Item Group is a setup/provisioning operation — tenant users lack write access.
+    // Item Group writes require System Manager — which regular tenant users don't have.
+    // Delegate to the provisioning service which runs with ignore_permissions=True.
     const context = await getTenantContext()
-    const siteOverride = context.isTenant ? context.siteName : undefined
-
-    // Helper: run a request with master creds targeting the tenant site
-    const adminRequest = (
-      endpoint: string,
-      method: 'GET' | 'POST',
-      body: Record<string, unknown> | null = null
-    ) =>
-      frappeRequest(endpoint, method, body, {
-        useMasterCredentials: true,
-        siteOverride,
-      })
-
-    // Step 1: Resolve a valid root Item Group for this tenant.
-    let rootGroup = 'All Item Groups'
-    const allGroups = await adminRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Item Group',
-      fields: '["name", "item_group_name", "is_group", "parent_item_group"]',
-      limit_page_length: 500,
-      order_by: 'creation asc'
-    }) as Array<{
-      name: string
-      item_group_name?: string
-      is_group?: number
-      parent_item_group?: string
-    }>
-
-    const rootCandidate =
-      allGroups.find((g) => g.name === 'All Item Groups') ||
-      allGroups.find((g) => g.item_group_name === 'All Item Groups') ||
-      allGroups.find((g) => g.is_group === 1 && (!g.parent_item_group || g.parent_item_group === g.name)) ||
-      allGroups.find((g) => g.is_group === 1)
-
-    if (rootCandidate?.name) {
-      rootGroup = rootCandidate.name
-    } else {
-      // No root exists yet - create one and use returned doc name.
-      const createdRoot = await adminRequest('frappe.client.insert', 'POST', {
-        doc: {
-          doctype: 'Item Group',
-          item_group_name: 'All Item Groups',
-          is_group: 1
-        }
-      }) as { name?: string }
-      rootGroup = createdRoot?.name || 'All Item Groups'
+    if (!context.isTenant || !context.subdomain) {
+      return { success: true } // Not in a tenant context, skip
     }
 
-    const requiredGroups = [
-      { name: 'Heavy Equipment Rental', parent: rootGroup },
-      { name: 'Construction Services', parent: rootGroup },
-      { name: 'Consulting', parent: rootGroup }
-    ]
-
-    for (const group of requiredGroups) {
-      try {
-        // Use get_list instead of get to avoid 404 throws
-        const existing = await adminRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Item Group',
-          filters: `[["name", "=", "${group.name}"]]`,
-          fields: '["name"]',
-          limit_page_length: 1
-        }) as { name: string }[]
-
-        if (!existing || existing.length === 0) {
-          try {
-            await adminRequest('frappe.client.insert', 'POST', {
-              doc: {
-                doctype: 'Item Group',
-                item_group_name: group.name,
-                parent_item_group: group.parent,
-                is_group: 0
-              }
-            })
-          } catch (insertError: any) {
-            // Retry once with any available group parent if tenant root naming differs.
-            const errorMessage = String(insertError?.message || '')
-            if (errorMessage.includes('Could not find Parent Item Group')) {
-              const fallbackRoot = await adminRequest('frappe.client.get_list', 'GET', {
-                doctype: 'Item Group',
-                filters: '[["is_group", "=", 1]]',
-                fields: '["name"]',
-                limit_page_length: 1
-              }) as { name: string }[]
-
-              if (fallbackRoot?.[0]?.name) {
-                await adminRequest('frappe.client.insert', 'POST', {
-                  doc: {
-                    doctype: 'Item Group',
-                    item_group_name: group.name,
-                    parent_item_group: fallbackRoot[0].name,
-                    is_group: 0
-                  }
-                })
-              } else {
-                throw insertError
-              }
-            } else {
-              throw insertError
-            }
-          }
-        }
-      } catch (e: any) {
-      }
-    }
+    const { seedTenantDefaults } = await import('@/lib/provisioning-client')
+    await seedTenantDefaults(context.subdomain)
     return { success: true }
   } catch (error) {
+    // Non-fatal: if the provisioning service is unavailable, log and continue.
+    // The dropdown will show empty and the user can retry later.
     console.error('Failed to ensure item groups:', error)
     return { success: false }
   }
 }
+
 
 
 // Get item with stock and pricing info

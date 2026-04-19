@@ -168,7 +168,13 @@ export async function provisionTenantSite(req: ProvisionRequest): Promise<Provis
 export async function seedTenantDefaults(subdomain: string): Promise<{
   success: boolean
   site: string
-  result: { territory: string; customer_group: string }
+  result: {
+    territory: string
+    customer_group: string
+    item_groups: string
+    opportunity_types: string
+    sales_stages: string
+  }
 }> {
   return serviceRequest(
     `/api/v1/seed-defaults/${encodeURIComponent(subdomain)}`,
