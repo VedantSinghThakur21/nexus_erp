@@ -297,7 +297,7 @@ export function AppSidebar() {
       <div
         className={cn(
           'hidden h-screen shrink-0 border-r border-border/60 bg-card md:flex md:flex-col',
-          collapsed ? 'w-16' : 'w-[220px]'
+          collapsed ? 'w-[72px]' : 'w-[248px]'
         )}
       >
         <div className="flex h-14 items-center justify-between border-b border-border/60 px-3">

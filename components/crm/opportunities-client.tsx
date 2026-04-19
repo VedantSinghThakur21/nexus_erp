@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Grid, List as ListIcon, ArrowRight, TrendingUp, DollarSign, Zap, CheckCircle, AlertCircle, PauseCircle } from "lucide-react"
@@ -85,7 +85,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
   const paginatedOpportunities = filteredOpportunities.slice(startIndex, endIndex)
 
   // Reset to page 1 when filters change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, selectedStage])
 
@@ -161,11 +161,11 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
   }
 
   return (
-    <div className="app-shell">
+    <div className="min-w-0">
       {/* Header */}
       <PageHeader />
 
-      <main className="app-content mx-auto w-full max-w-[1600px]">
+      <main className="app-content w-full">
         {/* KPI Cards */}
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-5">
@@ -218,11 +218,11 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
         </div>
 
         {/* Tabs and Filters */}
-        <div className="flex items-center justify-between mb-6 border-b border-slate-200 dark:border-slate-800 pb-1">
-          <div className="flex space-x-10">
+        <div className="mb-6 flex flex-col gap-4 border-b border-border pb-3 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex gap-6 overflow-x-auto whitespace-nowrap">
             <button
               onClick={() => setSelectedStage("All Stages")}
-              className={`pb-4 text-[14px] font-bold ${selectedStage === "All Stages" ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"} transition-colors`}
+              className={`pb-3 text-sm font-semibold ${selectedStage === "All Stages" ? "border-b-2 border-blue-600 text-blue-600" : "text-muted-foreground hover:text-foreground"} transition-colors`}
             >
               All Stages
             </button>
@@ -230,17 +230,17 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
               <button
                 key={stage}
                 onClick={() => setSelectedStage(stage)}
-                className={`pb-4 text-[14px] font-semibold ${selectedStage === stage ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-800 dark:hover:text-white"} transition-colors`}
+                className={`pb-3 text-sm font-semibold ${selectedStage === stage ? "border-b-2 border-blue-600 text-blue-600" : "text-muted-foreground hover:text-foreground"} transition-colors`}
               >
                 {stage}
               </button>
             ))}
           </div>
-          <div className="flex items-center space-x-4 pb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+          <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+            <div className="relative min-w-[220px] flex-1 sm:flex-none">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="h-10 w-64 pl-10"
+                className="h-10 w-full pl-10 sm:w-64"
                 placeholder="Search deals..."
                 type="text"
                 value={searchQuery}
@@ -248,20 +248,20 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
               />
             </div>
             <Button variant="outline" className="h-10">
-              <Filter className="h-4 w-4 text-slate-500" />
+              <Filter className="h-4 w-4 text-muted-foreground" />
               <span>Filter</span>
             </Button>
-            <div className="flex bg-secondary rounded-lg p-1 border border-border h-10 items-center">
+            <div className="flex h-10 items-center rounded-lg border border-border bg-secondary p-1">
               <button
                 onClick={() => setViewMode("list")}
-                className={`flex items-center justify-center space-x-2 px-5 h-8 rounded-md ${viewMode === "list" ? "bg-card shadow-sm text-blue-600" : "text-muted-foreground hover:text-foreground"} text-sm font-bold transition-all`}
+                className={`flex h-8 items-center justify-center space-x-2 rounded-md px-4 ${viewMode === "list" ? "bg-card text-blue-600 shadow-sm" : "text-muted-foreground hover:text-foreground"} text-sm font-semibold transition-all`}
               >
                 <ListIcon className="h-4 w-4" />
                 <span>List</span>
               </button>
               <button
                 onClick={() => setViewMode("kanban")}
-                className={`flex items-center justify-center space-x-2 px-5 h-8 rounded-md ${viewMode === "kanban" ? "bg-card shadow-sm text-blue-600" : "text-muted-foreground hover:text-foreground"} text-sm font-medium transition-all`}
+                className={`flex h-8 items-center justify-center space-x-2 rounded-md px-4 ${viewMode === "kanban" ? "bg-card text-blue-600 shadow-sm" : "text-muted-foreground hover:text-foreground"} text-sm font-medium transition-all`}
               >
                 <Grid className="h-4 w-4" />
                 <span>Kanban</span>
@@ -271,21 +271,21 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
         </div>
 
         {/* Opportunities Table */}
-        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden mb-12">
-          <table className="w-full text-left border-collapse">
+        <div className="mb-12 overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+          <table className="w-full min-w-[980px] border-collapse text-left">
             <thead>
               <tr className="bg-muted/30 border-b border-border/60">
-                <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500 w-1/4">Deal Name</th>
-                <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Owner</th>
-                <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Stage & AI Status</th>
-                <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500 text-center">Status</th>
-                <th className="px-8 py-5 text-xs font-bold uppercase tracking-[0.1em] text-slate-500 text-right">Probability</th>
+                <th className="w-1/4 px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Deal Name</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Owner</th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Stage & AI Status</th>
+                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Status</th>
+                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Probability</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredOpportunities.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">
                     No opportunities found
                   </td>
                 </tr>
@@ -296,23 +296,23 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                   const AIStatusIcon = aiStatus.icon
 
                   return (
-                    <tr key={opp.name} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer" onClick={() => router.push(`/crm/opportunities/${opp.name}`)}>
-                      <td className="px-8 py-6">
-                        <p className="text-[16px] font-bold text-slate-900 dark:text-white mb-1">{opp.customer_name || opp.party_name}</p>
-                        <p className="text-[14px] text-slate-500 font-medium">{opp.opportunity_type}</p>
+                    <tr key={opp.name} className="cursor-pointer transition-colors hover:bg-muted/40" onClick={() => router.push(`/crm/opportunities/${opp.name}`)}>
+                      <td className="px-5 py-4">
+                        <p className="mb-1 text-[15px] font-semibold text-foreground">{opp.customer_name || opp.party_name}</p>
+                        <p className="text-sm font-medium text-muted-foreground">{opp.opportunity_type}</p>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-5 py-4">
                         <div className="flex items-center space-x-3">
-                          <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-white dark:ring-slate-800">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
                             {ownerInitials}
                           </div>
-                          <span className="text-[14px] font-medium text-slate-600 dark:text-slate-400">{ownerName}</span>
+                          <span className="text-sm font-medium text-muted-foreground">{ownerName}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-6" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center space-x-4">
                           <select
-                            className={`px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[11px] font-extrabold uppercase tracking-wide rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 transition-colors ${canEdit ? "cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700" : "cursor-not-allowed opacity-60"}`}
+                            className={`rounded-md border border-border bg-muted px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground transition-colors ${canEdit ? "cursor-pointer hover:bg-muted/80" : "cursor-not-allowed opacity-60"}`}
                             value={opp.sales_stage}
                             onChange={(e) => handleStageChange(opp.name, e.target.value)}
                             disabled={!canEdit}
@@ -327,21 +327,21 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
                           </span>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-center">
+                      <td className="px-5 py-4 text-center">
                         <span className="px-4 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase rounded-full tracking-widest">
                           {opp.status}
                         </span>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-5 py-4">
                         <div className="flex flex-col items-end">
                           <div className="flex items-center space-x-4">
-                            <div className="w-32 bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div className="h-2 w-28 overflow-hidden rounded-full bg-muted">
                               <div
                                 className={`h-full ${opp.probability >= 75 ? "bg-green-500" : opp.probability >= 40 ? "bg-blue-500" : "bg-orange-500"}`}
                                 style={{ width: `${opp.probability}%` }}
                               ></div>
                             </div>
-                            <span className="text-[16px] font-bold text-slate-700 dark:text-slate-300">{opp.probability}%</span>
+                            <span className="text-[15px] font-semibold text-foreground">{opp.probability}%</span>
                           </div>
                         </div>
                       </td>
@@ -354,9 +354,9 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-8 py-6 border-t border-slate-200 dark:border-slate-800">
-              <div className="text-sm text-slate-600 dark:text-slate-400">
-                Showing <span className="font-semibold text-slate-900 dark:text-white">{startIndex + 1}</span> to <span className="font-semibold text-slate-900 dark:text-white">{Math.min(endIndex, filteredOpportunities.length)}</span> of <span className="font-semibold text-slate-900 dark:text-white">{filteredOpportunities.length}</span> opportunities
+            <div className="flex items-center justify-between border-t border-border px-5 py-5">
+              <div className="text-sm text-muted-foreground">
+                Showing <span className="font-semibold text-foreground">{startIndex + 1}</span> to <span className="font-semibold text-foreground">{Math.min(endIndex, filteredOpportunities.length)}</span> of <span className="font-semibold text-foreground">{filteredOpportunities.length}</span> opportunities
               </div>
               <div className="flex items-center space-x-2">
                 <button
