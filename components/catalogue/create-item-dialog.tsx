@@ -28,6 +28,7 @@ export function CreateItemDialog() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState('')
+  const [manualGroup, setManualGroup] = useState('')
   const [itemGroups, setItemGroups] = useState<string[]>([])
   const [isStockItem, setIsStockItem] = useState('1')
   const [brands, setBrands] = useState<Brand[]>([])
@@ -79,14 +80,15 @@ export function CreateItemDialog() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!selectedGroup) {
-      alert("No Item Group found in this tenant. Please create one in ERPNext first.")
+    const resolvedGroup = selectedGroup || manualGroup
+    if (!resolvedGroup.trim()) {
+      alert("Item Group is required.")
       return
     }
     setLoading(true)
     
     const formData = new FormData(e.currentTarget)
-    formData.append('item_group', selectedGroup)
+    formData.append('item_group', resolvedGroup)
     formData.append('is_stock_item', isStockItem)
     if (selectedBrand) {
       formData.append('brand', selectedBrand)
@@ -157,21 +159,33 @@ export function CreateItemDialog() {
               {/* Item Group */}
               <div className="grid gap-2">
                 <Label htmlFor="item_group">Category *</Label>
-                <Select value={selectedGroup} onValueChange={setSelectedGroup} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {itemGroups.map(group => (
-                      <SelectItem key={group} value={group}>{group}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <input type="hidden" name="item_group" value={selectedGroup} />
-                {itemGroups.length === 0 && (
-                  <p className="text-xs text-destructive">
-                    No Item Group available in this tenant.
-                  </p>
+                {itemGroups.length > 0 ? (
+                  <>
+                    <Select value={selectedGroup} onValueChange={setSelectedGroup} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {itemGroups.map(group => (
+                          <SelectItem key={group} value={group}>{group}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <input type="hidden" name="item_group" value={selectedGroup} />
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      id="manual_item_group"
+                      value={manualGroup}
+                      onChange={(e) => setManualGroup(e.target.value)}
+                      placeholder="Enter existing Item Group name"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Could not load Item Groups due role permissions. Enter an existing Item Group manually.
+                    </p>
+                  </>
                 )}
               </div>
 
@@ -319,7 +333,7 @@ export function CreateItemDialog() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || itemGroups.length === 0}>
+            <Button type="submit" disabled={loading || (!selectedGroup && !manualGroup.trim())}>
               {loading ? "Creating..." : "Create Item"}
             </Button>
           </div>

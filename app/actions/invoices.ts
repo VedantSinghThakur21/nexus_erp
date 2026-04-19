@@ -92,44 +92,16 @@ export async function createBrand(brandName: string) {
 // CREATE/UPDATE ITEM
 export async function createItem(formData: FormData) {
   try {
-    await ensureItemGroups()
-
     const requestedGroup = (formData.get('item_group') as string) || ''
-    let finalItemGroup = requestedGroup
-    try {
-      const groupMatch = await frappeRequest('frappe.client.get_list', 'GET', {
-        doctype: 'Item Group',
-        filters: `[["name", "=", "${requestedGroup}"], ["is_group", "=", 0]]`,
-        fields: '["name"]',
-        limit_page_length: 1
-      }) as Array<{ name: string }>
-
-      if (!groupMatch?.length) {
-        const availableGroups = await frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Item Group',
-          filters: '[["is_group", "=", 0]]',
-          fields: '["name"]',
-          limit_page_length: 1,
-          order_by: 'name asc'
-        }) as Array<{ name: string }>
-
-        if (availableGroups?.[0]?.name) {
-          finalItemGroup = availableGroups[0].name
-        } else {
-          throw new Error('No leaf Item Group exists on this tenant site.')
-        }
-      }
-    } catch (groupResolveError) {
-      if (!finalItemGroup) {
-        throw groupResolveError
-      }
+    if (!requestedGroup.trim()) {
+      return { success: false, error: 'Item Group is required.' }
     }
 
     const itemData: any = {
       doctype: 'Item',
       item_code: formData.get('item_code') as string,
       item_name: formData.get('item_name') as string,
-      item_group: finalItemGroup,
+      item_group: requestedGroup,
       description: formData.get('description') as string,
       standard_rate: parseFloat(formData.get('standard_rate') as string),
       is_stock_item: formData.get('is_stock_item') === '1' ? 1 : 0,
@@ -157,7 +129,6 @@ export async function createItem(formData: FormData) {
         message.includes('Could not find UOM') ||
         message.includes('Could not find Item Group')
       ) {
-        await ensureItemGroups()
         const retriedItem = { ...itemData, stock_uom: 'Nos' }
         await frappeRequest('frappe.client.insert', 'POST', { doc: retriedItem })
       } else {
