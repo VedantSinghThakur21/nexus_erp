@@ -1019,7 +1019,7 @@ result["uoms"] = f"seeded: {created_uoms}" if created_uoms else "all exist"
 
 # Fix DocPerms for dropdowns so standard users can read them
 docperms_fixed = []
-read_doctypes = ["Item Group", "Brand", "Opportunity Type", "Sales Stage", "Designation"]
+read_doctypes = ["Item Group", "Brand", "Opportunity Type", "Sales Stage", "Designation", "UOM", "Manufacturer"]
 for dt in read_doctypes:
     if not frappe.db.exists("DocPerm", {"parent": dt, "role": "All", "permlevel": 0}):
         try:
