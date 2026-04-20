@@ -238,7 +238,7 @@ export async function generateUserApiKeys(
   userEmail: string,
   timeout = 30_000,
 ): Promise<{ success: boolean; api_key: string; api_secret: string }> {
-  return serviceRequest(
+  const response = await serviceRequest<Record<string, unknown>>(
     `/api/v1/generate-user-keys/${encodeURIComponent(subdomain)}`,
     {
       method: 'POST',
@@ -246,6 +246,42 @@ export async function generateUserApiKeys(
       timeout,
     },
   )
+
+  // Backward/forward compatible response extraction:
+  // - { api_key, api_secret }
+  // - { success, api_key, api_secret }
+  // - { message: { api_key, api_secret } }
+  // - { data: { api_key, api_secret } }
+  // - camelCase variants from older gateways
+  const nested =
+    (typeof response.message === 'object' && response.message !== null ? response.message : null) ||
+    (typeof response.data === 'object' && response.data !== null ? response.data : null) ||
+    (typeof response.result === 'object' && response.result !== null ? response.result : null)
+
+  const pick = (obj: Record<string, unknown> | null | undefined, snake: string, camel: string): string | null => {
+    if (!obj) return null
+    const snakeVal = obj[snake]
+    if (typeof snakeVal === 'string' && snakeVal.trim()) return snakeVal
+    const camelVal = obj[camel]
+    if (typeof camelVal === 'string' && camelVal.trim()) return camelVal
+    return null
+  }
+
+  const top = response as Record<string, unknown>
+  const apiKey = pick(top, 'api_key', 'apiKey') || pick(nested as Record<string, unknown> | null, 'api_key', 'apiKey')
+  const apiSecret =
+    pick(top, 'api_secret', 'apiSecret') || pick(nested as Record<string, unknown> | null, 'api_secret', 'apiSecret')
+
+  if (!apiKey || !apiSecret) {
+    const detail =
+      (typeof top.detail === 'string' && top.detail) ||
+      (typeof top.error === 'string' && top.error) ||
+      (typeof top.message === 'string' && top.message) ||
+      'Provisioning response missing api_key/api_secret'
+    throw new ProvisioningError(detail, 502, response)
+  }
+
+  return { success: true, api_key: apiKey, api_secret: apiSecret }
 }
 
 /**

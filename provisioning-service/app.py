@@ -1182,8 +1182,21 @@ try:
     frappe.db.commit()
     print(json.dumps({{"api_key": api_key, "api_secret": api_secret_val}}))
 except Exception as exc:
-    print(json.dumps({{"error": str(exc)}}))
+    print(json.dumps({"error": str(exc)}))
 """
+
+    try:
+        output = run_frappe_code(site_name, gen_code)
+        result = _parse_json_output(output)
+        if result.get("error"):
+            raise HTTPException(status_code=404, detail=f"Could not generate keys: {result['error']}")
+        logger.info(f"generate-user-keys: keys generated for {user_email} on {site_name}")
+        return {"success": True, "api_key": result["api_key"], "api_secret": result["api_secret"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"generate-user-keys failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/v1/create-item/{subdomain}")
