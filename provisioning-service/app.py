@@ -692,6 +692,72 @@ print(json.dumps({{"updated": updated, "count": len(updated)}}))
     except Exception as e:
         return ProvisionResponse(success=False, site_name=site_name, subdomain=subdomain, error=f"DocPerm setup failed: {e}", steps_completed=steps_completed)
 
+    # Step 6b: seed required Custom Fields (rental fields on line items)
+    # This prevents Frappe from silently dropping the app's custom_* payload on insert/save.
+    try:
+        seed_cf_code = """import json
+
+result = {"created": [], "skipped": [], "errors": []}
+TARGET_DOCTYPES = ["Quotation Item", "Sales Order Item", "Sales Invoice Item"]
+FIELD_SPECS = [
+  {"fieldname": "custom_is_rental", "label": "Is Rental", "fieldtype": "Check", "insert_after": "description"},
+  {"fieldname": "custom_rental_type", "label": "Rental Type", "fieldtype": "Select", "options": "Hours\\nDays\\nMonths", "insert_after": "custom_is_rental"},
+  {"fieldname": "custom_rental_duration", "label": "Rental Duration", "fieldtype": "Int", "insert_after": "custom_rental_type"},
+  {"fieldname": "custom_rental_start_date", "label": "Rental Start Date", "fieldtype": "Date", "insert_after": "custom_rental_duration"},
+  {"fieldname": "custom_rental_end_date", "label": "Rental End Date", "fieldtype": "Date", "insert_after": "custom_rental_start_date"},
+  {"fieldname": "custom_rental_start_time", "label": "Rental Start Time", "fieldtype": "Time", "insert_after": "custom_rental_end_date"},
+  {"fieldname": "custom_rental_end_time", "label": "Rental End Time", "fieldtype": "Time", "insert_after": "custom_rental_start_time"},
+  {"fieldname": "custom_requires_operator", "label": "Requires Operator", "fieldtype": "Check", "insert_after": "custom_rental_end_time"},
+  {"fieldname": "custom_operator_included", "label": "Operator Included", "fieldtype": "Check", "insert_after": "custom_requires_operator"},
+  {"fieldname": "custom_operator_name", "label": "Operator Name", "fieldtype": "Data", "insert_after": "custom_operator_included"},
+  {"fieldname": "custom_base_rental_cost", "label": "Base Rental Cost", "fieldtype": "Currency", "insert_after": "custom_operator_name"},
+  {"fieldname": "custom_accommodation_charges", "label": "Accommodation Charges", "fieldtype": "Currency", "insert_after": "custom_base_rental_cost"},
+  {"fieldname": "custom_usage_charges", "label": "Usage Charges", "fieldtype": "Currency", "insert_after": "custom_accommodation_charges"},
+  {"fieldname": "custom_fuel_charges", "label": "Fuel Charges", "fieldtype": "Currency", "insert_after": "custom_usage_charges"},
+  {"fieldname": "custom_elongation_charges", "label": "Elongation Charges", "fieldtype": "Currency", "insert_after": "custom_fuel_charges"},
+  {"fieldname": "custom_risk_charges", "label": "Risk Charges", "fieldtype": "Currency", "insert_after": "custom_elongation_charges"},
+  {"fieldname": "custom_commercial_charges", "label": "Commercial Charges", "fieldtype": "Currency", "insert_after": "custom_risk_charges"},
+  {"fieldname": "custom_incidental_charges", "label": "Incidental Charges", "fieldtype": "Currency", "insert_after": "custom_commercial_charges"},
+  {"fieldname": "custom_other_charges", "label": "Other Charges", "fieldtype": "Currency", "insert_after": "custom_incidental_charges"},
+  {"fieldname": "custom_total_rental_cost", "label": "Total Rental Cost", "fieldtype": "Currency", "insert_after": "custom_other_charges"},
+  {"fieldname": "custom_rental_data", "label": "Rental Data", "fieldtype": "Long Text", "insert_after": "custom_total_rental_cost"},
+]
+
+def upsert(dt: str, spec: dict):
+    try:
+        if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": spec["fieldname"]}):
+            result["skipped"].append(f"{dt}:{spec['fieldname']}")
+            return
+        doc = frappe.get_doc({
+            "doctype": "Custom Field",
+            "dt": dt,
+            "fieldname": spec["fieldname"],
+            "label": spec.get("label") or spec["fieldname"],
+            "fieldtype": spec.get("fieldtype") or "Data",
+            "insert_after": spec.get("insert_after") or "description",
+            "options": spec.get("options") or None,
+        })
+        doc.insert(ignore_permissions=True)
+        result["created"].append(f"{dt}:{spec['fieldname']}")
+    except Exception as exc:
+        result["errors"].append(f"{dt}:{spec.get('fieldname')}: {exc}")
+
+for dt in TARGET_DOCTYPES:
+    for spec in FIELD_SPECS:
+        upsert(dt, spec)
+
+frappe.db.commit()
+print(json.dumps(result))
+"""
+        cf_result = _parse_json_output(run_frappe_code(site_name, seed_cf_code))
+        steps_completed.append("custom_fields_seeded")
+        if cf_result.get("errors"):
+            logger.warning(f"custom field seed errors for {site_name}: {cf_result.get('errors')}")
+    except Exception as e:
+        # Non-fatal: the explicit endpoint can be called later, and the app will self-heal on login.
+        logger.warning(f"Custom field seeding failed (non-fatal) for {site_name}: {e}")
+        steps_completed.append("custom_fields_seed_failed")
+
     # Step 7: generate API key for tenant admin
     try:
         owner_key_code = f"""
@@ -1107,6 +1173,102 @@ print(json.dumps(result))
         return {"success": True, "site": site_name, "result": seed_result}
     except Exception as e:
         logger.error(f"seed-defaults failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/seed-custom-fields/{subdomain}")
+async def seed_tenant_custom_fields(subdomain: str, _auth: bool = Depends(verify_api_secret)):
+    """
+    Ensure required Custom Fields exist on tenant DocTypes (idempotent).
+    This is the production-safe way to guarantee the web app's custom_* fields
+    are actually persisted (Frappe silently drops unknown fields on insert/save).
+    """
+    import re
+
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    site_name = get_site_name(subdomain)
+
+    custom_fields_code = """import json
+
+result = {"created": [], "skipped": [], "errors": []}
+
+# Rental fields used by Nexus ERP frontend.
+# These MUST exist on the tenant site or rental data will be dropped on insert.
+TARGET_DOCTYPES = ["Quotation Item", "Sales Order Item", "Sales Invoice Item"]
+
+FIELD_SPECS = [
+  # Rental flags + schedule
+  {"fieldname": "custom_is_rental", "label": "Is Rental", "fieldtype": "Check", "insert_after": "description"},
+  {"fieldname": "custom_rental_type", "label": "Rental Type", "fieldtype": "Select", "options": "Hours\\nDays\\nMonths", "insert_after": "custom_is_rental"},
+  {"fieldname": "custom_rental_duration", "label": "Rental Duration", "fieldtype": "Int", "insert_after": "custom_rental_type"},
+  {"fieldname": "custom_rental_start_date", "label": "Rental Start Date", "fieldtype": "Date", "insert_after": "custom_rental_duration"},
+  {"fieldname": "custom_rental_end_date", "label": "Rental End Date", "fieldtype": "Date", "insert_after": "custom_rental_start_date"},
+  {"fieldname": "custom_rental_start_time", "label": "Rental Start Time", "fieldtype": "Time", "insert_after": "custom_rental_end_date"},
+  {"fieldname": "custom_rental_end_time", "label": "Rental End Time", "fieldtype": "Time", "insert_after": "custom_rental_start_time"},
+
+  # Operator
+  {"fieldname": "custom_requires_operator", "label": "Requires Operator", "fieldtype": "Check", "insert_after": "custom_rental_end_time"},
+  {"fieldname": "custom_operator_included", "label": "Operator Included", "fieldtype": "Check", "insert_after": "custom_requires_operator"},
+  {"fieldname": "custom_operator_name", "label": "Operator Name", "fieldtype": "Data", "insert_after": "custom_operator_included"},
+
+  # Pricing components (Currency so ERPNext formats correctly)
+  {"fieldname": "custom_base_rental_cost", "label": "Base Rental Cost", "fieldtype": "Currency", "insert_after": "custom_operator_name"},
+  {"fieldname": "custom_accommodation_charges", "label": "Accommodation Charges", "fieldtype": "Currency", "insert_after": "custom_base_rental_cost"},
+  {"fieldname": "custom_usage_charges", "label": "Usage Charges", "fieldtype": "Currency", "insert_after": "custom_accommodation_charges"},
+  {"fieldname": "custom_fuel_charges", "label": "Fuel Charges", "fieldtype": "Currency", "insert_after": "custom_usage_charges"},
+  {"fieldname": "custom_elongation_charges", "label": "Elongation Charges", "fieldtype": "Currency", "insert_after": "custom_fuel_charges"},
+  {"fieldname": "custom_risk_charges", "label": "Risk Charges", "fieldtype": "Currency", "insert_after": "custom_elongation_charges"},
+  {"fieldname": "custom_commercial_charges", "label": "Commercial Charges", "fieldtype": "Currency", "insert_after": "custom_risk_charges"},
+  {"fieldname": "custom_incidental_charges", "label": "Incidental Charges", "fieldtype": "Currency", "insert_after": "custom_commercial_charges"},
+  {"fieldname": "custom_other_charges", "label": "Other Charges", "fieldtype": "Currency", "insert_after": "custom_incidental_charges"},
+  {"fieldname": "custom_total_rental_cost", "label": "Total Rental Cost", "fieldtype": "Currency", "insert_after": "custom_other_charges"},
+
+  # Debug/support payload (JSON string)
+  {"fieldname": "custom_rental_data", "label": "Rental Data", "fieldtype": "Long Text", "insert_after": "custom_total_rental_cost"},
+]
+
+def upsert_custom_field(dt: str, spec: dict):
+    try:
+        existing = frappe.db.exists("Custom Field", {"dt": dt, "fieldname": spec["fieldname"]})
+        if existing:
+            result["skipped"].append(f"{dt}:{spec['fieldname']}")
+            return
+
+        doc = frappe.get_doc({
+            "doctype": "Custom Field",
+            "dt": dt,
+            "fieldname": spec["fieldname"],
+            "label": spec.get("label") or spec["fieldname"],
+            "fieldtype": spec.get("fieldtype") or "Data",
+            "insert_after": spec.get("insert_after") or "description",
+            "options": spec.get("options") or None,
+            "reqd": 0,
+            "read_only": 0,
+            "no_copy": 0,
+            "print_hide": 0,
+        })
+        doc.insert(ignore_permissions=True)
+        result["created"].append(f"{dt}:{spec['fieldname']}")
+    except Exception as exc:
+        result["errors"].append(f"{dt}:{spec.get('fieldname')}: {exc}")
+
+for dt in TARGET_DOCTYPES:
+    for spec in FIELD_SPECS:
+        upsert_custom_field(dt, spec)
+
+frappe.db.commit()
+print(json.dumps(result))
+"""
+
+    try:
+        output = run_frappe_code(site_name, custom_fields_code)
+        parsed = _parse_json_output(output)
+        logger.info(f"seed-custom-fields for {site_name}: {parsed}")
+        return {"success": True, "site": site_name, "result": parsed}
+    except Exception as e:
+        logger.error(f"seed-custom-fields failed for {site_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -511,7 +511,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         // will still be set and the next login won't retry for 30 days —
         // but the `createQuotation` self-heal path will pick up any
         // remaining gap lazily.
-        const BOOTSTRAP_VERSION = 'v2'
+        const BOOTSTRAP_VERSION = 'v3'
         const bootstrapMarker = `${BOOTSTRAP_VERSION}:${tenant.subdomain}`
         const alreadyBootstrapped = cookieStore.get('tenant_bootstrap_complete')?.value === bootstrapMarker
 
@@ -528,14 +528,24 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           // Fire-and-forget: don't block login on bootstrap
           void (async () => {
             try {
-              const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
-              const bootstrap = await ensureSellingPriceList(tenant.subdomain, 'INR')
-              if (bootstrap.priceList && !bootstrap.error) {
+              const { ensureSellingPriceList, ensureTenantCustomFields } = await import('@/lib/tenant-bootstrap')
+              const [priceListRes, customFieldsRes] = await Promise.all([
+                ensureSellingPriceList(tenant.subdomain, 'INR'),
+                ensureTenantCustomFields(tenant.subdomain),
+              ])
+
+              if (priceListRes.priceList && !priceListRes.error) {
                 console.log(
-                  `[login-bootstrap] ${tenant.subdomain}: priceList=${bootstrap.priceList} created=${bootstrap.created} setDefault=${bootstrap.setAsDefault}`,
+                  `[login-bootstrap] ${tenant.subdomain}: priceList=${priceListRes.priceList} created=${priceListRes.created} setDefault=${priceListRes.setAsDefault}`,
                 )
-              } else if (bootstrap.error) {
-                console.warn(`[login-bootstrap] ${tenant.subdomain}: partial — ${bootstrap.error}`)
+              } else if (priceListRes.error) {
+                console.warn(`[login-bootstrap] ${tenant.subdomain}: priceList bootstrap partial — ${priceListRes.error}`)
+              }
+
+              if (customFieldsRes.error) {
+                console.warn(
+                  `[login-bootstrap] ${tenant.subdomain}: custom fields bootstrap partial — ${customFieldsRes.error}`,
+                )
               }
             } catch (bootErr: any) {
               console.warn(

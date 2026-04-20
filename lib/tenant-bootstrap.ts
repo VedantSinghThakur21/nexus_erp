@@ -29,6 +29,14 @@ export interface EnsurePriceListResult {
   raw?: Record<string, unknown>
 }
 
+export interface EnsureCustomFieldsResult {
+  created: string[]
+  skipped: string[]
+  errors: string[]
+  error?: string
+  raw?: Record<string, unknown>
+}
+
 const DEFAULT_PRICE_LIST_NAME = 'Standard Selling'
 
 /**
@@ -78,6 +86,36 @@ export async function ensureSellingPriceList(
     }
   } catch (e: any) {
     result.error = `provisioning seed-defaults failed: ${e?.message || e}`
+  }
+
+  return result
+}
+
+/**
+ * Ensure required tenant Custom Fields exist (idempotent).
+ *
+ * Authoritative path is provisioning-service `/api/v1/seed-custom-fields/:subdomain`,
+ * executed inside the tenant bench with ignore_permissions=True.
+ */
+export async function ensureTenantCustomFields(subdomain: string): Promise<EnsureCustomFieldsResult> {
+  const result: EnsureCustomFieldsResult = {
+    created: [],
+    skipped: [],
+    errors: [],
+  }
+
+  try {
+    const { seedTenantCustomFields } = await import('@/lib/provisioning-client')
+    const resp = await seedTenantCustomFields(subdomain)
+    result.raw = resp?.result as unknown as Record<string, unknown>
+    result.created = Array.isArray(resp?.result?.created) ? resp.result.created : []
+    result.skipped = Array.isArray(resp?.result?.skipped) ? resp.result.skipped : []
+    result.errors = Array.isArray(resp?.result?.errors) ? resp.result.errors : []
+    if (result.errors.length > 0) {
+      result.error = `custom field seed returned errors (${result.errors.length})`
+    }
+  } catch (e: any) {
+    result.error = `provisioning seed-custom-fields failed: ${e?.message || e}`
   }
 
   return result

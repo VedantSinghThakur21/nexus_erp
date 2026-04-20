@@ -219,6 +219,25 @@ export async function seedTenantDefaults(subdomain: string): Promise<{
 }
 
 /**
+ * Seed/ensure required Custom Fields exist on tenant DocTypes (idempotent).
+ * This prevents Frappe from dropping unknown custom_* fields on insert/save.
+ */
+export async function seedTenantCustomFields(subdomain: string): Promise<{
+  success: boolean
+  site: string
+  result: {
+    created: string[]
+    skipped: string[]
+    errors: string[]
+  }
+}> {
+  return serviceRequest(
+    `/api/v1/seed-custom-fields/${encodeURIComponent(subdomain)}`,
+    { method: 'POST', timeout: 60_000 },
+  )
+}
+
+/**
  * Fetch tenant-specific catalogue defaults from ERPNext via ignore_permissions.
  * Returns resolved values that are safe to use for Item creation links.
  */
