@@ -262,17 +262,22 @@ export async function createSalesOrder(data: any) {
 
     // Process items to preserve rental data if present
     const processedItems = (data.items || []).map((item: any) => {
+      const discountPct = Number(item.discount_percentage ?? 0) || 0
+      const inputRate = Number(item.rate ?? 0) || 0
       const baseItem: any = {
         item_code: item.item_code,
         item_name: item.item_name,
         description: item.description,
         qty: item.qty,
         uom: item.uom || 'Nos',
-        rate: item.rate,
-        // Persist line-item discount. Without this ERPNext will save 0% and the UI
-        // appears to "lose" the discount after reload.
-        discount_percentage: item.discount_percentage ?? 0,
-        amount: item.amount,
+        // ERPNext pricing model:
+        // - price_list_rate: original/base rate
+        // - discount_percentage: discount applied on price_list_rate
+        // - rate/amount are recomputed server-side
+        price_list_rate: inputRate,
+        discount_percentage: discountPct,
+        // Keep rate populated to avoid ERPNext validations on some configs.
+        rate: inputRate,
         delivery_date: item.delivery_date || data.delivery_date
       }
       // Include warehouse — use form value or default

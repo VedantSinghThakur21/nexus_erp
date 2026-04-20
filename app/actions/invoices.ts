@@ -700,6 +700,8 @@ export async function createInvoice(data: any) {
       description: item.description,
       qty: parseFloat(item.qty),
       rate: parseFloat(item.rate),
+      // Carry forward discounts so invoice matches SO/Quotation line pricing.
+      discount_percentage: Number(item.discount_percentage ?? 0) || 0,
       gst_hsn_code: item.hsn_sac,
       uom: item.uom || "Nos"
     }
