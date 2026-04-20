@@ -40,6 +40,39 @@ function parseErrorMessage(data: Record<string, unknown>, status: number): strin
   return `Frappe request failed with status ${status}`
 }
 
+async function doFrappeRequest<T>(
+  url: URL,
+  method: FrappeMethod,
+  payload: Record<string, unknown> | undefined,
+  siteName: string,
+  authHeader?: string,
+  sid?: string
+): Promise<{ response: Response; data: FrappeEnvelope<T> & Record<string, unknown> }> {
+  const requestHeaders: Record<string, string> = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'X-Frappe-Site-Name': siteName,
+  }
+
+  if (authHeader) {
+    requestHeaders['Authorization'] = authHeader
+  }
+
+  if (sid) {
+    requestHeaders['Cookie'] = `sid=${sid}`
+  }
+
+  const response = await fetch(url.toString(), {
+    method,
+    headers: requestHeaders,
+    body: method === 'POST' ? JSON.stringify(payload || {}) : undefined,
+    cache: 'no-store',
+  })
+
+  const data = (await response.json().catch(() => ({}))) as FrappeEnvelope<T> & Record<string, unknown>
+  return { response, data }
+}
+
 export async function serverFrappeCall<T = unknown>(
   endpoint: string,
   method: FrappeMethod,
@@ -55,6 +88,7 @@ export async function serverFrappeCall<T = unknown>(
 
   const tenantApiKey = cookieStore.get('tenant_api_key')?.value
   const tenantApiSecret = cookieStore.get('tenant_api_secret')?.value
+  const sid = cookieStore.get('sid')?.value
   const masterApiKey = process.env.ERP_API_KEY
   const masterApiSecret = process.env.ERP_API_SECRET
 
@@ -62,7 +96,7 @@ export async function serverFrappeCall<T = unknown>(
     ? `token ${tenantApiKey}:${tenantApiSecret}`
     : masterApiKey && masterApiSecret
       ? `token ${masterApiKey}:${masterApiSecret}`
-      : ''
+      : undefined
 
   const url = new URL(`${baseUrl}/api/method/${endpoint}`)
 
@@ -73,19 +107,15 @@ export async function serverFrappeCall<T = unknown>(
     }
   }
 
-  const response = await fetch(url.toString(), {
-    method,
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': authHeader,
-      'X-Frappe-Site-Name': siteName,
-    },
-    body: method === 'POST' ? JSON.stringify(payload || {}) : undefined,
-    cache: 'no-store',
-  })
+  let { response, data } = await doFrappeRequest<T>(url, method, payload, siteName, authHeader, sid)
 
-  const data = (await response.json().catch(() => ({}))) as FrappeEnvelope<T> & Record<string, unknown>
+  // Tenant tokens can be stale or scoped too narrowly for some doctypes.
+  // Retry once with pure session auth before failing.
+  if (!response.ok && (response.status === 401 || response.status === 403) && authHeader && sid) {
+    const fallback = await doFrappeRequest<T>(url, method, payload, siteName, undefined, sid)
+    response = fallback.response
+    data = fallback.data
+  }
 
   if (!response.ok) {
     throw new ServerFrappeError(response.status, parseErrorMessage(data, response.status), data)
@@ -107,5 +137,23 @@ export function isMissingAgentActionLogError(error: unknown): boolean {
       error.message.includes('DocType Agent Action Log not found') ||
       serverMessages.includes('DocType Agent Action Log not found')
     )
+  )
+}
+
+export function isAgentActionLogUnavailableError(error: unknown): boolean {
+  if (isMissingAgentActionLogError(error)) return true
+  if (!(error instanceof ServerFrappeError)) return false
+
+  const message = String(error.message || '')
+  const serverMessages = typeof error.data._server_messages === 'string'
+    ? error.data._server_messages
+    : ''
+  const excType = String(error.data.exc_type || '')
+
+  // Tenant may not have this DocType permission yet even when module is visible.
+  return (
+    error.status === 403 &&
+    (excType.includes('PermissionError') || message.includes('PermissionError') || serverMessages.includes('PermissionError')) &&
+    (message.includes('Agent Action Log') || serverMessages.includes('Agent Action Log'))
   )
 }

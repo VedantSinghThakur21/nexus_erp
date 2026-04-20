@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireModuleAccess } from '@/app/api/_lib/auth'
 import { executeAgentTool } from '@/lib/agent/tools'
 import type { AgentToolName } from '@/lib/agent/types'
-import { isMissingAgentActionLogError, serverFrappeCall } from '@/lib/agent/server-frappe'
+import { isAgentActionLogUnavailableError, serverFrappeCall } from '@/lib/agent/server-frappe'
 
 type AgentLogDoc = {
   name: string
@@ -90,9 +90,9 @@ export async function POST(
 
     return NextResponse.json({ success: true, status: toolResult.ok ? 'executed' : 'failed', toolResult })
   } catch (error) {
-    if (isMissingAgentActionLogError(error)) {
+    if (isAgentActionLogUnavailableError(error)) {
       return NextResponse.json(
-        { error: 'Agent Action Log DocType is not installed for this tenant.' },
+        { error: 'Agent inbox is unavailable on this tenant (DocType missing or permission not granted).' },
         { status: 409 }
       )
     }

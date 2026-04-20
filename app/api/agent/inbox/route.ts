@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireModuleAccess } from '@/app/api/_lib/auth'
-import { isMissingAgentActionLogError, serverFrappeCall } from '@/lib/agent/server-frappe'
+import { isAgentActionLogUnavailableError, serverFrappeCall } from '@/lib/agent/server-frappe'
 
 type AgentLogRow = {
   name: string
@@ -36,11 +36,11 @@ export async function GET(request: Request) {
       total: rows.length,
     })
   } catch (error) {
-    if (isMissingAgentActionLogError(error)) {
+    if (isAgentActionLogUnavailableError(error)) {
       return NextResponse.json({
         items: [],
         total: 0,
-        warning: 'Agent Action Log DocType is not installed on this tenant yet.',
+        warning: 'Agent inbox is unavailable on this tenant (DocType missing or permission not granted).',
       })
     }
 
