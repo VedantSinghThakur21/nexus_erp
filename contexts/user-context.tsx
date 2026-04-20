@@ -22,7 +22,8 @@ import {
 // ── Cache constants ──────────────────────────────────────────────────────────
 const CACHE_KEY = 'nexus_user_roles_cache'
 const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
-const FETCH_TIMEOUT_MS = 8_000 // 8 s — give up and render with [] rather than blocking forever
+const FETCH_TIMEOUT_MS = 8_000 // first attempt
+const FETCH_RETRY_TIMEOUT_MS = 30_000 // second attempt — provisioning / Frappe sometimes cold-starts slowly
 const PUBLIC_PATH_PREFIXES = [
   '/login',
   '/signup',
@@ -90,23 +91,25 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | null>(null)
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  // Initialise from cache immediately so the first render can already have roles.
+  // Hydrate from cache only when we have a non-empty role list. A cached `[]`
+  // often comes from a timed-out fetch (previously written) and must not skip
+  // a fresh network round-trip.
   const [roles, setRoles] = useState<string[]>(() => {
     if (typeof window === 'undefined') return []
-    return readCache() ?? []
+    const cached = readCache()
+    return cached && cached.length > 0 ? cached : []
   })
   const [loading, setLoading] = useState(() => {
-    // If we had a cache hit, we're not "loading" — skip the spinner.
     if (typeof window === 'undefined') return true
-    return readCache() === null
+    const cached = readCache()
+    return cached === null || cached.length === 0
   })
   const [error, setError] = useState<string | null>(null)
 
   const fetchRoles = useCallback(async (force = false) => {
-    // Return cached version unless caller explicitly bypasses the cache.
     if (!force) {
       const cached = readCache()
-      if (cached !== null) {
+      if (cached !== null && cached.length > 0) {
         setRoles(cached)
         setLoading(false)
         return
@@ -117,41 +120,59 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       setError(null)
 
-      // Enforce a hard timeout so a slow/unreachable backend doesn't block the UI.
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+      const fetchOnce = async (timeoutMs: number): Promise<{ roles?: string[] }> => {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), timeoutMs)
+        try {
+          const response = await fetch('/api/user/roles', {
+            signal: controller.signal,
+            credentials: 'include',
+            cache: 'no-store',
+          })
+          clearTimeout(timer)
+
+          if (!response.ok) {
+            throw new Error(`Roles API returned ${response.status}`)
+          }
+
+          return (await response.json()) as { roles?: string[] }
+        } catch (e: any) {
+          clearTimeout(timer)
+          throw e
+        }
+      }
 
       let data: { roles?: string[] } = {}
       try {
-        const response = await fetch('/api/user/roles', {
-          signal: controller.signal,
-          credentials: 'include',
-          // Prevent the browser from serving a stale cached response
-          cache: 'no-store',
-        })
-        clearTimeout(timer)
-
-        if (!response.ok) {
-          throw new Error(`Roles API returned ${response.status}`)
-        }
-
-        data = await response.json()
-      } catch (fetchErr: any) {
-        clearTimeout(timer)
-        if (fetchErr.name === 'AbortError') {
-          console.warn('[UserContext] Role fetch timed out — using empty roles to allow UI render')
+        data = await fetchOnce(FETCH_TIMEOUT_MS)
+      } catch (firstErr: any) {
+        if (firstErr?.name === 'AbortError') {
+          console.warn('[UserContext] Role fetch timed out — retrying with a longer deadline')
+          try {
+            data = await fetchOnce(FETCH_RETRY_TIMEOUT_MS)
+          } catch (retryErr: any) {
+            console.warn('[UserContext] Role fetch retry failed:', retryErr?.message || retryErr)
+            setRoles([])
+            clearCache()
+            return
+          }
         } else {
-          throw fetchErr
+          throw firstErr
         }
       }
 
       const fetchedRoles = data.roles || []
       setRoles(fetchedRoles)
-      writeCache(fetchedRoles)
+      if (fetchedRoles.length > 0) {
+        writeCache(fetchedRoles)
+      } else {
+        clearCache()
+      }
     } catch (err: any) {
       console.error('[UserContext] Failed to fetch roles:', err)
       setError(err.message)
       setRoles([])
+      clearCache()
     } finally {
       setLoading(false)
     }

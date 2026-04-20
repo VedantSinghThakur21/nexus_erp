@@ -109,7 +109,7 @@ function SidebarNav({
   onNavigate?: () => void
 }) {
   const pathname = usePathname()
-  const { roles, loading } = useUser()
+  const { roles, loading, error, refreshRoles } = useUser()
   const [pendingAgentActions, setPendingAgentActions] = useState<number>(0)
 
   useEffect(() => {
@@ -145,18 +145,45 @@ function SidebarNav({
   }, [loading, roles])
 
   const filteredNavigationConfig = useMemo(() => {
-    if (loading) return []
     return navigationConfig
       .map((section) => ({
         ...section,
         items: section.items.filter((item) => canAccessModule(item.module, roles)),
       }))
       .filter((section) => section.items.length > 0)
-  }, [loading, roles])
+  }, [roles])
 
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4">
-      {filteredNavigationConfig.map((section) => (
+      {loading && (
+        <div className="space-y-3 px-2" aria-busy="true" aria-label="Loading navigation">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="h-9 animate-pulse rounded-lg bg-muted/80"
+            />
+          ))}
+        </div>
+      )}
+      {!loading && filteredNavigationConfig.length === 0 && (
+        <div className="space-y-3 px-2">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {error
+              ? 'Could not load your menu permissions. You can try again.'
+              : 'No navigation items match your current roles.'}
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            onClick={() => void refreshRoles()}
+          >
+            Reload menu
+          </Button>
+        </div>
+      )}
+      {!loading && filteredNavigationConfig.map((section) => (
         <div key={section.category} className="mb-5">
           {!collapsed && (
             <p className="mb-2 px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">

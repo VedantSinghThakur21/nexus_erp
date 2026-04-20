@@ -5,6 +5,11 @@
  * Integrates with Frappe's permission system for granular access control.
  */
 
+/** Frappe site users may have `Administrator` (site admin) without `System Manager` in the mapped role list. */
+function isErpSuperUser(userRoles: string[]): boolean {
+  return userRoles.some((r) => r === 'System Manager' || r === 'Administrator')
+}
+
 export const MODULE_PERMISSIONS: Record<string, string[]> = {
   dashboard: [
     'System Manager',
@@ -87,8 +92,7 @@ export const MODULE_PERMISSIONS: Record<string, string[]> = {
  * Check if user has access to a specific module
  */
 export function canAccessModule(module: string, userRoles: string[]): boolean {
-  // System Manager has access to everything
-  if (userRoles.includes('System Manager')) {
+  if (isErpSuperUser(userRoles)) {
     return true
   }
 
@@ -122,8 +126,7 @@ export function getPermissionLevel(
     return 'none'
   }
 
-  // System Manager always has full access
-  if (userRoles.includes('System Manager')) {
+  if (isErpSuperUser(userRoles)) {
     return 'full'
   }
 
@@ -152,6 +155,7 @@ export function getPermissionLevel(
  * Role display names for UI
  */
 export const ROLE_DISPLAY_NAMES: Record<string, string> = {
+  Administrator: 'Administrator',
   'System Manager': 'Admin',
   'Sales Manager': 'Sales Manager',
   'Sales User': 'Sales',
@@ -170,6 +174,7 @@ export const ROLE_DISPLAY_NAMES: Record<string, string> = {
  */
 export function getPrimaryRole(userRoles: string[]): string {
   const roleHierarchy = [
+    'Administrator',
     'System Manager',
     'Sales Manager',
     'Accounts Manager',
@@ -263,7 +268,7 @@ export function canPerform(
   action: string,
   userRoles: string[],
 ): boolean {
-  if (userRoles.includes('System Manager')) return true
+  if (isErpSuperUser(userRoles)) return true
 
   const allowedRoles = ACTION_PERMISSIONS[module]?.[action] ?? []
   return userRoles.some((role) => allowedRoles.includes(role))
