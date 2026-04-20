@@ -508,6 +508,46 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         } catch {
           console.warn('Could not sync API credentials to tenant record')
         }
+
+        // ── Tenant bootstrap safety net ──
+        // If this tenant was provisioned before auto-init was reliable, or if
+        // /api/setup/init failed silently during provisioning, the workspace
+        // may be missing its selling Price List. Run a cheap, idempotent check
+        // once per tenant/user session to self-heal. Gated by a cookie marker
+        // so we don't re-run on every page navigation.
+        const BOOTSTRAP_VERSION = 'v1'
+        const bootstrapMarker = `${BOOTSTRAP_VERSION}:${tenant.subdomain}`
+        const alreadyBootstrapped = cookieStore.get('tenant_bootstrap_complete')?.value === bootstrapMarker
+
+        if (!alreadyBootstrapped) {
+          try {
+            const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
+            // Temporarily set the tenant API cookies are already set above, so
+            // frappeRequest inside ensureSellingPriceList will target this tenant.
+            const bootstrap = await ensureSellingPriceList('INR')
+            if (bootstrap.priceList && !bootstrap.error) {
+              console.log(
+                `[login-bootstrap] ${tenant.subdomain}: priceList=${bootstrap.priceList} created=${bootstrap.created} setDefault=${bootstrap.setAsDefault}`
+              )
+              cookieStore.set('tenant_bootstrap_complete', bootstrapMarker, {
+                httpOnly: true,
+                secure: cookieSecure,
+                sameSite: cookieSameSite,
+                maxAge: 60 * 60 * 24 * 30, // 30 days — effectively once per tenant
+                path: '/',
+                domain: apiCookieDomain,
+              })
+            } else if (bootstrap.error) {
+              console.warn(
+                `[login-bootstrap] ${tenant.subdomain}: partial — ${bootstrap.error}`
+              )
+            }
+          } catch (bootErr: any) {
+            console.warn(
+              `[login-bootstrap] ${tenant.subdomain}: bootstrap threw — ${bootErr?.message || bootErr}`
+            )
+          }
+        }
       } else {
         console.warn('API key generation incomplete — user will authenticate via session cookie only')
       }

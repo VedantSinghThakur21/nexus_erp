@@ -977,8 +977,10 @@ export async function createQuotation(quotationData: {
       items: mappedItems
     }
 
-    // Fetch default selling price list (mandatory in ERPNext Quotation)
-    // NOTE: If this fails, run GET /api/setup/init once to initialize the tenant price list
+    // Fetch default selling price list (mandatory in ERPNext Quotation).
+    // Self-heal: if the tenant was provisioned before auto-init was reliable,
+    // create the price list on the fly instead of asking the user to hit
+    // /api/setup/init manually.
     let sellingPriceList = ''
     try {
       const priceLists = await frappeRequest('frappe.client.get_list', 'GET', {
@@ -995,8 +997,26 @@ export async function createQuotation(quotationData: {
     }
 
     if (!sellingPriceList) {
+      console.warn('[createQuotation] No selling Price List found — attempting self-heal bootstrap')
+      try {
+        const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
+        const bootstrap = await ensureSellingPriceList(quotationData.currency || 'INR')
+        if (bootstrap.priceList) {
+          sellingPriceList = bootstrap.priceList
+          console.log(
+            `[createQuotation] Self-heal OK — priceList=${bootstrap.priceList} created=${bootstrap.created} setDefault=${bootstrap.setAsDefault}`
+          )
+        } else if (bootstrap.error) {
+          console.error('[createQuotation] Self-heal failed:', bootstrap.error)
+        }
+      } catch (e: any) {
+        console.error('[createQuotation] Bootstrap helper threw:', e?.message || e)
+      }
+    }
+
+    if (!sellingPriceList) {
       throw new Error(
-        'No selling Price List found. Please visit /api/setup/init once to initialize your tenant, then try again.'
+        'No selling Price List found and auto-initialization failed. Please contact support — your workspace may be missing default records.'
       )
     }
 

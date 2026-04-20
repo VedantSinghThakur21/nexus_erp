@@ -151,32 +151,71 @@ export async function POST(request: NextRequest) {
     }
 
     // ─── STEP 3: Auto-run setup/init on the tenant site to seed default data ────
-    // This provisions: Price List, Territories, Modes of Payment, Customer Groups, Item Groups
-    try {
-      const initUrl = `${siteUrl}/api/setup/init`
-      const initResponse = await fetch(initUrl, {
-        method: 'GET',
-        headers: {
-          // Pass tenant API credentials so frappeRequest uses the right site
-          'x-tenant-api-key': apiKey,
-          'x-tenant-api-secret': apiSecret,
-        },
-        // Don't hang the response — fire and check quickly
-        signal: AbortSignal.timeout(30000)
-      })
-      if (initResponse.ok) {
-        const initData = await initResponse.json()
-      } else {
+    // This provisions: Price List, Territories, Modes of Payment, Customer Groups,
+    // Item Groups, Designations, Role Profiles, Genders, user roles, email account.
+    //
+    // We retry once on failure because the tenant site may take a moment to be
+    // reachable over DNS/SSL right after provisioning. Logging is verbose so
+    // any persistent failures are visible in the server logs.
+    const initUrl = `${siteUrl}/api/setup/init`
+    const initHeaders = {
+      'x-tenant-api-key': apiKey,
+      'x-tenant-api-secret': apiSecret,
+    }
+    let initOk = false
+    let initResults: Record<string, string> | null = null
+    let initLastError: string | null = null
+
+    for (let attempt = 1; attempt <= 2 && !initOk; attempt++) {
+      try {
+        const initResponse = await fetch(initUrl, {
+          method: 'GET',
+          headers: initHeaders,
+          signal: AbortSignal.timeout(45000)
+        })
+        if (initResponse.ok) {
+          const initData = await initResponse.json().catch(() => ({})) as { results?: Record<string, string> }
+          initResults = initData?.results || null
+          initOk = true
+          console.log(
+            `[update-credentials] ✅ setup/init succeeded for ${tenantName} (attempt ${attempt}):`,
+            initResults
+          )
+        } else {
+          const errText = await initResponse.text().catch(() => '')
+          initLastError = `HTTP ${initResponse.status}: ${errText.slice(0, 500)}`
+          console.warn(
+            `[update-credentials] setup/init attempt ${attempt} failed for ${tenantName}: ${initLastError}`
+          )
+        }
+      } catch (initErr: any) {
+        initLastError = initErr?.message || String(initErr)
+        console.warn(
+          `[update-credentials] setup/init attempt ${attempt} threw for ${tenantName}: ${initLastError}`
+        )
       }
-    } catch (initErr: any) {
-      // Non-fatal — tenant works fine, init can be re-run manually
+      if (!initOk && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 2000))
+      }
+    }
+
+    if (!initOk) {
+      console.error(
+        `[update-credentials] ❌ setup/init did NOT complete for ${tenantName} after retries. ` +
+        `Last error: ${initLastError}. Login-time safety net will retry when a user signs in.`
+      )
     }
 
     return NextResponse.json({
       success: true,
       message: 'Tenant API credentials saved successfully',
       tenantRecord: tenantRecordName,
-      action: shouldCreateRecord ? 'created' : 'updated'
+      action: shouldCreateRecord ? 'created' : 'updated',
+      setupInit: {
+        ok: initOk,
+        results: initResults,
+        error: initLastError,
+      }
     })
 
   } catch (error: any) {
