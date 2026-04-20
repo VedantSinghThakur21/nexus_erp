@@ -259,7 +259,7 @@ async function resolveAdminCreds(subdomain: string): Promise<TenantAdminCreds | 
   }
 
   try {
-    const { generateUserApiKeys, assignUserRoles } = await import('@/lib/provisioning-client')
+    const { generateUserApiKeys, assignUserRoles, getUserRoles } = await import('@/lib/provisioning-client')
 
     // Idempotently ensure the owner actually has the admin role set before
     // we mint their keys. Otherwise regenerated keys inherit the user's
@@ -268,9 +268,33 @@ async function resolveAdminCreds(subdomain: string): Promise<TenantAdminCreds | 
     // provisioning service side so this works regardless of who we are.
     try {
       const { ROLE_SETS } = await import('@/lib/role-sets')
-      await assignUserRoles(subdomain, adminEmail, ROLE_SETS.admin || ['System Manager'])
+      const targetRoles = ROLE_SETS.admin || ['System Manager']
+      const assignResult = await assignUserRoles(subdomain, adminEmail, targetRoles)
+      console.log(
+        `[tenant-bootstrap] assignUserRoles(${subdomain}, ${adminEmail}) assigned:`,
+        assignResult?.assigned || assignResult,
+      )
+      // Verify — the provisioning service may silently strip System Manager
+      // for safety. If it did, surface it loudly so operators can adjust.
+      try {
+        const verify = await getUserRoles(subdomain, adminEmail, 10_000)
+        const roles = verify?.roles || []
+        const missing = targetRoles.filter((r) => !roles.includes(r))
+        if (missing.length > 0) {
+          console.warn(
+            `[tenant-bootstrap] After assignUserRoles, ${adminEmail} on ${subdomain} still missing roles: ${missing.join(', ')}. ` +
+            `Current roles: ${roles.join(', ') || '<none>'}. ` +
+            `Provisioning service may be filtering privileged roles.`,
+          )
+        } else {
+          console.log(
+            `[tenant-bootstrap] Verified roles for ${adminEmail} on ${subdomain}: ${roles.join(', ')}`,
+          )
+        }
+      } catch (verifyErr: any) {
+        console.warn(`[tenant-bootstrap] getUserRoles verify failed: ${verifyErr?.message || verifyErr}`)
+      }
     } catch (roleErr: any) {
-      // Non-fatal — owner may already have the roles. Log and proceed.
       console.warn(
         `[tenant-bootstrap] assignUserRoles(${subdomain}, ${adminEmail}) warning: ${roleErr?.message || roleErr}`,
       )
@@ -357,8 +381,45 @@ export async function ensureSellingPriceList(
     ) {
       result.priceList = DEFAULT_PRICE_LIST_NAME
     } else {
-      result.error = `create Price List failed: ${createRes.error}`
-      return result
+      // Direct insert failed — usually 403 because the provisioning service
+      // silently stripped System Manager from assignUserRoles. Fallback:
+      // ask the provisioning service to seed defaults (it runs with
+      // ignore_permissions and may cover Price List depending on version).
+      console.warn(
+        `[tenant-bootstrap] Direct Price List insert failed (${createRes.error.slice(0, 150)}). ` +
+        `Falling back to provisioning service seed-defaults.`,
+      )
+      try {
+        const { seedTenantDefaults } = await import('@/lib/provisioning-client')
+        const seedResult = await seedTenantDefaults(subdomain)
+        console.log(
+          `[tenant-bootstrap] seedTenantDefaults(${subdomain}) result:`,
+          seedResult?.result,
+        )
+      } catch (seedErr: any) {
+        console.warn(
+          `[tenant-bootstrap] seedTenantDefaults(${subdomain}) failed: ${seedErr?.message || seedErr}`,
+        )
+      }
+      // Re-check Price List — seed-defaults may have created it under a
+      // different name.
+      const recheck = await adminCall(creds, 'frappe.client.get_list', 'GET', {
+        doctype: 'Price List',
+        filters: '[["selling","=","1"],["enabled","=","1"]]',
+        fields: '["name"]',
+        limit_page_length: 1,
+      })
+      if (recheck.ok) {
+        const rows = recheck.data as { name: string }[] | undefined
+        if (rows?.[0]?.name) {
+          result.priceList = rows[0].name
+          result.created = true
+        }
+      }
+      if (!result.priceList) {
+        result.error = `create Price List failed: ${createRes.error}`
+        return result
+      }
     }
   }
 
