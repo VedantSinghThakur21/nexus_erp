@@ -20,11 +20,22 @@ export const BASE_TENANT_ROLES = ['Employee', 'Sales User', 'Accounts User'] as 
 export const ROLE_SETS: Record<string, string[]> = {
   // Keep System Manager for privileged operations, but also include the
   // baseline ERP roles used by Quotation/CRM list APIs in customized sites.
-  admin:    ['System Manager', ...BASE_TENANT_ROLES, 'Sales Manager', 'Accounts Manager'],
-  member:   [...BASE_TENANT_ROLES],
-  sales:    [...BASE_TENANT_ROLES, 'Sales Manager'],
-  projects: [...BASE_TENANT_ROLES, 'Projects Manager', 'Projects User'],
-  accounts: [...BASE_TENANT_ROLES, 'Accounts Manager'],
+  // Item Manager + Stock Manager are required because ERPNext v15's Item
+  // DocType locks create/write to these roles (System Manager alone isn't
+  // always sufficient on tenants with the default permission matrix).
+  admin:    [
+    'System Manager',
+    ...BASE_TENANT_ROLES,
+    'Sales Manager',
+    'Accounts Manager',
+    'Item Manager',
+    'Stock Manager',
+    'Stock User',
+  ],
+  member:   [...BASE_TENANT_ROLES, 'Stock User'],
+  sales:    [...BASE_TENANT_ROLES, 'Sales Manager', 'Item Manager', 'Stock User'],
+  projects: [...BASE_TENANT_ROLES, 'Projects Manager', 'Projects User', 'Stock User'],
+  accounts: [...BASE_TENANT_ROLES, 'Accounts Manager', 'Stock User'],
 }
 
 /** Returns the Frappe role objects expected by inviteTeamMember / updateRoles */

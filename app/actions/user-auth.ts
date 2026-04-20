@@ -517,7 +517,10 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // 2. If user has no module-accessible roles → add minimum roles (Sales User)
       //    so the user can at least see the dashboard and CRM data.
       if (userEmail) {
-        const normalizationMarker = `${tenant.subdomain}:${userEmail}`
+        // Bump this version whenever ROLE_SETS changes so previously-normalized
+        // users get re-checked against the latest expected role set.
+        const ROLE_NORMALIZATION_VERSION = 'v2'
+        const normalizationMarker = `${ROLE_NORMALIZATION_VERSION}:${tenant.subdomain}:${userEmail}`
         const alreadyNormalized = cookieStore.get('tenant_roles_normalized')?.value === normalizationMarker
 
         if (alreadyNormalized) {
@@ -604,6 +607,34 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
             rolesToAssign = ROLE_SETS_MAP.member
 
             needsUpdate = true
+          }
+
+          // Step 3: Ensure the user has every role from the expected ROLE_SET for
+          // their role type. This catches users who were provisioned before new
+          // roles (e.g., Item Manager) were added to the set and silently fail on
+          // doctype permission checks like Item.create.
+          try {
+            const cookieRoleType = cookieStore.get('tenant_role_type')?.value
+            const expectedSetKey =
+              cookieRoleType && cookieRoleType in ROLE_SETS_MAP
+                ? cookieRoleType
+                : userEmail === tenant.owner_email
+                ? 'admin'
+                : null
+            if (expectedSetKey) {
+              const expectedRoles = ROLE_SETS_MAP[expectedSetKey] || []
+              const existing = new Set(rolesToAssign)
+              const missing = expectedRoles.filter((r) => !existing.has(r))
+              if (missing.length > 0) {
+                rolesToAssign = Array.from(new Set([...rolesToAssign, ...missing]))
+                needsUpdate = true
+                console.warn(
+                  `[Login Normalization] Adding missing roles for ${userEmail} (${expectedSetKey}): ${missing.join(', ')}`,
+                )
+              }
+            }
+          } catch {
+            // Best effort — if we can't determine the role type, skip the top-up.
           }
 
           if (needsUpdate) {
