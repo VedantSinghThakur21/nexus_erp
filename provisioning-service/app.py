@@ -1182,16 +1182,39 @@ try:
     frappe.db.commit()
     print(json.dumps({{"api_key": api_key, "api_secret": api_secret_val}}))
 except Exception as exc:
-    print(json.dumps({"error": str(exc)}))
+    print(json.dumps({{"error": str(exc)}}))
 """
 
     try:
         output = run_frappe_code(site_name, gen_code)
         result = _parse_json_output(output)
+        if not result:
+            logger.error(
+                f"generate-user-keys: unparseable Frappe output for {user_email} on {site_name}. "
+                f"Raw output (first 500 chars): {output[:500]!r}"
+            )
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Frappe produced no parseable JSON output. "
+                    "Check provisioning service logs for script stdout/stderr."
+                ),
+            )
         if result.get("error"):
             raise HTTPException(status_code=404, detail=f"Could not generate keys: {result['error']}")
+        api_key_val = result.get("api_key")
+        api_secret_val = result.get("api_secret")
+        if not api_key_val or not api_secret_val:
+            logger.error(
+                f"generate-user-keys: JSON missing api_key/api_secret for {user_email} on {site_name}. "
+                f"Parsed keys: {list(result.keys())}. Raw output: {output[:500]!r}"
+            )
+            raise HTTPException(
+                status_code=502,
+                detail="Frappe did not return api_key/api_secret in output",
+            )
         logger.info(f"generate-user-keys: keys generated for {user_email} on {site_name}")
-        return {"success": True, "api_key": result["api_key"], "api_secret": result["api_secret"]}
+        return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
     except HTTPException:
         raise
     except Exception as e:

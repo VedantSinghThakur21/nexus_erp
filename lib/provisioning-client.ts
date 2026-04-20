@@ -88,11 +88,18 @@ async function serviceRequest<T>(
       signal: controller.signal,
     })
 
-    let data: unknown
-    try {
-      data = await response.json()
-    } catch {
-      data = null
+    const rawText = await response.text()
+    let data: unknown = null
+    let parseError: string | null = null
+
+    if (rawText && rawText.trim().length > 0) {
+      try {
+        data = JSON.parse(rawText)
+      } catch (err) {
+        parseError = err instanceof Error ? err.message : String(err)
+      }
+    } else {
+      parseError = 'empty response body'
     }
 
     if (!response.ok) {
@@ -102,12 +109,23 @@ async function serviceRequest<T>(
         typeof data === 'object' &&
         typeof (data as { detail?: unknown }).detail === 'string'
       ) {
-        detail = (data as { detail: string }).detail
+        detail = (data as { detail: string }).detail as string
+      } else if (rawText && rawText.length > 0) {
+        detail = `Service returned ${response.status}: ${rawText.slice(0, 300)}`
       }
+      throw new ProvisioningError(detail, response.status, data ?? rawText)
+    }
+
+    if (parseError) {
+      console.warn(
+        `[ProvisioningClient] ${path}: response parse failed (${parseError}). ` +
+          `Status=${response.status} Content-Type=${response.headers.get('content-type') || 'none'} ` +
+          `Body=${rawText.slice(0, 300) || '<empty>'}`,
+      )
       throw new ProvisioningError(
-        detail,
-        response.status,
-        data,
+        `Provisioning service returned unparseable body (${parseError}): ${rawText.slice(0, 200) || '<empty>'}`,
+        502,
+        rawText,
       )
     }
 
