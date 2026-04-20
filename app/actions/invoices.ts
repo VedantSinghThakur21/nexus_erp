@@ -237,100 +237,147 @@ export async function createItem(formData: FormData) {
     const manufacturer = formData.get('manufacturer') as string
     const openingStock = formData.get('opening_stock') as string
     const reorderLevel = formData.get('reorder_level') as string
+    const openingStockQty = openingStock ? parseFloat(openingStock) : 0
 
     if (brand) itemData.brand = brand
     if (manufacturer) itemData.manufacturer = manufacturer
-    if (openingStock) itemData.opening_stock = parseFloat(openingStock)
+    // Do NOT include opening_stock in the Item doc itself.
+    // ERPNext v15 auto-generates a Stock Entry when this field is set during
+    // insert, but omits stock_entry_type on that internal doc, causing a
+    // MandatoryError. We instead create a separate Opening Stock entry below.
     if (reorderLevel) itemData.reorder_level = parseFloat(reorderLevel)
 
     try {
       await frappeRequest('frappe.client.insert', 'POST', { doc: itemData })
     } catch (error: any) {
-      // Some tenants have unexpected/missing Item Group or UOM links.
+      // Some tenants have unexpected/missing Item Group or UOM links — try provisioning fallback.
       const message = String(error?.message || '')
       const provisioningResult = await createItemViaProvisioning(itemData)
-      if (provisioningResult.item?.name) {
-        revalidatePath('/catalogue')
-        return { success: true }
+
+      if (!provisioningResult.item?.name) {
+        const isPermissionError =
+          message.includes('Insufficient Permission') ||
+          message.includes('does not have access to this document') ||
+          message.includes('PermissionError')
+
+        if (
+          message.includes('Default Unit of Measure') ||
+          message.includes('Could not find UOM') ||
+          message.includes('Could not find Item Group') ||
+          message.includes('No permission for UOM')
+        ) {
+          if (provisioningResult.error) {
+            return {
+              success: false,
+              error: `ERP fallback unavailable while resolving Item Group/UOM. ${provisioningResult.error}`
+            }
+          }
+
+          let fallbackGroup = itemData.item_group
+          let fallbackUom = itemData.stock_uom
+
+          const provisioningDefaults = await getProvisioningCatalogDefaults()
+          if (provisioningDefaults?.item_group) fallbackGroup = provisioningDefaults.item_group
+          if (provisioningDefaults?.stock_uom) fallbackUom = provisioningDefaults.stock_uom
+
+          try {
+            const groups = await frappeRequest('frappe.client.get_list', 'GET', {
+              doctype: 'Item Group',
+              filters: '[["is_group", "=", 0]]',
+              fields: '["name"]',
+              limit_page_length: 1,
+              order_by: 'name asc'
+            }) as Array<{ name: string }>
+            if (groups.length > 0) fallbackGroup = groups[0].name
+          } catch { }
+
+          try {
+            const uoms = await frappeRequest('frappe.client.get_list', 'GET', {
+              doctype: 'UOM',
+              fields: '["name"]',
+              limit_page_length: 1,
+              order_by: 'name asc'
+            }) as Array<{ name: string }>
+            if (uoms.length > 0) fallbackUom = uoms[0].name
+          } catch { }
+
+          if (!fallbackUom) {
+            return {
+              success: false,
+              error: `Unable to resolve Item Group/UOM from ERP defaults. ${provisioningResult.error || ''}`.trim()
+            }
+          }
+
+          const originalUom = String(itemData.stock_uom || '').trim()
+          if (String(fallbackUom || '').trim() === originalUom) {
+            return {
+              success: false,
+              error: 'Unable to resolve a valid UOM from ERP defaults. Please restart provisioning-service and verify catalog-defaults endpoint.'
+            }
+          }
+
+          const retriedItem = { ...itemData, item_group: fallbackGroup, stock_uom: fallbackUom }
+          await frappeRequest('frappe.client.insert', 'POST', { doc: retriedItem })
+        } else if (isPermissionError) {
+          return {
+            success: false,
+            error: provisioningResult.error
+              ? `Your ERP user does not have permission to create Items, and the provisioning fallback is unavailable: ${provisioningResult.error}`
+              : 'Your ERP user does not have permission to create Items. Ask your workspace admin to grant Item create permission.'
+          }
+        } else {
+          throw error
+        }
       }
+    }
 
-      const isPermissionError =
-        message.includes('Insufficient Permission') ||
-        message.includes('does not have access to this document') ||
-        message.includes('PermissionError')
+    // Create a separate Opening Stock entry if the user specified a non-zero qty.
+    // ERPNext v15 requires stock_entry_type on the auto-generated Stock Entry when
+    // opening_stock is set on the Item doc, causing a MandatoryError — so we
+    // handle it explicitly here instead.
+    if (openingStockQty > 0 && itemData.is_stock_item === 1) {
+      try {
+        const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Company',
+          fields: '["name", "default_warehouse"]',
+          limit_page_length: 1,
+        }) as Array<{ name: string; default_warehouse?: string }>
+        const company = companies[0]?.name || ''
 
-      if (
-        message.includes('Default Unit of Measure') ||
-        message.includes('Could not find UOM') ||
-        message.includes('Could not find Item Group') ||
-        message.includes('No permission for UOM')
-      ) {
-        if (provisioningResult.error) {
-          return {
-            success: false,
-            error: `ERP fallback unavailable while resolving Item Group/UOM. ${provisioningResult.error}`
-          }
-        }
-
-        let fallbackGroup = itemData.item_group
-        let fallbackUom = itemData.stock_uom
-
-        const provisioningDefaults = await getProvisioningCatalogDefaults()
-        if (provisioningDefaults?.item_group) {
-          fallbackGroup = provisioningDefaults.item_group
-        }
-        if (provisioningDefaults?.stock_uom) {
-          fallbackUom = provisioningDefaults.stock_uom
-        }
-
-        try {
-          const groups = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'Item Group',
-            filters: '[["is_group", "=", 0]]',
+        // Get the default warehouse for opening stock
+        let warehouse = companies[0]?.default_warehouse || ''
+        if (!warehouse) {
+          const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Warehouse',
+            filters: `[["company", "=", "${company}"], ["is_group", "=", 0]]`,
             fields: '["name"]',
             limit_page_length: 1,
-            order_by: 'name asc'
+            order_by: 'name asc',
           }) as Array<{ name: string }>
-          if (groups.length > 0) fallbackGroup = groups[0].name
-        } catch { }
-
-        try {
-          const uoms = await frappeRequest('frappe.client.get_list', 'GET', {
-            doctype: 'UOM',
-            fields: '["name"]',
-            limit_page_length: 1,
-            order_by: 'name asc'
-          }) as Array<{ name: string }>
-          if (uoms.length > 0) fallbackUom = uoms[0].name
-        } catch { }
-
-        if (!fallbackUom) {
-          return {
-            success: false,
-            error: `Unable to resolve Item Group/UOM from ERP defaults. ${provisioningResult.error || ''}`.trim()
-          }
+          warehouse = warehouses[0]?.name || ''
         }
 
-        // Avoid retrying with the exact same unresolved UOM value (e.g., Nos on tenants where it doesn't exist).
-        const originalUom = String(itemData.stock_uom || '').trim()
-        if (String(fallbackUom || '').trim() === originalUom) {
-          return {
-            success: false,
-            error: 'Unable to resolve a valid UOM from ERP defaults. Please restart provisioning-service and verify catalog-defaults endpoint.'
-          }
+        if (company && warehouse) {
+          await frappeRequest('frappe.client.insert', 'POST', {
+            doc: {
+              doctype: 'Stock Entry',
+              stock_entry_type: 'Material Receipt',
+              company,
+              items: [{
+                doctype: 'Stock Entry Detail',
+                item_code: itemData.item_code,
+                qty: openingStockQty,
+                uom: itemData.stock_uom,
+                stock_uom: itemData.stock_uom,
+                t_warehouse: warehouse,
+                basic_rate: itemData.standard_rate || 0,
+              }],
+            }
+          })
         }
-
-        const retriedItem = { ...itemData, item_group: fallbackGroup, stock_uom: fallbackUom }
-        await frappeRequest('frappe.client.insert', 'POST', { doc: retriedItem })
-      } else if (isPermissionError) {
-        return {
-          success: false,
-          error: provisioningResult.error
-            ? `Your ERP user does not have permission to create Items, and the provisioning fallback is unavailable: ${provisioningResult.error}`
-            : 'Your ERP user does not have permission to create Items. Ask your workspace admin to grant Item create permission.'
-        }
-      } else {
-        throw error
+      } catch (stockErr: any) {
+        // Non-fatal: item was created, opening stock entry failed. Log and continue.
+        console.warn(`[createItem] Opening stock entry failed for ${itemData.item_code}:`, stockErr?.message)
       }
     }
 
