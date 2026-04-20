@@ -41,14 +41,23 @@ interface EditItemDialogProps {
     brand?: string
     manufacturer?: string
   }
+  open?: boolean
+  onClose?: () => void
 }
 
-export function EditItemDialog({ item }: EditItemDialogProps) {
-  const [open, setOpen] = useState(false)
+export function EditItemDialog({ item, open: controlledOpen, onClose }: EditItemDialogProps) {
+  const isControlled = controlledOpen !== undefined
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = isControlled ? controlledOpen : internalOpen
   const [loading, setLoading] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState(item.item_group)
   const [isStockItem, setIsStockItem] = useState(String(item.is_stock_item || 0))
   const router = useRouter()
+
+  const handleOpenChange = (val: boolean) => {
+    if (!isControlled) setInternalOpen(val)
+    if (!val) onClose?.()
+  }
 
   // Update state when item changes
   useEffect(() => {
@@ -67,7 +76,7 @@ export function EditItemDialog({ item }: EditItemDialogProps) {
     const res = await updateItem(item.item_code, formData)
     
     if (res.success) {
-      setOpen(false)
+      handleOpenChange(false)
       router.refresh()
     } else {
       alert("Error: " + res.error)
@@ -76,13 +85,15 @@ export function EditItemDialog({ item }: EditItemDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full">
-          <Pencil className="h-3.5 w-3.5 mr-1" />
-          Edit
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="w-full">
+            <Pencil className="h-3.5 w-3.5 mr-1" />
+            Edit
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle>Edit Item</DialogTitle>
@@ -231,7 +242,7 @@ export function EditItemDialog({ item }: EditItemDialogProps) {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>

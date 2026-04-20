@@ -171,54 +171,70 @@ export default function CataloguePage() {
   }
 
   return (
-    <div className="app-shell flex flex-col overflow-hidden">
+    <div className="app-shell">
       {/* Header */}
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
         <CreateItemDialog />
       </PageHeader>
 
       {/* Main Content */}
-      <main className="app-content flex-1 overflow-y-auto custom-scrollbar">
+      <main className="app-content flex-1 w-full">
         <div className="w-full space-y-8">
-          {/* KPI Cards - Matching Leads Dashboard Style */}
+          {/* KPI Cards */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="relative flex min-h-[160px] flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-none">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">Total Items</p>
-                  <div className="w-10 h-10 bg-blue-500/10 text-blue-400 flex items-center justify-center rounded-full ring-1 ring-blue-500/30">
-                    <span className="material-symbols-outlined text-xl">inventory_2</span>
-                  </div>
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-[13px] font-medium text-muted-foreground">Total Items</p>
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                  <span className="material-symbols-outlined text-[20px]">inventory_2</span>
                 </div>
-                <h3 className="mb-1 text-4xl font-bold text-foreground">{totalItems}</h3>
-                <p className="text-sm text-slate-400">{categories.length - 1} categories</p>
+              </div>
+              <div className="flex items-end gap-3">
+                <p className="text-2xl font-medium text-foreground leading-none">{totalItems}</p>
+                <span className="text-sm font-semibold text-slate-400 mb-1">{categories.length - 1} categories</span>
+              </div>
+              <div className="mt-5 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 w-[72%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
               </div>
             </div>
-            <div className="relative flex min-h-[160px] flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-none">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">Available Now</p>
-                  <div className="w-10 h-10 bg-emerald-500/10 text-emerald-400 flex items-center justify-center rounded-full ring-1 ring-emerald-500/30">
-                    <span className="material-symbols-outlined text-xl">check_circle</span>
-                  </div>
+
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-[13px] font-medium text-muted-foreground">Available Now</p>
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                  <span className="material-symbols-outlined text-[20px]">check_circle</span>
                 </div>
-                <h3 className="mb-1 text-4xl font-bold text-foreground">{availableItems}</h3>
-                <p className="text-sm text-slate-400">Ready to book</p>
+              </div>
+              <div className="flex items-end gap-3">
+                <p className="text-2xl font-medium text-foreground leading-none">{availableItems}</p>
+                <span className="text-sm font-semibold text-slate-400 mb-1">Ready to book</span>
+              </div>
+              <div className="mt-5 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                  style={{ width: `${totalItems > 0 ? Math.round((availableItems / totalItems) * 100) : 0}%` }}
+                ></div>
               </div>
             </div>
-            <div className="relative flex min-h-[160px] flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-none">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full -mr-16 -mt-16"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">Filtered Results</p>
-                  <div className="w-10 h-10 bg-purple-500/10 text-purple-400 flex items-center justify-center rounded-full ring-1 ring-purple-500/30">
-                    <span className="material-symbols-outlined text-xl">filter_alt</span>
-                  </div>
+
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-[13px] font-medium text-muted-foreground">Filtered Results</p>
+                <div className="p-2 rounded-lg bg-yellow-400/10 text-yellow-400">
+                  <span className="material-symbols-outlined text-[20px]">filter_alt</span>
                 </div>
-                <h3 className="mb-1 text-4xl font-bold text-foreground">{filteredItems.length}</h3>
-                <p className="text-sm text-slate-400">Showing {selectedCategories.has('All') ? 'All' : Array.from(selectedCategories).join(', ')}</p>
+              </div>
+              <div className="flex items-end gap-3">
+                <p className="text-2xl font-medium text-foreground leading-none">{filteredItems.length}</p>
+                <span className="text-sm font-semibold text-slate-400 mb-1 truncate">
+                  {selectedCategories.has('All') ? 'Showing All' : Array.from(selectedCategories).join(', ')}
+                </span>
+              </div>
+              <div className="mt-5 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]"
+                  style={{ width: `${totalItems > 0 ? Math.round((filteredItems.length / totalItems) * 100) : 0}%` }}
+                ></div>
               </div>
             </div>
           </div>
@@ -348,7 +364,7 @@ export default function CataloguePage() {
                           <div className="flex items-center space-x-2">
                             {item.stock_qty !== null ? (
                               <span className={`${item.available ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'} text-[11px] font-semibold px-2 py-1 rounded-md border flex items-center`}>
-                                <span className="material-symbols-outlined text-xs mr-1">check_circle</span>
+                                <span className="material-symbols-outlined text-xs mr-1">{item.available ? 'check_circle' : 'cancel'}</span>
                                 {item.available ? `In Stock (${item.stock_qty})` : 'Out of Stock'}
                               </span>
                             ) : (
@@ -468,6 +484,8 @@ export default function CataloguePage() {
       {editingItem && (
         <EditItemDialog
           item={editingItem}
+          open={!!editingItem}
+          onClose={() => setEditingItem(null)}
         />
       )}
 

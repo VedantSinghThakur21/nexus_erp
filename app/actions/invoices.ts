@@ -339,14 +339,14 @@ export async function createItem(formData: FormData) {
       try {
         const companies = await frappeRequest('frappe.client.get_list', 'GET', {
           doctype: 'Company',
-          fields: '["name", "default_warehouse"]',
+          fields: '["name"]',
           limit_page_length: 1,
-        }) as Array<{ name: string; default_warehouse?: string }>
+        }) as Array<{ name: string }>
         const company = companies[0]?.name || ''
 
-        // Get the default warehouse for opening stock
-        let warehouse = companies[0]?.default_warehouse || ''
-        if (!warehouse) {
+        // default_warehouse is not permitted in get_list; always resolve via Warehouse doctype
+        let warehouse = ''
+        if (true) {
           const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
             doctype: 'Warehouse',
             filters: `[["company", "=", "${company}"], ["is_group", "=", 0]]`,

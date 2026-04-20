@@ -294,9 +294,9 @@ export function AppSidebar() {
 
   return (
     <>
-      <div
+      <aside
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 border-r border-border/60 bg-card md:flex md:flex-col',
+          'sticky top-0 hidden h-screen shrink-0 overflow-hidden border-r border-border/60 bg-card md:flex md:flex-col',
           collapsed ? 'w-[72px]' : 'w-[248px]'
         )}
       >
@@ -323,7 +323,7 @@ export function AppSidebar() {
         </div>
         <SidebarNav collapsed={collapsed} />
         <SidebarUser collapsed={collapsed} />
-      </div>
+      </aside>
 
       <div className="fixed left-3 top-3 z-40 md:hidden">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
