@@ -24,6 +24,10 @@ import { Plus } from "lucide-react"
 import { createItem, getBrands, createBrand, getItemGroups, getUOMs, ensureItemGroups, type Brand } from "@/app/actions/invoices"
 import { useRouter } from "next/navigation"
 
+let cachedItemGroups: string[] | null = null
+let cachedUoms: string[] | null = null
+let cachedBrands: Brand[] | null = null
+
 export function CreateItemDialog() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -51,23 +55,60 @@ export function CreateItemDialog() {
   }, [open])
 
   async function loadBrands() {
+    if (cachedBrands && cachedBrands.length > 0) {
+      setBrands(cachedBrands)
+      return
+    }
+
     const brandsList = await getBrands()
     setBrands(brandsList)
+    if (brandsList.length > 0) {
+      cachedBrands = brandsList
+    }
   }
 
   async function loadItemGroups() {
-    // Seed default item groups if none exist (uses master credentials server-side)
-    await ensureItemGroups()
-    const groups = await getItemGroups()
+    if (cachedItemGroups && cachedItemGroups.length > 0) {
+      setItemGroups(cachedItemGroups)
+      if (!selectedGroup) {
+        setSelectedGroup(cachedItemGroups[0])
+      }
+      return
+    }
+
+    // Fast path: fetch existing groups first.
+    let groups = await getItemGroups()
+
+    // Slow path fallback: only seed defaults when tenant has no groups yet.
+    if (groups.length === 0) {
+      await ensureItemGroups()
+      groups = await getItemGroups()
+    }
+
     setItemGroups(groups)
+    if (groups.length > 0) {
+      cachedItemGroups = groups
+    }
+
     if (groups.length > 0 && !selectedGroup) {
       setSelectedGroup(groups[0])
     }
   }
 
   async function loadUOMs() {
+    if (cachedUoms && cachedUoms.length > 0) {
+      setUoms(cachedUoms)
+      if (!selectedUom) {
+        setSelectedUom(cachedUoms[0])
+      }
+      return
+    }
+
     const fetchedUoms = await getUOMs()
     setUoms(fetchedUoms)
+    if (fetchedUoms.length > 0) {
+      cachedUoms = fetchedUoms
+    }
     if (fetchedUoms.length > 0 && !selectedUom) {
       setSelectedUom(fetchedUoms[0])
     }
