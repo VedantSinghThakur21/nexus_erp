@@ -498,45 +498,51 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         // / tenant_api_secret), which is where tenant user operations pull
         // them from.
 
-        // ── Tenant bootstrap safety net ──
-        // If this tenant was provisioned before auto-init was reliable, or if
-        // /api/setup/init failed silently during provisioning, the workspace
-        // may be missing its selling Price List. Run a cheap, idempotent check
-        // once per tenant/user session to self-heal. Gated by a cookie marker
-        // so we don't re-run on every page navigation.
-        const BOOTSTRAP_VERSION = 'v1'
+        // ── Tenant bootstrap safety net (fire-and-forget) ──
+        // Call the provisioning service's seed-defaults endpoint to ensure
+        // Price List, Selling Settings, territories, etc. exist. We do NOT
+        // await this — login returns immediately and the bootstrap completes
+        // in the background. Gated by a cookie marker so it only fires once
+        // per tenant per 30 days.
+        //
+        // NOTE: the cookie is set BEFORE the async call resolves because
+        // server-action cookies must be set synchronously on the request
+        // that returns the response. If the bootstrap fails, the cookie
+        // will still be set and the next login won't retry for 30 days —
+        // but the `createQuotation` self-heal path will pick up any
+        // remaining gap lazily.
+        const BOOTSTRAP_VERSION = 'v2'
         const bootstrapMarker = `${BOOTSTRAP_VERSION}:${tenant.subdomain}`
         const alreadyBootstrapped = cookieStore.get('tenant_bootstrap_complete')?.value === bootstrapMarker
 
         if (!alreadyBootstrapped) {
-          try {
-            const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
-            // ensureSellingPriceList fetches the tenant-admin API keys from
-            // the SaaS Tenant master record and uses them directly — normal
-            // tenant users lack System Manager permission to create Price List.
-            const bootstrap = await ensureSellingPriceList(tenant.subdomain, 'INR')
-            if (bootstrap.priceList && !bootstrap.error) {
-              console.log(
-                `[login-bootstrap] ${tenant.subdomain}: priceList=${bootstrap.priceList} created=${bootstrap.created} setDefault=${bootstrap.setAsDefault}`
-              )
-              cookieStore.set('tenant_bootstrap_complete', bootstrapMarker, {
-                httpOnly: true,
-                secure: cookieSecure,
-                sameSite: cookieSameSite,
-                maxAge: 60 * 60 * 24 * 30, // 30 days — effectively once per tenant
-                path: '/',
-                domain: apiCookieDomain,
-              })
-            } else if (bootstrap.error) {
+          // Set marker first (synchronous — required for server actions)
+          cookieStore.set('tenant_bootstrap_complete', bootstrapMarker, {
+            httpOnly: true,
+            secure: cookieSecure,
+            sameSite: cookieSameSite,
+            maxAge: 60 * 60 * 24 * 30,
+            path: '/',
+            domain: apiCookieDomain,
+          })
+          // Fire-and-forget: don't block login on bootstrap
+          void (async () => {
+            try {
+              const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
+              const bootstrap = await ensureSellingPriceList(tenant.subdomain, 'INR')
+              if (bootstrap.priceList && !bootstrap.error) {
+                console.log(
+                  `[login-bootstrap] ${tenant.subdomain}: priceList=${bootstrap.priceList} created=${bootstrap.created} setDefault=${bootstrap.setAsDefault}`,
+                )
+              } else if (bootstrap.error) {
+                console.warn(`[login-bootstrap] ${tenant.subdomain}: partial — ${bootstrap.error}`)
+              }
+            } catch (bootErr: any) {
               console.warn(
-                `[login-bootstrap] ${tenant.subdomain}: partial — ${bootstrap.error}`
+                `[login-bootstrap] ${tenant.subdomain}: bootstrap threw — ${bootErr?.message || bootErr}`,
               )
             }
-          } catch (bootErr: any) {
-            console.warn(
-              `[login-bootstrap] ${tenant.subdomain}: bootstrap threw — ${bootErr?.message || bootErr}`
-            )
-          }
+          })()
         }
       } else {
         console.warn('API key generation incomplete — user will authenticate via session cookie only')

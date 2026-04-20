@@ -1012,6 +1012,21 @@ export async function createQuotation(quotationData: {
           } else if (bootstrap.error) {
             console.error('[createQuotation] Self-heal failed:', bootstrap.error)
           }
+
+          // Re-query after bootstrap in case the bootstrap didn't return the
+          // price list name but did create one (or a background login-time
+          // bootstrap just finished).
+          if (!sellingPriceList) {
+            try {
+              const retry = await frappeRequest('frappe.client.get_list', 'GET', {
+                doctype: 'Price List',
+                filters: '[["selling","=","1"],["enabled","=","1"]]',
+                fields: '["name"]',
+                limit_page_length: 1,
+              }) as { name: string }[]
+              if (retry?.[0]?.name) sellingPriceList = retry[0].name
+            } catch { /* ignore, error below */ }
+          }
         } else {
           console.error('[createQuotation] Cannot self-heal: tenant subdomain not available')
         }

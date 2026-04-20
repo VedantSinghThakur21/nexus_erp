@@ -205,6 +205,11 @@ export async function seedTenantDefaults(subdomain: string): Promise<{
     item_groups: string
     opportunity_types: string
     sales_stages: string
+    price_list?: string
+    selling_settings?: string
+    uoms?: string
+    docperms?: string
+    healed_users?: string[]
   }
 }> {
   return serviceRequest(

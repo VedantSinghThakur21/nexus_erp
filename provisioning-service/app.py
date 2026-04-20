@@ -898,7 +898,47 @@ async def seed_tenant_defaults(subdomain: str, _auth: bool = Depends(verify_api_
 
     seed_code = """import json
 
-result = {"territory": "skipped", "customer_group": "skipped", "item_groups": "skipped", "opportunity_types": "skipped", "sales_stages": "skipped"}
+result = {"territory": "skipped", "customer_group": "skipped", "item_groups": "skipped", "opportunity_types": "skipped", "sales_stages": "skipped", "price_list": "skipped", "selling_settings": "skipped"}
+
+# Selling Price List (required for Quotation / Sales Order / Sales Invoice)
+# Create "Standard Selling" if no selling+enabled price list exists, then
+# set Selling Settings.selling_price_list to point at it.
+existing_pl = frappe.get_all(
+    "Price List",
+    filters={"selling": 1, "enabled": 1},
+    fields=["name"],
+    limit=1,
+)
+if existing_pl:
+    selling_pl_name = existing_pl[0].get("name")
+    result["price_list"] = f"exists: {selling_pl_name}"
+else:
+    selling_pl_name = "Standard Selling"
+    if not frappe.db.exists("Price List", selling_pl_name):
+        tenant_currency = frappe.db.get_default("currency") or "INR"
+        frappe.get_doc({
+            "doctype": "Price List",
+            "price_list_name": selling_pl_name,
+            "selling": 1,
+            "buying": 0,
+            "enabled": 1,
+            "currency": tenant_currency,
+        }).insert(ignore_permissions=True)
+        result["price_list"] = f"seeded: {selling_pl_name}"
+    else:
+        result["price_list"] = f"exists: {selling_pl_name}"
+
+# Ensure Selling Settings has a default selling_price_list pointing at our list
+try:
+    selling_settings = frappe.get_single("Selling Settings")
+    if not selling_settings.selling_price_list:
+        selling_settings.selling_price_list = selling_pl_name
+        selling_settings.save(ignore_permissions=True)
+        result["selling_settings"] = f"set default: {selling_pl_name}"
+    else:
+        result["selling_settings"] = f"already set: {selling_settings.selling_price_list}"
+except Exception as _ss_err:
+    result["selling_settings"] = f"error: {_ss_err}"
 
 # Territory tree (All Territories → India)
 territory_root = frappe.get_all("Territory", filters={"parent_territory": ""}, fields=["name"], limit=1)
