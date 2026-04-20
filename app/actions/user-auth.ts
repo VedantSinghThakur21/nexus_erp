@@ -486,28 +486,17 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           domain: apiCookieDomain,
         })
 
-        // Sync fresh credentials back to SaaS Tenant master record so the
-        // provisioning service + /api/setup/init always have current keys.
-        // Only sync api_key when we actually have one (skip if still null).
-        try {
-          const tenantRecordName = tenant.name || tenant.subdomain
-          if (apiKey) {
-            await masterRequest('frappe.client.set_value', 'POST', {
-              doctype: 'SaaS Tenant',
-              name: tenantRecordName,
-              fieldname: 'api_key',
-              value: apiKey
-            })
-          }
-          await masterRequest('frappe.client.set_value', 'POST', {
-            doctype: 'SaaS Tenant',
-            name: tenantRecordName,
-            fieldname: 'api_secret',
-            value: apiSecret
-          })
-        } catch {
-          console.warn('Could not sync API credentials to tenant record')
-        }
+        // NOTE: DO NOT overwrite SaaS Tenant.api_key/api_secret here.
+        //
+        // Those master-record fields hold the tenant's Administrator keys
+        // written during provisioning. If we write the logged-in user's keys
+        // here, every login destroys the admin creds and breaks
+        // /api/setup/init + ensureSellingPriceList for that tenant. See
+        // lib/tenant-bootstrap.ts for the admin-creds recovery flow.
+        //
+        // The user's keys are kept in httpOnly cookies above (tenant_api_key
+        // / tenant_api_secret), which is where tenant user operations pull
+        // them from.
 
         // ── Tenant bootstrap safety net ──
         // If this tenant was provisioned before auto-init was reliable, or if
