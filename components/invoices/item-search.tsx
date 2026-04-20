@@ -22,13 +22,21 @@ import { searchItems, getItemGroups } from "@/app/actions/invoices"
 
 interface ItemSearchProps {
   value: string
-  onChange: (value: string, description?: string, itemName?: string) => void
+  onChange: (value: string, description?: string, itemName?: string, rate?: number) => void
   itemGroup?: string // Optional filter by item group
+}
+
+type SearchedItem = {
+  item_code: string
+  item_name: string
+  description: string
+  item_group: string
+  standard_rate?: number
 }
 
 export function ItemSearch({ value, onChange, itemGroup }: ItemSearchProps) {
   const [open, setOpen] = React.useState(false)
-  const [items, setItems] = React.useState<{ item_code: string, item_name: string, description: string, item_group: string }[]>([])
+  const [items, setItems] = React.useState<SearchedItem[]>([])
   const [query, setQuery] = React.useState("")
 
   React.useEffect(() => {
@@ -79,7 +87,7 @@ export function ItemSearch({ value, onChange, itemGroup }: ItemSearchProps) {
                     keywords={[item.item_name, item.item_code]}
                     className="flex items-center justify-between"
                     onSelect={(currentValue) => {
-                      onChange(item.item_code, item.description, item.item_name)
+                      onChange(item.item_code, item.description, item.item_name, item.standard_rate)
                       setOpen(false)
                     }}
                   >

@@ -528,12 +528,19 @@ export default function EditQuotationPage() {
                                 <Label className="text-xs text-muted-foreground">Item Code</Label>
                                 <ItemSearch
                                   value={item.item_code}
-                                  onChange={(code, desc, name) => {
-                                    setItems(prev => prev.map(i =>
-                                      i.id === item.id
-                                        ? { ...i, item_code: code, item_name: name || code, description: desc || i.description }
-                                        : i
-                                    ))
+                                  onChange={(code, desc, name, rate) => {
+                                    setItems(prev => prev.map(i => {
+                                      if (i.id !== item.id) return i
+                                      const nextRate = typeof rate === 'number' && rate > 0 ? rate : i.rate
+                                      return {
+                                        ...i,
+                                        item_code: code,
+                                        item_name: name || code,
+                                        description: desc || i.description,
+                                        rate: nextRate,
+                                        amount: (i.qty || 1) * nextRate,
+                                      }
+                                    }))
                                   }}
                                 />
                               </div>

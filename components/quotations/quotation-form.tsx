@@ -435,13 +435,16 @@ export default function QuotationForm() {
                     <td className="py-2 px-2 min-w-[200px]">
                       <ItemSearch
                         value={item.item_code}
-                        onChange={(itemCode, description, itemName) => {
+                        onChange={(itemCode, description, itemName, rate) => {
                           const newItems = [...items]
+                          const current = newItems[index]
+                          const nextRate = typeof rate === 'number' && rate > 0 ? rate : current.rate
                           newItems[index] = {
-                            ...newItems[index],
+                            ...current,
                             item_code: itemCode,
                             item_name: itemName || itemCode,
-                            description: description || newItems[index].description,
+                            description: description || current.description,
+                            rate: nextRate,
                           }
                           newItems[index].amount = calculateItemAmount(newItems[index])
                           setItems(newItems)

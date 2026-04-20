@@ -702,12 +702,19 @@ export default function NewQuotationPage() {
                           <div className="h-8">
                             <ItemSearch
                               value={item.item_code}
-                              onChange={(code, desc, itemName) => {
-                                setItems(prev => prev.map(i =>
-                                  i.id === item.id
-                                    ? { ...i, item_code: code, item_name: itemName || code, description: desc || i.description }
-                                    : i
-                                ))
+                              onChange={(code, desc, itemName, rate) => {
+                                setItems(prev => prev.map(i => {
+                                  if (i.id !== item.id) return i
+                                  const nextRate = typeof rate === 'number' && rate > 0 ? rate : i.rate
+                                  return {
+                                    ...i,
+                                    item_code: code,
+                                    item_name: itemName || code,
+                                    description: desc || i.description,
+                                    rate: nextRate,
+                                    amount: calculateRowAmount(i.qty, nextRate, i.discount_percentage || 0),
+                                  }
+                                }))
                               }}
                               itemGroup={selectedItemGroup === 'All' ? undefined : selectedItemGroup}
                             />

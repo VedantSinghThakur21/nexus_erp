@@ -344,9 +344,12 @@ export default function NewInvoicePage() {
                       <div className="h-8">
                         <ItemSearch
                           value={item.item_code}
-                          onChange={(code, desc) => {
+                          onChange={(code, desc, _name, rate) => {
                             updateItem(item.id, 'item_code', code)
                             if (desc) updateItem(item.id, 'description', desc)
+                            if (typeof rate === 'number' && rate > 0) {
+                              updateItem(item.id, 'rate', rate)
+                            }
                           }}
                         />
                       </div>

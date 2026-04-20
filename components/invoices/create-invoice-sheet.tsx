@@ -351,13 +351,16 @@ export function CreateInvoiceSheet() {
                                 <Trash2 className="h-4 w-4 mx-auto hidden group-hover:block text-red-500 cursor-pointer" onClick={() => removeItem(item.id)} />
                             </div>
                             <div className="col-span-4 space-y-1">
-                                <ItemSearch 
+                                <ItemSearch
                                     value={item.item_code}
                                     itemGroup={selectedItemGroup}
-                                    onChange={(itemCode, description) => {
+                                    onChange={(itemCode, description, _name, rate) => {
                                         updateItem(item.id, 'item_code', itemCode)
                                         if (description && !item.description) {
                                             updateItem(item.id, 'description', description)
+                                        }
+                                        if (typeof rate === 'number' && rate > 0) {
+                                            updateItem(item.id, 'rate', rate)
                                         }
                                     }}
                                 />
