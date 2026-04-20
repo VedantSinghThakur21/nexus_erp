@@ -999,15 +999,21 @@ export async function createQuotation(quotationData: {
     if (!sellingPriceList) {
       console.warn('[createQuotation] No selling Price List found — attempting self-heal bootstrap')
       try {
+        const { getTenant } = await import('@/lib/tenant')
         const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
-        const bootstrap = await ensureSellingPriceList(quotationData.currency || 'INR')
-        if (bootstrap.priceList) {
-          sellingPriceList = bootstrap.priceList
-          console.log(
-            `[createQuotation] Self-heal OK — priceList=${bootstrap.priceList} created=${bootstrap.created} setDefault=${bootstrap.setAsDefault}`
-          )
-        } else if (bootstrap.error) {
-          console.error('[createQuotation] Self-heal failed:', bootstrap.error)
+        const subdomain = await getTenant()
+        if (subdomain && subdomain !== 'master') {
+          const bootstrap = await ensureSellingPriceList(subdomain, quotationData.currency || 'INR')
+          if (bootstrap.priceList) {
+            sellingPriceList = bootstrap.priceList
+            console.log(
+              `[createQuotation] Self-heal OK — priceList=${bootstrap.priceList} created=${bootstrap.created} setDefault=${bootstrap.setAsDefault}`
+            )
+          } else if (bootstrap.error) {
+            console.error('[createQuotation] Self-heal failed:', bootstrap.error)
+          }
+        } else {
+          console.error('[createQuotation] Cannot self-heal: tenant subdomain not available')
         }
       } catch (e: any) {
         console.error('[createQuotation] Bootstrap helper threw:', e?.message || e)

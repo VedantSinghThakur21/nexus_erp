@@ -522,9 +522,10 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         if (!alreadyBootstrapped) {
           try {
             const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
-            // Temporarily set the tenant API cookies are already set above, so
-            // frappeRequest inside ensureSellingPriceList will target this tenant.
-            const bootstrap = await ensureSellingPriceList('INR')
+            // ensureSellingPriceList fetches the tenant-admin API keys from
+            // the SaaS Tenant master record and uses them directly — normal
+            // tenant users lack System Manager permission to create Price List.
+            const bootstrap = await ensureSellingPriceList(tenant.subdomain, 'INR')
             if (bootstrap.priceList && !bootstrap.error) {
               console.log(
                 `[login-bootstrap] ${tenant.subdomain}: priceList=${bootstrap.priceList} created=${bootstrap.created} setDefault=${bootstrap.setAsDefault}`
