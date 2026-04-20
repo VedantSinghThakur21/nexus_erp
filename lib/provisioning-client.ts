@@ -88,11 +88,20 @@ async function serviceRequest<T>(
       signal: controller.signal,
     })
 
-    const data = await response.json()
+    let data: unknown
+    try {
+      data = await response.json()
+    } catch {
+      data = null
+    }
 
     if (!response.ok) {
+      const detail =
+        data && typeof data === 'object' && typeof (data as Record<string, unknown>).detail === 'string'
+          ? (data as Record<string, unknown>).detail
+          : `Service returned ${response.status}`
       throw new ProvisioningError(
-        data.detail || `Service returned ${response.status}`,
+        detail,
         response.status,
         data,
       )
@@ -238,7 +247,7 @@ export async function generateUserApiKeys(
   userEmail: string,
   timeout = 30_000,
 ): Promise<{ success: boolean; api_key: string; api_secret: string }> {
-  const response = await serviceRequest<Record<string, unknown>>(
+  const response = await serviceRequest<unknown>(
     `/api/v1/generate-user-keys/${encodeURIComponent(subdomain)}`,
     {
       method: 'POST',
@@ -247,6 +256,16 @@ export async function generateUserApiKeys(
     },
   )
 
+  if (!response || typeof response !== 'object') {
+    throw new ProvisioningError(
+      'Provisioning response was empty or non-object',
+      502,
+      response,
+    )
+  }
+
+  const responseRecord = response as Record<string, unknown>
+
   // Backward/forward compatible response extraction:
   // - { api_key, api_secret }
   // - { success, api_key, api_secret }
@@ -254,9 +273,9 @@ export async function generateUserApiKeys(
   // - { data: { api_key, api_secret } }
   // - camelCase variants from older gateways
   const nested =
-    (typeof response.message === 'object' && response.message !== null ? response.message : null) ||
-    (typeof response.data === 'object' && response.data !== null ? response.data : null) ||
-    (typeof response.result === 'object' && response.result !== null ? response.result : null)
+    (typeof responseRecord.message === 'object' && responseRecord.message !== null ? responseRecord.message : null) ||
+    (typeof responseRecord.data === 'object' && responseRecord.data !== null ? responseRecord.data : null) ||
+    (typeof responseRecord.result === 'object' && responseRecord.result !== null ? responseRecord.result : null)
 
   const pick = (obj: Record<string, unknown> | null | undefined, snake: string, camel: string): string | null => {
     if (!obj) return null
@@ -267,18 +286,20 @@ export async function generateUserApiKeys(
     return null
   }
 
-  const top = response as Record<string, unknown>
-  const apiKey = pick(top, 'api_key', 'apiKey') || pick(nested as Record<string, unknown> | null, 'api_key', 'apiKey')
+  const apiKey =
+    pick(responseRecord, 'api_key', 'apiKey') ||
+    pick(nested as Record<string, unknown> | null, 'api_key', 'apiKey')
   const apiSecret =
-    pick(top, 'api_secret', 'apiSecret') || pick(nested as Record<string, unknown> | null, 'api_secret', 'apiSecret')
+    pick(responseRecord, 'api_secret', 'apiSecret') ||
+    pick(nested as Record<string, unknown> | null, 'api_secret', 'apiSecret')
 
   if (!apiKey || !apiSecret) {
     const detail =
-      (typeof top.detail === 'string' && top.detail) ||
-      (typeof top.error === 'string' && top.error) ||
-      (typeof top.message === 'string' && top.message) ||
+      (typeof responseRecord.detail === 'string' && responseRecord.detail) ||
+      (typeof responseRecord.error === 'string' && responseRecord.error) ||
+      (typeof responseRecord.message === 'string' && responseRecord.message) ||
       'Provisioning response missing api_key/api_secret'
-    throw new ProvisioningError(detail, 502, response)
+    throw new ProvisioningError(detail, 502, responseRecord)
   }
 
   return { success: true, api_key: apiKey, api_secret: apiSecret }
