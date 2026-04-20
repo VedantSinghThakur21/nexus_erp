@@ -96,10 +96,14 @@ async function serviceRequest<T>(
     }
 
     if (!response.ok) {
-      const detail =
-        data && typeof data === 'object' && typeof (data as Record<string, unknown>).detail === 'string'
-          ? (data as Record<string, unknown>).detail
-          : `Service returned ${response.status}`
+      let detail = `Service returned ${response.status}`
+      if (
+        data &&
+        typeof data === 'object' &&
+        typeof (data as { detail?: unknown }).detail === 'string'
+      ) {
+        detail = (data as { detail: string }).detail
+      }
       throw new ProvisioningError(
         detail,
         response.status,
