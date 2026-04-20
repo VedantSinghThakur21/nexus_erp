@@ -93,6 +93,7 @@ export default async function PrintSalesOrderPage({ params }: { params: Promise<
               <th className="py-3 px-3 text-center font-semibold text-sm">Operator</th>
               <th className="py-3 px-3 text-right font-semibold text-sm">Qty</th>
               <th className="py-3 px-3 text-right font-semibold text-sm">Rate</th>
+              <th className="py-3 px-3 text-right font-semibold text-sm">Disc%</th>
               <th className="py-3 px-3 text-right font-semibold text-sm">Amount</th>
             </tr>
           </thead>
@@ -156,12 +157,15 @@ export default async function PrintSalesOrderPage({ params }: { params: Promise<
                     </td>
                     <td className="py-3 px-3 align-top text-right text-sm">{item.qty}</td>
                     <td className="py-3 px-3 align-top text-right text-sm">₹{item.rate.toLocaleString('en-IN')}</td>
+                    <td className="py-3 px-3 align-top text-right text-sm">
+                      {Number(item.discount_percentage || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}%
+                    </td>
                     <td className="py-3 px-3 align-top text-right font-medium text-sm">₹{item.amount.toLocaleString('en-IN')}</td>
                   </tr>
                   
                   {isRental && hasBreakdown && (
                     <tr className="border-t border-slate-200">
-                      <td colSpan={7} className="py-4 px-3">
+                      <td colSpan={8} className="py-4 px-3">
                         <div className="pl-8">
                           <p className="text-xs font-semibold text-slate-800 uppercase tracking-wide mb-3 border-b border-slate-300 pb-2">
                             Rate Breakdown

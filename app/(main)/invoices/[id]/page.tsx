@@ -91,10 +91,12 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 <div>
                     <div className="grid grid-cols-12 gap-2 bg-slate-50 dark:bg-background px-4 py-3 text-xs font-medium text-muted-foreground border-b border-slate-200 dark:border-slate-800">
                         <div className="col-span-1">#</div>
-                        <div className="col-span-5">Item & Description</div>
+                        <div className="col-span-4">Item & Description</div>
                         <div className="col-span-2">HSN/SAC</div>
                         <div className="col-span-1 text-right">Qty</div>
-                        <div className="col-span-3 text-right">Amount</div>
+                        <div className="col-span-2 text-right">Rate</div>
+                        <div className="col-span-1 text-right">Disc%</div>
+                        <div className="col-span-1 text-right">Amount</div>
                     </div>
                     <div className="divide-y divide-slate-100 dark:divide-slate-800">
                         {invoice.items?.map((item: any, idx: number) => {
@@ -108,7 +110,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                                     {/* Item Header */}
                                     <div className="grid grid-cols-12 gap-2 text-sm text-slate-700 ">
                                         <div className="col-span-1 text-muted-foreground">{idx + 1}</div>
-                                        <div className="col-span-5">
+                                        <div className="col-span-4">
                                             <div className="flex items-center gap-2">
                                                 <div className="font-medium">{item.item_name || item.item_code}</div>
                                                 {isRental && (
@@ -123,7 +125,11 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                                         </div>
                                         <div className="col-span-2 text-xs text-muted-foreground flex items-center">{item.gst_hsn_code || "—"}</div>
                                         <div className="col-span-1 text-right">{item.qty}</div>
-                                        <div className="col-span-3 text-right font-medium">{item.amount.toLocaleString()}</div>
+                                        <div className="col-span-2 text-right">{Number(item.rate || 0).toLocaleString()}</div>
+                                        <div className="col-span-1 text-right">
+                                          {Number(item.discount_percentage || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}%
+                                        </div>
+                                        <div className="col-span-1 text-right font-medium">{Number(item.amount || 0).toLocaleString()}</div>
                                     </div>
 
                                     {/* Rental Details */}

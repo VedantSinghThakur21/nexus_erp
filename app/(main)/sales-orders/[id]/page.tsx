@@ -260,7 +260,7 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                     </div>
 
                     {/* Standard Item Details */}
-                    <div className="p-4 grid grid-cols-4 gap-4">
+                    <div className="p-4 grid grid-cols-5 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground">Item Code</p>
                         <p className="font-medium">{item.item_code || 'N/A'}</p>
@@ -272,6 +272,12 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
                       <div>
                         <p className="text-xs text-muted-foreground">Rate</p>
                         <p className="font-medium">₹{(item.rate || 0).toLocaleString('en-IN')}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Discount</p>
+                        <p className="font-medium">
+                          {Number(item.discount_percentage || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}%
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Amount</p>

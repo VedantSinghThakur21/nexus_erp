@@ -129,6 +129,7 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
                     <th className="py-2 px-3 text-left font-semibold">HSN/SAC</th>
                     <th className="py-2 px-3 text-right font-semibold">Qty</th>
                     <th className="py-2 px-3 text-right font-semibold">Rate</th>
+                    <th className="py-2 px-3 text-right font-semibold">Disc%</th>
                     <th className="py-2 px-3 text-right font-semibold">Amount</th>
                 </tr>
             </thead>
@@ -193,12 +194,15 @@ export default async function PrintInvoicePage({ params }: { params: Promise<{ i
                                 <td className="py-3 px-3 align-top">{item.gst_hsn_code || "—"}</td>
                                 <td className="py-3 px-3 align-top text-right">{item.qty}</td>
                                 <td className="py-3 px-3 align-top text-right">{item.rate.toLocaleString()}</td>
+                                <td className="py-3 px-3 align-top text-right">
+                                  {Number(item.discount_percentage || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}%
+                                </td>
                                 <td className="py-3 px-3 align-top text-right font-bold">{item.amount.toLocaleString()}</td>
                             </tr>
 
                             {isRental && hasBreakdown && (
                                 <tr className="border-t border-slate-200">
-                                    <td colSpan={8} className="py-4 px-3">
+                                    <td colSpan={9} className="py-4 px-3">
                                         <div className="pl-8">
                                             <p className="text-xs font-semibold text-slate-800 uppercase tracking-wide mb-3 border-b border-slate-300 pb-2">
                                                 Rate Breakdown

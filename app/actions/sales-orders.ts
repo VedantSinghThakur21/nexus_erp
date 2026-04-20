@@ -269,6 +269,9 @@ export async function createSalesOrder(data: any) {
         qty: item.qty,
         uom: item.uom || 'Nos',
         rate: item.rate,
+        // Persist line-item discount. Without this ERPNext will save 0% and the UI
+        // appears to "lose" the discount after reload.
+        discount_percentage: item.discount_percentage ?? 0,
         amount: item.amount,
         delivery_date: item.delivery_date || data.delivery_date
       }
