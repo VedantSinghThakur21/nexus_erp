@@ -914,19 +914,24 @@ export async function createQuotation(quotationData: {
   try {
     // Map frontend rental fields to ERPNext custom fields
     const mappedItems = quotationData.items.map((item: any) => {
+      const discountPct = Number(item.discount_percentage ?? 0) || 0
+      const inputRate = Number(item.rate ?? 0) || 0
+      const discountAmount = inputRate * discountPct / 100
+      const discountedRate = inputRate - discountAmount
+
       const mappedItem: any = {
         item_code: item.item_code,
         item_name: item.item_name || item.item_code,
         description: item.description,
         qty: item.qty,
         uom: item.uom || 'Nos',
-        rate: item.rate,
-        amount: item.amount
-      }
-
-      // Add discount if present
-      if (item.discount_percentage) {
-        mappedItem.discount_percentage = item.discount_percentage
+        // Send all pricing fields so ERPNext keeps the discount regardless of
+        // which it uses to recompute rate/amount.
+        price_list_rate: inputRate,
+        discount_percentage: discountPct,
+        discount_amount: discountAmount,
+        rate: discountedRate,
+        amount: discountedRate * Number(item.qty || 0),
       }
 
       // Map rental fields to custom fields if this is a rental item
@@ -974,6 +979,8 @@ export async function createQuotation(quotationData: {
       valid_till: quotationData.valid_till,
       currency: quotationData.currency,
       order_type: quotationData.order_type,
+      // Prevent Pricing Rules from overwriting our explicit rate/discount values.
+      ignore_pricing_rule: 1,
       items: mappedItems
     }
 

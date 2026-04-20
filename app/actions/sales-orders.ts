@@ -264,20 +264,20 @@ export async function createSalesOrder(data: any) {
     const processedItems = (data.items || []).map((item: any) => {
       const discountPct = Number(item.discount_percentage ?? 0) || 0
       const inputRate = Number(item.rate ?? 0) || 0
+      const discountAmount = inputRate * discountPct / 100
+      const discountedRate = inputRate - discountAmount
       const baseItem: any = {
         item_code: item.item_code,
         item_name: item.item_name,
         description: item.description,
         qty: item.qty,
         uom: item.uom || 'Nos',
-        // ERPNext pricing model:
-        // - price_list_rate: original/base rate
-        // - discount_percentage: discount applied on price_list_rate
-        // - rate/amount are recomputed server-side
+        // ERPNext pricing model: send every field so the recalculator
+        // can't silently drop the discount on any tenant config.
         price_list_rate: inputRate,
         discount_percentage: discountPct,
-        // Keep rate populated to avoid ERPNext validations on some configs.
-        rate: inputRate,
+        discount_amount: discountAmount,
+        rate: discountedRate,
         delivery_date: item.delivery_date || data.delivery_date
       }
       // Include warehouse — use form value or default
@@ -326,6 +326,8 @@ export async function createSalesOrder(data: any) {
       transaction_date: data.transaction_date || new Date().toISOString().split('T')[0],
       delivery_date: data.delivery_date,
       currency: data.currency || 'USD',
+      // Prevent ERPNext Pricing Rules from overwriting our rate/discount values.
+      ignore_pricing_rule: 1,
       items: processedItems
     }
 
@@ -371,6 +373,65 @@ export async function createSalesOrder(data: any) {
     }
 
     const result = await frappeRequest('frappe.client.insert', 'POST', { doc: orderData })
+
+    // Diagnostic + self-heal: verify ERPNext persisted discount_percentage.
+    // On some configs (Pricing Rules / missing Item Price) ERPNext recalculates
+    // and wipes the discount. If so, patch the child rows with frappe.client.save.
+    try {
+      const created = result as any
+      const savedName: string | undefined = created?.name
+      if (savedName) {
+        const saved = await frappeRequest('frappe.client.get', 'GET', {
+          doctype: 'Sales Order',
+          name: savedName,
+        }) as any
+
+        console.log(
+          '[createSalesOrder] saved', savedName,
+          'items:',
+          JSON.stringify((saved?.items || []).map((it: any) => ({
+            item_code: it.item_code,
+            qty: it.qty,
+            price_list_rate: it.price_list_rate,
+            discount_percentage: it.discount_percentage,
+            discount_amount: it.discount_amount,
+            rate: it.rate,
+            amount: it.amount,
+          }))),
+        )
+
+        const wantsDiscount = processedItems.some((it: any) => Number(it.discount_percentage ?? 0) > 0)
+        const lostDiscount = wantsDiscount &&
+          (saved?.items || []).every((it: any) => !Number(it.discount_percentage ?? 0))
+
+        if (lostDiscount) {
+          console.warn('[createSalesOrder] ERPNext dropped discount_percentage — patching via save')
+          const patched = { ...saved }
+          patched.ignore_pricing_rule = 1
+          patched.items = (saved.items || []).map((row: any, idx: number) => {
+            const src = processedItems[idx] || {}
+            const pct = Number(src.discount_percentage ?? 0) || 0
+            const plr = Number(src.price_list_rate ?? row.price_list_rate ?? 0) || 0
+            const da = plr * pct / 100
+            return {
+              ...row,
+              price_list_rate: plr || row.price_list_rate,
+              discount_percentage: pct,
+              discount_amount: da,
+              rate: plr ? plr - da : row.rate,
+            }
+          })
+          try {
+            await frappeRequest('frappe.client.save', 'POST', { doc: patched })
+            console.log('[createSalesOrder] patched discount on', savedName)
+          } catch (patchErr: any) {
+            console.error('[createSalesOrder] discount patch failed:', patchErr?.message || patchErr)
+          }
+        }
+      }
+    } catch (verifyErr: any) {
+      console.warn('[createSalesOrder] post-save verification failed:', verifyErr?.message || verifyErr)
+    }
 
     revalidatePath('/sales-orders')
     return { success: true, data: result }
