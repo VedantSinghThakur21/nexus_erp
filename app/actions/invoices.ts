@@ -358,19 +358,26 @@ export async function createItem(formData: FormData) {
         }
 
         if (company && warehouse) {
+          // ERPNext v15 validation runs before stock_entry_type → purpose is
+          // auto-populated, so we set `purpose` explicitly. For Material Receipt
+          // s_warehouse must be empty and t_warehouse is required per row.
           await frappeRequest('frappe.client.insert', 'POST', {
             doc: {
               doctype: 'Stock Entry',
               stock_entry_type: 'Material Receipt',
+              purpose: 'Material Receipt',
               company,
+              to_warehouse: warehouse,
               items: [{
                 doctype: 'Stock Entry Detail',
                 item_code: itemData.item_code,
                 qty: openingStockQty,
                 uom: itemData.stock_uom,
                 stock_uom: itemData.stock_uom,
+                conversion_factor: 1,
                 t_warehouse: warehouse,
                 basic_rate: itemData.standard_rate || 0,
+                allow_zero_valuation_rate: 1,
               }],
             }
           })

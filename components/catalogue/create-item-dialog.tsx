@@ -28,7 +28,11 @@ let cachedItemGroups: string[] | null = null
 let cachedUoms: string[] | null = null
 let cachedBrands: Brand[] | null = null
 
-export function CreateItemDialog() {
+interface CreateItemDialogProps {
+  onCreated?: () => void
+}
+
+export function CreateItemDialog({ onCreated }: CreateItemDialogProps = {}) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState('')
@@ -163,7 +167,7 @@ export function CreateItemDialog() {
       setSelectedUom('')
       setManualUom('')
       setSelectedBrand('')
-      // Refresh the page to show the new item
+      onCreated?.()
       router.refresh()
     } else {
       alert("Error: " + res.error)

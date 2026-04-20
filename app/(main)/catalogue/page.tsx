@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from "react"
-import { searchItems, ensureItemGroups, getItemDetails } from "@/app/actions/invoices"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { searchItems, getItemDetails } from "@/app/actions/invoices"
 import { getItemRentalAnalytics } from "@/app/actions/bookings"
 import { CreateItemDialog } from "@/components/catalogue/create-item-dialog"
 import { EditItemDialog } from "@/components/catalogue/edit-item-dialog"
@@ -55,22 +55,23 @@ export default function CataloguePage() {
 
   const categories = uniqueItemGroups
 
-  // Load initial data
-  useEffect(() => {
-    async function loadData() {
-      try {
-        await ensureItemGroups()
-        const items = await searchItems('')
-        setAllItems(items)
-      } catch (error) {
-        console.error('Failed to load items:', error)
-        setAllItems([])
-      } finally {
-        setIsLoading(false)
-      }
+  // Single source of truth for loading items (reusable on create/edit)
+  const loadItems = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setIsLoading(true)
+    try {
+      const items = await searchItems('')
+      setAllItems(items)
+    } catch (error) {
+      console.error('Failed to load items:', error)
+      setAllItems([])
+    } finally {
+      setIsLoading(false)
     }
-    loadData()
   }, [])
+
+  useEffect(() => {
+    loadItems(true)
+  }, [loadItems])
 
   // Filter items based on search, categories, and price
   const filteredItems: Item[] = useMemo(() => {
@@ -174,7 +175,7 @@ export default function CataloguePage() {
     <div className="app-shell">
       {/* Header */}
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery}>
-        <CreateItemDialog />
+        <CreateItemDialog onCreated={() => loadItems()} />
       </PageHeader>
 
       {/* Main Content */}
@@ -347,7 +348,7 @@ export default function CataloguePage() {
                         ? "Get started by adding your first item to the catalogue."
                         : "Try adjusting your filters or search query."}
                     </p>
-                    {allItems.length === 0 && <CreateItemDialog />}
+                    {allItems.length === 0 && <CreateItemDialog onCreated={() => loadItems()} />}
                   </div>
                 ) : (
                   paginatedItems.map(item => (
@@ -486,6 +487,7 @@ export default function CataloguePage() {
           item={editingItem}
           open={!!editingItem}
           onClose={() => setEditingItem(null)}
+          onUpdated={() => loadItems()}
         />
       )}
 

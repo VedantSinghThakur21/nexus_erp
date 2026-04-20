@@ -43,9 +43,10 @@ interface EditItemDialogProps {
   }
   open?: boolean
   onClose?: () => void
+  onUpdated?: () => void
 }
 
-export function EditItemDialog({ item, open: controlledOpen, onClose }: EditItemDialogProps) {
+export function EditItemDialog({ item, open: controlledOpen, onClose, onUpdated }: EditItemDialogProps) {
   const isControlled = controlledOpen !== undefined
   const [internalOpen, setInternalOpen] = useState(false)
   const open = isControlled ? controlledOpen : internalOpen
@@ -77,6 +78,7 @@ export function EditItemDialog({ item, open: controlledOpen, onClose }: EditItem
     
     if (res.success) {
       handleOpenChange(false)
+      onUpdated?.()
       router.refresh()
     } else {
       alert("Error: " + res.error)
