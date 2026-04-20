@@ -53,6 +53,7 @@ interface SaasTenantRecord {
   site_url?: string
   api_key?: string
   api_secret?: string
+  owner_email?: string
 }
 
 /** Resolve the tenant's frappe site name (e.g. "testorg.avariq.in"). */
@@ -77,7 +78,7 @@ async function fetchSaasTenantRecord(subdomain: string): Promise<SaasTenantRecor
   const body = {
     doctype: 'SaaS Tenant',
     filters: JSON.stringify([['subdomain', '=', subdomain]]),
-    fields: JSON.stringify(['name', 'subdomain', 'site_url', 'api_key', 'api_secret']),
+    fields: JSON.stringify(['name', 'subdomain', 'site_url', 'api_key', 'api_secret', 'owner_email']),
     limit_page_length: 1,
   }
   try {
@@ -238,13 +239,49 @@ async function resolveAdminCreds(subdomain: string): Promise<TenantAdminCreds | 
     console.warn(`[tenant-bootstrap] No admin keys stored for ${subdomain}. Regenerating via provisioning service.`)
   }
 
-  // Path 2: regenerate Administrator keys via provisioning service
+  // Path 2: regenerate admin keys via provisioning service.
+  //
+  // The service's `generate-user-keys` endpoint validates that
+  // `user_email` looks like an email, so we cannot pass "Administrator"
+  // (which has no email). Fall back in this order:
+  //   a) owner_email recorded on SaaS Tenant — created as System Manager
+  //      during provisioning.
+  //   b) Ask the provisioning service to locate a System Manager on the
+  //      tenant site. (Not implemented as a dedicated endpoint — we rely
+  //      on owner_email which is always set by the provision flow.)
+  const adminEmail = record?.owner_email
+  if (!adminEmail) {
+    console.warn(
+      `[tenant-bootstrap] SaaS Tenant ${subdomain} has no owner_email — cannot regenerate admin keys. ` +
+      `The tenant must be re-provisioned or an owner_email set manually on the master record.`,
+    )
+    return null
+  }
+
   try {
-    const { generateUserApiKeys } = await import('@/lib/provisioning-client')
-    const fresh = await generateUserApiKeys(subdomain, 'Administrator', 30_000)
+    const { generateUserApiKeys, assignUserRoles } = await import('@/lib/provisioning-client')
+
+    // Idempotently ensure the owner actually has the admin role set before
+    // we mint their keys. Otherwise regenerated keys inherit the user's
+    // current (possibly insufficient) roles and Price List creation would
+    // still 403. assignUserRoles runs with ignore_permissions on the
+    // provisioning service side so this works regardless of who we are.
+    try {
+      const { ROLE_SETS } = await import('@/lib/role-sets')
+      await assignUserRoles(subdomain, adminEmail, ROLE_SETS.admin || ['System Manager'])
+    } catch (roleErr: any) {
+      // Non-fatal — owner may already have the roles. Log and proceed.
+      console.warn(
+        `[tenant-bootstrap] assignUserRoles(${subdomain}, ${adminEmail}) warning: ${roleErr?.message || roleErr}`,
+      )
+    }
+
+    const fresh = await generateUserApiKeys(subdomain, adminEmail, 30_000)
     if (fresh?.api_key && fresh?.api_secret) {
-      // Persist back so next time Path 1 works.
       void writeAdminKeysBackToMaster(tenantRecordName, fresh.api_key, fresh.api_secret)
+      console.log(
+        `[tenant-bootstrap] Regenerated admin keys for ${subdomain} via provisioning service (user=${adminEmail}).`,
+      )
       return {
         siteName,
         apiKey: fresh.api_key,
@@ -254,7 +291,7 @@ async function resolveAdminCreds(subdomain: string): Promise<TenantAdminCreds | 
     }
   } catch (e: any) {
     console.warn(
-      `[tenant-bootstrap] generateUserApiKeys(${subdomain}, Administrator) failed: ${e?.message || e}`,
+      `[tenant-bootstrap] generateUserApiKeys(${subdomain}, ${adminEmail}) failed: ${e?.message || e}`,
     )
   }
 
