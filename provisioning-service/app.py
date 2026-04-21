@@ -767,6 +767,131 @@ print(json.dumps(result))
         logger.warning(f"Custom field seeding failed (non-fatal) for {site_name}: {e}")
         steps_completed.append("custom_fields_seed_failed")
 
+    # Step 6c: seed tenant defaults (includes Fiscal Year + selling price list).
+    # This is CRITICAL for production: without an active Fiscal Year that covers
+    # today, ERPNext will block submissions with FiscalYearError.
+    try:
+        seed_code = """import json
+import datetime
+
+result = {"territory": "skipped", "customer_group": "skipped", "item_groups": "skipped", "opportunity_types": "skipped", "sales_stages": "skipped", "price_list": "skipped", "selling_settings": "skipped", "fiscal_year": "skipped"}
+
+# Selling Price List (required for Quotation / Sales Order / Sales Invoice)
+# Create "Standard Selling" if no selling+enabled price list exists, then
+# set Selling Settings.selling_price_list to point at it.
+existing_pl = frappe.get_all(
+    "Price List",
+    filters={"selling": 1, "enabled": 1},
+    fields=["name"],
+    limit=1,
+)
+if existing_pl:
+    selling_pl_name = existing_pl[0].get("name")
+    result["price_list"] = f"exists: {selling_pl_name}"
+else:
+    selling_pl_name = "Standard Selling"
+    if not frappe.db.exists("Price List", selling_pl_name):
+        tenant_currency = frappe.db.get_default("currency") or "INR"
+        frappe.get_doc({
+            "doctype": "Price List",
+            "price_list_name": selling_pl_name,
+            "selling": 1,
+            "buying": 0,
+            "enabled": 1,
+            "currency": tenant_currency,
+        }).insert(ignore_permissions=True)
+        result["price_list"] = f"seeded: {selling_pl_name}"
+    else:
+        result["price_list"] = f"exists: {selling_pl_name}"
+
+# Ensure Selling Settings has a default selling_price_list pointing at our list
+try:
+    selling_settings = frappe.get_single("Selling Settings")
+    if not selling_settings.selling_price_list:
+        selling_settings.selling_price_list = selling_pl_name
+        selling_settings.save(ignore_permissions=True)
+        result["selling_settings"] = f"set default: {selling_pl_name}"
+    else:
+        result["selling_settings"] = f"already set: {selling_settings.selling_price_list}"
+except Exception as _ss_err:
+    result["selling_settings"] = f"error: {_ss_err}"
+
+# Fiscal Year (required to submit Sales Order / Invoice)
+# Ensure today falls into an active fiscal year for the default company.
+# Default to India-style FY: Apr 1 → Mar 31.
+try:
+    company = None
+    try:
+        gd = frappe.get_single("Global Defaults")
+        company = getattr(gd, "default_company", None) or None
+    except Exception:
+        company = None
+    if not company:
+        company = frappe.db.get_default("company") or frappe.db.get_default("default_company")
+
+    today = datetime.date.today()
+    if today.month >= 4:
+        start_year = today.year
+        end_year = today.year + 1
+    else:
+        start_year = today.year - 1
+        end_year = today.year
+
+    fy_name = f"{start_year}-{end_year}"
+    fy_start = datetime.date(start_year, 4, 1)
+    fy_end = datetime.date(end_year, 3, 31)
+
+    if not frappe.db.exists("Fiscal Year", fy_name):
+        fy = frappe.get_doc({
+            "doctype": "Fiscal Year",
+            "year": fy_name,
+            "year_start_date": fy_start,
+            "year_end_date": fy_end,
+            "disabled": 0,
+        })
+        if company:
+            fy.append("companies", {"company": company})
+        fy.insert(ignore_permissions=True)
+        result["fiscal_year"] = f"seeded: {fy_name}"
+    else:
+        result["fiscal_year"] = f"exists: {fy_name}"
+
+    # Mark enabled and ensure company link exists.
+    fy = frappe.get_doc("Fiscal Year", fy_name)
+    changed = False
+    if int(getattr(fy, "disabled", 0) or 0) == 1:
+        fy.disabled = 0
+        changed = True
+    if company:
+        linked = any(getattr(c, "company", None) == company for c in (fy.companies or []))
+        if not linked:
+            fy.append("companies", {"company": company})
+            changed = True
+    if changed:
+        fy.save(ignore_permissions=True)
+
+    # Set Company default fiscal year if missing
+    if company:
+        try:
+            comp = frappe.get_doc("Company", company)
+            if not getattr(comp, "default_fiscal_year", None):
+                comp.default_fiscal_year = fy_name
+                comp.save(ignore_permissions=True)
+        except Exception:
+            pass
+except Exception as _fy_err:
+    result["fiscal_year"] = f"error: {_fy_err}"
+
+frappe.db.commit()
+print(json.dumps(result))
+"""
+        _parse_json_output(run_frappe_code(site_name, seed_code))
+        steps_completed.append("defaults_seeded")
+    except Exception as e:
+        # Non-fatal, but we still surface it in steps so ops can see it.
+        logger.warning(f"Defaults seeding failed (non-fatal) for {site_name}: {e}")
+        steps_completed.append("defaults_seed_failed")
+
     # Step 7: generate API key for tenant admin
     try:
         owner_key_code = f"""
@@ -1018,6 +1143,7 @@ except Exception as _ss_err:
 
 # Fiscal Year (required to submit Sales Order / Invoice)
 # Ensure today falls into an active fiscal year for the default company.
+# Default to India-style FY: Apr 1 → Mar 31.
 try:
     company = None
     try:
@@ -1029,9 +1155,16 @@ try:
         company = frappe.db.get_default("company") or frappe.db.get_default("default_company")
 
     today = datetime.date.today()
-    fy_name = str(today.year)
-    fy_start = datetime.date(today.year, 1, 1)
-    fy_end = datetime.date(today.year, 12, 31)
+    if today.month >= 4:
+        start_year = today.year
+        end_year = today.year + 1
+    else:
+        start_year = today.year - 1
+        end_year = today.year
+
+    fy_name = f"{start_year}-{end_year}"
+    fy_start = datetime.date(start_year, 4, 1)
+    fy_end = datetime.date(end_year, 3, 31)
 
     if not frappe.db.exists("Fiscal Year", fy_name):
         fy = frappe.get_doc({

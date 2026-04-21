@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getProfile, getTeam, getTaxTemplates, getCompany, getBankAccounts } from "@/app/actions/settings";
+import { getProfile, getTeam, getTaxTemplates, getCompany, getBankAccounts, getCurrentFiscalYearInfo, ensureCurrentFiscalYear, type FiscalYearInfo } from "@/app/actions/settings";
 import { InviteUserDialog } from "@/components/settings/invite-user-dialog";
 import { CreateTaxTemplateDialog } from "@/components/settings/create-tax-template-dialog";
 import { EditCompanyDialog } from "@/components/settings/edit-company-dialog";
@@ -46,6 +46,9 @@ export default function SettingsPage() {
   const [taxTemplates, setTaxTemplates] = useState<TaxTemplate[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [fiscalYear, setFiscalYear] = useState<FiscalYearInfo | null>(null);
+  const [fiscalYearLoading, setFiscalYearLoading] = useState(false);
+  const [fiscalYearMessage, setFiscalYearMessage] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -60,6 +63,7 @@ export default function SettingsPage() {
       getTaxTemplates().catch(() => []),
       getCompany().catch(() => null),
       getBankAccounts().catch(() => []),
+      getCurrentFiscalYearInfo().catch(() => null),
     ]).then(([profileData, teamData, taxData, companyData, bankData]) => {
       setProfile(profileData);
       setTeam(teamData);
@@ -69,6 +73,26 @@ export default function SettingsPage() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    // Load fiscal year info separately (keeps settings page responsive)
+    getCurrentFiscalYearInfo()
+      .then(setFiscalYear)
+      .catch(() => setFiscalYear(null));
+  }, []);
+
+  const handleEnsureFiscalYear = async () => {
+    setFiscalYearLoading(true);
+    setFiscalYearMessage(null);
+    const res = await ensureCurrentFiscalYear();
+    if (res.success) {
+      setFiscalYear(res.info ?? null);
+      setFiscalYearMessage("Fiscal Year is configured and active.");
+    } else {
+      setFiscalYearMessage(res.error || "Failed to configure Fiscal Year.");
+    }
+    setFiscalYearLoading(false);
+  };
 
   const toggleTheme = () => {
     document.documentElement.classList.toggle("dark");
@@ -340,6 +364,62 @@ export default function SettingsPage() {
                 <p className="text-sm mt-1">Company needs to be set up in ERPNext first</p>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Fiscal Year */}
+        <section className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+          <div className="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-white">
+              <span className="material-symbols-outlined text-slate-400">event</span>
+              <h2 className="font-semibold text-base">Fiscal Year</h2>
+            </div>
+            <button
+              onClick={handleEnsureFiscalYear}
+              disabled={fiscalYearLoading}
+              className="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg shadow-sm hover:bg-blue-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {fiscalYearLoading ? "Configuring..." : "Create / Fix Fiscal Year"}
+            </button>
+          </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                Current FY (Apr → Mar)
+              </p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
+                {fiscalYear?.year || "Not configured"}
+              </p>
+              <p className="text-[12px] text-muted-foreground mt-1">
+                {fiscalYear?.year_start_date && fiscalYear?.year_end_date
+                  ? `${fiscalYear.year_start_date} → ${fiscalYear.year_end_date}`
+                  : "Fiscal Year is required to submit invoices / stock entries in ERPNext."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                Status
+              </p>
+              {fiscalYear ? (
+                <div className="flex flex-wrap gap-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                    fiscalYear.disabled === 1 ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" : "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                  }`}>
+                    {fiscalYear.disabled === 1 ? "Disabled" : "Active"}
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                    fiscalYear.companyLinked === false ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                  }`}>
+                    {fiscalYear.companyLinked === false ? "Company not linked" : "Company linked"}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Not configured</p>
+              )}
+              {fiscalYearMessage && (
+                <p className="text-[12px] text-muted-foreground">{fiscalYearMessage}</p>
+              )}
+            </div>
           </div>
         </section>
 

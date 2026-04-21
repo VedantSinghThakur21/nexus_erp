@@ -218,7 +218,8 @@ function logApiError(
   status: number,
   siteName: string,
   authSource: string,
-  errorData: Record<string, unknown>
+  errorData: Record<string, unknown>,
+  requestBody: Record<string, unknown> | null = null
 ) {
   const safeErrorData = sanitizeErrorData(errorData)
   const signature =
@@ -233,12 +234,20 @@ function logApiError(
     return
   }
 
+  // Pull the most useful request context out of the body (doctype for generic
+  // frappe.client.* calls, doc name when submitting, etc.) so 403/404/417
+  // errors are diagnosable without a network tab.
+  const requestContext = summarizeRequestBody(requestBody)
+
   console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.error(`[API] ❌ REQUEST FAILED`)
   console.error(`[API] Endpoint: ${endpoint}`)
   console.error(`[API] Status: ${status}`)
   console.error(`[API] Site: ${siteName}`)
   console.error(`[API] Auth Source: ${authSource}`)
+  if (requestContext) {
+    console.error(`[API] Request: ${requestContext}`)
+  }
   console.error(`[API] Response:`, JSON.stringify(safeErrorData))
 
   if (status === 401) {
@@ -255,6 +264,38 @@ function logApiError(
     console.error(`[API] - User is disabled`)
   }
   console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+}
+
+function summarizeRequestBody(body: Record<string, unknown> | null): string | null {
+  if (!body) return null
+  const parts: string[] = []
+
+  // Top-level doctype (frappe.client.get_list, get_value, get_count, delete, etc.)
+  if (typeof body.doctype === 'string' && body.doctype) {
+    parts.push(`doctype=${body.doctype}`)
+  }
+
+  // frappe.client.insert / submit / save — doctype lives inside `doc`
+  const doc = body.doc as Record<string, unknown> | undefined
+  if (doc && typeof doc === 'object') {
+    if (typeof doc.doctype === 'string' && doc.doctype) {
+      parts.push(`doc.doctype=${doc.doctype}`)
+    }
+    if (typeof doc.name === 'string' && doc.name) {
+      parts.push(`doc.name=${doc.name}`)
+    }
+  }
+
+  // Identify the specific record for get / set_value / delete calls
+  if (typeof body.name === 'string' && body.name) {
+    parts.push(`name=${body.name}`)
+  }
+
+  if (typeof body.filters === 'string' && body.filters.length <= 200) {
+    parts.push(`filters=${body.filters}`)
+  }
+
+  return parts.length ? parts.join(' | ') : null
 }
 
 function sanitizeErrorData(errorData: Record<string, unknown>): Record<string, unknown> {
@@ -516,7 +557,7 @@ export async function frappeRequest(
         })
       }
 
-      logApiError(endpoint, response.status, siteName, authSource, data)
+      logApiError(endpoint, response.status, siteName, authSource, data, body)
       if (isAuthenticationFailure(response.status, data)) {
         throw new Error(`SESSION_EXPIRED: ${parseErrorMessage(data)}`)
       }

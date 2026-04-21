@@ -433,5 +433,165 @@ export async function updateBankAccount(name: string, data: {
   }
 }
 
+// ========== FISCAL YEAR MANAGEMENT ==========
+
+export interface FiscalYearInfo {
+  name: string
+  year: string
+  year_start_date?: string
+  year_end_date?: string
+  disabled?: number
+  companyLinked?: boolean
+}
+
+function getIndiaFiscalYearForDate(date: Date): {
+  fyName: string
+  start: Date
+  end: Date
+} {
+  // India-style fiscal year: Apr 1 → Mar 31
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1 // 1-12
+  const startYear = month >= 4 ? year : year - 1
+  const endYear = startYear + 1
+  const start = new Date(Date.UTC(startYear, 3, 1)) // Apr 1
+  const end = new Date(Date.UTC(endYear, 2, 31)) // Mar 31
+  return {
+    fyName: `${startYear}-${endYear}`,
+    start,
+    end,
+  }
+}
+
+export async function getCurrentFiscalYearInfo(): Promise<FiscalYearInfo | null> {
+  try {
+    const { fyName } = getIndiaFiscalYearForDate(new Date())
+
+    const rows = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Fiscal Year',
+      fields: '["name","year","year_start_date","year_end_date","disabled"]',
+      filters: JSON.stringify([['year', '=', fyName]]),
+      limit_page_length: 1,
+    }) as Array<{
+      name: string
+      year: string
+      year_start_date?: string
+      year_end_date?: string
+      disabled?: number
+    }>
+
+    if (!rows?.length) return null
+    const row = rows[0]
+
+    // Company linkage check (best-effort; may be restricted in some permission setups)
+    let companyLinked = false
+    try {
+      const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Company',
+        fields: '["name"]',
+        limit_page_length: 1,
+      }) as Array<{ name: string }>
+      const company = companies?.[0]?.name
+      if (company) {
+        const doc = await frappeRequest('frappe.client.get', 'GET', {
+          doctype: 'Fiscal Year',
+          name: row.name,
+        }) as any
+        const linked = Array.isArray(doc?.companies) ? doc.companies : []
+        companyLinked = linked.some((c: any) => c?.company === company)
+      }
+    } catch {
+      // ignore
+    }
+
+    return {
+      name: row.name,
+      year: row.year,
+      year_start_date: row.year_start_date,
+      year_end_date: row.year_end_date,
+      disabled: typeof row.disabled === 'number' ? row.disabled : undefined,
+      companyLinked,
+    }
+  } catch (e) {
+    console.error('[Fiscal Year] getCurrentFiscalYearInfo failed:', e)
+    return null
+  }
+}
+
+export async function ensureCurrentFiscalYear(): Promise<{ success: boolean; info?: FiscalYearInfo | null; error?: string }> {
+  // Require authentication (settings mutation)
+  try {
+    await assertAuthenticated()
+  } catch {
+    return { success: false, error: 'Unauthorized: authentication required' }
+  }
+
+  try {
+    const { fyName, start, end } = getIndiaFiscalYearForDate(new Date())
+
+    // Resolve tenant company (first company on site)
+    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Company',
+      fields: '["name"]',
+      limit_page_length: 1,
+    }) as Array<{ name: string }>
+    const company = companies?.[0]?.name
+
+    if (!company) {
+      return { success: false, error: 'No Company found on this tenant. Please set up Company in ERPNext first.' }
+    }
+
+    const existing = await frappeRequest('frappe.client.get_list', 'GET', {
+      doctype: 'Fiscal Year',
+      fields: '["name","year","disabled"]',
+      filters: JSON.stringify([['year', '=', fyName]]),
+      limit_page_length: 1,
+    }) as Array<{ name: string; year: string; disabled?: number }>
+
+    if (!existing?.length) {
+      await frappeRequest('frappe.client.insert', 'POST', {
+        doc: {
+          doctype: 'Fiscal Year',
+          year: fyName,
+          year_start_date: start.toISOString().slice(0, 10),
+          year_end_date: end.toISOString().slice(0, 10),
+          disabled: 0,
+          companies: [{ company }],
+        }
+      })
+    } else {
+      const name = existing[0].name
+      const doc = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Fiscal Year', name }) as any
+      const updated = { ...(doc || {}) }
+      updated.disabled = 0
+      const currentCompanies = Array.isArray(updated.companies) ? updated.companies : []
+      const alreadyLinked = currentCompanies.some((c: any) => c?.company === company)
+      if (!alreadyLinked) {
+        currentCompanies.push({ company })
+        updated.companies = currentCompanies
+      }
+      await frappeRequest('frappe.client.save', 'POST', { doc: updated })
+    }
+
+    // Set company default fiscal year (best-effort)
+    try {
+      await frappeRequest('frappe.client.set_value', 'POST', {
+        doctype: 'Company',
+        name: company,
+        fieldname: { default_fiscal_year: fyName },
+      })
+    } catch {
+      // ignore (some setups restrict writing Company)
+    }
+
+    revalidatePath('/settings')
+    const info = await getCurrentFiscalYearInfo()
+    return { success: true, info }
+  } catch (error: any) {
+    console.error('[Fiscal Year] ensureCurrentFiscalYear failed:', error)
+    return { success: false, error: error?.message || 'Failed to create fiscal year' }
+  }
+}
+
 
 
