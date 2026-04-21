@@ -1,5 +1,6 @@
 import { AppSidebar } from '@/components/app-sidebar'
 import { TenantGuard } from '@/components/auth/tenant-guard'
+import { RouteTransitionIndicator } from '@/components/route-transition-indicator'
 import { requireAuth } from '@/lib/auth-guard'
 import { cookies } from 'next/headers'
 
@@ -25,6 +26,7 @@ export default async function TenantAppLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <RouteTransitionIndicator />
       <AppSidebar />
       <main className="flex-1 min-w-0 overflow-y-auto">
         <TenantGuard hasServerAuth={hasServerAuth}>

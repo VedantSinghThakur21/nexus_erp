@@ -1,4 +1,4 @@
-export default function MainLoading() {
+export default function TenantMainLoading() {
   return (
     <div className="p-6">
       <div className="space-y-6">
@@ -13,19 +13,6 @@ export default function MainLoading() {
             <div key={i} className="h-16 animate-pulse rounded-xl border border-border bg-card" />
           ))}
         </div>
-      </div>
-    </div>
-  )
-}
-
-import { Loader2 } from "lucide-react"
-
-export default function Loading() {
-  return (
-    <div className="flex h-full w-full items-center justify-center">
-      <div className="flex flex-col items-center gap-2">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-sm text-muted-foreground">Loading workspace...</p>
       </div>
     </div>
   )

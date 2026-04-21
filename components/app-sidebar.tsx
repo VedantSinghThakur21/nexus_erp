@@ -109,8 +109,44 @@ function SidebarNav({
   onNavigate?: () => void
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { roles, loading, error, refreshRoles } = useUser()
   const [pendingAgentActions, setPendingAgentActions] = useState<number>(0)
+
+  // Prefetch routes once roles are resolved so clicking the sidebar feels instant.
+  useEffect(() => {
+    if (loading) return
+    if (!roles || roles.length === 0) return
+
+    const hrefs = navigationConfig
+      .flatMap((section) => section.items)
+      .filter((item) => canAccessModule(item.module, roles))
+      .map((item) => item.href)
+
+    // Prefetch in idle time so we don't compete with initial rendering.
+    const run = () => {
+      for (const href of hrefs) {
+        try {
+          router.prefetch(href)
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    // requestIdleCallback isn't available in all environments.
+    const ric = (globalThis as any).requestIdleCallback as undefined | ((cb: () => void) => number)
+    if (ric) {
+      const id = ric(run)
+      return () => {
+        const cancel = (globalThis as any).cancelIdleCallback as undefined | ((id: number) => void)
+        if (cancel) cancel(id)
+      }
+    }
+
+    const t = setTimeout(run, 250)
+    return () => clearTimeout(t)
+  }, [loading, roles, router])
 
   useEffect(() => {
     let active = true
@@ -201,7 +237,13 @@ function SidebarNav({
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    prefetch
                     onClick={onNavigate}
+                    onMouseEnter={() => {
+                      try {
+                        router.prefetch(item.href)
+                      } catch {}
+                    }}
                     className={cn(
                       'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors',
                       collapsed && 'justify-center px-2',
