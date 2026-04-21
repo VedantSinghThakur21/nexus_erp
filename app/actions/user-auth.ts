@@ -528,10 +528,11 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           // Fire-and-forget: don't block login on bootstrap
           void (async () => {
             try {
-              const { ensureSellingPriceList, ensureTenantCustomFields } = await import('@/lib/tenant-bootstrap')
-              const [priceListRes, customFieldsRes] = await Promise.all([
+              const { ensureSellingPriceList, ensureTenantCustomFields, ensureTenantDocPerms } = await import('@/lib/tenant-bootstrap')
+              const [priceListRes, customFieldsRes, docPermsRes] = await Promise.all([
                 ensureSellingPriceList(tenant.subdomain, 'INR'),
                 ensureTenantCustomFields(tenant.subdomain),
+                ensureTenantDocPerms(tenant.subdomain),
               ])
 
               if (priceListRes.priceList && !priceListRes.error) {
@@ -545,6 +546,12 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
               if (customFieldsRes.error) {
                 console.warn(
                   `[login-bootstrap] ${tenant.subdomain}: custom fields bootstrap partial — ${customFieldsRes.error}`,
+                )
+              }
+
+              if (docPermsRes.error) {
+                console.warn(
+                  `[login-bootstrap] ${tenant.subdomain}: docperms bootstrap partial — ${docPermsRes.error}`,
                 )
               }
             } catch (bootErr: any) {

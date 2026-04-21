@@ -238,6 +238,25 @@ export async function seedTenantCustomFields(subdomain: string): Promise<{
 }
 
 /**
+ * Ensure tenant DocPerm minimums exist (idempotent).
+ * Used to repair missing permissions for built-in ERPNext doctypes like Quality Inspection.
+ */
+export async function seedTenantDocPerms(subdomain: string): Promise<{
+  success: boolean
+  site: string
+  result: {
+    updated: string[]
+    count: number
+    errors?: string[]
+  }
+}> {
+  return serviceRequest(
+    `/api/v1/seed-docperms/${encodeURIComponent(subdomain)}`,
+    { method: 'POST', timeout: 60_000 },
+  )
+}
+
+/**
  * Fetch tenant-specific catalogue defaults from ERPNext via ignore_permissions.
  * Returns resolved values that are safe to use for Item creation links.
  */

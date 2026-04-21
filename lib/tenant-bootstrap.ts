@@ -37,6 +37,14 @@ export interface EnsureCustomFieldsResult {
   raw?: Record<string, unknown>
 }
 
+export interface EnsureDocPermsResult {
+  updated: string[]
+  count: number
+  errors: string[]
+  error?: string
+  raw?: Record<string, unknown>
+}
+
 const DEFAULT_PRICE_LIST_NAME = 'Standard Selling'
 
 /**
@@ -116,6 +124,35 @@ export async function ensureTenantCustomFields(subdomain: string): Promise<Ensur
     }
   } catch (e: any) {
     result.error = `provisioning seed-custom-fields failed: ${e?.message || e}`
+  }
+
+  return result
+}
+
+/**
+ * Ensure DocPerm minimums exist on the tenant (idempotent).
+ * This repairs missing permissions for ERPNext doctypes used by Nexus modules
+ * (e.g. Quality Inspection for Inspections).
+ */
+export async function ensureTenantDocPerms(subdomain: string): Promise<EnsureDocPermsResult> {
+  const result: EnsureDocPermsResult = {
+    updated: [],
+    count: 0,
+    errors: [],
+  }
+
+  try {
+    const { seedTenantDocPerms } = await import('@/lib/provisioning-client')
+    const resp = await seedTenantDocPerms(subdomain)
+    result.raw = resp?.result as unknown as Record<string, unknown>
+    result.updated = Array.isArray((resp as any)?.result?.updated) ? (resp as any).result.updated : []
+    result.count = typeof (resp as any)?.result?.count === 'number' ? (resp as any).result.count : result.updated.length
+    result.errors = Array.isArray((resp as any)?.result?.errors) ? (resp as any).result.errors : []
+    if (result.errors.length > 0) {
+      result.error = `docperm seed returned errors (${result.errors.length})`
+    }
+  } catch (e: any) {
+    result.error = `provisioning seed-docperms failed: ${e?.message || e}`
   }
 
   return result

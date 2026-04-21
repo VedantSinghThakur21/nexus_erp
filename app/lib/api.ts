@@ -329,11 +329,40 @@ function isDoctypeRolePermissionError(data: Record<string, unknown>): boolean {
   return parseErrorMessage(data).includes('does not have doctype access via role permission')
 }
 
+function extractDeniedDoctypeFromPermissionError(data: Record<string, unknown>): string | null {
+  // Common shapes:
+  // - "No permission for Quality Inspection"
+  // - "User <strong>...</strong> does not have doctype access ... document <strong>Quality Inspection</strong>"
+  const raw = [
+    typeof (data as any)._error_message === 'string' ? (data as any)._error_message : null,
+    parseErrorMessage(data),
+    typeof (data as any).exception === 'string' ? (data as any).exception : null,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const m1 = raw.match(/No permission for\s+([A-Za-z0-9 _-]+)/i)
+  if (m1?.[1]) return m1[1].trim()
+
+  const m2 = raw.match(/document\s+<strong>([^<]+)<\/strong>/i)
+  if (m2?.[1]) return m2[1].trim()
+
+  return null
+}
+
 async function tryRepairTenantRoles(
   context: TenantContext,
   errorData: Record<string, unknown>
 ): Promise<boolean> {
   if (!context.isTenant || !context.subdomain || !isDoctypeRolePermissionError(errorData)) {
+    return false
+  }
+
+  // Role repair is only useful for a narrow class of permission errors (e.g. Has Role child table).
+  // For normal business DocTypes (like Quality Inspection), the fix is DocPerms, not roles.
+  const deniedDoctype = extractDeniedDoctypeFromPermissionError(errorData)
+  const ROLE_REPAIR_ALLOWLIST = new Set(['Has Role', 'User', 'Role'])
+  if (deniedDoctype && !ROLE_REPAIR_ALLOWLIST.has(deniedDoctype)) {
     return false
   }
 

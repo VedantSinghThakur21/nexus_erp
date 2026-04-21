@@ -104,6 +104,13 @@ DOC_PERM_MINIMUM = [
     {"doctype": "Agent Action Log", "role": "Sales Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Agent Action Log", "role": "Projects Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Agent Action Log", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+    # Quality inspections (ERPNext built-in doctype).
+    # Required by the Nexus "Inspections" module which uses Quality Inspection as its backing store.
+    {"doctype": "Quality Inspection", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+    {"doctype": "Quality Inspection", "role": "Projects Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
+    {"doctype": "Quality Inspection", "role": "Stock Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
+    {"doctype": "Quality Inspection", "role": "Stock User", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Quality Inspection", "role": "Sales Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
 ]
 
 INVITE_TYPE_TO_ROLE = {
@@ -1269,6 +1276,70 @@ print(json.dumps(result))
         return {"success": True, "site": site_name, "result": parsed}
     except Exception as e:
         logger.error(f"seed-custom-fields failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/seed-docperms/{subdomain}")
+async def seed_tenant_docperms(subdomain: str, _auth: bool = Depends(verify_api_secret)):
+    """
+    Ensure the minimum DocPerm matrix is present on an existing tenant.
+    This is used to repair tenants provisioned before certain modules (e.g. Inspections)
+    were added, or when ERPNext app updates introduce new doctypes.
+    Idempotent — safe to call multiple times.
+    """
+    site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+
+    try:
+        docperm_code = f"""
+import json
+
+matrix = {json.dumps(DOC_PERM_MINIMUM)}
+updated = []
+errors = []
+
+def upsert(row):
+    try:
+        filters = {{
+            "parent": row["doctype"],
+            "parenttype": "DocType",
+            "parentfield": "permissions",
+            "role": row["role"],
+            "permlevel": 0,
+        }}
+        name = frappe.db.exists("DocPerm", filters)
+        doc = frappe.get_doc("DocPerm", name) if name else frappe.new_doc("DocPerm")
+        doc.parent = row["doctype"]
+        doc.parenttype = "DocType"
+        doc.parentfield = "permissions"
+        doc.role = row["role"]
+        doc.permlevel = 0
+        doc.read = int(row.get("read", 0))
+        doc.write = int(row.get("write", 0))
+        doc.create = int(row.get("create", 0))
+        doc.delete = int(row.get("delete", 0))
+        doc.submit = int(row.get("submit", 0))
+        doc.cancel = int(row.get("cancel", 0))
+        doc.amend = int(row.get("amend", 0))
+        if name:
+            doc.save(ignore_permissions=True)
+        else:
+            doc.insert(ignore_permissions=True)
+        updated.append(f'{{row["doctype"]}}:{{row["role"]}}')
+    except Exception as e:
+        errors.append(f'{{row.get("doctype")}}:{{row.get("role")}}: {{e}}')
+
+for row in matrix:
+    upsert(row)
+
+frappe.db.commit()
+print(json.dumps({{"updated": updated, "count": len(updated), "errors": errors}}))
+"""
+
+        parsed = _parse_json_output(run_frappe_code(site_name, docperm_code))
+        logger.info(f"seed-docperms for {site_name}: {parsed}")
+        return {"success": True, "site": site_name, "result": parsed}
+    except Exception as e:
+        logger.error(f"seed-docperms failed for {site_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
