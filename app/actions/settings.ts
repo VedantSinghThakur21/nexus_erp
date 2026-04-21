@@ -467,18 +467,31 @@ export async function getCurrentFiscalYearInfo(): Promise<FiscalYearInfo | null>
   try {
     const { fyName } = getIndiaFiscalYearForDate(new Date())
 
-    const rows = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Fiscal Year',
-      fields: '["name","year","year_start_date","year_end_date","disabled"]',
-      filters: JSON.stringify([['year', '=', fyName]]),
-      limit_page_length: 1,
-    }) as Array<{
+    // Prefer ERP session cookie auth (sid) so permissions match the logged-in user.
+    // Fall back to token-based requests if session cookie is not present.
+    let rows: Array<{
       name: string
       year: string
       year_start_date?: string
       year_end_date?: string
       disabled?: number
-    }>
+    }> = []
+
+    try {
+      rows = await userRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Fiscal Year',
+        fields: '["name","year","year_start_date","year_end_date","disabled"]',
+        filters: JSON.stringify([['year', '=', fyName]]),
+        limit_page_length: 1,
+      }) as any
+    } catch {
+      rows = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Fiscal Year',
+        fields: '["name","year","year_start_date","year_end_date","disabled"]',
+        filters: JSON.stringify([['year', '=', fyName]]),
+        limit_page_length: 1,
+      }) as any
+    }
 
     if (!rows?.length) return null
     const row = rows[0]
@@ -493,10 +506,12 @@ export async function getCurrentFiscalYearInfo(): Promise<FiscalYearInfo | null>
       }) as Array<{ name: string }>
       const company = companies?.[0]?.name
       if (company) {
-        const doc = await frappeRequest('frappe.client.get', 'GET', {
-          doctype: 'Fiscal Year',
-          name: row.name,
-        }) as any
+        let doc: any
+        try {
+          doc = await userRequest('frappe.client.get', 'GET', { doctype: 'Fiscal Year', name: row.name }) as any
+        } catch {
+          doc = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Fiscal Year', name: row.name }) as any
+        }
         const linked = Array.isArray(doc?.companies) ? doc.companies : []
         companyLinked = linked.some((c: any) => c?.company === company)
       }
@@ -519,18 +534,11 @@ export async function getCurrentFiscalYearInfo(): Promise<FiscalYearInfo | null>
 }
 
 export async function ensureCurrentFiscalYear(): Promise<{ success: boolean; info?: FiscalYearInfo | null; error?: string }> {
-  // Require authentication (settings mutation)
-  try {
-    await assertAuthenticated()
-  } catch {
-    return { success: false, error: 'Unauthorized: authentication required' }
-  }
-
   try {
     const { fyName, start, end } = getIndiaFiscalYearForDate(new Date())
 
     // Resolve tenant company (first company on site)
-    const companies = await frappeRequest('frappe.client.get_list', 'GET', {
+    const companies = await userRequest('frappe.client.get_list', 'GET', {
       doctype: 'Company',
       fields: '["name"]',
       limit_page_length: 1,
@@ -541,7 +549,7 @@ export async function ensureCurrentFiscalYear(): Promise<{ success: boolean; inf
       return { success: false, error: 'No Company found on this tenant. Please set up Company in ERPNext first.' }
     }
 
-    const existing = await frappeRequest('frappe.client.get_list', 'GET', {
+    const existing = await userRequest('frappe.client.get_list', 'GET', {
       doctype: 'Fiscal Year',
       fields: '["name","year","disabled"]',
       filters: JSON.stringify([['year', '=', fyName]]),
@@ -549,7 +557,7 @@ export async function ensureCurrentFiscalYear(): Promise<{ success: boolean; inf
     }) as Array<{ name: string; year: string; disabled?: number }>
 
     if (!existing?.length) {
-      await frappeRequest('frappe.client.insert', 'POST', {
+      await userRequest('frappe.client.insert', 'POST', {
         doc: {
           doctype: 'Fiscal Year',
           year: fyName,
@@ -561,7 +569,7 @@ export async function ensureCurrentFiscalYear(): Promise<{ success: boolean; inf
       })
     } else {
       const name = existing[0].name
-      const doc = await frappeRequest('frappe.client.get', 'GET', { doctype: 'Fiscal Year', name }) as any
+      const doc = await userRequest('frappe.client.get', 'GET', { doctype: 'Fiscal Year', name }) as any
       const updated = { ...(doc || {}) }
       updated.disabled = 0
       const currentCompanies = Array.isArray(updated.companies) ? updated.companies : []
@@ -570,12 +578,12 @@ export async function ensureCurrentFiscalYear(): Promise<{ success: boolean; inf
         currentCompanies.push({ company })
         updated.companies = currentCompanies
       }
-      await frappeRequest('frappe.client.save', 'POST', { doc: updated })
+      await userRequest('frappe.client.save', 'POST', { doc: updated })
     }
 
     // Set company default fiscal year (best-effort)
     try {
-      await frappeRequest('frappe.client.set_value', 'POST', {
+      await userRequest('frappe.client.set_value', 'POST', {
         doctype: 'Company',
         name: company,
         fieldname: { default_fiscal_year: fyName },
@@ -589,7 +597,11 @@ export async function ensureCurrentFiscalYear(): Promise<{ success: boolean; inf
     return { success: true, info }
   } catch (error: any) {
     console.error('[Fiscal Year] ensureCurrentFiscalYear failed:', error)
-    return { success: false, error: error?.message || 'Failed to create fiscal year' }
+    const message = error?.message || 'Failed to create fiscal year'
+    if (message.includes('Not authenticated - no session cookie found')) {
+      return { success: false, error: 'Unauthorized: please login again (missing ERP session cookie).' }
+    }
+    return { success: false, error: message }
   }
 }
 
