@@ -972,8 +972,9 @@ async def seed_tenant_defaults(subdomain: str, _auth: bool = Depends(verify_api_
     site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
 
     seed_code = """import json
+import datetime
 
-result = {"territory": "skipped", "customer_group": "skipped", "item_groups": "skipped", "opportunity_types": "skipped", "sales_stages": "skipped", "price_list": "skipped", "selling_settings": "skipped"}
+result = {"territory": "skipped", "customer_group": "skipped", "item_groups": "skipped", "opportunity_types": "skipped", "sales_stages": "skipped", "price_list": "skipped", "selling_settings": "skipped", "fiscal_year": "skipped"}
 
 # Selling Price List (required for Quotation / Sales Order / Sales Invoice)
 # Create "Standard Selling" if no selling+enabled price list exists, then
@@ -1014,6 +1015,64 @@ try:
         result["selling_settings"] = f"already set: {selling_settings.selling_price_list}"
 except Exception as _ss_err:
     result["selling_settings"] = f"error: {_ss_err}"
+
+# Fiscal Year (required to submit Sales Order / Invoice)
+# Ensure today falls into an active fiscal year for the default company.
+try:
+    company = None
+    try:
+        gd = frappe.get_single("Global Defaults")
+        company = getattr(gd, "default_company", None) or None
+    except Exception:
+        company = None
+    if not company:
+        company = frappe.db.get_default("company") or frappe.db.get_default("default_company")
+
+    today = datetime.date.today()
+    fy_name = str(today.year)
+    fy_start = datetime.date(today.year, 1, 1)
+    fy_end = datetime.date(today.year, 12, 31)
+
+    if not frappe.db.exists("Fiscal Year", fy_name):
+        fy = frappe.get_doc({
+            "doctype": "Fiscal Year",
+            "year": fy_name,
+            "year_start_date": fy_start,
+            "year_end_date": fy_end,
+            "disabled": 0,
+        })
+        if company:
+            fy.append("companies", {"company": company})
+        fy.insert(ignore_permissions=True)
+        result["fiscal_year"] = f"seeded: {fy_name}"
+    else:
+        result["fiscal_year"] = f"exists: {fy_name}"
+
+    # Mark enabled and ensure company link exists.
+    fy = frappe.get_doc("Fiscal Year", fy_name)
+    changed = False
+    if int(getattr(fy, "disabled", 0) or 0) == 1:
+        fy.disabled = 0
+        changed = True
+    if company:
+        linked = any(getattr(c, "company", None) == company for c in (fy.companies or []))
+        if not linked:
+            fy.append("companies", {"company": company})
+            changed = True
+    if changed:
+        fy.save(ignore_permissions=True)
+
+    # Set Company default fiscal year if missing
+    if company:
+        try:
+            comp = frappe.get_doc("Company", company)
+            if not getattr(comp, "default_fiscal_year", None):
+                comp.default_fiscal_year = fy_name
+                comp.save(ignore_permissions=True)
+        except Exception:
+            pass
+except Exception as _fy_err:
+    result["fiscal_year"] = f"error: {_fy_err}"
 
 # Territory tree (All Territories → India)
 territory_root = frappe.get_all("Territory", filters={"parent_territory": ""}, fields=["name"], limit=1)

@@ -485,6 +485,30 @@ export async function submitSalesOrder(id: string) {
     revalidatePath(`/sales-orders/${id}`);
     return { success: true };
   } catch (error: any) {
+    // Auto-repair common tenant misconfiguration: missing Fiscal Year.
+    // This is safe + idempotent and avoids forcing the user to log out/in.
+    const message = String(error?.message || '')
+    if (message.includes('not in any active Fiscal Year')) {
+      try {
+        const { getTenant } = await import('@/lib/tenant')
+        const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
+        const subdomain = await getTenant()
+        if (subdomain && subdomain !== 'master') {
+          await ensureSellingPriceList(subdomain, 'INR')
+          // Retry submit once after seeding fiscal year / defaults.
+          const refreshedDoc = await frappeRequest('frappe.client.get', 'GET', {
+            doctype: 'Sales Order',
+            name: id,
+          }) as any
+          await frappeRequest('frappe.client.submit', 'POST', { doc: refreshedDoc })
+          revalidatePath('/sales-orders')
+          revalidatePath(`/sales-orders/${id}`)
+          return { success: true }
+        }
+      } catch (repairErr) {
+        // fall through to error return
+      }
+    }
     console.error("Failed to submit sales order:", error);
     return { error: error.message || 'Failed to submit sales order' };
   }

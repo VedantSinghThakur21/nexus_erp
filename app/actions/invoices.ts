@@ -832,6 +832,27 @@ export async function submitInvoice(id: string) {
     revalidatePath('/invoices')
     return { success: true }
   } catch (error: any) {
+    const message = String(error?.message || '')
+    if (message.includes('not in any active Fiscal Year')) {
+      try {
+        const { getTenant } = await import('@/lib/tenant')
+        const { ensureSellingPriceList } = await import('@/lib/tenant-bootstrap')
+        const subdomain = await getTenant()
+        if (subdomain && subdomain !== 'master') {
+          await ensureSellingPriceList(subdomain, 'INR')
+          const refreshed = await frappeRequest('frappe.client.get', 'GET', {
+            doctype: 'Sales Invoice',
+            name: id,
+          }) as any
+          await frappeRequest('frappe.client.submit', 'POST', { doc: refreshed })
+          revalidatePath(`/invoices/${id}`)
+          revalidatePath('/invoices')
+          return { success: true }
+        }
+      } catch {
+        // fall through
+      }
+    }
     console.error("Submit error:", error)
     return { error: error.message || 'Failed to submit invoice' }
   }
