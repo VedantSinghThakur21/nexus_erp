@@ -501,6 +501,7 @@ export async function createTenantEmployee(
     cell_number?: string
     date_of_birth: string
     date_of_joining?: string
+    gender?: string
     bio?: string
     status?: string
   },

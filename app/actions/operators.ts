@@ -67,6 +67,7 @@ export async function createOperator(formData: FormData) {
     const email = formData.get('email')?.toString() || ''
     const phone = formData.get('phone')?.toString() || ''
     const dateOfBirth = formData.get('date_of_birth')?.toString() || ''
+    const gender = formData.get('gender')?.toString() || ''
     const licenseNumber = formData.get('license_number')?.toString() || ''
     const licenseExpiry = formData.get('license_expiry')?.toString() || ''
     const dateOfJoining = formData.get('date_of_joining')?.toString() || new Date().toISOString().split('T')[0]
@@ -78,6 +79,9 @@ export async function createOperator(formData: FormData) {
     if (!dateOfBirth) {
       throw new Error('Date of birth is required')
     }
+    if (!gender) {
+      throw new Error('Gender is required')
+    }
 
     // Build operator data for ERPNext Employee doctype
     const operatorData = {
@@ -87,6 +91,7 @@ export async function createOperator(formData: FormData) {
       employee_name: `${firstName} ${lastName}`.trim(),
       date_of_birth: dateOfBirth,
       date_of_joining: dateOfJoining,
+      gender,
       status: 'Active',
       cell_number: phone,
       email: email,
@@ -116,6 +121,7 @@ export async function createOperator(formData: FormData) {
         cell_number: phone,
         date_of_birth: dateOfBirth,
         date_of_joining: dateOfJoining,
+        gender,
         status: 'Active',
         bio: operatorData.bio,
       })

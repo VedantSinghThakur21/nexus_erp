@@ -1584,7 +1584,7 @@ async def create_employee(subdomain: str, request: Request, _auth: bool = Depend
     """
     Create an Employee record on a tenant site with ignore_permissions.
     Body: { first_name, last_name?, email?, cell_number?, date_of_birth,
-            date_of_joining?, bio?, status? }
+            gender?, date_of_joining?, bio?, status? }
     """
     import re
     if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
@@ -1610,6 +1610,10 @@ if not date_of_birth:
 
 date_of_joining = data.get("date_of_joining") or str(datetime.date.today())
 
+gender = (data.get("gender") or "").strip()
+if not gender:
+    raise ValueError("gender is required")
+
 doc = {{
     "doctype": "Employee",
     "first_name": first_name,
@@ -1617,6 +1621,7 @@ doc = {{
     "employee_name": f"{{first_name}} {{last_name}}".strip(),
     "date_of_birth": date_of_birth,
     "date_of_joining": date_of_joining,
+    "gender": gender,
     "status": data.get("status") or "Active",
     "cell_number": data.get("cell_number") or "",
 }}
