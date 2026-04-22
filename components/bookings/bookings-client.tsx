@@ -86,7 +86,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   const filteredBookings = useMemo(() => {
     if (statusFilter === 'All Statuses') return bookings
     if (statusFilter === 'Draft') return bookings.filter(b => b.status === 'Draft')
-    if (statusFilter === 'Active') return bookings.filter(b => b.status === 'To Deliver and Bill')
+    if (statusFilter === 'Active') return bookings.filter(b => b.status === 'To Deliver and Bill' || b.status === 'To Deliver' || (b.per_delivered > 0 && b.status !== 'Completed'))
     if (statusFilter === 'Completed') return bookings.filter(b => b.status === 'Completed')
     return bookings
   }, [bookings, statusFilter])
@@ -147,14 +147,12 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   }
 
   // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Draft': return 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
-      case 'To Deliver and Bill': return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400'
-      case 'Completed': return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-      case 'Cancelled': return 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
-      default: return 'bg-slate-100 dark:bg-slate-800 text-slate-700 '
-    }
+  const getStatusColor = (booking: Booking) => {
+    if (booking.status === 'Completed') return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+    if (booking.status === 'Cancelled') return 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+    if (booking.per_delivered >= 100) return 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400'
+    if (booking.status === 'Draft') return 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
+    return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' // Default to "To Deliver"
   }
 
   // Get sentiment (mock for now - based on total)
@@ -188,7 +186,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
           <div className="mt-2 space-y-1">
             {dayBookings.slice(0, 2).map((booking, idx) => (
               <Link key={`${booking.name}-${idx}`} href={`/bookings/${booking.name}`}>
-                <div className={`${getStatusColor(booking.status)} text-[10px] p-1 rounded font-medium truncate cursor-pointer hover:opacity-80`}>
+                <div className={`${getStatusColor(booking)} text-[10px] p-1 rounded font-medium truncate cursor-pointer hover:opacity-80`}>
                   {booking.customer_name}
                 </div>
               </Link>
@@ -374,11 +372,15 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-              <span className="text-xs text-slate-600  font-medium">To Deliver and Bill</span>
+              <span className="text-xs text-slate-600 font-medium">To Deliver</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+              <span className="text-xs text-slate-600 font-medium">Deployed (On Rent)</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span className="text-xs text-slate-600  font-medium">Completed</span>
+              <span className="text-xs text-slate-600 font-medium">Completed</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-400"></span>
@@ -422,8 +424,15 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h4 className="text-base font-semibold text-slate-900 dark:text-white">{booking.customer_name}</h4>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusColor(booking.status)}`}>
-                            {booking.status === 'Draft' ? 'DRAFT' : booking.status === 'To Deliver and Bill' ? 'TO DELIVER' : booking.status}
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            booking.status === 'Completed' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' :
+                            booking.per_delivered >= 100 ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400' :
+                            booking.status === 'Draft' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' :
+                            'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400'
+                          }`}>
+                            {booking.status === 'Completed' ? 'COMPLETED / RETURNED' : 
+                             booking.per_delivered >= 100 ? 'DEPLOYED (ON RENT)' :
+                             booking.status === 'Draft' ? 'DRAFT' : 'TO DELIVER'}
                           </span>
                           {sentiment.text && (
                             <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sentiment.color === 'emerald' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : sentiment.color === 'amber' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'}`}>
