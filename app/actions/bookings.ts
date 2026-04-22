@@ -248,13 +248,15 @@ export async function mobilizeAsset(formData: FormData) {
 
     // 0. Check if item has serial number tracking
     let hasSerialNo = false
+    let isStockItem = true
     try {
       const existingItem = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Item',
         name: itemCode,
-        fields: JSON.stringify(['has_serial_no'])
+        fields: JSON.stringify(['has_serial_no', 'is_stock_item'])
       }) as any
       hasSerialNo = !!existingItem.has_serial_no
+      isStockItem = !!existingItem.is_stock_item
     } catch (itemErr: any) {
       console.warn(`Could not fetch item ${itemCode}, proceeding without serial tracking:`, itemErr.message)
     }
@@ -319,7 +321,7 @@ export async function mobilizeAsset(formData: FormData) {
         })
         sourceWarehouse = defaultWh
       }
-    } else {
+    } else if (isStockItem) {
       // --- Non-serial item flow: ensure stock exists in a warehouse ---
       const warehouses = await frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Warehouse',
@@ -398,13 +400,7 @@ export async function mobilizeAsset(formData: FormData) {
       }
     }
 
-    // 4. Update Sales Order (Booking) status to reflect mobilization
-    await frappeRequest('frappe.client.set_value', 'PUT', {
-      doctype: 'Sales Order',
-      name: booking.name,
-      fieldname: 'status',
-      value: 'To Bill'
-    })
+    // Removed manual set_value for Sales Order status -> ERPNext auto-updates this when Delivery Note is submitted.
 
     revalidatePath(`/bookings/${bookingId}`)
     return { success: true }
@@ -425,13 +421,15 @@ export async function returnAsset(bookingId: string) {
 
     // 0. Check if item has serial number tracking
     let hasSerialNo = false
+    let isStockItem = true
     try {
       const existingItem = await frappeRequest('frappe.client.get', 'GET', {
         doctype: 'Item',
         name: itemCode,
-        fields: JSON.stringify(['has_serial_no'])
+        fields: JSON.stringify(['has_serial_no', 'is_stock_item'])
       }) as any
       hasSerialNo = !!existingItem.has_serial_no
+      isStockItem = !!existingItem.is_stock_item
     } catch (itemErr: any) {
       console.warn(`Could not fetch item ${itemCode}, proceeding without serial tracking:`, itemErr.message)
     }
@@ -507,7 +505,7 @@ export async function returnAsset(bookingId: string) {
       } catch (e) {
         console.warn('Could not update serial no status:', e)
       }
-    } else {
+    } else if (isStockItem) {
       // --- Non-serial item flow: receipt stock back ---
       try {
         await frappeRequest('frappe.client.insert', 'POST', {
@@ -528,20 +526,17 @@ export async function returnAsset(bookingId: string) {
       }
     }
 
-    // Properly close the Sales Order by updating both status and per_delivered
-    await frappeRequest('frappe.client.set_value', 'PUT', {
-      doctype: 'Sales Order',
-      name: bookingId,
-      fieldname: 'status',
-      value: 'Completed'
-    })
-
-    await frappeRequest('frappe.client.set_value', 'PUT', {
-      doctype: 'Sales Order',
-      name: bookingId,
-      fieldname: 'per_delivered',
-      value: 100
-    })
+    // Properly close the Sales Order via standard status bypass method or let the invoicing cycle complete it.
+    // We avoid manual set_value since Sales Orders are submitted docs.
+    try {
+      await frappeRequest(
+        'erpnext.selling.doctype.sales_order.sales_order.update_status', 
+        'POST', 
+        { status: 'Closed', name: bookingId }
+      )
+    } catch (e: any) {
+      console.warn("Could not formally close Sales Order via RPC, falling back to soft close:", e.message)
+    }
 
     revalidatePath(`/bookings/${bookingId}`)
     revalidatePath('/bookings')

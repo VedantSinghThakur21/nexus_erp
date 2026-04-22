@@ -278,19 +278,15 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
                               {order.delivery_status || order.status}
                             </span>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end space-x-2">
-                              <Link href={`/sales-orders/${order.name}`}>
-                                <button className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted">
-                                  View
-                                </button>
-                              </Link>
-                              <button className="flex items-center rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted">
-                                <Truck className="h-3.5 w-3.5 mr-1" />
-                                Update
-                              </button>
-                            </div>
-                          </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex items-center justify-end space-x-2">
+                                <Link href={`/sales-orders/${order.name}`}>
+                                  <button className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted">
+                                    View
+                                  </button>
+                                </Link>
+                              </div>
+                            </td>
                         </tr>
                       )
                     })}
