@@ -244,6 +244,24 @@ export async function mobilizeAsset(formData: FormData) {
     if (!booking) throw new Error("Booking not found")
     if (!booking.items || booking.items.length === 0) throw new Error("Booking has no items")
 
+    // Idempotency Check: Don't mobilize if Delivery Note already exists 
+    // This prevents OverAllowanceError if a previous API cycle partially completed or user retries.
+    try {
+      const existingDn = await frappeRequest('frappe.client.get_list', 'GET', {
+        doctype: 'Delivery Note',
+        filters: JSON.stringify([
+          ['Delivery Note Item', 'against_sales_order', '=', bookingId],
+          ['docstatus', '<', 2] // Not cancelled
+        ]),
+        limit_page_length: 1
+      }) as any[]
+      if (existingDn && existingDn.length > 0) {
+        console.log(`Booking ${bookingId} already has a Delivery Note. Idempotently returning success.`)
+        revalidatePath(`/bookings/${bookingId}`)
+        return { success: true }
+      }
+    } catch(e) { /* ignore */ }
+
     const itemCode = booking.items[0].item_code
 
     // 0. Check if item has serial number tracking
