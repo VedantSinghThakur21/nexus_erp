@@ -113,6 +113,12 @@ DOC_PERM_MINIMUM = [
     {"doctype": "Quality Inspection", "role": "Stock Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
     {"doctype": "Quality Inspection", "role": "Stock User", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Quality Inspection", "role": "Sales Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
+    # Operators module: backed by ERPNext "Employee" (HR) doctype.
+    # ERPNext does not guarantee create permission for Employee for our role set,
+    # so we enforce a minimal matrix here.
+    {"doctype": "Employee", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+    {"doctype": "Employee", "role": "Projects Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Employee", "role": "Stock Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
 ]
 
 INVITE_TYPE_TO_ROLE = {

@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canAccessModule, canPerformAction } from '@/lib/role-permissions'
-import { getTenantContext, tenantAdminRequest } from '@/app/lib/api'
+import { getTenantContext } from '@/app/lib/api'
 
 
 /**
@@ -61,7 +61,11 @@ export async function requireAuth(): Promise<AuthResult> {
  * Fetch user roles from the current tenant's Frappe site.
  *
  * Primary: provisioning service (uses ignore_permissions=True).
- * Fallback: direct Has Role child-table query via tenant credentials.
+ *
+ * NOTE: We intentionally do NOT fall back to querying the `Has Role` DocType via
+ * frappe.client.get_list because ERPNext frequently blocks that child table over
+ * REST (403 PermissionError) even for privileged users. In production the
+ * provisioning service must be reachable; if it is not, we fail closed (empty roles).
  */
 async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
   // ── Primary: provisioning service ──────────────────────────────────────────
@@ -76,30 +80,7 @@ async function getUserRolesFromFrappe(userEmail: string): Promise<string[]> {
       }
     }
   } catch {
-    // Provisioning service unavailable — fall through to direct query.
-  }
-
-  // ── Fallback: direct Has Role query ────────────────────────────────────────
-  try {
-    const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Has Role',
-      fields: ['role'],
-      filters: [['parent', '=', userEmail], ['parenttype', '=', 'User']],
-      limit_page_length: 200,
-    }) as any[]
-
-    if (Array.isArray(roleRows)) {
-      const roles = roleRows
-        .map(r => r?.role)
-        .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
-
-      if (roles.length > 0) return roles
-    }
-  } catch (error) {
-    const message = String((error as Error)?.message || '')
-    if (!message.includes('PermissionError')) {
-      console.error(`[API Auth] Failed to fetch roles for ${userEmail}:`, error)
-    }
+    // Provisioning service unavailable — fail closed below.
   }
 
   return []

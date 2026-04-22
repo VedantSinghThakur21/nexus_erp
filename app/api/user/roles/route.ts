@@ -4,8 +4,7 @@
  * Fetches current user's roles from Frappe ERPNext backend.
  * Uses multiple fallback strategies:
  *   1. Provisioning service (ignore_permissions) — most reliable
- *   2. tenantAdminRequest → frappe.client.get_list on Has Role (fallback)
- *   3. role_profile_name mapping (last resort)
+ *   2. role_profile_name mapping (fallback)
  *
  * The provisioning service is primary because tenant users' own API keys
  * typically lack read access to the Has Role child table (403 PermissionError).
@@ -106,31 +105,7 @@ export async function GET(_request: NextRequest) {
       }
     }
 
-    // ── Step 3: Fallback — direct Has Role query via tenant credentials ──────
-    // Only attempted if provisioning service was unavailable or returned nothing.
-    if (roles.length === 0) {
-      try {
-        const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Has Role',
-          fields: ['role'],
-          filters: [['parent', '=', userEmail], ['parenttype', '=', 'User']],
-          limit_page_length: 200,
-        }) as any[]
-
-        if (Array.isArray(roleRows)) {
-          roles = roleRows
-            .map((row: any) => row?.role)
-            .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
-        }
-      } catch (rolesListErr: any) {
-        const message = String(rolesListErr?.message || 'Unknown error')
-        if (shouldLogRoleApi(`roles-list-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
-          console.warn(`[/api/user/roles] Has Role lookup failed for ${userEmail}:`, message)
-        }
-      }
-    }
-
-    // ── Step 3b: Optional role profile fetch via get_value ───────────────────
+    // ── Step 3: Optional role profile fetch via get_value ───────────────────
     if (!roleProfileName) {
       try {
         const profile = await tenantAdminRequest('frappe.client.get_value', 'GET', {
