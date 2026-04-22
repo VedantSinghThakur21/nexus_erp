@@ -459,6 +459,105 @@ export async function deprovisionTenantSite(subdomain: string): Promise<{ succes
 }
 
 // ============================================================================
+// Employee CRUD (Operators module)
+// All calls use ignore_permissions=True on the Frappe side — no role required.
+// ============================================================================
+
+export interface TenantEmployee {
+  name: string
+  employee_name: string
+  status: string
+  date_of_joining?: string
+  cell_number?: string
+  bio?: string
+  date_of_birth?: string
+  creation?: string
+}
+
+/**
+ * List active employees on a tenant site via the provisioning service.
+ * Bypasses Frappe RBAC entirely (ignore_permissions=True).
+ */
+export async function listTenantEmployees(
+  subdomain: string,
+): Promise<{ success: boolean; site: string; employees: TenantEmployee[] }> {
+  return serviceRequest(
+    `/api/v1/employees/${encodeURIComponent(subdomain)}`,
+    { timeout: 30_000 },
+  )
+}
+
+/**
+ * Create an Employee on a tenant site via the provisioning service.
+ * Body fields: first_name (required), last_name, email, cell_number,
+ *              date_of_birth (required), date_of_joining, bio, status.
+ */
+export async function createTenantEmployee(
+  subdomain: string,
+  payload: {
+    first_name: string
+    last_name?: string
+    email?: string
+    cell_number?: string
+    date_of_birth: string
+    date_of_joining?: string
+    bio?: string
+    status?: string
+  },
+): Promise<{ success: boolean; site: string; employee: TenantEmployee }> {
+  return serviceRequest(
+    `/api/v1/create-employee/${encodeURIComponent(subdomain)}`,
+    {
+      method: 'POST',
+      body: payload as unknown as Record<string, unknown>,
+      timeout: 45_000,
+    },
+  )
+}
+
+/**
+ * Update an Employee on a tenant site via the provisioning service.
+ * employeeId is the Frappe document name (e.g. "EMP-0001").
+ */
+export async function updateTenantEmployee(
+  subdomain: string,
+  employeeId: string,
+  payload: Partial<{
+    first_name: string
+    last_name: string
+    email: string
+    cell_number: string
+    date_of_birth: string
+    date_of_joining: string
+    bio: string
+    status: string
+  }>,
+): Promise<{ success: boolean; site: string; employee: TenantEmployee }> {
+  return serviceRequest(
+    `/api/v1/update-employee/${encodeURIComponent(subdomain)}/${encodeURIComponent(employeeId)}`,
+    {
+      method: 'PUT',
+      body: payload as unknown as Record<string, unknown>,
+      timeout: 45_000,
+    },
+  )
+}
+
+/**
+ * Soft-delete (deactivate) an Employee on a tenant site.
+ * Sets status=Inactive to preserve audit trail.
+ */
+export async function deleteTenantEmployee(
+  subdomain: string,
+  employeeId: string,
+): Promise<{ success: boolean; site: string; result: { name: string; status: string } }> {
+  return serviceRequest(
+    `/api/v1/delete-employee/${encodeURIComponent(subdomain)}/${encodeURIComponent(employeeId)}`,
+    { method: 'DELETE', timeout: 30_000 },
+  )
+}
+
+// ============================================================================
 // Error Class
 // ============================================================================
 

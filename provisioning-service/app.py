@@ -117,8 +117,9 @@ DOC_PERM_MINIMUM = [
     # ERPNext does not guarantee create permission for Employee for our role set,
     # so we enforce a minimal matrix here.
     {"doctype": "Employee", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
-    {"doctype": "Employee", "role": "Projects Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
-    {"doctype": "Employee", "role": "Stock Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Employee", "role": "Projects Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+    {"doctype": "Employee", "role": "Stock Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
+    {"doctype": "Employee", "role": "Stock User", "read": 1, "write": 0, "create": 0, "delete": 0},
 ]
 
 INVITE_TYPE_TO_ROLE = {
@@ -1544,6 +1545,214 @@ print(json.dumps({{"updated": updated, "count": len(updated), "errors": errors}}
 
 
 
+@app.get("/api/v1/employees/{subdomain}")
+async def list_employees(subdomain: str, _auth: bool = Depends(verify_api_secret)):
+    """
+    List active Employee records on a tenant site.
+    Uses ignore_permissions=True — no Frappe role required on the caller side.
+    """
+    import re
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    site_name = get_site_name(subdomain)
+
+    list_code = """import json
+employees = frappe.get_all(
+    "Employee",
+    filters={"status": "Active"},
+    fields=["name", "employee_name", "status", "date_of_joining",
+            "cell_number", "bio", "date_of_birth", "creation"],
+    order_by="creation desc",
+    limit=500,
+    ignore_permissions=True,
+)
+print(json.dumps(employees, default=str))
+"""
+
+    try:
+        output = run_frappe_code(site_name, list_code)
+        employees = _parse_json_output_list(output)
+        return {"success": True, "site": site_name, "employees": employees}
+    except Exception as e:
+        logger.error(f"list-employees failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/create-employee/{subdomain}")
+async def create_employee(subdomain: str, request: Request, _auth: bool = Depends(verify_api_secret)):
+    """
+    Create an Employee record on a tenant site with ignore_permissions.
+    Body: { first_name, last_name?, email?, cell_number?, date_of_birth,
+            date_of_joining?, bio?, status? }
+    """
+    import re
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    payload = await request.json()
+    site_name = get_site_name(subdomain)
+    safe_payload = json.dumps(payload)
+
+    create_code = f"""import json
+import datetime
+
+data = json.loads({json.dumps(safe_payload)})
+
+first_name = (data.get("first_name") or "").strip()
+last_name = (data.get("last_name") or "").strip()
+if not first_name:
+    raise ValueError("first_name is required")
+
+date_of_birth = data.get("date_of_birth")
+if not date_of_birth:
+    raise ValueError("date_of_birth is required")
+
+date_of_joining = data.get("date_of_joining") or str(datetime.date.today())
+
+doc = {{
+    "doctype": "Employee",
+    "first_name": first_name,
+    "last_name": last_name,
+    "employee_name": f"{{first_name}} {{last_name}}".strip(),
+    "date_of_birth": date_of_birth,
+    "date_of_joining": date_of_joining,
+    "status": data.get("status") or "Active",
+    "cell_number": data.get("cell_number") or "",
+}}
+
+if data.get("personal_email") or data.get("email"):
+    doc["personal_email"] = data.get("personal_email") or data.get("email")
+if data.get("bio"):
+    doc["bio"] = data.get("bio")
+
+employee = frappe.get_doc(doc)
+employee.insert(ignore_permissions=True)
+frappe.db.commit()
+
+print(json.dumps({{
+    "name": employee.name,
+    "employee_name": employee.employee_name,
+    "status": employee.status,
+    "date_of_joining": str(employee.date_of_joining or ""),
+    "date_of_birth": str(employee.date_of_birth or ""),
+    "cell_number": employee.cell_number or "",
+    "bio": employee.bio or "",
+}}))
+"""
+
+    try:
+        output = run_frappe_code(site_name, create_code)
+        created = _parse_json_output(output)
+        if not created or created.get("error"):
+            raise HTTPException(status_code=422, detail=created.get("error", "Employee creation failed"))
+        return {"success": True, "site": site_name, "employee": created}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"create-employee failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/update-employee/{subdomain}/{employee_id}")
+async def update_employee(
+    subdomain: str,
+    employee_id: str,
+    request: Request,
+    _auth: bool = Depends(verify_api_secret),
+):
+    """
+    Update an Employee record on a tenant site with ignore_permissions.
+    employee_id is the Frappe document name (e.g. "EMP-0001").
+    Body: any subset of Employee fields to update.
+    """
+    import re
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    payload = await request.json()
+    site_name = get_site_name(subdomain)
+    safe_payload = json.dumps(payload)
+    safe_id = json.dumps(employee_id)
+
+    update_code = f"""import json
+
+data = json.loads({json.dumps(safe_payload)})
+employee_id = {safe_id}
+
+employee = frappe.get_doc("Employee", employee_id)
+
+for field in ["first_name", "last_name", "date_of_birth", "date_of_joining",
+              "cell_number", "bio", "status"]:
+    if field in data and data[field] is not None:
+        setattr(employee, field, data[field])
+
+if "personal_email" in data or "email" in data:
+    employee.personal_email = data.get("personal_email") or data.get("email")
+
+if "first_name" in data or "last_name" in data:
+    first = employee.first_name or ""
+    last = employee.last_name or ""
+    employee.employee_name = f"{{first}} {{last}}".strip()
+
+employee.save(ignore_permissions=True)
+frappe.db.commit()
+
+print(json.dumps({{
+    "name": employee.name,
+    "employee_name": employee.employee_name,
+    "status": employee.status,
+}}))
+"""
+
+    try:
+        output = run_frappe_code(site_name, update_code)
+        updated = _parse_json_output(output)
+        if not updated or updated.get("error"):
+            raise HTTPException(status_code=422, detail=updated.get("error", "Employee update failed"))
+        return {"success": True, "site": site_name, "employee": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"update-employee failed for {site_name}/{employee_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/v1/delete-employee/{subdomain}/{employee_id}")
+async def delete_employee(
+    subdomain: str,
+    employee_id: str,
+    _auth: bool = Depends(verify_api_secret),
+):
+    """
+    Soft-delete (deactivate) an Employee record on a tenant site.
+    Sets status to Inactive to preserve audit trail.
+    """
+    import re
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    site_name = get_site_name(subdomain)
+    safe_id = json.dumps(employee_id)
+
+    delete_code = f"""import json
+employee_id = {safe_id}
+employee = frappe.get_doc("Employee", employee_id)
+employee.status = "Inactive"
+employee.save(ignore_permissions=True)
+frappe.db.commit()
+print(json.dumps({{"name": employee_id, "status": "Inactive"}}))
+"""
+
+    try:
+        output = run_frappe_code(site_name, delete_code)
+        result = _parse_json_output(output)
+        return {"success": True, "site": site_name, "result": result}
+    except Exception as e:
+        logger.error(f"delete-employee failed for {site_name}/{employee_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/v1/catalog-defaults/{subdomain}")
 async def get_catalog_defaults(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """
@@ -2104,6 +2313,20 @@ def _parse_json_output(output: str) -> dict:
 
     logger.warning(f"Could not parse JSON from output: {output[:300]}")
     return {}
+
+
+def _parse_json_output_list(output: str) -> list:
+    """Parse a JSON array from the last line of Frappe script output."""
+    for line in reversed(output.strip().splitlines()):
+        line = line.strip()
+        if line.startswith("[") and line.endswith("]"):
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+    logger.warning(f"Could not parse JSON list from output: {output[:300]}")
+    return []
 
 
 def _cleanup_failed_site(site_name: str):
