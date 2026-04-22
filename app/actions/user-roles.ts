@@ -140,13 +140,70 @@ export async function updateUserRoles(email: string, roles: string[]) {
 
 /**
  * Get roles for a specific user (and their module access count)
+ *
+ * Strategy:
+ *   1. Provisioning service (ignore_permissions — most reliable)
+ *   2. role_profile_name → static mapping fallback
+ *   3. frappe.client.get as last resort (often returns empty due to Frappe
+ *      permission restrictions on the Has Role child table)
  */
 export async function getUserRolesForUser(email: string): Promise<string[]> {
+  const PROFILE_ROLES: Record<string, string[]> = {
+    'Administrator': ['System Manager'],
+    'System Manager': ['System Manager'],
+    'Sales Manager': ['Sales Manager', 'Sales User'],
+    'Sales User': ['Sales User'],
+    'Accounts Manager': ['Accounts Manager', 'Accounts User'],
+    'Accounts User': ['Accounts User'],
+    'Projects Manager': ['Projects Manager', 'Projects User'],
+    'Projects User': ['Projects User'],
+    'Standard User': ['Employee', 'Sales User'],
+    'Employee': ['Employee', 'Sales User'],
+  }
+
+  // ── 1. Provisioning service (primary) ──────────────────────────────────────
+  try {
+    const headersList = await headers()
+    const subdomain = headersList.get('x-tenant-id')
+    if (subdomain && subdomain !== 'master') {
+      const { getUserRoles: getProvRoles } = await import('@/lib/provisioning-client')
+      const provData = await getProvRoles(subdomain, email)
+      const provRoles = (provData.roles || []).filter(
+        (r: string) => typeof r === 'string' && r !== 'All'
+      )
+      if (provRoles.length > 0) {
+        return provRoles
+      }
+      // If provisioning returned no roles but has a role_profile_name, derive roles
+      if (provData.role_profile_name) {
+        const derived = PROFILE_ROLES[provData.role_profile_name] || []
+        if (derived.length > 0) return derived
+      }
+    }
+  } catch (provErr: any) {
+    console.warn(`[getUserRolesForUser] Provisioning failed for ${email}:`, provErr?.message)
+  }
+
+  // ── 2. role_profile_name fallback via get_value ────────────────────────────
   try {
     const siteOverride = await getTenantSiteName()
-    // Prefer tenant-scoped credentials for tenant targets.
-    // Fetch the full User doc using GET rather than POST to prevent Node.js stream timeouts,
-    // and correctly access the 'roles' child table (which Frappe restricts direct get_list queries against).
+    const profile = await frappeRequest('frappe.client.get_value', 'GET', {
+      doctype: 'User',
+      filters: JSON.stringify({ name: email }),
+      fieldname: JSON.stringify(['role_profile_name']),
+    }, { siteOverride }) as any
+    const rpn = profile?.message?.role_profile_name || profile?.role_profile_name
+    if (rpn) {
+      const derived = PROFILE_ROLES[rpn] || []
+      if (derived.length > 0) return derived
+    }
+  } catch {
+    // Optional enrichment — continue to next fallback
+  }
+
+  // ── 3. frappe.client.get (last resort — often empty for non-admin users) ──
+  try {
+    const siteOverride = await getTenantSiteName()
     const response = await frappeRequest('frappe.client.get', 'GET', {
       doctype: 'User',
       name: email,
@@ -159,11 +216,11 @@ export async function getUserRolesForUser(email: string): Promise<string[]> {
         .map((r: any) => r.role || r.name)
         .filter((r: string) => r && r !== 'All')
     }
-    return []
   } catch (error) {
-    console.error(`[getUserRolesForUser] Failed to fetch roles for ${email}:`, error)
-    return []
+    console.error(`[getUserRolesForUser] All strategies failed for ${email}:`, error)
   }
+
+  return []
 }
 
 /**

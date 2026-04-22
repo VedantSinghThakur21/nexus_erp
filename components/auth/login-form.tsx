@@ -26,6 +26,8 @@ export function LoginForm() {
         throw new Error(result.error || "Invalid credentials")
       }
 
+      try { sessionStorage.removeItem('nexus_user_roles_cache') } catch {}
+
       if ("redirectUrl" in result && result.redirectUrl) {
         window.location.href = result.redirectUrl
         return

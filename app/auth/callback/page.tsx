@@ -73,6 +73,7 @@ function AuthCallbackContent() {
 
         // 7. Clean up state
         sessionStorage.removeItem('oauth_state')
+        sessionStorage.removeItem('nexus_user_roles_cache')
 
         // 8. Redirect to dashboard or original destination
         const redirectTo = sessionStorage.getItem('auth_redirect') || '/dashboard'

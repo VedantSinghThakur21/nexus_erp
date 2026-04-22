@@ -35,19 +35,11 @@ export async function getUserProfile(): Promise<UserProfile | null> {
         const lastName = userData?.last_name || ''
         const fullName = userData?.full_name || `${firstName} ${lastName}`.trim() || userEmail.split('@')[0]
 
-        // Fetch user's primary role
+        // Fetch user's primary role via the shared provisioning-first strategy
         let role = 'User'
         try {
-            // Fetch user document with roles using user's own tenant credentials.
-            // Users can read their own User doc in Frappe.
-            const userDoc = await frappeRequest('frappe.client.get', 'POST', {
-                doctype: 'User',
-                name: userEmail,
-                fields: JSON.stringify(['name', 'roles', 'role_profile_name'])
-            }) as any
-
-            const roles = userDoc?.roles || []
-            // Priority order for display
+            const { getUserRolesForUser } = await import('@/app/actions/user-roles')
+            const userRoles = await getUserRolesForUser(userEmail)
             const roleHierarchy = [
                 'System Manager',
                 'Sales Manager',
@@ -57,16 +49,9 @@ export async function getUserProfile(): Promise<UserProfile | null> {
                 'HR Manager',
                 'Employee'
             ]
-            const userRoles = roles
-                .map((r: any) => r.role)
-                .filter((r: string) => r && r !== 'All')
             const primaryRole = roleHierarchy.find(r => userRoles.includes(r)) || userRoles[0]
             if (primaryRole) {
                 role = primaryRole
-            } else if (userDoc?.role_profile_name) {
-                // Roles array empty but profile name set — derive role from profile name
-                const profileRole = roleHierarchy.find(r => r === userDoc.role_profile_name) || userDoc.role_profile_name
-                role = profileRole
             }
         } catch {
             // Silently ignore role fetch errors

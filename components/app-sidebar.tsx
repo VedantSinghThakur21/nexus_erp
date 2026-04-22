@@ -281,6 +281,7 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
     setLoggingOut(true)
     try {
       await logoutUser()
+      try { sessionStorage.removeItem('nexus_user_roles_cache') } catch {}
       await signOut({ redirect: false })
     } finally {
       router.push('/login')
