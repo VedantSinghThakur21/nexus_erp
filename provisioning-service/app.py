@@ -1758,6 +1758,73 @@ print(json.dumps({{"name": employee_id, "status": "Inactive"}}))
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/v1/items/{subdomain}")
+async def list_items(
+    subdomain: str,
+    q: str | None = None,
+    item_group: str | None = None,
+    limit: int = 500,
+    _auth: bool = Depends(verify_api_secret),
+):
+    """
+    List Items on a tenant site using ignore_permissions=True.
+    Query params:
+      - q: optional search term (matches item_code or item_name)
+      - item_group: optional exact Item Group filter
+      - limit: max rows (default 500)
+    """
+    import re
+    if not re.match(r'^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$', subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    site_name = get_site_name(subdomain)
+    safe_q = json.dumps((q or "").strip())
+    safe_group = json.dumps((item_group or "").strip())
+    safe_limit = int(limit) if isinstance(limit, int) else 500
+    if safe_limit <= 0:
+        safe_limit = 500
+    if safe_limit > 2000:
+        safe_limit = 2000
+
+    list_code = f"""import json
+
+q = {safe_q}
+item_group = {safe_group}
+limit = {safe_limit}
+
+filters = {{"disabled": 0}}
+if item_group:
+    filters["item_group"] = item_group
+
+or_filters = None
+if q:
+    or_filters = [
+        ["Item", "item_code", "like", f"%{{q}}%"],
+        ["Item", "item_name", "like", f"%{{q}}%"],
+    ]
+
+items = frappe.get_all(
+    "Item",
+    filters=filters,
+    or_filters=or_filters,
+    fields=["item_code", "item_name", "description", "item_group", "standard_rate", "is_stock_item"],
+    order_by="item_group asc, item_code asc",
+    limit=limit,
+    ignore_permissions=True,
+)
+
+print(json.dumps(items, default=str))
+"""
+
+    try:
+        output = run_frappe_code(site_name, list_code)
+        items = _parse_json_output_list(output)
+        return {"success": True, "site": site_name, "items": items}
+    except Exception as e:
+        logger.error(f"list-items failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/v1/catalog-defaults/{subdomain}")
 async def get_catalog_defaults(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """

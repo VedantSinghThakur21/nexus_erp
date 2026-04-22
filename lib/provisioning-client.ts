@@ -276,6 +276,34 @@ export async function getTenantCatalogDefaults(subdomain: string): Promise<{
   )
 }
 
+export interface TenantItem {
+  item_code: string
+  item_name: string
+  description?: string
+  item_group?: string
+  standard_rate?: number
+  is_stock_item?: boolean
+}
+
+/**
+ * List Items on a tenant site via the provisioning service (ignore_permissions).
+ */
+export async function listTenantItems(
+  subdomain: string,
+  params?: { q?: string; item_group?: string; limit?: number },
+): Promise<{ success: boolean; site: string; items: TenantItem[] }> {
+  const qs = new URLSearchParams()
+  if (params?.q) qs.set('q', params.q)
+  if (params?.item_group) qs.set('item_group', params.item_group)
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
+
+  const suffix = qs.toString()
+  return serviceRequest(
+    `/api/v1/items/${encodeURIComponent(subdomain)}${suffix ? `?${suffix}` : ''}`,
+    { timeout: 30_000 },
+  )
+}
+
 /**
  * Create an Item on a tenant site via provisioning service with ignore_permissions.
  * The service resolves valid Item Group/UOM links against tenant masters.

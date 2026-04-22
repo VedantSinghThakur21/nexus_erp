@@ -990,8 +990,40 @@ export async function searchItems(query: string, itemGroup?: string) {
       available: boolean
     })[]
   } catch (error) {
-    console.error('[searchItems] Error:', error)
-    return []
+    const message = String((error as Error)?.message || '')
+    const isPermission =
+      message.includes('PermissionError') ||
+      message.includes('Insufficient Permission') ||
+      message.includes('does not have doctype access')
+
+    if (!isPermission) {
+      console.error('[searchItems] Error:', error)
+      return []
+    }
+
+    // Fallback: provisioning service (ignore_permissions) so dropdowns (inspections/catalogue)
+    // still work even if the tenant user's DocPerms for Item/Bin are incomplete.
+    try {
+      const context = await getTenantContext()
+      if (!context.isTenant || !context.subdomain) return []
+
+      const { listTenantItems } = await import('@/lib/provisioning-client')
+      const res = await listTenantItems(context.subdomain, {
+        q: query || '',
+        item_group: itemGroup && itemGroup !== 'All' ? itemGroup : undefined,
+        limit: 500,
+      })
+
+      const items = (res.items || []) as any[]
+      return items.map((item: any) => ({
+        ...item,
+        stock_qty: null,
+        available: true,
+      }))
+    } catch (fallbackError) {
+      console.error('[searchItems] Provisioning fallback failed:', fallbackError)
+      return []
+    }
   }
 }
 
