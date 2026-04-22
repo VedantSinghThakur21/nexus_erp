@@ -56,7 +56,7 @@ export async function createInspection(formData: FormData) {
         doctype: 'Delivery Note',
         fields: JSON.stringify(['name']),
         filters: JSON.stringify([['Delivery Note Item', 'item_code', '=', machineValue]]),
-        order_by: 'creation desc',
+        order_by: '`tabDelivery Note`.creation desc',
         limit_page_length: 1
       }) as any[]
       if (dns && dns.length > 0) {
@@ -74,7 +74,7 @@ export async function createInspection(formData: FormData) {
           doctype: 'Stock Entry',
           fields: JSON.stringify(['name']),
           filters: JSON.stringify([['Stock Entry Detail', 'item_code', '=', machineValue]]),
-          order_by: 'creation desc',
+          order_by: '`tabStock Entry`.creation desc',
           limit_page_length: 1
         }) as any[]
         if (stes && stes.length > 0) {
@@ -98,12 +98,27 @@ export async function createInspection(formData: FormData) {
         }) as any[]
         const toWarehouse = warehouses[0]?.name || 'Stores - ERP - A'
 
+        const companyRes = await frappeRequest('frappe.client.get_list', 'GET', {
+          doctype: 'Company',
+          fields: JSON.stringify(['name']),
+          limit_page_length: 1
+        }) as any[]
+        const defaultCompany = companyRes[0]?.name
+
         const ste = await frappeRequest('frappe.client.insert', 'POST', {
           doc: {
             doctype: 'Stock Entry',
             stock_entry_type: 'Material Receipt',
+            purpose: 'Material Receipt',
+            company: defaultCompany,
             to_warehouse: toWarehouse,
-            items: [{ item_code: machineValue, qty: 1, basic_rate: 0 }],
+            items: [{
+              item_code: machineValue,
+              qty: 1,
+              basic_rate: 0,
+              t_warehouse: toWarehouse,
+              allow_zero_valuation_rate: 1
+            }],
             docstatus: 1
           }
         }) as any
@@ -219,7 +234,7 @@ export async function getAssetInspections(itemCode: string, salesOrderId?: strin
         doctype: 'Delivery Note',
         fields: JSON.stringify(['name']),
         filters: JSON.stringify([['Delivery Note Item', 'against_sales_order', '=', salesOrderId]]),
-        order_by: 'creation desc',
+        order_by: '`tabDelivery Note`.creation desc',
         limit_page_length: 10
       }) as any[]
 
