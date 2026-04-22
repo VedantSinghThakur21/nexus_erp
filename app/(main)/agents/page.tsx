@@ -173,39 +173,47 @@ export default function AgentsPage() {
         {/* KPI Cards - Matching Leads Page Styling */}
         <section className="w-full border-b border-border/60 bg-background/40">
           <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-4 px-4 py-4 md:grid-cols-3 md:px-6 md:py-5">
-          <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-none transition-all">
-            <div>
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
-                Total Queries
-              </p>
-              <h3 className="mt-0.5 text-xl font-bold text-foreground">{kpis.totalQueries}</h3>
+            <div className="rounded-xl border border-border bg-card p-6 shadow-none">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
+                  Total Queries
+                </span>
+                <div className="rounded-lg bg-slate-700/50 p-2 text-slate-300">
+                  <span className="material-symbols-outlined text-xl">query_stats</span>
+                </div>
+              </div>
+              <div className="mt-2 flex items-end justify-between">
+                <span className="text-3xl font-bold text-foreground leading-none">{kpis.totalQueries}</span>
+              </div>
             </div>
-            <div className="p-2 bg-slate-700/50 rounded-lg text-slate-300">
-              <span className="material-symbols-outlined text-xl">query_stats</span>
+
+            <div className="rounded-xl border border-border bg-card p-6 shadow-none">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
+                  Accuracy
+                </span>
+                <div className="rounded-lg bg-green-500/10 p-2 text-green-400">
+                  <span className="material-symbols-outlined text-xl">verified</span>
+                </div>
+              </div>
+              <div className="mt-2 flex items-end justify-between">
+                <span className="text-3xl font-bold text-foreground leading-none">{kpis.accuracy}</span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-none transition-all">
-            <div>
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
-                Accuracy
-              </p>
-              <h3 className="mt-0.5 text-xl font-bold text-foreground">{kpis.accuracy}</h3>
+
+            <div className="rounded-xl border border-border bg-card p-6 shadow-none">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
+                  Efficiency Boost
+                </span>
+                <div className="rounded-lg bg-blue-500/10 p-2 text-blue-400">
+                  <span className="material-symbols-outlined text-xl">trending_up</span>
+                </div>
+              </div>
+              <div className="mt-2 flex items-end justify-between">
+                <span className="text-3xl font-bold text-foreground leading-none">{kpis.efficiencyBoost}</span>
+              </div>
             </div>
-            <div className="p-2 bg-green-500/10 rounded-lg text-green-400">
-              <span className="material-symbols-outlined text-xl">verified</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-none transition-all">
-            <div>
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
-                Efficiency Boost
-              </p>
-              <h3 className="mt-0.5 text-xl font-bold text-foreground">{kpis.efficiencyBoost}</h3>
-            </div>
-            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-              <span className="material-symbols-outlined text-xl">trending_up</span>
-            </div>
-          </div>
           </div>
         </section>
 
