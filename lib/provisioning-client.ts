@@ -67,7 +67,7 @@ interface ServiceHealth {
 async function serviceRequest<T>(
   path: string,
   options: {
-    method?: 'GET' | 'POST' | 'DELETE'
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
     body?: Record<string, unknown>
     timeout?: number
   } = {}
