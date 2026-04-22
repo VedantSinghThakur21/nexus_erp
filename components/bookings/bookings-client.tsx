@@ -16,6 +16,7 @@ interface Booking {
   items: any[]
   docstatus: number
   per_delivered: number
+  delivery_status?: string
 }
 
 interface BookingsClientProps {
@@ -70,7 +71,7 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
 
   // Calculate KPIs
   const totalBookings = bookings.length
-  const activeRentals = bookings.filter(b => b.status === 'To Deliver and Bill' || b.per_delivered > 0).length
+  const activeRentals = bookings.filter(b => b.status === 'To Deliver and Bill' || b.per_delivered > 0 || (b.delivery_status && b.delivery_status !== 'Not Delivered')).length
   const revenueMTD = bookings
     .filter(b => {
       const transactionDate = new Date(b.transaction_date)
@@ -86,8 +87,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   const filteredBookings = useMemo(() => {
     if (statusFilter === 'All Statuses') return bookings
     if (statusFilter === 'Draft') return bookings.filter(b => b.status === 'Draft')
-    if (statusFilter === 'Active') return bookings.filter(b => b.status === 'To Deliver and Bill' || b.status === 'To Deliver' || (b.per_delivered > 0 && b.status !== 'Completed'))
-    if (statusFilter === 'Completed') return bookings.filter(b => b.status === 'Completed')
+    if (statusFilter === 'Active') return bookings.filter(b => b.status === 'To Deliver and Bill' || b.status === 'To Deliver' || (b.per_delivered > 0 && b.status !== 'Completed') || b.delivery_status === 'Fully Delivered')
+    if (statusFilter === 'Completed') return bookings.filter(b => b.status === 'Completed' || (b.delivery_status === 'Fully Delivered' && b.status === 'Completed'))
     return bookings
   }, [bookings, statusFilter])
 

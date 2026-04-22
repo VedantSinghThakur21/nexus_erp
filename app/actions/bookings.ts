@@ -15,11 +15,12 @@ export interface Booking {
   items: any[]
   docstatus: number
   per_delivered: number
+  delivery_status?: string
 }
 
 // 1. READ: List
 export async function getBookings() {
-  const baseFields = '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered"]'
+  const baseFields = '["name", "customer_name", "transaction_date", "delivery_date", "grand_total", "status", "po_no", "per_delivered", "delivery_status"]'
   try {
     // Try filtering to rental bookings by po_no prefix first
     const rentalBookings = await frappeRequest(
