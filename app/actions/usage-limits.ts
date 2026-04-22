@@ -1,6 +1,6 @@
 'use server'
 
-import { frappeRequest } from '@/app/lib/api'
+import { masterRequest } from '@/app/lib/api'
 import { PLAN_FEATURES, type SubscriptionPlan } from '@/types/tenant'
 
 interface UsageCheck {
@@ -15,29 +15,15 @@ interface UsageCheck {
  */
 async function getTenantUsage(subdomain: string) {
   try {
-    const masterUrl = process.env.ERP_NEXT_URL || 'http://103.224.243.242:8080'
-    const apiKey = process.env.ERP_API_KEY
-    const apiSecret = process.env.ERP_API_SECRET
+    const result = await masterRequest('frappe.client.get_list', 'GET', {
+      doctype: 'SaaS Tenant',
+      filters: JSON.stringify({ subdomain }),
+      fields: JSON.stringify(['plan', 'usage_users', 'usage_leads', 'usage_projects', 'usage_invoices', 'usage_storage']),
+      limit_page_length: 1
+    }) as any[];
     
-    const response = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `token ${apiKey}:${apiSecret}`
-      },
-      body: JSON.stringify({
-        doctype: 'Tenant',
-        filters: { subdomain },
-        fields: ['plan', 'usage_users', 'usage_leads', 'usage_projects', 'usage_invoices', 'usage_storage'],
-        limit_page_length: 1
-      })
-    })
-    
-    if (!response.ok) return null
-    
-    const result = await response.json()
-    if (result.message && result.message.length > 0) {
-      return result.message[0]
+    if (result && result.length > 0) {
+      return result[0]
     }
     
     return null
@@ -189,22 +175,11 @@ export async function incrementUsage(
     const currentValue = tenant[usageType] || 0
     const newValue = currentValue + amount
     
-    const masterUrl = process.env.ERP_NEXT_URL || 'http://103.224.243.242:8080'
-    const apiKey = process.env.ERP_API_KEY
-    const apiSecret = process.env.ERP_API_SECRET
-    
-    await fetch(`${masterUrl}/api/method/frappe.client.set_value`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `token ${apiKey}:${apiSecret}`
-      },
-      body: JSON.stringify({
-        doctype: 'Tenant',
-        name: subdomain,
-        fieldname: usageType,
-        value: newValue
-      })
+    await masterRequest('frappe.client.set_value', 'POST', {
+      doctype: 'SaaS Tenant',
+      name: subdomain,
+      fieldname: usageType,
+      value: newValue
     })
     
     return { success: true }
