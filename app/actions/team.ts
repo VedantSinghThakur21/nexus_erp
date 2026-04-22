@@ -231,13 +231,21 @@ export async function getTeamMembers(): Promise<any[]> {
     }
 
     const { getAccessibleModules } = await import('@/lib/role-permissions')
+    const { getUserRolesForUser } = await import('@/app/actions/user-roles')
+    const { getPrimaryRole } = await import('@/lib/role-permissions')
 
-    return users.map((u: any) => {
-      const actualRoles = PROFILE_ROLES[u.role_profile_name] || []
-      const primaryRole = PROFILE_PRIMARY[u.role_profile_name] || null
+    const enrichedUsers = await Promise.all(users.map(async (u: any) => {
+      // Fetch the actual roles via standard API for accurate rendering,
+      // avoiding the misleading assumption based purely on role_profile_name.
+      const actualRoles = await getUserRolesForUser(u.name)
+      
+      let primaryRole = PROFILE_PRIMARY[u.role_profile_name] || null
+      if (!primaryRole && actualRoles.length > 0) {
+        primaryRole = getPrimaryRole(actualRoles)
+      }
+
       const accessibleModules = getAccessibleModules(actualRoles)
-      // A user is "broken" if they have no role profile set (no access will be granted)
-      const hasBrokenRoles = !u.role_profile_name
+      const hasBrokenRoles = actualRoles.length === 0
 
       return {
         ...u,
@@ -246,7 +254,9 @@ export async function getTeamMembers(): Promise<any[]> {
         modules_count: accessibleModules.length,
         has_broken_roles: hasBrokenRoles,
       }
-    })
+    }))
+    
+    return enrichedUsers
   } catch (error) {
     console.error('Failed to fetch team members:', error)
     return []
