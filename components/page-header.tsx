@@ -48,6 +48,7 @@ export function PageHeader({
         try {
             // Clear Frappe session + cookies
             await logoutUser()
+            try { sessionStorage.removeItem('nexus_user_roles_cache') } catch {}
             // Clear NextAuth session
             await signOut({ redirect: false })
             // Redirect to login

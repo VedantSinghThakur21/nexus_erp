@@ -141,7 +141,7 @@ export default function AgentsPage() {
   }, [messages]);
 
   return (
-    <div className="app-shell flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden">
+    <div className="flex min-h-full flex-col overflow-hidden">
       {/* Debug Toggle Button */}
       {showDebug && (
         <div className="fixed bottom-20 right-4 w-96 max-h-96 bg-black text-green-400 p-4 rounded-lg shadow-2xl overflow-y-auto font-mono text-xs z-50">
@@ -171,7 +171,8 @@ export default function AgentsPage() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* KPI Cards - Matching Leads Page Styling */}
-        <section className="app-content grid w-full grid-cols-1 gap-4 md:grid-cols-3 md:pb-0">
+        <section className="w-full border-b border-border/60 bg-background/40">
+          <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-4 px-4 py-4 md:grid-cols-3 md:px-6 md:py-5">
           <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-none transition-all">
             <div>
               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.12em]">
@@ -205,13 +206,14 @@ export default function AgentsPage() {
               <span className="material-symbols-outlined text-xl">trending_up</span>
             </div>
           </div>
+          </div>
         </section>
 
         {/* Chat Area with Sidebar */}
         <div className="flex-1 flex overflow-hidden">
           {/* Main Chat Area */}
-          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar space-y-5 flex flex-col items-center">
-            <div className="w-full max-w-5xl space-y-4">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-5 md:px-6">
               {messages.map((m, index) => {
                 const isUser = m.role === "user";
                 const isFirstMessage = index === 0;
@@ -406,8 +408,8 @@ export default function AgentsPage() {
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-border/40 bg-card p-4">
-          <div className="max-w-5xl mx-auto">
+        <footer className="border-t border-border/40 bg-card px-4 py-4 md:px-6">
+          <div className="mx-auto w-full max-w-6xl">
             <form onSubmit={handleCustomSubmit}>
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-background/80 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 pr-1.5 shadow-inner focus-within:ring-2 focus-within:ring-accent/20 transition-all">
                 <button

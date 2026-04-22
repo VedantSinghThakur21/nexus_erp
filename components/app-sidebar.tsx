@@ -366,7 +366,7 @@ export function AppSidebar() {
     <>
       <aside
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 overflow-hidden border-r border-border/60 bg-card md:flex md:flex-col',
+          'sticky top-0 hidden h-screen shrink-0 overflow-hidden border-r border-border/80 bg-card md:flex md:flex-col',
           collapsed ? 'w-[72px]' : 'w-[248px]'
         )}
       >
