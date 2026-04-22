@@ -1,7 +1,8 @@
 'use server'
 
-import { frappeRequest } from "@/app/lib/api"
+import { frappeRequest, getTenantContext } from "@/app/lib/api"
 import { revalidatePath } from "next/cache"
+import { listTenantEmployees, createTenantEmployee } from "@/lib/provisioning-client"
 
 export interface Operator {
   name: string
@@ -13,8 +14,18 @@ export interface Operator {
   date_of_birth?: string // Storing License Expiry here for MVP
 }
 
+function isPermissionError(error: unknown): boolean {
+  const message = String((error as Error)?.message || '')
+  return (
+    message.includes('PermissionError') ||
+    message.includes('does not have doctype access') ||
+    message.includes('Insufficient Permission')
+  )
+}
+
 // 1. READ: Get All Operators
 export async function getOperators() {
+  // Primary: tenant user's own Frappe credentials
   try {
     const response = await frappeRequest(
       'frappe.client.get_list',
@@ -30,8 +41,20 @@ export async function getOperators() {
     )
     return response as Operator[]
   } catch (error) {
-    console.error("Failed to fetch operators:", error)
-    return []
+    if (!isPermissionError(error)) {
+      console.error("Failed to fetch operators:", error)
+      return []
+    }
+    // Fallback: provisioning service (ignore_permissions)
+    try {
+      const ctx = await getTenantContext()
+      if (!ctx.subdomain) return []
+      const res = await listTenantEmployees(ctx.subdomain)
+      return (res.employees || []) as Operator[]
+    } catch (fallbackError) {
+      console.error("[operators] Provisioning fallback failed:", fallbackError)
+      return []
+    }
   }
 }
 
@@ -74,15 +97,35 @@ export async function createOperator(formData: FormData) {
 
     console.log('Creating operator with data:', operatorData)
 
-    const response = await frappeRequest('frappe.client.insert', 'POST', { doc: operatorData })
+    // Primary: tenant user's own Frappe credentials
+    try {
+      const response = await frappeRequest('frappe.client.insert', 'POST', { doc: operatorData })
+      console.log('Operator created successfully:', response)
+      revalidatePath('/operators')
+      return { success: true, data: response }
+    } catch (error) {
+      if (!isPermissionError(error)) throw error
 
-    console.log('Operator created successfully:', response)
-
-    revalidatePath('/operators')
-    return { success: true, data: response }
+      // Fallback: provisioning service (ignore_permissions)
+      const ctx = await getTenantContext()
+      if (!ctx.subdomain) throw error
+      const result = await createTenantEmployee(ctx.subdomain, {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        cell_number: phone,
+        date_of_birth: dateOfBirth,
+        date_of_joining: dateOfJoining,
+        status: 'Active',
+        bio: operatorData.bio,
+      })
+      console.log('[operators] Operator created via provisioning service:', result.employee?.name)
+      revalidatePath('/operators')
+      return { success: true, data: result.employee }
+    }
   } catch (error: any) {
     console.error('Error creating operator:', error)
-    const errorMessage = error.message || 'Failed to create operator'
+    const errorMessage = error?.message || 'Failed to create operator'
     return { error: errorMessage, success: false }
   }
 }

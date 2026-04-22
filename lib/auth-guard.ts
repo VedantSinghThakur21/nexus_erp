@@ -10,7 +10,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { frappeRequest, getTenantContext, tenantAdminRequest } from '@/app/lib/api'
+import { frappeRequest, getTenantContext } from '@/app/lib/api'
 import { canAccessModule } from '@/lib/role-permissions'
 
 // ============================================================================
@@ -147,62 +147,25 @@ export async function getUserRoles(userEmail?: string): Promise<string[]> {
     return []
   }
   
-  try {
-    const roleRows = await tenantAdminRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Has Role',
-      fields: ['role'],
-      filters: [['parent', '=', email], ['parenttype', '=', 'User']],
-      limit_page_length: 200,
-    }) as any[]
-
-    if (Array.isArray(roleRows)) {
-      const roles = roleRows
-        .map(r => r?.role)
-        .filter((r: unknown): r is string => typeof r === 'string' && r !== 'All')
-
-      if (roles.length > 0) {
-        return roles
-      }
-    }
-  } catch (error) {
-    const message = String((error as Error)?.message || '')
-    const isPermissionError = message.includes('PermissionError')
-
-    if (!isPermissionError) {
-      console.error(`[getUserRoles] Failed to fetch roles for ${email}:`, error)
-    }
-
-    // For tenant users, fallback to provisioning-service role lookup using ignore_permissions.
-    if (isPermissionError) {
-      try {
-        const tenant = await getTenantContext()
-        if (tenant.subdomain) {
-          const { getUserRoles: getProvisionedUserRoles } = await import('@/lib/provisioning-client')
-          const roleData = await getProvisionedUserRoles(tenant.subdomain, email)
-          if (Array.isArray(roleData.roles)) {
-            return roleData.roles.filter((r): r is string => typeof r === 'string' && r !== 'All')
-          }
-        }
-      } catch (fallbackError) {
-        console.error(`[getUserRoles] Provisioning fallback failed for ${email}:`, fallbackError)
-      }
-    }
-  }
-
-  // Also attempt tenant fallback when primary query returned an empty array.
+  // Primary: provisioning service (uses ignore_permissions=True on Frappe side).
+  // We intentionally DO NOT call `frappe.client.get_list` on the `Has Role` DocType
+  // here because Frappe frequently blocks that child table over REST (even for
+  // privileged tenant users), causing noisy 403 PermissionError spam.
   try {
     const tenant = await getTenantContext()
     if (tenant.subdomain) {
       const { getUserRoles: getProvisionedUserRoles } = await import('@/lib/provisioning-client')
       const roleData = await getProvisionedUserRoles(tenant.subdomain, email)
       if (Array.isArray(roleData.roles)) {
-        return roleData.roles.filter((r): r is string => typeof r === 'string' && r !== 'All')
+        const roles = roleData.roles.filter((r): r is string => typeof r === 'string' && r !== 'All')
+        if (roles.length > 0) return roles
       }
     }
-  } catch {
-    // Keep auth guard resilient: no roles is safer than over-granting.
+  } catch (error) {
+    console.error(`[getUserRoles] Provisioning roles fetch failed for ${email}:`, (error as Error)?.message || error)
   }
 
+  // Fail closed: returning no roles is safer than over-granting.
   return []
 }
 
