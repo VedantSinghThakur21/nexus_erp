@@ -107,6 +107,10 @@ This document consolidates all known gaps, TODOs, and future enhancements from p
 - [ ] Implement batch import
 - [ ] Add operator photo/avatar upload
 
+## 💰 Billing & Usage Limits (Master DB)
+- [ ] **SaaS Tenant DocType**: Add custom fields to the Frappe Master DB `SaaS Tenant` DocType for usage tracking and billing (`plan`, `usage_users`, `usage_leads`, `usage_projects`, `usage_invoices`, `usage_storage`).
+- [ ] **Remove Stub**: Once the database fields exist, remove the hardcoded `enterprise` return stub in `app/actions/usage-limits.ts` so the system respects actual subscription limits.
+
 ## General / System-Wide
 - [ ] **User Context**: Replace all hardcoded user profiles with `useAuth` context
 - [ ] **Dark Mode**: Ensure consistent ThemeProvider integration across all pages
