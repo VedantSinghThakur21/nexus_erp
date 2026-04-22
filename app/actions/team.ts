@@ -143,6 +143,19 @@ export async function inviteTeamMember(data: {
       doc: userData
     })
     
+    // NEW FIX: Frappe's user insert ignores child table (Has Role) assignments if not extremely specific,
+    // or if the user calling the API lacks the System Manager role to assign roles.
+    // We enforce the roles immediately via the provisioning service (ignore_permissions=True).
+    try {
+      const { assignUserRoles } = await import('@/lib/provisioning-client')
+      const roleNames = (ROLE_SETS[data.role] || ROLE_SETS.member)
+      if (subdomain) {
+        await assignUserRoles(subdomain, data.email, roleNames)
+      }
+    } catch (roleErr: any) {
+      console.warn('[inviteTeamMember] Role assignment for NEW user failed (non-fatal):', roleErr.message)
+    }
+    
     // Increment usage counter
     if (subdomain) {
       await incrementUsage(subdomain, 'usage_users')
