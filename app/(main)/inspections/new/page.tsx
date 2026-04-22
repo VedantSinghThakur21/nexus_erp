@@ -8,8 +8,10 @@ export const dynamic = 'force-dynamic'
 
 export default async function NewInspectionPage({ searchParams }: { searchParams: Promise<{ asset?: string; booking?: string }> }) {
   const params = await searchParams
-  // Fetch Heavy Equipment items from catalogue
-  const equipmentItems = await searchItems('', 'Heavy Equipment Rental')
+  // Fetch all items from catalogue
+  const allItems = await searchItems('', 'All')
+  // Only stock items (physical assets/equipment) require inspections
+  const equipmentItems = allItems.filter(item => item.is_stock_item)
 
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-6">
