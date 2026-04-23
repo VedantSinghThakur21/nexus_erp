@@ -85,13 +85,13 @@ export function PricingRulesClient({ rules, onToggleStatus }: PricingRulesClient
         </Link>
       </PageHeader>
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="px-8 pt-8 pb-4">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="app-container px-4 pt-6 pb-4 md:px-6 md:pt-8">
           <h2 className="text-xl font-semibold tracking-tight">Pricing Rules</h2>
           <p className="text-sm text-muted-foreground mt-1">Automate conditional pricing for quotations, sales orders, and invoices</p>
         </div>
 
-        <div className="px-8 space-y-6 pb-12">
+        <div className="app-container space-y-6 px-4 pb-12 md:px-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="rounded-xl border border-border bg-card p-5">

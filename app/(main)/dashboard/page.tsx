@@ -220,7 +220,7 @@ export default function DashboardPage() {
         transition={{ duration: 0.2 }}
         className="app-content space-y-6"
       >
-        <div className="space-y-6">
+        <div className="app-container space-y-6">
           {refreshing && !loading && (
             <div className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
               <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />

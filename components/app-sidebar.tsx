@@ -402,8 +402,11 @@ export function AppSidebar() {
               <Menu className="h-4 w-4" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-60 border-r border-border p-0">
-            <SheetHeader className="h-14 border-b border-border px-3">
+          <SheetContent
+            side="left"
+            className="w-[88vw] max-w-[320px] border-r border-border p-0"
+          >
+            <SheetHeader className="h-14 border-b border-border px-3 pt-[env(safe-area-inset-top)]">
               <SheetTitle className="flex items-center gap-2 text-sm font-medium">
                 <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
                   <Building2 className="h-4 w-4" />
@@ -411,8 +414,14 @@ export function AppSidebar() {
                 Nexus ERP
               </SheetTitle>
             </SheetHeader>
-            <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
-            <SidebarUser collapsed={false} />
+            <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
+              </div>
+              <div className="pb-[env(safe-area-inset-bottom)]">
+                <SidebarUser collapsed={false} />
+              </div>
+            </div>
           </SheetContent>
         </Sheet>
       </div>

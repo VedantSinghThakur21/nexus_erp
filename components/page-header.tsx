@@ -67,7 +67,7 @@ export function PageHeader({
     return (
         <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <div className="flex h-full items-center justify-between gap-3 px-4 pl-14 md:px-6 md:pl-6">
-            <div className="relative w-full max-w-xl">
+            <div className="relative w-full flex-1 md:max-w-xl">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-base">
                     search
                 </span>
@@ -81,13 +81,15 @@ export function PageHeader({
             </div>
             <div className="flex items-center gap-3">
                 {/* Extra action buttons (e.g., "New Lead") */}
-                {children}
+                <div className="hidden items-center gap-2 lg:flex">
+                  {children}
+                </div>
 
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md text-muted-foreground">
+                <Button variant="ghost" size="icon" className="hidden h-9 w-9 rounded-md text-muted-foreground sm:inline-flex">
                     <span className="material-symbols-outlined">notifications</span>
                 </Button>
-                <div className="h-6 w-px bg-border"></div>
+                <div className="hidden h-6 w-px bg-border sm:block"></div>
 
                 {/* Profile Section with Dropdown */}
                 <div className="relative" ref={dropdownRef}>

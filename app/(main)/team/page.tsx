@@ -210,7 +210,7 @@ export default function TeamPage() {
 
       {/* Main Content */}
       <main className="app-content flex-1">
-        <div className="w-full space-y-8">
+        <div className="app-container w-full space-y-8">
           {!loading ? (
             <>
               {/* Page Title */}

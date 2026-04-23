@@ -88,7 +88,7 @@ export default function InspectionsPage() {
 
       {/* Main Content */}
       <main className="app-content">
-        <div className="w-full space-y-8">
+        <div className="app-container w-full space-y-8">
           {!loading ? (
             <>
               <div>

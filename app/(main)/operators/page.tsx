@@ -74,7 +74,7 @@ export default function OperatorsPage() {
 
       {/* Main Content */}
       <main className="app-content flex-1">
-        <div className="w-full space-y-8">
+        <div className="app-container w-full space-y-8">
           {!loading ? (
             <>
               <div className="flex flex-col gap-1">

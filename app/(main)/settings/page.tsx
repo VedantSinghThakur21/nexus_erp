@@ -119,6 +119,7 @@ export default function SettingsPage() {
 
   return (
     <main className="app-content w-full bg-background">
+      <div className="app-container">
       {/* Header */}
       <header className="pb-4">
         <div className="flex justify-between items-start">
@@ -542,6 +543,7 @@ export default function SettingsPage() {
         </section>
 
         <div className="h-12"></div>
+      </div>
       </div>
     </main>
   );

@@ -134,11 +134,12 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
         searchPlaceholder="Ask AI anything about your collections..."
       />
 
-      <main className="app-content mx-auto max-w-[1600px] space-y-6">
-        <div className="border-b border-border pb-6">
-          <h1 className="text-xl font-semibold">Invoices</h1>
-          <p className="text-sm text-muted-foreground">Manage billing and collection intelligence across your enterprise.</p>
-        </div>
+      <main className="app-content space-y-6">
+        <div className="app-container">
+          <div className="border-b border-border pb-6">
+            <h1 className="text-xl font-semibold">Invoices</h1>
+            <p className="text-sm text-muted-foreground">Manage billing and collection intelligence across your enterprise.</p>
+          </div>
 
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-border bg-card p-5">
@@ -346,6 +347,7 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
             </div>
           )}
         </section>
+        </div>
       </main>
     </div>
   )

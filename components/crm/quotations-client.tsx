@@ -176,6 +176,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
       />
 
       <main className="app-content flex-1 space-y-8 w-full">
+        <div className="app-container">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-5">
@@ -504,6 +505,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
               </div>
             )}
           </div>
+        </div>
         </div>
       </main>
     </div>

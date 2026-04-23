@@ -180,7 +180,7 @@ export default function CataloguePage() {
 
       {/* Main Content */}
       <main className="app-content flex-1 w-full">
-        <div className="w-full space-y-8">
+        <div className="app-container w-full space-y-8">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-border bg-card p-5">

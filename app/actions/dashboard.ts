@@ -18,6 +18,16 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     async function safeFetch<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
       try { return await fn() } catch { return fallback }
     }
+    const toNumber = (value: unknown): number => {
+      if (typeof value === 'number') return value
+      if (typeof value === 'string') return Number(value) || 0
+      // ERPNext often wraps responses as { message: <value> }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const msg = (value as any)?.message
+      if (typeof msg === 'number') return msg
+      if (typeof msg === 'string') return Number(msg) || 0
+      return 0
+    }
 
     const activeLeadFilters = '[ ["status", "!=", "Converted"], ["status", "!=", "Do Not Contact"] ]'
     const getAmount = (row: any): number => {
@@ -30,31 +40,31 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     let winRateChange = 0;
 
     if (accessibleModules.includes('quotations')) {
-      const quotationsWonMTD = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const quotationsWonMTD = toNumber(await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Quotation',
         filters: `[["status", "=", "Ordered"], ["modified", ">=", "${monthStart}"]]`
-      }), 0) as number
+      }), 0))
 
-      const quotationsLostMTD = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const quotationsLostMTD = toNumber(await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Quotation',
         filters: `[["status", "=", "Lost"], ["modified", ">=", "${monthStart}"]]`
-      }), 0) as number
+      }), 0))
 
-      const totalClosedMTD = (typeof quotationsWonMTD === 'number' ? quotationsWonMTD : 0) + (typeof quotationsLostMTD === 'number' ? quotationsLostMTD : 0)
-      winRate = totalClosedMTD > 0 ? ((typeof quotationsWonMTD === 'number' ? quotationsWonMTD : 0) / totalClosedMTD) * 100 : 0
+      const totalClosedMTD = quotationsWonMTD + quotationsLostMTD
+      winRate = totalClosedMTD > 0 ? (quotationsWonMTD / totalClosedMTD) * 100 : 0
 
-      const quotationsWonLastMonth = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const quotationsWonLastMonth = toNumber(await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Quotation',
         filters: `[["status", "=", "Ordered"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
-      }), 0) as number
+      }), 0))
 
-      const quotationsLostLastMonth = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const quotationsLostLastMonth = toNumber(await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Quotation',
         filters: `[["status", "=", "Lost"], ["modified", ">=", "${lastMonthStart}"], ["modified", "<=", "${lastMonthEnd}"]]`
-      }), 0) as number
+      }), 0))
 
-      const totalClosedLastMonth = (typeof quotationsWonLastMonth === 'number' ? quotationsWonLastMonth : 0) + (typeof quotationsLostLastMonth === 'number' ? quotationsLostLastMonth : 0)
-      const lastMonthWinRate = totalClosedLastMonth > 0 ? ((typeof quotationsWonLastMonth === 'number' ? quotationsWonLastMonth : 0) / totalClosedLastMonth) * 100 : 0
+      const totalClosedLastMonth = quotationsWonLastMonth + quotationsLostLastMonth
+      const lastMonthWinRate = totalClosedLastMonth > 0 ? (quotationsWonLastMonth / totalClosedLastMonth) * 100 : 0
       winRateChange = winRate - lastMonthWinRate
     }
 
@@ -104,19 +114,18 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
     let leadsChange = 0;
 
     if (accessibleModules.includes('crm')) {
-      const activeLeads = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const activeLeads = toNumber(await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Lead',
         filters: activeLeadFilters
-      }), 0) as number
+      }), 0))
 
-      const lastMonthLeads = await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
+      const lastMonthLeads = toNumber(await safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
         doctype: 'Lead',
         filters: `[["status", "!=", "Converted"], ["status", "!=", "Do Not Contact"], ["creation", ">=", "${lastMonthStart}"], ["creation", "<=", "${lastMonthEnd}"]]`
-      }), 0) as number
+      }), 0))
 
-      currentLeadCount = typeof activeLeads === 'number' ? activeLeads : 0
-      const lastLeadCount = typeof lastMonthLeads === 'number' ? lastMonthLeads : 0
-      leadsChange = lastLeadCount > 0 ? ((currentLeadCount - lastLeadCount) / lastLeadCount) * 100 : 0
+      currentLeadCount = activeLeads
+      leadsChange = lastMonthLeads > 0 ? ((currentLeadCount - lastMonthLeads) / lastMonthLeads) * 100 : 0
     }
 
     return {

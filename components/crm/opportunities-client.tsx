@@ -166,6 +166,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
       <PageHeader />
 
       <main className="app-content w-full">
+        <div className="app-container">
         {/* KPI Cards */}
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-5">
@@ -444,6 +445,7 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
               </Link>
             ))}
           </div>
+        </div>
         </div>
       </main>
 
