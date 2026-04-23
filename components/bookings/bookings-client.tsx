@@ -204,16 +204,17 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
   }
 
   return (
-    <div className="app-shell text-foreground min-h-screen flex flex-col">
+    <div className="app-shell flex flex-col">
       {/* Header */}
       <PageHeader searchPlaceholder="Ask AI anything about your bookings..." />
 
       {/* Main Content */}
-      <div className="app-content mx-auto flex w-full max-w-[1920px] flex-col gap-8">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-semibold tracking-tight">Rental Bookings Workspace</h1>
-          <p className="text-sm text-muted-foreground">Real-time scheduling intelligence and availability monitoring.</p>
-        </div>
+      <main className="app-content">
+        <div className="app-container flex w-full flex-col gap-8">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-xl font-semibold tracking-tight">Rental Bookings Workspace</h1>
+            <p className="text-sm text-muted-foreground">Real-time scheduling intelligence and availability monitoring.</p>
+          </div>
 
         {/* KPI Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -476,7 +477,8 @@ export function BookingsClient({ bookings }: BookingsClientProps) {
             )}
           </div>
         </section>
-      </div>
+        </div>
+      </main>
 
     </div>
   )
