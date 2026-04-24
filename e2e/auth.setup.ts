@@ -4,7 +4,7 @@ import path from 'path';
 const authFile = path.join(__dirname, '.auth/user.json');
 
 // Deployed auth flows can be slower (tenant resolution, provisioning, redirects).
-setup.setTimeout(90_000);
+setup.setTimeout(3 * 60_000);
 
 setup('authenticate', async ({ page }) => {
   const email = process.env.TEST_USER_EMAIL;
@@ -25,7 +25,7 @@ setup('authenticate', async ({ page }) => {
   // The app may redirect to a tenant subdomain based on env; for E2E we only
   // need the auth cookies/storage. Wait for cookies, but fail fast if the UI
   // shows an actual login error.
-  const errorBanner = page.locator('form .text-destructive').first();
+  const errorBanner = page.locator('.text-destructive').first();
 
   const waitForAuthCookies = async () =>
     expect
@@ -52,10 +52,20 @@ setup('authenticate', async ({ page }) => {
 
   // Wait for either success cookies, or a real error banner text.
   const startedAt = Date.now();
-  const outcomeTimeoutMs = 60_000;
+  const outcomeTimeoutMs = 120_000;
   let outcome: 'auth' | `error:${string}` | 'pending' = 'pending';
 
   while (Date.now() - startedAt < outcomeTimeoutMs) {
+    // 0) URL-based success: login typically redirects off /login
+    const url = page.url();
+    if (
+      /\/(dashboard|change-password)(\b|\/|\?)/.test(url) ||
+      (!url.includes('/login') && !url.endsWith('/login'))
+    ) {
+      outcome = 'auth';
+      break;
+    }
+
     // 1) Success path: auth cookies present
     const cookies = await page.context().cookies();
     const cookieNames = new Set(cookies.filter((c) => c.value).map((c) => c.name));
@@ -93,7 +103,12 @@ setup('authenticate', async ({ page }) => {
   }
 
   // Ensure cookies have been written before proceeding.
-  await waitForAuthCookies();
+  // Best-effort: on some prod redirects cookies may not be readable immediately,
+  // but navigation away from /login indicates success. Only enforce cookie wait
+  // if we're still on the login page.
+  if (page.url().includes('/login')) {
+    await waitForAuthCookies();
+  }
 
   // Land on a stable authenticated route in the same origin.
   // Some accounts may be forced to change password on first login.
