@@ -116,6 +116,10 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
 
 export async function loginUser(usernameOrEmail: string, password: string): Promise<LoginResult> {
   try {
+    // For E2E / troubleshooting: allow skipping expensive side effects (provisioning,
+    // role normalization) to reduce login latency and flakiness.
+    const fastLogin = process.env.NEXUS_FAST_LOGIN === '1'
+
     if (!usernameOrEmail || !password) {
       return {
         success: false,
@@ -446,21 +450,23 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       let apiKey: string | null = null
       let apiSecret: string | null = null
 
-      try {
-        const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
-        // Some older/partially deployed provisioning builds can return null/invalid
-        // payloads with HTTP 200. Guard shape before reading properties.
-        if (provKeys && typeof provKeys === 'object' && 'api_key' in provKeys && 'api_secret' in provKeys) {
-          apiKey = typeof provKeys.api_key === 'string' ? provKeys.api_key : null
-          apiSecret = typeof provKeys.api_secret === 'string' ? provKeys.api_secret : null
-        } else {
-          throw new Error('Provisioning response missing api_key/api_secret')
+      if (!fastLogin) {
+        try {
+          const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
+          // Some older/partially deployed provisioning builds can return null/invalid
+          // payloads with HTTP 200. Guard shape before reading properties.
+          if (provKeys && typeof provKeys === 'object' && 'api_key' in provKeys && 'api_secret' in provKeys) {
+            apiKey = typeof provKeys.api_key === 'string' ? provKeys.api_key : null
+            apiSecret = typeof provKeys.api_secret === 'string' ? provKeys.api_secret : null
+          } else {
+            throw new Error('Provisioning response missing api_key/api_secret')
+          }
+        } catch (apiError: any) {
+          // Non-fatal: if provisioning endpoint is unavailable (e.g. old service image),
+          // we fall back natively to sid session cookies in frappeRequest.
+          console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
+          console.warn('[Login] Proceeding with SID session cookie authentication.')
         }
-      } catch (apiError: any) {
-        // Non-fatal: if provisioning endpoint is unavailable (e.g. old service image),
-        // we fall back natively to sid session cookies in frappeRequest.
-        console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
-        console.warn('[Login] Proceeding with SID session cookie authentication.')
       }
 
       if (apiKey && apiSecret) {
@@ -569,7 +575,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
       // 1. If role_profile_name is set → clear it and assign explicit roles
       // 2. If user has no module-accessible roles → add minimum roles (Sales User)
       //    so the user can at least see the dashboard and CRM data.
-      if (userEmail) {
+      if (userEmail && !fastLogin) {
         // Bump this version whenever ROLE_SETS changes so previously-normalized
         // users get re-checked against the latest expected role set.
         const ROLE_NORMALIZATION_VERSION = 'v2'

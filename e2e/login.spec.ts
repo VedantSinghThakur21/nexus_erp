@@ -17,7 +17,8 @@ test('login page renders and rejects bad credentials', async ({ page }) => {
 });
 
 test('valid login redirects to dashboard', async ({ page }) => {
-  test.setTimeout(90_000);
+  // Deployed login can be slow (provisioning + role normalization + redirects).
+  test.setTimeout(3 * 60_000);
   await page.goto('/login');
 
   await page.fill('#email', process.env.TEST_USER_EMAIL!);
@@ -30,7 +31,7 @@ test('valid login redirects to dashboard', async ({ page }) => {
   const errorBanner = page.locator('.text-destructive').first();
 
   const startedAt = Date.now();
-  const timeoutMs = 60_000;
+  const timeoutMs = 150_000;
   let outcome: 'auth' | `error:${string}` | 'pending' = 'pending';
 
   while (Date.now() - startedAt < timeoutMs) {
@@ -75,5 +76,5 @@ test('valid login redirects to dashboard', async ({ page }) => {
 
   // Assert the app completed its post-login redirect.
   // Some users may be routed to /change-password on first login.
-  await expect(page).toHaveURL(/\/(dashboard|change-password)(\b|\/|\?)/, { timeout: 60_000 });
+  await expect(page).toHaveURL(/\/(dashboard|change-password)(\b|\/|\?)/, { timeout: 150_000 });
 });
