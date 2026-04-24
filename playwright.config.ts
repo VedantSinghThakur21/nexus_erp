@@ -34,6 +34,15 @@ export default defineConfig({
       },
       dependencies: ['setup'],
     },
+    {
+      name: 'prod-smoke',
+      testMatch: /prod\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
   ],
 
   webServer: process.env.PLAYWRIGHT_BASE_URL
