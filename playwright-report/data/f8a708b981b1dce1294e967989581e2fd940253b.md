@@ -12,10 +12,7 @@
 # Error details
 
 ```
-TimeoutError: page.waitForURL: Timeout 15000ms exceeded.
-=========================== logs ===========================
-waiting for navigation until "load"
-============================================================
+Error: Login failed: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"> <html><head> <title>404 Not Found</title> </head><body> <h1>Not Found</h1> <p>The requested URL was not found on this server.</p> </body></html>
 ```
 
 # Page snapshot
@@ -76,7 +73,7 @@ waiting for navigation until "load"
 # Test source
 
 ```ts
-  1  | import { test as setup } from '@playwright/test';
+  1  | import { expect, test as setup } from '@playwright/test';
   2  | import path from 'path';
   3  | 
   4  | const authFile = path.join(__dirname, '.auth/user.json');
@@ -97,12 +94,35 @@ waiting for navigation until "load"
   19 |   await page.fill('#password', password);
   20 |   await page.click('button[type="submit"]');
   21 | 
-  22 |   // Wait for redirect to dashboard — adjust the URL pattern to match your app
-> 23 |   await page.waitForURL(/.*dashboard/, { timeout: 15000 });
-     |              ^ TimeoutError: page.waitForURL: Timeout 15000ms exceeded.
-  24 | 
-  25 |   // Persist the auth cookie/storage state to disk
-  26 |   await page.context().storageState({ path: authFile });
-  27 | });
-  28 | 
+  22 |   // If login fails, the UI renders an error panel. Grab it early so we don't
+  23 |   // incorrectly fail on a URL wait when the real issue is auth/env.
+  24 |   const errorPanel = page.locator('form >> div:has(svg)'); // matches the alert row in LoginForm
+  25 |   await expect(errorPanel).toHaveCount(0, { timeout: 1000 }).catch(async () => {
+  26 |     const msg = (await errorPanel.first().innerText().catch(() => '')).trim();
+> 27 |     throw new Error(`Login failed: ${msg || 'Unknown error (see screenshot)'}`);
+     |           ^ Error: Login failed: <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"> <html><head> <title>404 Not Found</title> </head><body> <h1>Not Found</h1> <p>The requested URL was not found on this server.</p> </body></html>
+  28 |   });
+  29 | 
+  30 |   // The app may redirect to a tenant subdomain based on env; for E2E we only
+  31 |   // need the auth cookies/storage. Wait for the session cookie instead of URL.
+  32 |   await expect
+  33 |     .poll(
+  34 |       async () => {
+  35 |         const cookies = await page.context().cookies();
+  36 |         const hasSid = cookies.some((c) => c.name === 'sid' && Boolean(c.value));
+  37 |         const hasUserType = cookies.some((c) => c.name === 'user_type' && Boolean(c.value));
+  38 |         return hasSid && hasUserType;
+  39 |       },
+  40 |       { timeout: 30_000 }
+  41 |     )
+  42 |     .toBe(true);
+  43 | 
+  44 |   // Land on a stable authenticated route in the same origin.
+  45 |   await page.goto('/dashboard');
+  46 |   await page.waitForLoadState('domcontentloaded');
+  47 | 
+  48 |   // Persist the auth cookie/storage state to disk
+  49 |   await page.context().storageState({ path: authFile });
+  50 | });
+  51 | 
 ```
