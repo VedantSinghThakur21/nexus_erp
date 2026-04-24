@@ -73,7 +73,7 @@ test('valid login redirects to dashboard', async ({ page }) => {
     throw new Error(`Login failed: ${outcome.slice('error:'.length).trim()}`);
   }
 
-  await page.goto('/dashboard');
-  await page.waitForLoadState('domcontentloaded');
-  await expect(page).toHaveURL(/\/dashboard(\b|\/|\?)/);
+  // Assert the app completed its post-login redirect.
+  // Some users may be routed to /change-password on first login.
+  await expect(page).toHaveURL(/\/(dashboard|change-password)(\b|\/|\?)/, { timeout: 60_000 });
 });
