@@ -51,34 +51,44 @@ setup('authenticate', async ({ page }) => {
       .toBe(true);
 
   // Wait for either success cookies, or a real error banner text.
-  const outcome = await expect
-    .poll(
-      async () => {
-        // 1) Success path: auth cookies present
-        const cookies = await page.context().cookies();
-        const cookieNames = new Set(cookies.filter((c) => c.value).map((c) => c.name));
-        const hasAuthSignal =
-          (cookieNames.has('sid') || cookieNames.has('tenant_api_key')) &&
-          (cookieNames.has('user_type') || cookieNames.has('tenant_subdomain') || cookieNames.has('user_email'));
-        if (hasAuthSignal) return 'auth';
+  const startedAt = Date.now();
+  const outcomeTimeoutMs = 60_000;
+  let outcome: 'auth' | `error:${string}` | 'pending' = 'pending';
 
-        // 2) Failure path: error banner visible with message
-        const count = await errorBanner.count();
-        if (count > 0) {
-          const visible = await errorBanner.isVisible().catch(() => false);
-          if (visible) {
-            const msg = (await errorBanner.innerText().catch(() => '')).trim();
-            if (msg) return `error:${msg}`;
-          }
+  while (Date.now() - startedAt < outcomeTimeoutMs) {
+    // 1) Success path: auth cookies present
+    const cookies = await page.context().cookies();
+    const cookieNames = new Set(cookies.filter((c) => c.value).map((c) => c.name));
+    const hasAuthSignal =
+      (cookieNames.has('sid') || cookieNames.has('tenant_api_key')) &&
+      (cookieNames.has('user_type') ||
+        cookieNames.has('tenant_subdomain') ||
+        cookieNames.has('user_email'));
+    if (hasAuthSignal) {
+      outcome = 'auth';
+      break;
+    }
+
+    // 2) Failure path: error banner visible with message
+    if (await errorBanner.count()) {
+      const visible = await errorBanner.isVisible().catch(() => false);
+      if (visible) {
+        const msg = (await errorBanner.innerText().catch(() => '')).trim();
+        if (msg) {
+          outcome = `error:${msg}`;
+          break;
         }
+      }
+    }
 
-        return 'pending';
-      },
-      { timeout: 60_000 }
-    )
-    .not.toBe('pending');
+    await page.waitForTimeout(250);
+  }
 
-  if (typeof outcome === 'string' && outcome.startsWith('error:')) {
+  if (outcome === 'pending') {
+    throw new Error('Login failed: timed out waiting for auth cookies or an error message');
+  }
+
+  if (outcome.startsWith('error:')) {
     throw new Error(`Login failed: ${outcome.slice('error:'.length).trim()}`);
   }
 
