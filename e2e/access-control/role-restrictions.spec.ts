@@ -1,10 +1,21 @@
 import { test, expect } from '@playwright/test'
 
 test('Non-admin direct URL to admin page is blocked', async ({ page }) => {
+  const email = process.env.TEST_READONLY_EMAIL || process.env.TEST_NONADMIN_EMAIL
+  const password = process.env.TEST_READONLY_PASSWORD || process.env.TEST_NONADMIN_PASSWORD
+  test.skip(!email || !password, 'Set TEST_READONLY_EMAIL/TEST_READONLY_PASSWORD (or TEST_NONADMIN_*) to validate non-admin blocking')
+
+  // Login as non-admin
+  await page.goto('/login')
+  await page.fill('#email', email!)
+  await page.fill('#password', password!)
+  await page.click('button[type="submit"]')
+  await expect(page).toHaveURL(/\/(dashboard|change-password)(\b|\/|\?)/, { timeout: 180_000 })
+
   await page.goto('/admin-tenants')
-  // App may redirect to /access-denied or /dashboard?error=access_denied
-  await expect(page).not.toHaveURL(/\/admin-tenants(\b|\/|\?)/)
-  await expect(page).toHaveURL(/\/(access-denied|dashboard)(\b|\/|\?)/)
+
+  // Some deployments keep the URL but render an Access Denied state.
+  await expect(page.getByText(/access denied|not authorized|permission/i)).toBeVisible({ timeout: 30_000 })
 })
 
 test('Read-only user cannot see create actions (catalogue)', async ({ browser }) => {

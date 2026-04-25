@@ -4,7 +4,7 @@ import path from 'path';
 const authFile = path.join(__dirname, '.auth/user.json');
 
 // Deployed auth flows can be slower (tenant resolution, provisioning, redirects).
-setup.setTimeout(3 * 60_000);
+setup.setTimeout(8 * 60_000);
 
 setup('authenticate', async ({ page }) => {
   const email = process.env.TEST_USER_EMAIL;
@@ -16,11 +16,18 @@ setup('authenticate', async ({ page }) => {
     );
   }
 
-  await page.goto('/login');
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 60_000 });
 
-  await page.fill('#email', email);
-  await page.fill('#password', password);
-  await page.click('button[type="submit"]');
+    const emailInput = page.locator('#email');
+    const passInput = page.locator('#password');
+
+    await emailInput.fill(email);
+    await expect(emailInput).toHaveValue(email);
+
+    await passInput.fill(password);
+    await expect(passInput).toHaveValue(password);
+    await page.getByRole('button', { name: /^sign in$/i }).click();
 
   // The app may redirect to a tenant subdomain based on env; for E2E we only
   // need the auth cookies/storage. Wait for cookies, but fail fast if the UI
@@ -51,63 +58,67 @@ setup('authenticate', async ({ page }) => {
       .toBe(true);
 
   // Wait for either success cookies, or a real error banner text.
-  const startedAt = Date.now();
-  const outcomeTimeoutMs = 120_000;
-  let outcome: 'auth' | `error:${string}` | 'pending' = 'pending';
+    const startedAt = Date.now();
+    const outcomeTimeoutMs = 6 * 60_000;
+    let outcome: 'auth' | `error:${string}` | 'pending' = 'pending';
 
-  while (Date.now() - startedAt < outcomeTimeoutMs) {
-    // 0) URL-based success: login typically redirects off /login
-    const url = page.url();
-    if (
-      /\/(dashboard|change-password)(\b|\/|\?)/.test(url) ||
-      (!url.includes('/login') && !url.endsWith('/login'))
-    ) {
-      outcome = 'auth';
-      break;
-    }
+    while (Date.now() - startedAt < outcomeTimeoutMs) {
+      // 0) URL-based success: login typically redirects off /login
+      const url = page.url();
+      if (
+        /\/(dashboard|change-password)(\b|\/|\?)/.test(url) ||
+        (!url.includes('/login') && !url.endsWith('/login'))
+      ) {
+        outcome = 'auth';
+        break;
+      }
 
-    // 1) Success path: auth cookies present
-    const cookies = await page.context().cookies();
-    const cookieNames = new Set(cookies.filter((c) => c.value).map((c) => c.name));
-    const hasAuthSignal =
-      (cookieNames.has('sid') || cookieNames.has('tenant_api_key')) &&
-      (cookieNames.has('user_type') ||
-        cookieNames.has('tenant_subdomain') ||
-        cookieNames.has('user_email'));
-    if (hasAuthSignal) {
-      outcome = 'auth';
-      break;
-    }
+      // 1) Success path: auth cookies present
+      const cookies = await page.context().cookies();
+      const cookieNames = new Set(cookies.filter((c) => c.value).map((c) => c.name));
+      const hasAuthSignal =
+        (cookieNames.has('sid') || cookieNames.has('tenant_api_key')) &&
+        (cookieNames.has('user_type') ||
+          cookieNames.has('tenant_subdomain') ||
+          cookieNames.has('user_email'));
+      if (hasAuthSignal) {
+        outcome = 'auth';
+        break;
+      }
 
-    // 2) Failure path: error banner visible with message
-    if (await errorBanner.count()) {
-      const visible = await errorBanner.isVisible().catch(() => false);
-      if (visible) {
-        const msg = (await errorBanner.innerText().catch(() => '')).trim();
-        if (msg) {
-          outcome = `error:${msg}`;
-          break;
+      // 2) Failure path: error banner visible with message
+      if (await errorBanner.count()) {
+        const visible = await errorBanner.isVisible().catch(() => false);
+        if (visible) {
+          const msg = (await errorBanner.innerText().catch(() => '')).trim();
+          if (msg) {
+            outcome = `error:${msg}`;
+            break;
+          }
         }
       }
+
+      await page.waitForTimeout(250);
     }
 
-    await page.waitForTimeout(250);
-  }
+    if (outcome === 'pending') {
+      if (attempt < 2) continue;
+      throw new Error('Login failed: timed out waiting for auth cookies or an error message');
+    }
 
-  if (outcome === 'pending') {
-    throw new Error('Login failed: timed out waiting for auth cookies or an error message');
-  }
+    if (outcome.startsWith('error:')) {
+      throw new Error(`Login failed: ${outcome.slice('error:'.length).trim()}`);
+    }
 
-  if (outcome.startsWith('error:')) {
-    throw new Error(`Login failed: ${outcome.slice('error:'.length).trim()}`);
-  }
+    // Ensure cookies have been written before proceeding.
+    // Best-effort: on some prod redirects cookies may not be readable immediately,
+    // but navigation away from /login indicates success. Only enforce cookie wait
+    // if we're still on the login page.
+    if (page.url().includes('/login')) {
+      await waitForAuthCookies();
+    }
 
-  // Ensure cookies have been written before proceeding.
-  // Best-effort: on some prod redirects cookies may not be readable immediately,
-  // but navigation away from /login indicates success. Only enforce cookie wait
-  // if we're still on the login page.
-  if (page.url().includes('/login')) {
-    await waitForAuthCookies();
+    break;
   }
 
   // Land on a stable authenticated route in the same origin.

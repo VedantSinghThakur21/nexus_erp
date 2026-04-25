@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test'
 
 test('tenant context is present after login', async ({ page, context }) => {
+  test.setTimeout(2 * 60_000)
   // Requires prod-smoke storageState.
-  await page.goto('/dashboard')
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 60_000 })
   await page.waitForLoadState('domcontentloaded')
 
   const cookies = await context.cookies()
