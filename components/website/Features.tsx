@@ -30,7 +30,7 @@ export default function Features() {
               <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
 
               <div className="relative z-10 flex justify-between items-start">
-                <div className="p-3 bg-background/5 backdrop-blur-md border border-white/10 rounded-lg">
+                <div className="p-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
                   <MapPin className="w-6 h-6 text-white" />
                 </div>
                 <div className="px-2 py-1 bg-orange-500/10 border border-orange-500/20 rounded text-[10px] text-orange-500 font-mono uppercase animate-pulse">
@@ -71,12 +71,12 @@ export default function Features() {
             <div className="card-content-landing p-8 flex flex-col justify-between relative overflow-hidden group">
               {/* Kanban Lines */}
               <div className="absolute inset-0 opacity-20 flex justify-between px-12 pt-12 pb-20 pointer-events-none">
-                <div className="w-[2px] h-full bg-background/5 border-r border-dashed border-white/10" />
-                <div className="w-[2px] h-full bg-background/5 border-r border-dashed border-white/10" />
+                <div className="w-[2px] h-full bg-white/5 border-r border-dashed border-white/10" />
+                <div className="w-[2px] h-full bg-white/5 border-r border-dashed border-white/10" />
               </div>
 
               <div className="relative z-10 flex justify-between items-start">
-                <div className="p-3 bg-background/5 backdrop-blur-md border border-white/10 rounded-lg">
+                <div className="p-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
                   <Wallet className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-full backdrop-blur-md shadow-[0_0_15px_rgba(99,102,241,0.2)] animate-float">
@@ -90,8 +90,8 @@ export default function Features() {
               {/* Sliding Card */}
               <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 px-12 h-20 pointer-events-none">
                 <div className="w-40 h-full bg-[#1A1A1C] border border-white/10 rounded-lg shadow-2xl p-3 flex flex-col justify-center gap-2 animate-card-slide relative z-20">
-                  <div className="w-12 h-1 bg-background/10 rounded-full" />
-                  <div className="w-20 h-1 bg-background/10 rounded-full" />
+                  <div className="w-12 h-1 bg-white/10 rounded-full" />
+                  <div className="w-20 h-1 bg-white/10 rounded-full" />
                   <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-green-500 rounded-full blur-md opacity-50" />
                 </div>
                 <div className="absolute bottom-[-40px] left-12 text-[10px] font-mono text-neutral-600 uppercase">

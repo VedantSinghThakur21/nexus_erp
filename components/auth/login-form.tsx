@@ -50,14 +50,14 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
+        <div className="flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-200">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
 
       <div className="space-y-1.5">
-        <Label htmlFor="email" className="text-sm font-medium">
+        <Label htmlFor="email" className="text-sm font-medium text-neutral-200">
           Email or Username
         </Label>
         <Input
@@ -68,13 +68,13 @@ export function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          className="h-10 bg-background/50 border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="h-10 bg-white/5 border-white/10 text-neutral-100 placeholder:text-neutral-500 focus-visible:border-orange-500 focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-sm font-medium">
+          <Label htmlFor="password" className="text-sm font-medium text-neutral-200">
             Password
           </Label>
         </div>
@@ -87,12 +87,12 @@ export function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            className="h-10 pr-10 bg-background/50 border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="h-10 pr-10 bg-white/5 border-white/10 text-neutral-100 placeholder:text-neutral-500 focus-visible:border-orange-500 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
             tabIndex={-1}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -100,7 +100,11 @@ export function LoginForm() {
         </div>
       </div>
 
-      <Button type="submit" className="w-full h-10 font-medium" disabled={loading}>
+      <Button
+        type="submit"
+        className="w-full h-10 font-semibold bg-white text-black hover:bg-neutral-200"
+        disabled={loading}
+      >
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
