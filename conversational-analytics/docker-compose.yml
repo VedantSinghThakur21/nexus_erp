@@ -1,0 +1,36 @@
+# Conversational Analytics Service — Docker Compose
+#
+# This container runs a lightweight FastAPI service that provides
+# conversational analytics over ERPNext data via LLM-driven tool-calling.
+# Deployed alongside the existing provisioning service.
+
+services:
+  conversational-analytics:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-conversational-analytics
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      - ERPNEXT_URL=${ERPNEXT_URL:-http://127.0.0.1:8080}
+      - ERPNEXT_API_KEY=${ERPNEXT_API_KEY}
+      - ERPNEXT_API_SECRET=${ERPNEXT_API_SECRET}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - SITE_URL=${SITE_URL:-https://nexus-erp.com}
+      - ROOT_DOMAIN=${NEXT_PUBLIC_ROOT_DOMAIN:-avariq.in}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - ANALYTICS_PORT=8003
+    volumes:
+      # Persist LLM call logs across container restarts
+      - analytics-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  analytics-logs:
+

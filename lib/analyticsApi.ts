@@ -1,0 +1,86 @@
+/**
+ * Analytics API Client
+ * ====================
+ * Typed client for the Conversational Analytics FastAPI service.
+ * 
+ * The service runs at NEXT_PUBLIC_ANALYTICS_API_URL and is called
+ * directly from the browser (client component). Tenant is injected
+ * from the hostname via useClientTenant().
+ */
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type TableResponse = {
+  type: 'table'
+  columns: string[]
+  rows: any[][]
+  exportable: true
+  note?: string
+}
+
+export type NumberResponse = {
+  type: 'number'
+  value: number
+  label: string
+}
+
+export type ErrorResponse = {
+  type: 'error'
+  message: string
+  suggestions?: string[]
+}
+
+export type InfoResponse = {
+  type: 'info'
+  message: string
+}
+
+export type AnalyticsResponse =
+  | TableResponse
+  | NumberResponse
+  | ErrorResponse
+  | InfoResponse
+
+export interface ChatApiResponse {
+  query: string
+  tenant: string
+  tool_used: string | null
+  intent_source: string
+  response: AnalyticsResponse
+}
+
+// ---------------------------------------------------------------------------
+// API Client
+// ---------------------------------------------------------------------------
+
+const ANALYTICS_API_URL =
+  process.env.NEXT_PUBLIC_ANALYTICS_API_URL || 'http://localhost:8003'
+
+/**
+ * Send a natural language query to the Conversational Analytics backend.
+ *
+ * @param query  - The user's natural language question
+ * @param tenant - The tenant subdomain (from useClientTenant)
+ * @returns Typed analytics response
+ */
+export async function askAnalytics(
+  query: string,
+  tenant: string
+): Promise<ChatApiResponse> {
+  const url = `${ANALYTICS_API_URL}/api/chat`
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, tenant }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => 'Unknown error')
+    throw new Error(`Analytics API error (${res.status}): ${text}`)
+  }
+
+  return res.json() as Promise<ChatApiResponse>
+}

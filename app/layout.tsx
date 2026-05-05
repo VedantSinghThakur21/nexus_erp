@@ -4,7 +4,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { Providers } from "@/components/providers";
-import { FloatingAIChat } from "@/components/ai/floating-chat";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -47,7 +46,6 @@ export default function RootLayout({
             <ToastProvider>
               {children}
             </ToastProvider>
-            <FloatingAIChat />
           </Providers>
         </ThemeProvider>
       </body>
