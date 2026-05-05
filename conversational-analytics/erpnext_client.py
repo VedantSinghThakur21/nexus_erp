@@ -59,10 +59,8 @@ class ERPNextClient:
         self.timeout = timeout
 
         if not self.api_key or not self.api_secret:
-            logger.warning(
-                "ERPNext API credentials not configured — "
-                "set ERPNEXT_API_KEY and ERPNEXT_API_SECRET"
-            )
+            logger.error("ERPNext API credentials not provided dynamically or in environment")
+
 
     # ------------------------------------------------------------------
     # Internal helpers

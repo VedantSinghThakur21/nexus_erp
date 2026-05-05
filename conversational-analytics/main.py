@@ -26,6 +26,11 @@ import logging
 from datetime import datetime
 from typing import Any, Optional
 
+# Load .env file BEFORE importing modules that read os.environ
+from dotenv import load_dotenv
+load_dotenv()
+
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
@@ -66,6 +71,23 @@ app = FastAPI(
     docs_url="/docs" if not IS_PRODUCTION else None,
 )
 
+# CORS — required because the Next.js frontend (port 3000) calls this
+# service (port 8003) from the browser. Without this, all requests fail.
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://*.avariq.in",   # production subdomains
+    ],
+    allow_origin_regex=r"https?://.*\.localhost(:\d+)?",  # dev subdomains
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
 # ============================================================================
 # Models
 # ============================================================================
@@ -74,6 +96,8 @@ app = FastAPI(
 class ChatRequest(BaseModel):
     query: str
     tenant: str
+    api_key: Optional[str] = None
+    api_secret: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
@@ -269,7 +293,13 @@ async def chat(request: ChatRequest):
     params["site_name"] = site_name
 
     # --- Step 4: Execute tool ---
-    tool_result = run_tool(tool_name, params)
+    tool_result = run_tool(
+        tool_name, 
+        params, 
+        site_name=site_name, 
+        api_key=request.api_key, 
+        api_secret=request.api_secret
+    )
 
     # --- Step 5: Format response ---
     response = format_response(tool_result)

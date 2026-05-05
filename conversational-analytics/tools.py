@@ -20,20 +20,6 @@ from erpnext_client import ERPNextClient, ERPNextClientError
 logger = logging.getLogger("conversational_analytics.tools")
 
 # ---------------------------------------------------------------------------
-# Shared client instance (created once, reused across calls)
-# ---------------------------------------------------------------------------
-
-_client: ERPNextClient | None = None
-
-
-def _get_client() -> ERPNextClient:
-    global _client
-    if _client is None:
-        _client = ERPNextClient()
-    return _client
-
-
-# ---------------------------------------------------------------------------
 # Row cap — prevent massive responses from overwhelming the LLM context
 # ---------------------------------------------------------------------------
 
@@ -55,16 +41,11 @@ def get_invoices(
     limit: int = 20,
     order_by: str = "posting_date desc",
     site_name: str | None = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
 ) -> ToolResult:
     """
     Fetch Sales Invoice list.
-
-    Fields match those used in:
-      - app/actions/invoices.ts:getInvoices  → [name, customer_name, grand_total, status, due_date, currency, docstatus]
-      - app/actions/crm.ts:getSalesInvoices  → [name, customer, customer_name, status, docstatus, posting_date, due_date, grand_total, currency, sales_order]
-
-    We use the union of those field sets so the analytics layer has full
-    context regardless of which view the user is asking about.
     """
     fields = [
         "name",
@@ -77,7 +58,7 @@ def get_invoices(
         "currency",
         "docstatus",
     ]
-    return _fetch_doctype("Sales Invoice", fields, filters, limit, order_by, site_name)
+    return _fetch_doctype("Sales Invoice", fields, filters, limit, order_by, site_name, api_key, api_secret)
 
 
 def get_sales_orders(
@@ -85,12 +66,11 @@ def get_sales_orders(
     limit: int = 20,
     order_by: str = "transaction_date desc",
     site_name: str | None = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
 ) -> ToolResult:
     """
     Fetch Sales Order list.
-
-    Fields match those used in:
-      - app/actions/crm.ts:getSalesOrders → [name, customer, customer_name, status, docstatus, transaction_date, delivery_date, grand_total, currency, quotation_no]
     """
     fields = [
         "name",
@@ -102,7 +82,7 @@ def get_sales_orders(
         "docstatus",
         "currency",
     ]
-    return _fetch_doctype("Sales Order", fields, filters, limit, order_by, site_name)
+    return _fetch_doctype("Sales Order", fields, filters, limit, order_by, site_name, api_key, api_secret)
 
 
 def get_customers(
@@ -110,13 +90,11 @@ def get_customers(
     limit: int = 20,
     order_by: str = "name asc",
     site_name: str | None = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
 ) -> ToolResult:
     """
     Fetch Customer list.
-
-    Fields match the Customer doctype structure used in:
-      - app/actions/crm.ts:convertOpportunityToCustomer → customer_name, customer_type, territory
-      - provisioning-service/app.py:DOC_PERM_MINIMUM → Customer as link target
     """
     fields = [
         "name",
@@ -124,7 +102,7 @@ def get_customers(
         "customer_group",
         "territory",
     ]
-    return _fetch_doctype("Customer", fields, filters, limit, order_by, site_name)
+    return _fetch_doctype("Customer", fields, filters, limit, order_by, site_name, api_key, api_secret)
 
 
 # ---------------------------------------------------------------------------
@@ -139,6 +117,8 @@ def _fetch_doctype(
     limit: int,
     order_by: str,
     site_name: str | None,
+    api_key: str | None,
+    api_secret: str | None,
 ) -> ToolResult:
     """
     Internal helper — wraps ERPNextClient.get_list with:
@@ -153,7 +133,7 @@ def _fetch_doctype(
         capped = True
 
     try:
-        client = _get_client()
+        client = ERPNextClient(api_key=api_key, api_secret=api_secret)
         data = client.get_list(
             doctype=doctype,
             fields=fields,

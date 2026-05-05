@@ -60,6 +60,7 @@ const ANALYTICS_API_URL =
 
 /**
  * Send a natural language query to the Conversational Analytics backend.
+ * This now goes through our secure Next.js proxy route to inject credentials.
  *
  * @param query  - The user's natural language question
  * @param tenant - The tenant subdomain (from useClientTenant)
@@ -69,7 +70,7 @@ export async function askAnalytics(
   query: string,
   tenant: string
 ): Promise<ChatApiResponse> {
-  const url = `${ANALYTICS_API_URL}/api/chat`
+  const url = `/api/analytics/chat`
 
   const res = await fetch(url, {
     method: 'POST',
