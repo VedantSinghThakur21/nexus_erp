@@ -183,7 +183,13 @@ TOOL_REGISTRY: dict[str, callable] = {
 }
 
 
-def run_tool(tool_name: str, params: dict[str, Any] | None = None) -> ToolResult:
+def run_tool(
+    tool_name: str,
+    params: dict[str, Any] | None = None,
+    site_name: str | None = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
+) -> ToolResult:
     """
     Dispatch a tool call by name.
 
@@ -191,8 +197,11 @@ def run_tool(tool_name: str, params: dict[str, Any] | None = None) -> ToolResult
     Returns a structured response in all cases (never raises).
 
     Args:
-        tool_name: One of the registered tool names
-        params:    Dict of keyword arguments for the tool function
+        tool_name:  One of the registered tool names
+        params:     Dict of keyword arguments for the tool function
+        site_name:  ERPNext site name for multi-tenant routing (X-Frappe-Site-Name)
+        api_key:    Per-request ERPNext API key (overrides env var)
+        api_secret: Per-request ERPNext API secret (overrides env var)
     """
     if tool_name not in TOOL_REGISTRY:
         logger.warning(f"Unknown tool requested: {tool_name}")
@@ -204,7 +213,12 @@ def run_tool(tool_name: str, params: dict[str, Any] | None = None) -> ToolResult
         }
 
     tool_fn = TOOL_REGISTRY[tool_name]
-    safe_params = params or {}
+    safe_params = dict(params or {})
+
+    # Inject routing args — all tool functions accept these kwargs
+    safe_params["site_name"] = site_name
+    safe_params["api_key"] = api_key
+    safe_params["api_secret"] = api_secret
 
     logger.info(f"Running tool: {tool_name} with params: {safe_params}")
     return tool_fn(**safe_params)

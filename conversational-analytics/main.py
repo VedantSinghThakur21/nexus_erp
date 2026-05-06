@@ -281,8 +281,7 @@ async def chat(request: ChatRequest):
     # --- Step 3: Normalize parameters ---
     params = _normalize_tool_params(tool_name, raw_params)
 
-    # Add tenant site_name for multi-tenant routing
-    # This matches the X-Frappe-Site-Name pattern from lib/api-client.ts
+    # Build site_name for multi-tenant ERPNext routing
     root_domain = os.environ.get("ROOT_DOMAIN", "avariq.in")
     is_prod = os.environ.get("ENVIRONMENT", "production") == "production"
     site_name = (
@@ -290,15 +289,15 @@ async def chat(request: ChatRequest):
         if is_prod
         else f"{request.tenant}.localhost"
     )
-    params["site_name"] = site_name
 
     # --- Step 4: Execute tool ---
+    # site_name, api_key, api_secret are passed directly — run_tool injects them
     tool_result = run_tool(
-        tool_name, 
-        params, 
-        site_name=site_name, 
-        api_key=request.api_key, 
-        api_secret=request.api_secret
+        tool_name,
+        params,
+        site_name=site_name,
+        api_key=request.api_key,
+        api_secret=request.api_secret,
     )
 
     # --- Step 5: Format response ---
