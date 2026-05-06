@@ -935,18 +935,17 @@ export async function logoutUser() {
   try {
     const erpUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL
 
-    try {
-      await fetch(`${erpUrl}/api/method/logout`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
-      })
-    } catch (error) {
-      console.error('ERPNext logout error:', error)
-    }
+    // Fire-and-forget: invalidate the Frappe session server-side.
+    // We do NOT await this — cookie cleanup and redirect happen immediately.
+    // If ERPNext is slow or unreachable the user still gets logged out instantly.
+    void fetch(`${erpUrl}/api/method/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(2000), // 2s max — best effort only
+    }).catch(() => {
+      // Intentionally swallowed — logout must never block on ERPNext availability
+    })
 
     const cookieStore = await cookies()
     cookieStore.delete('sid')
@@ -956,6 +955,10 @@ export async function logoutUser() {
     cookieStore.delete('tenant_site_url')
     cookieStore.delete('tenant_api_key')
     cookieStore.delete('tenant_api_secret')
+    cookieStore.delete('tenant_role_type')
+    cookieStore.delete('tenant_roles_normalized')
+    cookieStore.delete('full_name')
+    cookieStore.delete('system_user')
 
     return { success: true }
   } catch (error: any) {
@@ -963,6 +966,7 @@ export async function logoutUser() {
     return { success: false, error: error.message }
   }
 }
+
 
 export async function getCurrentUser() {
   try {

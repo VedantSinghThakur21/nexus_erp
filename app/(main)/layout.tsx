@@ -35,9 +35,11 @@ export default async function DashboardLayout({
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain">
         <TenantGuard hasServerAuth={hasServerAuth}>
           {children}
-          <FloatingAIChat />
         </TenantGuard>
       </main>
+      {/* FloatingAIChat must be outside <main> — overflow-x-hidden on main clips
+          position:fixed children in Chromium, making the button invisible. */}
+      <FloatingAIChat />
     </div>
   )
 }
