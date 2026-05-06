@@ -14,7 +14,10 @@ services:
     ports:
       - "8003:8003"
     environment:
-      - ERPNEXT_URL=${ERPNEXT_URL:-http://127.0.0.1:8080}
+      # IMPORTANT: 127.0.0.1 inside Docker refers to the container itself, NOT the host.
+      # Use host-gateway to reach services running on the Ubuntu host (e.g. ERPNext on port 8080).
+      # Override by setting ERPNEXT_URL in your .env file if ERPNext is on a different host/port.
+      - ERPNEXT_URL=${ERPNEXT_URL:-http://host-gateway:8080}
       - ERPNEXT_API_KEY=${ERPNEXT_API_KEY}
       - ERPNEXT_API_SECRET=${ERPNEXT_API_SECRET}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
@@ -22,6 +25,10 @@ services:
       - ROOT_DOMAIN=${NEXT_PUBLIC_ROOT_DOMAIN:-avariq.in}
       - ENVIRONMENT=${ENVIRONMENT:-production}
       - ANALYTICS_PORT=8003
+    extra_hosts:
+      # Resolves "host-gateway" to the Docker host's IP on Linux.
+      # This is the standard way to reach the host from inside a container.
+      - "host-gateway:host-gateway"
     volumes:
       # Persist LLM call logs across container restarts
       - analytics-logs:/app/logs
@@ -33,4 +40,3 @@ services:
 
 volumes:
   analytics-logs:
-
