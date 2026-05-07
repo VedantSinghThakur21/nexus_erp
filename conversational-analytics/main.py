@@ -266,6 +266,21 @@ async def chat(request: ChatRequest):
     """
     logger.info(f"Chat request: tenant={request.tenant}, query={request.query}")
 
+    # Fast path: handle basic small talk without calling OpenRouter.
+    # This avoids needless 429s and makes the UI feel more natural.
+    smalltalk = _smalltalk_response(request.query)
+    if smalltalk:
+        return {
+            "query": request.query,
+            "tenant": request.tenant,
+            "tool_used": None,
+            "intent_source": "smalltalk",
+            "response": {
+                "type": "info",
+                "message": smalltalk,
+            },
+        }
+
     # --- Step 1: Resolve intent (LLM → fallback) ---
     intent_source = "llm"
     try:
