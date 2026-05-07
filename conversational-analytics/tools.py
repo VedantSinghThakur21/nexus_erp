@@ -144,11 +144,31 @@ def _fetch_doctype(
         )
     except ERPNextClientError as exc:
         logger.error(f"Tool fetch failed for {doctype}: {exc}")
-        # User sees a generic error — sensitive details stay in logs
+        # User sees a safe-but-actionable error message.
+        # Keep sensitive details (exact URLs, stack traces) out of responses.
+        status = getattr(exc, "status_code", None)
+        if status in (401, 403):
+            return {
+                "success": False,
+                "data": None,
+                "error": "Unauthorized to read ERP data for this tenant. Please re-login or regenerate API key/secret.",
+            }
+        if status == 404:
+            return {
+                "success": False,
+                "data": None,
+                "error": "ERP endpoint not found. Check ERPNext URL and version.",
+            }
+        if status in (502, 503, 504):
+            return {
+                "success": False,
+                "data": None,
+                "error": "ERP backend is temporarily unavailable. Please try again later.",
+            }
         return {
             "success": False,
             "data": None,
-            "error": "Failed to retrieve data from ERP system. Please try again later.",
+            "error": "Failed to retrieve data from ERP system. Check ERPNext connectivity and tenant credentials.",
         }
     except Exception as exc:
         logger.exception(f"Unexpected error fetching {doctype}: {exc}")

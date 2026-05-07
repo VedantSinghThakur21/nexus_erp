@@ -270,7 +270,7 @@ class TestResponseFormatter:
         tool_result = {
             "success": False,
             "data": None,
-            "error": "Failed to retrieve data from ERP system.",
+            "error": "Failed to retrieve data from ERP system. Check ERPNext connectivity and tenant credentials.",
         }
         formatted = format_response(tool_result)
 

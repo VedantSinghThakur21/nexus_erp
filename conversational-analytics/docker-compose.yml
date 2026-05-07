@@ -29,6 +29,9 @@ services:
       # Resolves "host-gateway" to the Docker host's IP on Linux.
       # This is the standard way to reach the host from inside a container.
       - "host-gateway:host-gateway"
+    networks:
+      - default
+      - frappe_docker_default
     volumes:
       # Persist LLM call logs across container restarts
       - analytics-logs:/app/logs
@@ -40,3 +43,9 @@ services:
 
 volumes:
   analytics-logs:
+
+networks:
+  # Attach to the ERPNext stack network so we can reach ERPNext by docker DNS
+  # (e.g. http://frontend:8080) reliably across restarts.
+  frappe_docker_default:
+    external: true
