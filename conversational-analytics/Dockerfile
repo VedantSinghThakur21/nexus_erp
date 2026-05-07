@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY erpnext_client.py .
 COPY tools.py .
 COPY llm.py .
+COPY analyser.py .
 COPY main.py .
 
 # Pre-create logs directory for LLM call tracing
