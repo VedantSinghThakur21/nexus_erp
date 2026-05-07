@@ -18,6 +18,7 @@ export type TableResponse = {
   rows: any[][]
   exportable: true
   note?: string
+  insight?: AnalyticsInsight
 }
 
 export type NumberResponse = {
@@ -35,7 +36,34 @@ export type ErrorResponse = {
 export type InfoResponse = {
   type: 'info'
   message: string
+  insight?: AnalyticsInsight
 }
+
+export type AnalyticsInsight =
+  | {
+      kind: 'invoices'
+      total_count: number
+      total_amount: number | null
+      unpaid_count: number
+      unpaid_amount: number | null
+      overdue_count: number
+      aging_buckets: Record<'0-30' | '31-60' | '61-90' | '90+', number>
+      top_debtors: { customer: string; amount: number }[]
+      anomalies: { name?: string; customer?: string; amount?: number; z_score?: number }[]
+    }
+  | {
+      kind: 'sales_orders'
+      total_count: number
+      total_amount: number | null
+      status_breakdown: Record<string, number>
+      docstatus_breakdown: Record<string, number>
+    }
+  | {
+      kind: 'customers'
+      total_count: number
+      customer_groups: { name: string; count: number }[]
+      territories: { name: string; count: number }[]
+    }
 
 export type AnalyticsResponse =
   | TableResponse

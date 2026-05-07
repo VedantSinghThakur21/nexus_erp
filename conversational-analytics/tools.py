@@ -16,6 +16,7 @@ import logging
 from typing import Any
 
 from erpnext_client import ERPNextClient, ERPNextClientError
+from analyser import analyse_invoices, analyse_sales_orders, analyse_customers
 
 logger = logging.getLogger("conversational_analytics.tools")
 
@@ -53,6 +54,7 @@ def get_invoices(
         "customer_name",
         "posting_date",
         "grand_total",
+        "outstanding_amount",
         "status",
         "due_date",
         "currency",
@@ -182,6 +184,22 @@ def _fetch_doctype(
         "success": True,
         "data": data,
     }
+
+    # Attach local insights (deterministic, no LLM)
+    try:
+        insight: dict[str, Any] | None = None
+        if doctype == "Sales Invoice" and isinstance(data, list):
+            insight = analyse_invoices(data)
+        elif doctype == "Sales Order" and isinstance(data, list):
+            insight = analyse_sales_orders(data)
+        elif doctype == "Customer" and isinstance(data, list):
+            insight = analyse_customers(data)
+
+        if insight:
+            result["insight"] = insight
+    except Exception as exc:
+        # Never fail the request due to insight computation
+        logger.warning(f"Insight computation failed for {doctype}: {exc}")
 
     if capped:
         result["note"] = (

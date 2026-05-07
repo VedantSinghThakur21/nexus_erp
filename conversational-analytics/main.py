@@ -142,6 +142,8 @@ def format_response(tool_result: dict[str, Any]) -> dict[str, Any]:
       - empty result → info message
       - error        → error message
     """
+    insight = tool_result.get("insight")
+
     # Error case
     if not tool_result.get("success"):
         error_msg = tool_result.get("error", "An unexpected error occurred.")
@@ -157,6 +159,7 @@ def format_response(tool_result: dict[str, Any]) -> dict[str, Any]:
         return {
             "type": "info",
             "message": "No matching records found.",
+            **({"insight": insight} if insight else {}),
         }
 
     # List / table case
@@ -183,6 +186,8 @@ def format_response(tool_result: dict[str, Any]) -> dict[str, Any]:
         # Include truncation note if present
         if "note" in tool_result:
             result["note"] = tool_result["note"]
+        if insight:
+            result["insight"] = insight
 
         return result
 

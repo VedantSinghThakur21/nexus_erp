@@ -29,6 +29,7 @@ import { useClientTenant } from '@/lib/tenant-client'
 import {
   askAnalytics,
   type AnalyticsResponse,
+  type AnalyticsInsight,
   type ChatApiResponse,
 } from '@/lib/analyticsApi'
 import { jsonToCsv, downloadCsv } from '@/utils/exportCsv'
@@ -374,7 +375,9 @@ function TableRenderer({ response }: { response: Extract<AnalyticsResponse, { ty
   }
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card/80 overflow-hidden shadow-sm">
+    <div className="space-y-2">
+      {response.insight && <InsightCard insight={response.insight} />}
+      <div className="rounded-xl border border-border/60 bg-card/80 overflow-hidden shadow-sm">
       {/* Table header bar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-secondary/30">
         <span className="text-xs font-medium text-muted-foreground">
@@ -431,6 +434,7 @@ function TableRenderer({ response }: { response: Extract<AnalyticsResponse, { ty
           </tbody>
         </table>
       </div>
+      </div>
     </div>
   )
 }
@@ -482,13 +486,114 @@ function ErrorRenderer({ response }: { response: Extract<AnalyticsResponse, { ty
 // --- Info ---
 function InfoRenderer({ response }: { response: Extract<AnalyticsResponse, { type: 'info' }> }) {
   return (
-    <Alert className="bg-secondary/40 border-border/40">
-      <Info className="h-4 w-4 text-muted-foreground" />
-      <AlertDescription className="text-sm text-muted-foreground">
-        {response.message}
-      </AlertDescription>
-    </Alert>
+    <div className="space-y-2">
+      {response.insight && <InsightCard insight={response.insight} />}
+      <Alert className="bg-secondary/40 border-border/40">
+        <Info className="h-4 w-4 text-muted-foreground" />
+        <AlertDescription className="text-sm text-muted-foreground">
+          {response.message}
+        </AlertDescription>
+      </Alert>
+    </div>
   )
+}
+
+function InsightCard({ insight }: { insight: AnalyticsInsight }) {
+  switch (insight.kind) {
+    case 'invoices': {
+      const currency = 'INR'
+      const unpaid = insight.unpaid_amount ?? 0
+      const total = insight.total_amount ?? 0
+      return (
+        <div className="rounded-xl border border-border/60 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-blue-500/5 p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold">Invoice Insights</div>
+              <div className="text-xs text-muted-foreground">
+                {insight.total_count} invoice{insight.total_count !== 1 ? 's' : ''} analyzed
+              </div>
+            </div>
+            {insight.anomalies.length > 0 && (
+              <Badge variant="secondary" className="text-[11px]">
+                {insight.anomalies.length} anomaly{insight.anomalies.length !== 1 ? 'ies' : ''}
+              </Badge>
+            )}
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-lg border border-border/50 bg-background/40 p-3">
+              <div className="text-[11px] text-muted-foreground">Unpaid</div>
+              <div className="text-sm font-semibold tabular-nums">
+                {currency} {unpaid.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {insight.unpaid_count} invoice{insight.unpaid_count !== 1 ? 's' : ''}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/40 p-3">
+              <div className="text-[11px] text-muted-foreground">Total</div>
+              <div className="text-sm font-semibold tabular-nums">
+                {currency} {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Overdue: {insight.overdue_count}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Badge variant="secondary" className="text-[11px] font-normal">
+              0-30: {insight.aging_buckets['0-30']}
+            </Badge>
+            <Badge variant="secondary" className="text-[11px] font-normal">
+              31-60: {insight.aging_buckets['31-60']}
+            </Badge>
+            <Badge variant="secondary" className="text-[11px] font-normal">
+              61-90: {insight.aging_buckets['61-90']}
+            </Badge>
+            <Badge variant="secondary" className="text-[11px] font-normal">
+              90+: {insight.aging_buckets['90+']}
+            </Badge>
+          </div>
+
+          {insight.top_debtors.length > 0 && (
+            <div className="mt-3 text-xs text-muted-foreground">
+              Top debtors: {insight.top_debtors.map(d => `${d.customer} (${currency} ${d.amount.toLocaleString()})`).join(', ')}
+            </div>
+          )}
+        </div>
+      )
+    }
+    case 'sales_orders': {
+      const currency = 'INR'
+      const total = insight.total_amount ?? 0
+      return (
+        <div className="rounded-xl border border-border/60 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-blue-500/5 p-4 shadow-sm">
+          <div className="text-sm font-semibold">Sales Order Insights</div>
+          <div className="text-xs text-muted-foreground">
+            {insight.total_count} order{insight.total_count !== 1 ? 's' : ''} · {currency} {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </div>
+        </div>
+      )
+    }
+    case 'customers': {
+      return (
+        <div className="rounded-xl border border-border/60 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-blue-500/5 p-4 shadow-sm">
+          <div className="text-sm font-semibold">Customer Insights</div>
+          <div className="text-xs text-muted-foreground">
+            {insight.total_count} customer{insight.total_count !== 1 ? 's' : ''} found
+          </div>
+          {insight.customer_groups.length > 0 && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              Top groups: {insight.customer_groups.map(g => `${g.name} (${g.count})`).join(', ')}
+            </div>
+          )}
+        </div>
+      )
+    }
+    default:
+      return null
+  }
 }
 
 // ---------------------------------------------------------------------------

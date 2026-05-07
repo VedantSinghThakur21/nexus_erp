@@ -93,16 +93,19 @@ class TestFallbackIntent:
         assert fallback_intent("Show unpaid invoices")["tool"] == "get_invoices"
         assert fallback_intent("my bills")["tool"] == "get_invoices"
         assert fallback_intent("Billed this month")["tool"] == "get_invoices"
+        assert fallback_intent("Show unpaid invoices")["parameters"]["filters"] == [["status", "=", "Unpaid"]]
 
     def test_sales_order_keywords(self):
         assert fallback_intent("sales orders")["tool"] == "get_sales_orders"
         assert fallback_intent("show me orders")["tool"] == "get_sales_orders"
         assert fallback_intent("SALES ORDER list")["tool"] == "get_sales_orders"
+        assert fallback_intent("Confirmed sales orders")["parameters"]["filters"] == [["docstatus", "=", 1]]
 
     def test_customer_keywords(self):
         assert fallback_intent("find customer acme")["tool"] == "get_customers"
         assert fallback_intent("list all clients")["tool"] == "get_customers"
         assert fallback_intent("buyer information")["tool"] == "get_customers"
+        assert fallback_intent("find customer acme")["parameters"]["search"] == "acme"
 
     def test_unknown_query(self):
         result = fallback_intent("What is the weather today")
