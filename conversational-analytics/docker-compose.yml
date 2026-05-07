@@ -41,6 +41,13 @@ services:
       timeout: 10s
       retries: 3
 
+    networks:
+      - default
+      - frappe_docker_default
+networks:
+  frappe_docker_default:
+    external: true
+
 volumes:
   analytics-logs:
 
