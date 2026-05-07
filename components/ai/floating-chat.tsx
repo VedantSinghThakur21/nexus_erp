@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { usePathname } from 'next/navigation'
 import {
   Sparkles,
@@ -61,6 +62,7 @@ const EXAMPLE_QUERIES = [
 
 export function FloatingAIChat() {
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const tenant = useClientTenant()
 
@@ -69,6 +71,11 @@ export function FloatingAIChat() {
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Mount guard — portal requires document to exist (client-side only)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -149,7 +156,10 @@ export function FloatingAIChat() {
 
   const isEmpty = messages.length === 0
 
-  return (
+  // Don't render until mounted — createPortal needs document.body
+  if (!mounted) return null
+
+  return createPortal(
     <>
       {/* Floating Button — gradient glow */}
       <div className="pointer-events-none fixed bottom-5 right-5 h-16 w-16 rounded-full bg-blue-500/20 blur-md animate-pulse z-40" />
@@ -262,9 +272,11 @@ export function FloatingAIChat() {
           </div>
         </SheetContent>
       </Sheet>
-    </>
+    </>,
+    document.body
   )
 }
+
 
 // ---------------------------------------------------------------------------
 // Empty State — example query chips
