@@ -164,16 +164,49 @@ def fallback_intent(query: str) -> dict[str, Any]:
 
     Returns the same {tool, parameters} structure as the LLM.
     """
-    q = query.lower()
+    q = query.lower().strip()
+    if not q:
+        return {"tool": "unknown", "parameters": {}}
 
-    if any(kw in q for kw in ["invoice", "bill", "billed", "invoiced"]):
-        return {"tool": "get_invoices", "parameters": {}}
+    # ------------------------------------------------------------------
+    # Invoices
+    # ------------------------------------------------------------------
+    if any(kw in q for kw in ["invoice", "invoices", "bill", "bills", "billed", "invoiced"]):
+        params: dict[str, Any] = {}
 
-    if re.search(r"\b(sales?\s*order|order)\b", q):
-        return {"tool": "get_sales_orders", "parameters": {}}
+        # Status filters (ERPNext Sales Invoice.status)
+        if any(kw in q for kw in ["unpaid", "outstanding", "due", "not paid"]):
+            params["filters"] = [["status", "=", "Unpaid"]]
+        elif "paid" in q:
+            params["filters"] = [["status", "=", "Paid"]]
 
-    if any(kw in q for kw in ["customer", "client", "buyer"]):
-        return {"tool": "get_customers", "parameters": {}}
+        # Overdue heuristics (best-effort; depends on ERPNext schema/config)
+        # We keep this conservative to avoid false negatives.
+        if "overdue" in q and "filters" not in params:
+            params["filters"] = [["status", "=", "Unpaid"]]
+
+        return {"tool": "get_invoices", "parameters": params}
+
+    # ------------------------------------------------------------------
+    # Sales Orders
+    # ------------------------------------------------------------------
+    if re.search(r"\b(sales?\s*order|orders?)\b", q):
+        params: dict[str, Any] = {}
+        # Common "confirmed" intent → docstatus=1 (Submitted)
+        if "confirmed" in q or "submitted" in q:
+            params["filters"] = [["docstatus", "=", 1]]
+        return {"tool": "get_sales_orders", "parameters": params}
+
+    # ------------------------------------------------------------------
+    # Customers
+    # ------------------------------------------------------------------
+    if any(kw in q for kw in ["customer", "customers", "client", "clients", "buyer"]):
+        # Extract a naive "search" term if present: "find customer acme"
+        m = re.search(r"\b(?:find|search)\s+(?:customer|client)\s+(.+)$", q)
+        params: dict[str, Any] = {}
+        if m and m.group(1):
+            params["search"] = m.group(1).strip().strip('"').strip("'")
+        return {"tool": "get_customers", "parameters": params}
 
     return {"tool": "unknown", "parameters": {}}
 

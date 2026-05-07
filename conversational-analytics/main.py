@@ -54,6 +54,28 @@ EXAMPLE_QUERIES = [
     "Find customer Acme",
 ]
 
+
+def _smalltalk_response(text: str) -> str | None:
+    """
+    Return a short friendly response for non-ERP small talk.
+    Keep it minimal and steer back to analytics.
+    """
+    q = (text or "").strip().lower()
+    if not q:
+        return None
+
+    greetings = {"hi", "hello", "hey", "hola", "hii"}
+    thanks = {"thanks", "thank you", "thx"}
+
+    if q in greetings or any(q.startswith(g + " ") for g in greetings):
+        return "Hi! I can help you analyze ERP data—try asking about invoices, sales orders, or customers."
+    if q in thanks or any(t in q for t in thanks):
+        return "You’re welcome. Want to look at unpaid invoices or confirmed sales orders?"
+    if "how are you" in q:
+        return "Doing well. What would you like to analyze in your ERP data?"
+
+    return None
+
 # Logging
 logging.basicConfig(
     level=logging.INFO,
@@ -263,6 +285,18 @@ async def chat(request: ChatRequest):
 
     # --- Step 2: Handle unknown/unsupported queries ---
     if tool_name == "unknown" or tool_name not in ALLOWED_TOOLS:
+        smalltalk = _smalltalk_response(request.query)
+        if smalltalk:
+            return {
+                "query": request.query,
+                "tenant": request.tenant,
+                "tool_used": None,
+                "intent_source": intent_source,
+                "response": {
+                    "type": "info",
+                    "message": smalltalk,
+                },
+            }
         return {
             "query": request.query,
             "tenant": request.tenant,
