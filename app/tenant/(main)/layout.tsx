@@ -3,6 +3,7 @@ import { TenantGuard } from '@/components/auth/tenant-guard'
 import { RouteTransitionIndicator } from '@/components/route-transition-indicator'
 import { requireAuth } from '@/lib/auth-guard'
 import { cookies } from 'next/headers'
+import { FloatingAIChat } from '@/components/ai/floating-chat'
 
 /**
  * Tenant app layout — mirrors the existing app/(main)/layout.tsx
@@ -33,6 +34,9 @@ export default async function TenantAppLayout({
           {children}
         </TenantGuard>
       </main>
+      {/* Mirror app/(main)/layout.tsx: keep FloatingAIChat outside <main>
+          so fixed positioning is not clipped by overflow settings. */}
+      <FloatingAIChat />
     </div>
   )
 }
