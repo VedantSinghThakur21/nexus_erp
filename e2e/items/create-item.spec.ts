@@ -99,9 +99,9 @@ test('Attempt to create duplicate item -> validation error', async ({ page }) =>
   await page.getByLabel(/rate/i).fill('100')
 
   // The UI uses alert("Error: ...") for failures
-  let dialogMessage: string | null = null
+  const dialogMessage: { value: string | null } = { value: null }
   page.once('dialog', async (d) => {
-    dialogMessage = d.message()
+    dialogMessage.value = d.message()
     await d.dismiss()
   })
 
@@ -123,8 +123,8 @@ test('Attempt to create duplicate item -> validation error', async ({ page }) =>
     expect(submitBtn).not.toHaveText(/creating/i, { timeout: 120_000 }).catch(() => null),
   ])
 
-  if (dialogMessage) {
-    expect(dialogMessage.toLowerCase()).toContain('error')
+  if (dialogMessage.value) {
+    expect(dialogMessage.value.toLowerCase()).toContain('error')
     return
   }
 

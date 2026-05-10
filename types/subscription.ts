@@ -88,6 +88,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlan> = {
         'Rental Pricing System',
         'Fleet Management',
         'Booking System',
+        'Agentic AI plugin (tenant flag required)',
         'Priority Support',
         '10 Team Members',
         '5 GB Storage'
@@ -110,6 +111,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlan> = {
         'Everything in Pro',
         'Unlimited Everything',
         'Advanced Analytics',
+        'Agentic AI finance tools (tenant flag required)',
         'Custom Integrations',
         'Dedicated Support',
         'Custom Branding',

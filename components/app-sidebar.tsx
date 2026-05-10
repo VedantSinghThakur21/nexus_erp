@@ -112,6 +112,7 @@ function SidebarNav({
   const router = useRouter()
   const { roles, loading, error, refreshRoles } = useUser()
   const [pendingAgentActions, setPendingAgentActions] = useState<number>(0)
+  const [agenticAllowed, setAgenticAllowed] = useState(false)
 
   // Prefetch routes once roles are resolved so clicking the sidebar feels instant.
   useEffect(() => {
@@ -120,7 +121,12 @@ function SidebarNav({
 
     const hrefs = navigationConfig
       .flatMap((section) => section.items)
-      .filter((item) => canAccessModule(item.module, roles))
+      .filter((item) => {
+        if ((item.module === 'agents' || item.module === 'agent-inbox') && !agenticAllowed) {
+          return false
+        }
+        return canAccessModule(item.module, roles)
+      })
       .map((item) => item.href)
 
     // Prefetch in idle time so we don't compete with initial rendering.
@@ -135,30 +141,52 @@ function SidebarNav({
     }
 
     // requestIdleCallback isn't available in all environments.
-    const ric = (globalThis as any).requestIdleCallback as undefined | ((cb: () => void) => number)
+    const idleApi = globalThis as unknown as {
+      requestIdleCallback?: (cb: () => void) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    const ric = idleApi.requestIdleCallback
     if (ric) {
       const id = ric(run)
       return () => {
-        const cancel = (globalThis as any).cancelIdleCallback as undefined | ((id: number) => void)
-        if (cancel) cancel(id)
+        idleApi.cancelIdleCallback?.(id)
       }
     }
 
     const t = setTimeout(run, 250)
     return () => clearTimeout(t)
-  }, [loading, roles, router])
+  }, [loading, roles, router, agenticAllowed])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadAgenticEntitlement() {
+      try {
+        const response = await fetch('/api/agentic/entitlement', { cache: 'no-store' })
+        const data = await response.json().catch(() => ({})) as { allowed?: boolean }
+        if (active) setAgenticAllowed(response.ok && !!data.allowed)
+      } catch {
+        if (active) setAgenticAllowed(false)
+      }
+    }
+
+    loadAgenticEntitlement()
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
 
     async function loadPendingCount() {
-      if (loading || !canAccessModule('agent-inbox', roles)) {
+      if (loading || !agenticAllowed || !canAccessModule('agent-inbox', roles)) {
         if (active) setPendingAgentActions(0)
         return
       }
 
       try {
-        const response = await fetch('/api/agent/inbox?limit=100', { cache: 'no-store' })
+        const response = await fetch('/api/agentic/inbox?limit=100', { cache: 'no-store' })
         if (!response.ok) {
           if (active) setPendingAgentActions(0)
           return
@@ -178,16 +206,21 @@ function SidebarNav({
       active = false
       clearInterval(timer)
     }
-  }, [loading, roles])
+  }, [loading, roles, agenticAllowed])
 
   const filteredNavigationConfig = useMemo(() => {
     return navigationConfig
       .map((section) => ({
         ...section,
-        items: section.items.filter((item) => canAccessModule(item.module, roles)),
+        items: section.items.filter((item) => {
+          if ((item.module === 'agents' || item.module === 'agent-inbox') && !agenticAllowed) {
+            return false
+          }
+          return canAccessModule(item.module, roles)
+        }),
       }))
       .filter((section) => section.items.length > 0)
-  }, [roles])
+  }, [roles, agenticAllowed])
 
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -345,13 +378,11 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
 }
 
 export function AppSidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1'
+  })
   const [mobileOpen, setMobileOpen] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY)
-    if (stored === '1') setCollapsed(true)
-  }, [])
 
   function toggleCollapsed() {
     setCollapsed((prev) => {

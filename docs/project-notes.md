@@ -51,6 +51,28 @@ Implementation guidance:
 - Return structured tool results so the assistant can explain what changed.
 - Log tool calls for auditability.
 
+### Agentic AI Plugin Implementation
+
+The in-repo plugin boundary now lives under `plugins/agentic-ai/` so the workflow can later move into a standalone service without coupling every route to app code.
+
+Implemented plugin pieces:
+
+- Route-level entitlement requires `pro` or `enterprise` plus `agentic_ai_enabled`.
+- MCP-style tools declare required plan, required flag, approval requirement, read/write/destructive classification, and dry-run support.
+- Finance tools are separately gated with `agentic_finance_enabled`; invoice creation and payment recording require Enterprise.
+- OpenRouter access is normalized through a model adapter with per-tier policy and fallback model support.
+- RAG uses provider-style interfaces with tenant filtering and citation-aware context injection.
+- New routes are available at `/api/agentic/chat`, `/api/agentic/runs`, `/api/agentic/inbox`, `/api/agentic/actions/[id]`, and `/api/agentic/entitlement`.
+- `/agents` now behaves as the Agentic AI plugin workspace and shows a locked state when the plan or feature flag is missing.
+- `/agent` uses the plugin approval inbox workflow; pending write actions must be approved before execution.
+
+Operational requirements:
+
+- Set `OPENROUTER_API_KEY` before expecting live model responses.
+- Optionally set `OPENROUTER_AGENT_MODEL`, `OPENROUTER_AGENT_FALLBACK_MODEL`, `OPENROUTER_ENTERPRISE_AGENT_MODEL`, and `OPENROUTER_ENTERPRISE_AGENT_FALLBACK_MODEL`.
+- Add `agentic_ai_enabled`, `agentic_finance_enabled`, and `agentic_destructive_tools_enabled` fields to the master `Tenant` DocType, or use the temporary env allowlists `AGENTIC_AGENTIC_AI_ENABLED_TENANTS`, `AGENTIC_AGENTIC_FINANCE_ENABLED_TENANTS`, and `AGENTIC_AGENTIC_DESTRUCTIVE_TOOLS_ENABLED_TENANTS`.
+- Ensure the tenant has the `Agent Action Log` DocType and permissions for approval/audit persistence.
+
 ## Production Verification
 
 The deploy verification runbook lives in `docs/production-verification.md`.

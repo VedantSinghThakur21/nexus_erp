@@ -76,6 +76,8 @@ export interface PlanFeatures {
     custom_domain: boolean
     api_access: boolean
     advanced_reports: boolean
+    agentic_ai: boolean
+    agentic_finance: boolean
     integrations: string[]
   }
   modules: string[] // Enabled ERPNext modules
@@ -96,6 +98,8 @@ export const PLAN_FEATURES: Record<SubscriptionPlan, PlanFeatures> = {
       custom_domain: false,
       api_access: false,
       advanced_reports: false,
+      agentic_ai: false,
+      agentic_finance: false,
       integrations: []
     },
     modules: ['CRM', 'Contacts', 'Leads']
@@ -114,6 +118,8 @@ export const PLAN_FEATURES: Record<SubscriptionPlan, PlanFeatures> = {
       custom_domain: true,
       api_access: true,
       advanced_reports: true,
+      agentic_ai: true,
+      agentic_finance: false,
       integrations: ['stripe', 'zapier', 'slack']
     },
     modules: ['CRM', 'Sales', 'Buying', 'Stock', 'Accounts', 'Projects']
@@ -132,6 +138,8 @@ export const PLAN_FEATURES: Record<SubscriptionPlan, PlanFeatures> = {
       custom_domain: true,
       api_access: true,
       advanced_reports: true,
+      agentic_ai: true,
+      agentic_finance: true,
       integrations: ['all']
     },
     modules: [

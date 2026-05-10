@@ -2,26 +2,31 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 type AgentInboxItem = {
-  name: string
-  action_type: string
-  tenant: string
-  triggered_by: string
-  creation: string
-  payload: string
+  name?: string
+  id?: string
+  action_type?: string
+  toolName?: string
+  tenant?: string
+  triggered_by?: string
+  createdAt?: string
+  creation?: string
+  payload: string | Record<string, unknown>
 }
 
-function parsePayload(payload: string): { title: string; reason: string; confidence: number } {
+function parsePayload(payload: string | Record<string, unknown>): { title: string; reason: string; confidence: number } {
   try {
-    const parsed = JSON.parse(payload) as { title?: string; reason?: string; confidence?: number }
+    const parsed = typeof payload === 'string'
+      ? JSON.parse(payload) as { title?: string; reason?: string; confidence?: number }
+      : payload as { title?: string; reason?: string; confidence?: number }
     return {
       title: parsed.title || 'Agent suggestion',
-      reason: parsed.reason || 'No reason provided',
+      reason: parsed.reason || JSON.stringify(payload, null, 2),
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
     }
   } catch {
     return {
       title: 'Agent suggestion',
-      reason: payload,
+      reason: typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2),
       confidence: 0,
     }
   }
@@ -45,6 +50,8 @@ export function InboxCard({
   onReject: () => void
 }) {
   const parsed = parsePayload(item.payload)
+  const actionType = item.action_type || item.toolName || 'Agent action'
+  const createdAt = item.creation || item.createdAt || new Date().toISOString()
 
   return (
     <Card className="border-slate-200 bg-background shadow-sm">
@@ -54,10 +61,10 @@ export function InboxCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground md:grid-cols-2">
-          <p><span className="font-semibold text-slate-700">Action:</span> {item.action_type}</p>
-          <p><span className="font-semibold text-slate-700">Tenant:</span> {item.tenant}</p>
-          <p><span className="font-semibold text-slate-700">Triggered by:</span> {item.triggered_by}</p>
-          <p><span className="font-semibold text-slate-700">Created:</span> {new Date(item.creation).toLocaleString()}</p>
+          <p><span className="font-semibold text-slate-700">Action:</span> {actionType}</p>
+          <p><span className="font-semibold text-slate-700">Tenant:</span> {item.tenant || 'current tenant'}</p>
+          <p><span className="font-semibold text-slate-700">Triggered by:</span> {item.triggered_by || 'Agentic AI'}</p>
+          <p><span className="font-semibold text-slate-700">Created:</span> {new Date(createdAt).toLocaleString()}</p>
           <p><span className="font-semibold text-slate-700">Confidence:</span> {confidenceLabel(parsed.confidence)}</p>
         </div>
 

@@ -11,9 +11,18 @@ interface Message {
   content: string;
 }
 
+interface AgenticEntitlement {
+  allowed: boolean;
+  reason?: string;
+  plan?: string;
+  flags?: Record<string, boolean>;
+}
+
 export default function AgentsPage() {
   const [showDebug, setShowDebug] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [entitlement, setEntitlement] = useState<AgenticEntitlement | null>(null);
+  const [entitlementLoading, setEntitlementLoading] = useState(true);
 
   // Chat State
   const [messages, setMessages] = useState<Message[]>([
@@ -39,12 +48,49 @@ export default function AgentsPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadEntitlement() {
+      try {
+        const response = await fetch("/api/agentic/entitlement", { cache: "no-store" });
+        const data = await response.json();
+        if (active) setEntitlement(data);
+      } catch {
+        if (active) {
+          setEntitlement({
+            allowed: false,
+            reason: "Agentic AI entitlement could not be verified.",
+          });
+        }
+      } finally {
+        if (active) setEntitlementLoading(false);
+      }
+    }
+
+    loadEntitlement();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
   };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    if (!entitlement?.allowed) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: entitlement?.reason || "Agentic AI is not enabled for this tenant.",
+        },
+      ]);
+      return;
+    }
 
     const userMessageContent = input;
     const userMessage: Message = {
@@ -59,60 +105,37 @@ export default function AgentsPage() {
     addDebugLog(`📤 Sending message: "${userMessageContent}"`);
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/agentic/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: userMessageContent }],
-          conversation_id: "",
-          tenant_id: "master",
+          message: userMessageContent,
+          mode: "chat",
         }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error(`Failed to send message: ${response.statusText}`);
+        throw new Error(data.error || `Failed to send message: ${response.statusText}`);
       }
 
       addDebugLog(`✅ Response received: ${response.status} ${response.statusText}`);
 
-      // Initialize assistant message
-      const assistantId = (Date.now() + 1).toString();
-      setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
+      const citations = data.result?.citations?.length
+        ? `\n\nSources: ${data.result.citations.map((item: { title: string }) => item.title).join(", ")}`
+        : "";
+      const assistantMessageContent = `${data.result?.answer || "No response generated."}${citations}`;
+      setMessages((prev) => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: "assistant", content: assistantMessageContent },
+      ]);
+      addDebugLog(`✅ Message finished: ${assistantMessageContent.substring(0, 100)}...`);
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) return;
-
-      let assistantMessageContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          addDebugLog(`✅ Message finished: ${assistantMessageContent.substring(0, 100)}...`);
-          break;
-        }
-
-        const chunk = decoder.decode(value, { stream: true });
-        assistantMessageContent += chunk;
-
-        setMessages((prev) => {
-          const newMessages = [...prev];
-          const lastIndex = newMessages.length - 1;
-          if (newMessages[lastIndex].role === "assistant") {
-            newMessages[lastIndex] = {
-              ...newMessages[lastIndex],
-              content: assistantMessageContent
-            };
-          }
-          return newMessages;
-        });
-      }
-
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown chat error";
       console.error("Chat error:", err);
-      setError(err);
-      addDebugLog(`❌ Error: ${err.message}`);
+      setError(err instanceof Error ? err : new Error(errorMessage));
+      addDebugLog(`❌ Error: ${errorMessage}`);
       setMessages((prev) => [
         ...prev,
         { id: Date.now().toString(), role: "assistant", content: "Sorry, I'm having trouble connecting to the AI right now." },
@@ -168,7 +191,24 @@ export default function AgentsPage() {
       {/* Header */}
       <PageHeader />
 
-      {/* Main Content */}
+      {!entitlementLoading && !entitlement?.allowed && (
+        <main className="flex-1 px-4 py-6 md:px-6">
+          <section className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-8 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Agentic AI Plugin
+            </p>
+            <h1 className="mt-3 text-2xl font-semibold text-foreground">Upgrade or enable Agentic AI</h1>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {entitlement?.reason || "Agentic AI requires Pro or Enterprise plus the tenant feature flag."}
+            </p>
+            <div className="mt-5 rounded-xl border border-dashed border-border bg-background/60 p-4 text-xs text-muted-foreground">
+              Current plan: {entitlement?.plan || "unknown"}. Required flag: agentic_ai_enabled.
+            </div>
+          </section>
+        </main>
+      )}
+
+      {!entitlementLoading && entitlement?.allowed && (
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* KPI Cards - Matching Leads Page Styling */}
         <section className="w-full border-b border-border/60 bg-background/40">
@@ -292,7 +332,7 @@ export default function AgentsPage() {
                               }}
                               className="px-3 py-1.5 bg-card dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600  rounded-full transition-all hover:shadow-md font-medium"
                             >
-                              'Show me all leads'
+                              Show me all leads
                             </button>
                             <button
                               onClick={() => {
@@ -300,7 +340,7 @@ export default function AgentsPage() {
                               }}
                               className="px-3 py-1.5 bg-card dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600  rounded-full transition-all hover:shadow-md font-medium"
                             >
-                              'Find available 50T Cranes'
+                              Find available 50T Cranes
                             </button>
                             <button
                               onClick={() => {
@@ -308,7 +348,7 @@ export default function AgentsPage() {
                               }}
                               className="px-3 py-1.5 bg-card dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent text-xs text-slate-600  rounded-full transition-all hover:shadow-md font-medium"
                             >
-                              'Create a lead for Acme Corp'
+                              Create a lead for Acme Corp
                             </button>
                           </div>
                         </div>
@@ -459,6 +499,7 @@ export default function AgentsPage() {
           </div>
         </footer>
       </main>
+      )}
     </div>
   );
 }

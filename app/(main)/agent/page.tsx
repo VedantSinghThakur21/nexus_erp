@@ -7,15 +7,12 @@ import { Button } from '@/components/ui/button'
 import { useUser } from '@/contexts/user-context'
 
 type AgentInboxItem = {
-  name: string
-  action_type: string
-  tenant: string
-  triggered_by: string
-  approved_by?: string
-  creation: string
-  modified: string
-  payload: string
-  result?: string
+  id: string
+  name?: string
+  toolName: string
+  status: string
+  createdAt?: string
+  payload: Record<string, unknown>
 }
 
 export default function AgentInboxPage() {
@@ -24,19 +21,26 @@ export default function AgentInboxPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lockedReason, setLockedReason] = useState<string | null>(null)
 
   async function loadInbox() {
     setLoading(true)
     setError(null)
 
     try {
-      const res = await fetch('/api/agent/inbox', { cache: 'no-store' })
+      const res = await fetch('/api/agentic/inbox', { cache: 'no-store' })
       const data = await res.json()
 
       if (!res.ok) {
+        if (res.status === 403) {
+          setLockedReason(data.error || 'Agentic AI is not enabled for this tenant.')
+          setItems([])
+          return
+        }
         throw new Error(data.error || 'Failed to load inbox')
       }
 
+      setLockedReason(null)
       setItems(data.items || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load inbox')
@@ -54,7 +58,7 @@ export default function AgentInboxPage() {
     setError(null)
 
     try {
-      const res = await fetch(`/api/agent/action/${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/agentic/actions/${encodeURIComponent(id)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approved }),
@@ -75,10 +79,18 @@ export default function AgentInboxPage() {
     setError(null)
 
     try {
-      const res = await fetch('/api/agent/scan', {
+      const res = await fetch('/api/agentic/runs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenant: 'master' }),
+        body: JSON.stringify({
+          toolCall: {
+            name: 'tasks.create_follow_up_task',
+            input: {
+              subject: 'Review Agentic AI safe scan recommendation',
+              date: new Date().toISOString().slice(0, 10),
+            },
+          },
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -120,23 +132,27 @@ export default function AgentInboxPage() {
           </section>
         )}
 
-        {loading ? (
+        {lockedReason ? (
+          <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            {lockedReason}
+          </section>
+        ) : loading ? (
           <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
             Loading agent inbox...
           </section>
         ) : items.length === 0 ? (
           <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-            No pending actions. Trigger a scan to generate one safe suggestion.
+            No pending actions. Trigger a sample run to generate one safe approval item.
           </section>
         ) : (
           <section className="space-y-3 pb-6">
             {items.map((item) => (
               <InboxCard
-                key={item.name}
+                key={item.id || item.name}
                 item={item}
-                loading={actionLoadingId === item.name}
-                onApprove={() => handleDecision(item.name, true)}
-                onReject={() => handleDecision(item.name, false)}
+                loading={actionLoadingId === (item.id || item.name)}
+                onApprove={() => handleDecision(item.id || item.name || '', true)}
+                onReject={() => handleDecision(item.id || item.name || '', false)}
               />
             ))}
           </section>
