@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { frappeRequest, getTenantContext, tenantAdminRequest } from '@/app/lib/api'
 import { requireAuth } from '@/app/api/_lib/auth'
+import { ROLE_SETS } from '@/lib/role-sets'
 
 const PROFILE_ROLES: Record<string, string[]> = {
   'Administrator': ['System Manager'],
@@ -31,6 +32,17 @@ const PROFILE_ROLES: Record<string, string[]> = {
 }
 
 const roleApiLogLastSeen = new Map<string, number>()
+
+type FrappeLoggedUserResponse = {
+  message?: string
+}
+
+type RoleProfileResponse = {
+  role_profile_name?: string | null
+  message?: {
+    role_profile_name?: string | null
+  }
+}
 
 function shouldLogRoleApi(key: string, throttleMs: number): boolean {
   const now = Date.now()
@@ -54,8 +66,10 @@ export async function GET(_request: NextRequest) {
     let userEmail: string | null = null
 
     try {
-      const userInfoResponse = await frappeRequest('frappe.auth.get_logged_user', 'GET') as any
-      const raw = userInfoResponse?.message || userInfoResponse || null
+      const userInfoResponse = await frappeRequest('frappe.auth.get_logged_user', 'GET') as FrappeLoggedUserResponse | string
+      const raw = typeof userInfoResponse === 'string'
+        ? userInfoResponse
+        : userInfoResponse.message || null
       if (typeof raw === 'string' && raw.includes('@')) {
         userEmail = raw
       }
@@ -97,8 +111,8 @@ export async function GET(_request: NextRequest) {
         if (roles.length > 0 && process.env.NODE_ENV === 'development') {
           console.log(`[/api/user/roles] Got ${roles.length} roles from provisioning service for ${userEmail}`)
         }
-      } catch (provErr: any) {
-        const message = String(provErr?.message || 'Unknown error')
+      } catch (provErr: unknown) {
+        const message = provErr instanceof Error ? provErr.message : 'Unknown error'
         if (shouldLogRoleApi(`prov-primary-failed:${userEmail}:${message}`, 5 * 60 * 1000)) {
           console.warn(`[/api/user/roles] Provisioning service failed for ${userEmail}:`, message)
         }
@@ -106,13 +120,13 @@ export async function GET(_request: NextRequest) {
     }
 
     // ── Step 3: Optional role profile fetch via get_value ───────────────────
-    if (!roleProfileName) {
+    if (!roleProfileName && context.subdomain) {
       try {
         const profile = await tenantAdminRequest('frappe.client.get_value', 'GET', {
           doctype: 'User',
           filters: { name: userEmail },
           fieldname: ['role_profile_name'],
-        }) as any
+        }) as RoleProfileResponse
         roleProfileName = profile?.role_profile_name || profile?.message?.role_profile_name || null
       } catch {
         // Optional enrichment only; continue without failing.
@@ -125,6 +139,11 @@ export async function GET(_request: NextRequest) {
         console.log(`[/api/user/roles] Deriving roles from profile "${roleProfileName}" for ${userEmail}`)
       }
       roles = PROFILE_ROLES[roleProfileName] || []
+    }
+
+    if (roles.length === 0 && !context.subdomain) {
+      const roleType = cookieStore.get('tenant_role_type')?.value
+      roles = roleType && ROLE_SETS[roleType] ? ROLE_SETS[roleType] : ['System Manager']
     }
 
     // ── Step 5: Absolute last resort ─────────────────────────────────────────
@@ -155,13 +174,14 @@ export async function GET(_request: NextRequest) {
         },
       }
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch user roles'
     console.error('[API /user/roles] Failed to fetch roles:', error)
 
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to fetch user roles',
+        error: message,
         roles: [],
       },
       {

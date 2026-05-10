@@ -55,6 +55,9 @@ const PUBLIC_ROUTES = [
   '/api/provision/status',
   '/api/provisioning-status',
   '/api/check-site-status',
+  '/billing/checkout',
+  '/api/billing/checkout',
+  '/api/billing/webhook',
 ]
 
 /**
@@ -185,6 +188,16 @@ export function proxy(request: NextRequest) {
     }
     
     return apiResponse
+  }
+
+  // Billing checkout is part of public root-domain signup, not the marketing
+  // /site tree. Let the app route handle it directly so /billing/checkout does
+  // not rewrite to /site/billing/checkout.
+  if (pathname === '/billing/checkout' || pathname.startsWith('/billing/checkout/')) {
+    const response = NextResponse.next()
+    response.headers.set('x-tenant-id', 'master')
+    response.headers.set('x-current-path', pathname)
+    return response
   }
 
   // ── 2. Block direct browser access to internal route groups ──
