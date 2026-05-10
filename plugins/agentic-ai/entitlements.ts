@@ -1,10 +1,12 @@
 import { cookies, headers } from 'next/headers'
-import { AGENTIC_ALLOWED_PLANS, AGENTIC_BASE_FLAG, normalizePlan } from './config'
+import { AGENTIC_ALLOWED_PLANS, AGENTIC_BASE_FLAG, getModelPolicy } from './config'
+import { normalizePlan } from '@/types/subscription'
 import type { AgenticEntitlement, AgenticFeatureFlag, AgenticPlan, AgenticTenantContext } from './types'
 
 type TenantPlanRow = {
   name?: string
-  plan?: string
+  plan_type?: string
+  subscription_plan?: string
   status?: string
   agentic_ai_enabled?: 0 | 1 | boolean
   agentic_finance_enabled?: 0 | 1 | boolean
@@ -45,7 +47,7 @@ async function fetchTenantPlanRow(tenantId: string): Promise<TenantPlanRow | nul
   if (!tenantId || tenantId === 'master') {
     return {
       name: 'master',
-      plan: 'enterprise',
+      plan_type: 'Enterprise',
       status: 'active',
       agentic_ai_enabled: true,
       agentic_finance_enabled: true,
@@ -69,7 +71,7 @@ async function fetchTenantPlanRow(tenantId: string): Promise<TenantPlanRow | nul
       method: 'POST',
       headers: headersBase,
       body: JSON.stringify({
-        doctype: 'Tenant',
+        doctype: 'SaaS Tenant',
         filters: { subdomain: tenantId },
         fields,
         limit_page_length: 1,
@@ -82,10 +84,29 @@ async function fetchTenantPlanRow(tenantId: string): Promise<TenantPlanRow | nul
     return data.message?.[0] || null
   }
 
-  // Try custom feature flag fields first; older tenants may not have them yet.
-  return (
-    await query(['name', 'plan', 'status', 'agentic_ai_enabled', 'agentic_finance_enabled', 'agentic_destructive_tools_enabled'])
-  ) || (await query(['name', 'plan', 'status']))
+  const tenant = (
+    await query(['name', 'plan_type', 'status', 'subscription_status', 'stripe_customer_id', 'stripe_subscription_id'])
+  ) || (await query(['name', 'plan_type', 'status']))
+
+  const org = await (async () => {
+    const response = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
+      method: 'POST',
+      headers: headersBase,
+      body: JSON.stringify({
+        doctype: 'Organization',
+        filters: { slug: tenantId },
+        fields: ['name', 'subscription_plan', 'subscription_status', 'agentic_ai_enabled', 'agentic_finance_enabled', 'agentic_destructive_tools_enabled'],
+        limit_page_length: 1,
+      }),
+      cache: 'no-store',
+    })
+
+    if (!response.ok) return null
+    const data = await response.json().catch(() => ({})) as { message?: TenantPlanRow[] }
+    return data.message?.[0] || null
+  })().catch(() => null)
+
+  return tenant ? { ...tenant, ...org } : org
 }
 
 function buildFlags(tenantId: string, row: TenantPlanRow | null): Partial<Record<AgenticFeatureFlag, boolean>> {
@@ -113,7 +134,7 @@ function buildFlags(tenantId: string, row: TenantPlanRow | null): Partial<Record
 export async function getAgenticTenantContext(): Promise<AgenticTenantContext> {
   const tenantId = await getRequestTenantId()
   const row = await fetchTenantPlanRow(tenantId)
-  const plan = normalizePlan(row?.plan)
+  const plan = normalizePlan(row?.subscription_plan || row?.plan_type)
 
   return {
     tenantId,
@@ -155,6 +176,47 @@ export function evaluateAgenticEntitlement(context: AgenticTenantContext): Agent
 
 export async function getAgenticEntitlement(): Promise<AgenticEntitlement> {
   return evaluateAgenticEntitlement(await getAgenticTenantContext())
+}
+
+export async function getEntitlement(orgId?: string): Promise<{
+  allowed: boolean
+  plan: AgenticPlan
+  reason: 'upgrade_required' | 'feature_flag_disabled' | null
+  model: string | null
+}> {
+  const tenantContext = orgId
+    ? {
+        ...(await getAgenticTenantContext()),
+        tenantId: orgId,
+        flags: buildFlags(orgId, await fetchTenantPlanRow(orgId)),
+        plan: normalizePlan((await fetchTenantPlanRow(orgId))?.subscription_plan || (await fetchTenantPlanRow(orgId))?.plan_type) as AgenticPlan,
+      }
+    : await getAgenticTenantContext()
+
+  if (!AGENTIC_ALLOWED_PLANS.includes(tenantContext.plan)) {
+    return {
+      allowed: false,
+      plan: tenantContext.plan,
+      reason: 'upgrade_required',
+      model: null,
+    }
+  }
+
+  if (!tenantContext.flags[AGENTIC_BASE_FLAG]) {
+    return {
+      allowed: false,
+      plan: tenantContext.plan,
+      reason: 'feature_flag_disabled',
+      model: null,
+    }
+  }
+
+  return {
+    allowed: true,
+    plan: tenantContext.plan,
+    reason: null,
+    model: getModelPolicy(tenantContext.plan).model,
+  }
 }
 
 export function canUseAgenticTool(

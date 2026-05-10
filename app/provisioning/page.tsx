@@ -50,7 +50,12 @@ export default function ProvisioningPage() {
 
     async function start() {
       try {
-        const res = await fetch('/api/provision/start', { method: 'POST' })
+        const checkoutSessionId = new URLSearchParams(window.location.search).get('checkout_session_id')
+        const res = await fetch('/api/provision/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ checkout_session_id: checkoutSessionId }),
+        })
         const data = await res.json()
 
         if (!res.ok || !data.jobId) {

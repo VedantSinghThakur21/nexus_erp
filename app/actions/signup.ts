@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { checkSubdomain } from '@/lib/provisioning-client'
+import { normalizePlan, toProvisioningPlanType } from '@/types/subscription'
 
 /**
  * Signup Server Action (Step 1 of 2)
@@ -16,7 +17,7 @@ export async function initiateSignup(formData: FormData) {
   const password = formData.get('password') as string
   const fullName = formData.get('fullName') as string
   const organizationName = formData.get('organizationName') as string
-  const plan = (formData.get('plan') as string) || 'Free'
+  const plan = normalizePlan(formData.get('plan'))
 
   // ── Validation ──
   if (!email || !password || !organizationName || !fullName) {
@@ -42,11 +43,6 @@ export async function initiateSignup(formData: FormData) {
 
   if (fullName.length < 2 || fullName.length > 100) {
     return { success: false, error: 'Full name must be 2-100 characters' }
-  }
-
-  const validPlans = ['free', 'pro', 'enterprise']
-  if (!validPlans.includes(plan.toLowerCase())) {
-    return { success: false, error: 'Invalid plan' }
   }
 
   // ── Generate Subdomain ──
@@ -78,7 +74,9 @@ export async function initiateSignup(formData: FormData) {
     fullName,
     organizationName,
     subdomain,
-    plan: plan.charAt(0).toUpperCase() + plan.slice(1).toLowerCase(),  // Capitalize
+    plan,
+    plan_type: toProvisioningPlanType(plan),
+    payment_status: plan === 'free' ? 'not_required' : 'pending',
   }
 
   const cookieStore = await cookies()
@@ -90,6 +88,9 @@ export async function initiateSignup(formData: FormData) {
     path: '/',
   })
 
-  // ── Redirect to Provisioning Page ──
-  redirect('/provisioning')
+  if (plan === 'free') {
+    redirect('/provisioning')
+  }
+
+  redirect(`/billing/checkout?plan=${encodeURIComponent(plan)}`)
 }

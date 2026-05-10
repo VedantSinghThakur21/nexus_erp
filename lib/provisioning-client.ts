@@ -26,6 +26,9 @@ export interface ProvisionRequest {
   admin_password?: string
   admin_full_name?: string
   plan_type?: 'Free' | 'Pro' | 'Enterprise'
+  confirmed_plan_type?: 'Free' | 'Pro' | 'Enterprise'
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
 }
 
 export interface ProvisionResult {

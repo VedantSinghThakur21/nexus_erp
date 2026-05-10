@@ -184,6 +184,9 @@ class ProvisionRequest(BaseModel):
     admin_password: Optional[str] = None
     admin_full_name: Optional[str] = None
     plan_type: PlanType = PlanType.FREE
+    confirmed_plan_type: Optional[PlanType] = None
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
 
     @field_validator("organization_name")
     @classmethod
@@ -938,7 +941,10 @@ if not frappe.db.exists("SaaS Tenant", "{subdomain}"):
     doc.organization_name = "{req.organization_name}"
     doc.site_url = "{site_url}"
     doc.status = "Active"
-    doc.plan_type = "{req.plan_type.value}"
+    doc.plan_type = "{(req.confirmed_plan_type or req.plan_type).value}"
+    doc.subscription_status = "Active"
+    doc.stripe_customer_id = "{req.stripe_customer_id or ''}"
+    doc.stripe_subscription_id = "{req.stripe_subscription_id or ''}"
     doc.admin_user = "{req.admin_email}"
     doc.api_key = "{api_key or ''}"
     doc.api_secret = "{api_secret or ''}"
@@ -948,9 +954,12 @@ if not frappe.db.exists("SaaS Tenant", "{subdomain}"):
 else:
     doc = frappe.get_doc("SaaS Tenant", "{subdomain}")
     doc.status = "Active"
+    doc.plan_type = "{(req.confirmed_plan_type or req.plan_type).value}"
     doc.site_url = "{site_url}"
     doc.api_key = "{api_key or ''}"
     doc.api_secret = "{api_secret or ''}"
+    doc.stripe_customer_id = "{req.stripe_customer_id or ''}"
+    doc.stripe_subscription_id = "{req.stripe_subscription_id or ''}"
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     print(json.dumps({{"registered": True, "action": "updated"}}))

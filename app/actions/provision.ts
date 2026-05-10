@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers'
 import { masterRequest } from '@/app/lib/api'
 import { provisionTenantSite, ProvisioningError } from '@/lib/provisioning-client'
+import { normalizePlan, toProvisioningPlanType } from '@/types/subscription'
 
 function buildProvisioningStatusUrl(subdomain: string): string {
   return `/provisioning-status?subdomain=${encodeURIComponent(subdomain)}`
@@ -106,12 +107,14 @@ export async function performProvisioning(): Promise<{
   }
 
   try {
+    const plan = normalizePlan(data.plan)
     void provisionTenantSite({
       organization_name: data.organizationName,
       admin_email: data.email,
       admin_password: data.password,
       admin_full_name: data.fullName,
-      plan_type: data.plan as 'Free' | 'Pro' | 'Enterprise',
+      plan_type: toProvisioningPlanType(plan),
+      confirmed_plan_type: toProvisioningPlanType(plan),
     })
       .then(async result => {
         if (!result.success) {

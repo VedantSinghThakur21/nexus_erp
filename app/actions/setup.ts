@@ -6,6 +6,7 @@
  */
 
 import { frappeRequest } from '@/app/lib/api'
+import { ORGANIZATION_SUBSCRIPTION_FIELDS } from '@/lib/subscription/organization-fields'
 
 export async function setupERPNextDoctypes() {
   const results = {
@@ -53,24 +54,7 @@ export async function setupERPNextDoctypes() {
               label: 'Subscription Details',
               fieldtype: 'Section Break'
             },
-            {
-              fieldname: 'subscription_plan',
-              label: 'Subscription Plan',
-              fieldtype: 'Select',
-              options: 'free\npro\nenterprise',
-              default: 'free',
-              reqd: 1,
-              in_list_view: 1
-            },
-            {
-              fieldname: 'subscription_status',
-              label: 'Subscription Status',
-              fieldtype: 'Select',
-              options: 'active\ntrial\ncancelled\nexpired',
-              default: 'trial',
-              reqd: 1,
-              in_list_view: 1
-            },
+            ...ORGANIZATION_SUBSCRIPTION_FIELDS,
             {
               fieldname: 'trial_end',
               label: 'Trial End Date',

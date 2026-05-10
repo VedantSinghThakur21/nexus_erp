@@ -8,10 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { Building2, Mail, Lock, Loader2, User } from 'lucide-react'
+import { PlanSelection } from '@/components/subscription/plan-selection'
+import type { SubscriptionTier } from '@/types/subscription'
 
 export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [plan, setPlan] = useState<SubscriptionTier>('free')
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -29,7 +32,7 @@ export default function SignupPage() {
 
   return (
     <div suppressHydrationWarning className="min-h-screen bg-muted/40 px-4 py-8">
-      <div className="mx-auto flex min-h-[80vh] w-full max-w-md items-center">
+      <div className="mx-auto flex min-h-[80vh] w-full max-w-5xl items-center">
         <div className="w-full rounded-xl border border-border bg-card p-6 md:p-8">
           <Link href="/" className="mb-6 flex items-center justify-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -50,7 +53,7 @@ export default function SignupPage() {
               </div>
             )}
 
-            <input type="hidden" name="plan" value="Free" />
+            <PlanSelection value={plan} onChange={setPlan} disabled={isLoading} />
 
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
@@ -129,7 +132,7 @@ export default function SignupPage() {
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Start Free Trial
+                  {plan === 'free' ? 'Provision Free Workspace' : 'Continue to Payment'}
                 </span>
               )}
             </Button>

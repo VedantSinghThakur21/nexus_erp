@@ -1,71 +1,69 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { requireAuth } from '@/app/api/_lib/auth'
+import { normalizePlan, normalizeSubscriptionStatus } from '@/types/subscription'
+import { getSaasTenantBySubdomain, syncSubscriptionFromSaasTenant } from '@/lib/subscription/master'
 
-export async function GET(request: NextRequest) {
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+export async function GET() {
   const auth = await requireAuth()
   if (!auth.authenticated) return auth.response
 
   try {
     const headersList = await headers()
-    const subdomain = headersList.get('X-Subdomain')
-    const tenantMode = headersList.get('X-Tenant-Mode')
+    const tenantId =
+      headersList.get('x-tenant-id') ||
+      headersList.get('X-Subdomain') ||
+      null
+    const tenantMode = headersList.get('X-Tenant-Mode') || (tenantId === 'master' ? 'master' : null)
 
-    if (tenantMode === 'master' || !subdomain) {
+    if (tenantMode === 'master' || !tenantId || tenantId === 'master') {
       // On master site, return enterprise plan (admin access)
       return NextResponse.json({
         plan: 'enterprise',
-        tenant: null
+        status: 'active',
+        source: 'manual',
+        tenant: null,
       })
     }
 
-    // Fetch tenant info from master database
-    const masterUrl = process.env.ERP_NEXT_URL || 'http://103.224.243.242:8080'
-    const apiKey = process.env.ERP_API_KEY
-    const apiSecret = process.env.ERP_API_SECRET
-
-    const response = await fetch(`${masterUrl}/api/method/frappe.client.get_list`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `token ${apiKey}:${apiSecret}`
-      },
-      body: JSON.stringify({
-        doctype: 'Tenant',
-        filters: { subdomain },
-        fields: ['name', 'plan', 'status', 'company_name'],
-        limit_page_length: 1
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch tenant info')
-    }
-
-    const result = await response.json()
-    
-    if (!result.message || result.message.length === 0) {
+    const tenant = await getSaasTenantBySubdomain(tenantId)
+    if (!tenant) {
       return NextResponse.json({
         plan: 'free',
-        tenant: null
+        status: 'trial',
+        source: 'saas_tenant',
+        tenant: null,
       })
     }
 
-    const tenant = result.message[0]
-
-    return NextResponse.json({
-      plan: tenant.plan || 'free',
-      status: tenant.status,
-      tenant: {
-        name: tenant.company_name,
-        subdomain
-      }
+    const synced = await syncSubscriptionFromSaasTenant({
+      subdomain: tenantId,
+      source: 'saas_tenant',
+      changedBy: auth.userEmail || 'system',
+      reason: 'subscription_current_read',
     })
 
-  } catch (error: any) {
+    return NextResponse.json({
+      plan: synced.plan,
+      plan_type: tenant.plan_type,
+      status: normalizeSubscriptionStatus(tenant.subscription_status || tenant.status || synced.status),
+      source: 'saas_tenant',
+      agentic_ai_enabled: !!synced.organization?.agentic_ai_enabled,
+      stripe_customer_id: tenant.stripe_customer_id,
+      stripe_subscription_id: tenant.stripe_subscription_id,
+      tenant: {
+        name: tenant.company_name || tenant.organization_name,
+        subdomain: tenantId,
+      },
+    })
+
+  } catch (error: unknown) {
     console.error('Get subscription error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch subscription' },
+      { error: 'Failed to fetch subscription', plan: normalizePlan(null) },
       { status: 500 }
     )
   }

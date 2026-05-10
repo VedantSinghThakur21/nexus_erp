@@ -1,4 +1,41 @@
 export type SubscriptionTier = 'free' | 'pro' | 'enterprise'
+export type SubscriptionStatus = 'trial' | 'active' | 'cancelled' | 'expired' | 'past_due' | 'pending_payment'
+export type PlanSource = 'saas_tenant' | 'stripe' | 'manual'
+export type ProvisioningPlanType = 'Free' | 'Pro' | 'Enterprise'
+
+const PLAN_ALIASES: Record<string, SubscriptionTier> = {
+  free: 'free',
+  trial: 'free',
+  starter: 'free',
+  pro: 'pro',
+  professional: 'pro',
+  enterprise: 'enterprise',
+  ent: 'enterprise',
+}
+
+export function normalizePlan(raw: unknown): SubscriptionTier {
+  const normalized = String(raw || 'free')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s-]+/g, '')
+
+  return PLAN_ALIASES[normalized] || 'free'
+}
+
+export function toProvisioningPlanType(plan: unknown): ProvisioningPlanType {
+  const normalized = normalizePlan(plan)
+  if (normalized === 'enterprise') return 'Enterprise'
+  if (normalized === 'pro') return 'Pro'
+  return 'Free'
+}
+
+export function normalizeSubscriptionStatus(raw: unknown): SubscriptionStatus {
+  const status = String(raw || 'trial').trim().toLowerCase()
+  if (status === 'active' || status === 'cancelled' || status === 'expired' || status === 'past_due' || status === 'pending_payment') {
+    return status
+  }
+  return 'trial'
+}
 
 export interface SubscriptionPlan {
   id: SubscriptionTier
@@ -21,10 +58,15 @@ export interface Organization {
   slug: string
   subscription: {
     plan: SubscriptionTier
-    status: 'active' | 'cancelled' | 'expired' | 'trial'
+    status: SubscriptionStatus
     current_period_start?: string
     current_period_end?: string
     trial_end?: string
+    plan_source?: PlanSource
+    plan_synced_at?: string
+    agentic_ai_enabled?: boolean
+    stripe_customer_id?: string
+    stripe_subscription_id?: string
   }
   usage: {
     users: number

@@ -3,6 +3,9 @@ import { cookies } from 'next/headers'
 import { provisionTenantSite, ProvisioningError } from '@/lib/provisioning-client'
 import { createJob, completeJob, failJob, pruneJobs } from '@/app/lib/provision-jobs'
 import { sendWorkspaceReadyEmail } from '@/lib/email'
+import { normalizePlan, toProvisioningPlanType } from '@/types/subscription'
+import { retrieveStripeCheckoutSession } from '@/lib/subscription/stripe'
+import { syncSubscriptionFromSaasTenant } from '@/lib/subscription/master'
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
 const IS_PROD = process.env.NODE_ENV === 'production'
@@ -17,7 +20,7 @@ const IS_PROD = process.env.NODE_ENV === 'production'
  * This pattern avoids proxy read-timeout errors (Nginx default 60s) that
  * would kill a synchronous server action waiting 5-10 min for provisioning.
  */
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
   const pending = cookieStore.get('pending_tenant_data')?.value
 
@@ -35,6 +38,8 @@ export async function POST(_req: NextRequest) {
     organizationName: string
     subdomain: string
     plan: string
+    plan_type?: 'Free' | 'Pro' | 'Enterprise'
+    payment_status?: string
   }
 
   try {
@@ -44,6 +49,40 @@ export async function POST(_req: NextRequest) {
       { error: 'Invalid signup data. Please restart the signup process.' },
       { status: 400 },
     )
+  }
+
+  const plan = normalizePlan(data.plan_type || data.plan)
+  let stripeCustomerId: string | undefined
+  let stripeSubscriptionId: string | undefined
+
+  if (plan !== 'free') {
+    const body = await req.json().catch(() => ({})) as { checkout_session_id?: string }
+    const checkoutSessionId =
+      body.checkout_session_id ||
+      req.nextUrl.searchParams.get('checkout_session_id') ||
+      cookieStore.get('pending_stripe_checkout_session')?.value
+
+    if (!checkoutSessionId) {
+      return NextResponse.json(
+        { error: 'Payment confirmation is required before provisioning this plan.' },
+        { status: 402 },
+      )
+    }
+
+    const session = await retrieveStripeCheckoutSession(checkoutSessionId)
+    if (
+      session.payment_status !== 'paid' ||
+      session.metadata?.subdomain !== data.subdomain ||
+      normalizePlan(session.metadata?.plan) !== plan
+    ) {
+      return NextResponse.json(
+        { error: 'Stripe checkout session is not paid or does not match this signup.' },
+        { status: 402 },
+      )
+    }
+
+    stripeCustomerId = typeof session.customer === 'string' ? session.customer : undefined
+    stripeSubscriptionId = typeof session.subscription === 'string' ? session.subscription : undefined
   }
 
   pruneJobs()
@@ -64,7 +103,10 @@ export async function POST(_req: NextRequest) {
       admin_email: data.email,
       admin_password: data.password,
       admin_full_name: data.fullName,
-      plan_type: data.plan as 'Free' | 'Pro' | 'Enterprise',
+      plan_type: toProvisioningPlanType(plan),
+      confirmed_plan_type: toProvisioningPlanType(plan),
+      stripe_customer_id: stripeCustomerId,
+      stripe_subscription_id: stripeSubscriptionId,
     })
       .then(async result => {
         const redirectUrl = IS_PROD
@@ -72,6 +114,16 @@ export async function POST(_req: NextRequest) {
           : `http://${result.subdomain}.localhost:3000/dashboard`
 
         if (result.success) {
+          await syncSubscriptionFromSaasTenant({
+            subdomain: data.subdomain,
+            source: plan === 'free' ? 'saas_tenant' : 'stripe',
+            statusOverride: plan === 'free' ? 'trial' : 'active',
+            changedBy: 'provisioning',
+            reason: 'provisioning_completed',
+          }).catch((syncErr) => {
+            console.warn('[ProvisionStart] Plan mirror sync failed:', syncErr)
+          })
+
           // Send workspace ready email notification
           try {
             const loginUrl = IS_PROD
