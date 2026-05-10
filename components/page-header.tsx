@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getUserProfile, type UserProfile } from '@/app/actions/profile'
 import { logoutUser } from '@/app/actions/user-auth'
@@ -16,6 +16,76 @@ interface PageHeaderProps {
     children?: React.ReactNode  // For action buttons like "New Lead"
 }
 
+type IntentAction = {
+    label: string
+    description: string
+    href: string
+    icon: string
+    keywords: string[]
+}
+
+const INTENT_ACTIONS: IntentAction[] = [
+    {
+        label: 'Create Lead',
+        description: 'Capture a new prospect or enquiry',
+        href: '/crm/new',
+        icon: 'person_add',
+        keywords: ['lead', 'prospect', 'enquiry', 'inquiry'],
+    },
+    {
+        label: 'Create Quote',
+        description: 'Prepare a quotation for a customer or lead',
+        href: '/crm/quotations/new',
+        icon: 'request_quote',
+        keywords: ['quote', 'quotation', 'proposal', 'estimate'],
+    },
+    {
+        label: 'Create Sales Order',
+        description: 'Start a confirmed customer order',
+        href: '/sales-orders/new',
+        icon: 'shopping_cart',
+        keywords: ['sales order', 'order', 'sale order'],
+    },
+    {
+        label: 'Create Invoice',
+        description: 'Raise an invoice for billing',
+        href: '/invoices/new',
+        icon: 'receipt_long',
+        keywords: ['invoice', 'bill', 'billing'],
+    },
+    {
+        label: 'Add Item',
+        description: 'Open catalogue to add or manage products',
+        href: '/catalogue',
+        icon: 'inventory_2',
+        keywords: ['item', 'product', 'equipment', 'catalogue', 'catalog'],
+    },
+    {
+        label: 'Create Project',
+        description: 'Open projects workspace',
+        href: '/projects',
+        icon: 'work',
+        keywords: ['project', 'job', 'site'],
+    },
+]
+
+function getIntentActions(query: string): IntentAction[] {
+    const normalized = query.trim().toLowerCase()
+    if (normalized.length < 2) return []
+
+    const actionTerms = ['create', 'new', 'add', 'make', 'raise', 'generate', 'start', 'open']
+    const hasActionIntent = actionTerms.some((term) => normalized.includes(term))
+
+    const matches = INTENT_ACTIONS.filter((action) =>
+        action.keywords.some((keyword) => normalized.includes(keyword))
+    )
+
+    if (matches.length > 0) return matches.slice(0, 4)
+    if (hasActionIntent) return INTENT_ACTIONS.slice(0, 4)
+
+    return []
+}
+
 export function PageHeader({
     searchQuery = '',
     onSearchChange,
@@ -25,8 +95,11 @@ export function PageHeader({
     const router = useRouter()
     const [profile, setProfile] = useState<UserProfile | null>(null)
     const [showDropdown, setShowDropdown] = useState(false)
+    const [searchFocused, setSearchFocused] = useState(false)
     const [loggingOut, setLoggingOut] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
+    const intentActions = useMemo(() => getIntentActions(searchQuery), [searchQuery])
+    const showIntentActions = searchFocused && intentActions.length > 0
 
     useEffect(() => {
         getUserProfile().then(setProfile)
@@ -76,8 +149,46 @@ export function PageHeader({
                     placeholder={searchPlaceholder}
                     type="text"
                     value={searchQuery}
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setSearchFocused(false)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && intentActions[0]) {
+                            e.preventDefault()
+                            router.push(intentActions[0].href)
+                        }
+                    }}
                     onChange={(e) => onSearchChange?.(e.target.value)}
                 />
+                {showIntentActions && (
+                    <div className="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-xl border border-border bg-popover shadow-xl">
+                        <div className="border-b border-border px-3 py-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                Suggested actions
+                            </p>
+                        </div>
+                        <div className="py-1">
+                            {intentActions.map((action) => (
+                                <button
+                                    key={action.href}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault()
+                                        router.push(action.href)
+                                    }}
+                                    className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted"
+                                >
+                                    <span className="material-symbols-outlined mt-0.5 text-lg text-primary">
+                                        {action.icon}
+                                    </span>
+                                    <span>
+                                        <span className="block text-sm font-medium text-foreground">{action.label}</span>
+                                        <span className="block text-xs text-muted-foreground">{action.description}</span>
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
             <div className="flex items-center gap-3">
                 {/* Extra action buttons (e.g., "New Lead") */}
