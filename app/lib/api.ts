@@ -36,6 +36,7 @@ interface ApiRequestOptions {
   siteOverride?: string // Override the target site name (use with useMasterCredentials for tenant admin ops)
   hasRoleRepairAttempted?: boolean
   hasSessionFallbackAttempted?: boolean
+  hasTenantTokenRetryAttempted?: boolean
 }
 
 const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
@@ -392,6 +393,15 @@ function isDoctypeRolePermissionError(data: Record<string, unknown>): boolean {
   return parseErrorMessage(data).includes('does not have doctype access via role permission')
 }
 
+function isMethodNotWhitelistedError(data: Record<string, unknown>): boolean {
+  const message = parseErrorMessage(data)
+  const exception = typeof data.exception === 'string' ? data.exception : ''
+  return (
+    data.exc_type === 'PermissionError' &&
+    (message.includes('is not whitelisted') || exception.includes('is not whitelisted'))
+  )
+}
+
 function extractDeniedDoctypeFromPermissionError(data: Record<string, unknown>): string | null {
   // Common shapes:
   // - "No permission for Quality Inspection"
@@ -478,7 +488,7 @@ export async function frappeRequest(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null,
-  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted'> = {}
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted'> = {}
 ): Promise<unknown> {
   // Get tenant context from cookies/headers
   const context = await getTenantContext()
@@ -489,14 +499,14 @@ export async function frappeRequest(
   // Grab session cookie in case authHeader is null or stale tenant-token fallback is needed.
   const cookieStore = await cookies()
   const sid = cookieStore.get('sid')?.value
+  const useSessionAuthFromStaleTenantToken =
+    context.isTenant &&
+    context.hasCredentials &&
+    !!sid &&
+    shouldBypassTenantToken(siteName)
   const useSessionAuth =
     options.useSessionAuth ||
-    (
-      context.isTenant &&
-      context.hasCredentials &&
-      !!sid &&
-      shouldBypassTenantToken(siteName)
-    )
+    useSessionAuthFromStaleTenantToken
 
   // Determine which credentials to use
   const { header: authHeader, source: authSource } = getAuthorizationHeader(
@@ -556,6 +566,25 @@ export async function frappeRequest(
     const data = await parseResponseData(response)
 
     if (!response.ok) {
+      if (
+        response.status === 403 &&
+        useSessionAuthFromStaleTenantToken &&
+        !options.useSessionAuth &&
+        !options.hasTenantTokenRetryAttempted &&
+        isMethodNotWhitelistedError(data)
+      ) {
+        clearStaleTenantToken(siteName)
+        if (shouldEmitThrottledLog(`session-not-whitelisted:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+          console.warn(`[API] Session auth cannot call ${endpoint}; retrying with tenant token auth`)
+        }
+        return frappeRequest(endpoint, method, body, {
+          ...options,
+          hasTenantTokenRetryAttempted: true,
+          hasSessionFallbackAttempted: true,
+          useSessionAuth: false,
+        })
+      }
+
       if (
         response.status === 403 &&
         !options.useMasterCredentials &&
