@@ -13,6 +13,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 const REQUEST_TIMEOUT_MS = Number(process.env.ERP_REQUEST_TIMEOUT_MS || '15000')
 const DEFAULT_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_ERROR_LOG_THROTTLE_MS || '120000')
 const AUTH_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_AUTH_ERROR_LOG_THROTTLE_MS || '600000')
+const STALE_TENANT_TOKEN_COOLDOWN_MS = Number(process.env.ERP_STALE_TENANT_TOKEN_COOLDOWN_MS || '600000')
 
 // ============================================================================
 // TYPES
@@ -40,6 +41,7 @@ interface ApiRequestOptions {
 const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
 const roleRepairLastAttempt = new Map<string, number>()
 const apiErrorLogLastSeen = new Map<string, number>()
+const staleTenantTokenLastSeen = new Map<string, number>()
 
 function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
   const now = Date.now()
@@ -49,6 +51,26 @@ function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
   }
   apiErrorLogLastSeen.set(key, now)
   return true
+}
+
+function markTenantTokenStale(siteName: string): void {
+  staleTenantTokenLastSeen.set(siteName, Date.now())
+}
+
+function shouldBypassTenantToken(siteName: string): boolean {
+  const lastSeen = staleTenantTokenLastSeen.get(siteName)
+  if (!lastSeen) return false
+
+  if (Date.now() - lastSeen > STALE_TENANT_TOKEN_COOLDOWN_MS) {
+    staleTenantTokenLastSeen.delete(siteName)
+    return false
+  }
+
+  return true
+}
+
+function clearStaleTenantToken(siteName: string): void {
+  staleTenantTokenLastSeen.delete(siteName)
 }
 
 function isTimeoutLikeError(error: unknown): boolean {
@@ -375,9 +397,9 @@ function extractDeniedDoctypeFromPermissionError(data: Record<string, unknown>):
   // - "No permission for Quality Inspection"
   // - "User <strong>...</strong> does not have doctype access ... document <strong>Quality Inspection</strong>"
   const raw = [
-    typeof (data as any)._error_message === 'string' ? (data as any)._error_message : null,
+    typeof data._error_message === 'string' ? data._error_message : null,
     parseErrorMessage(data),
-    typeof (data as any).exception === 'string' ? (data as any).exception : null,
+    typeof data.exception === 'string' ? data.exception : null,
   ]
     .filter(Boolean)
     .join(' ')
@@ -461,22 +483,30 @@ export async function frappeRequest(
   // Get tenant context from cookies/headers
   const context = await getTenantContext()
 
+  // Use appropriate site name (siteOverride takes priority, then master/tenant logic)
+  const siteName = options.siteOverride || (options.useMasterCredentials ? MASTER_SITE_NAME : context.siteName)
+
+  // Grab session cookie in case authHeader is null or stale tenant-token fallback is needed.
+  const cookieStore = await cookies()
+  const sid = cookieStore.get('sid')?.value
+  const useSessionAuth =
+    options.useSessionAuth ||
+    (
+      context.isTenant &&
+      context.hasCredentials &&
+      !!sid &&
+      shouldBypassTenantToken(siteName)
+    )
+
   // Determine which credentials to use
   const { header: authHeader, source: authSource } = getAuthorizationHeader(
     context,
     options.useMasterCredentials || false,
-    options.useSessionAuth || false
+    useSessionAuth
   )
-
-  // Use appropriate site name (siteOverride takes priority, then master/tenant logic)
-  const siteName = options.siteOverride || (options.useMasterCredentials ? MASTER_SITE_NAME : context.siteName)
 
   // Log request details
   logApiRequest(endpoint, method, siteName, authSource, context)
-
-  // Grab session cookie in case authHeader is null or we want to pass both
-  const cookieStore = await cookies()
-  const sid = cookieStore.get('sid')?.value
 
   // Build request headers
   const requestHeaders: Record<string, string> = {
@@ -549,6 +579,7 @@ export async function frappeRequest(
         if (shouldEmitThrottledLog(`session-fallback:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
           console.warn(`[API] 401 on tenant token for ${endpoint}; retrying with session cookie auth`)
         }
+        markTenantTokenStale(siteName)
         return frappeRequest(endpoint, method, body, {
           ...options,
           hasSessionFallbackAttempted: true,
@@ -563,6 +594,10 @@ export async function frappeRequest(
       }
       const errorMessage = parseErrorMessage(data)
       throw new Error(errorMessage)
+    }
+
+    if (context.isTenant && context.hasCredentials && authHeader && !useSessionAuth) {
+      clearStaleTenantToken(siteName)
     }
 
     return data.message ?? data.data ?? data
