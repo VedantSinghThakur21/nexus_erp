@@ -21,7 +21,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     return (
       <div className="p-8 flex flex-col gap-4">
         <h1 className="text-2xl font-bold">Opportunity Not Found</h1>
-        <p className="text-muted-foreground">The opportunity "{opportunityName}" could not be found.</p>
+        <p className="text-muted-foreground">
+          The opportunity <span className="font-mono">{opportunityName}</span> could not be found.
+        </p>
         <Link href="/crm/opportunities">
           <Button variant="outline">Back to Pipeline</Button>
         </Link>
@@ -33,7 +35,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     return (
       <div className="p-8 flex flex-col gap-4">
         <h1 className="text-2xl font-bold">Opportunity Not Found</h1>
-        <p className="text-muted-foreground">The opportunity "{opportunityName}" could not be found.</p>
+        <p className="text-muted-foreground">
+          The opportunity <span className="font-mono">{opportunityName}</span> could not be found.
+        </p>
         <Link href="/crm/opportunities">
           <Button variant="outline">Back to Pipeline</Button>
         </Link>

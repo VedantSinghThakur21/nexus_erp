@@ -136,22 +136,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
 
           return (await response.json()) as { roles?: string[] }
-        } catch (e: any) {
+        } catch (e: unknown) {
           clearTimeout(timer)
           throw e
         }
       }
 
+      function isAbortError(e: unknown): boolean {
+        return (
+          (e instanceof DOMException && e.name === 'AbortError') ||
+          (e instanceof Error && e.name === 'AbortError')
+        )
+      }
+
       let data: { roles?: string[] } = {}
       try {
         data = await fetchOnce(FETCH_TIMEOUT_MS)
-      } catch (firstErr: any) {
-        if (firstErr?.name === 'AbortError') {
+      } catch (firstErr: unknown) {
+        if (isAbortError(firstErr)) {
           console.warn('[UserContext] Role fetch timed out — retrying with a longer deadline')
           try {
             data = await fetchOnce(FETCH_RETRY_TIMEOUT_MS)
-          } catch (retryErr: any) {
-            console.warn('[UserContext] Role fetch retry failed:', retryErr?.message || retryErr)
+          } catch (retryErr: unknown) {
+            const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr)
+            console.warn('[UserContext] Role fetch retry failed:', retryMsg)
             setRoles([])
             clearCache()
             return
@@ -168,9 +176,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       } else {
         clearCache()
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[UserContext] Failed to fetch roles:', err)
-      setError(err.message)
+      setError(err instanceof Error ? err.message : 'Failed to load roles')
       setRoles([])
       clearCache()
     } finally {

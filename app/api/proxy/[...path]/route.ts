@@ -90,16 +90,18 @@ async function handler(
   const { path } = await params
   const frappePath = path.join('/')
 
+  const [authHeader, siteName] = await Promise.all([
+    getAuthHeader(),
+    getSiteName(),
+  ])
+
   // Get credentials (server-side only — never exposed to client)
-  const authHeader = await getAuthHeader()
   if (!authHeader) {
     return NextResponse.json(
       { message: 'Not authenticated' },
       { status: 401 }
     )
   }
-
-  const siteName = await getSiteName()
 
   // Build the upstream Frappe URL
   const upstreamUrl = new URL(

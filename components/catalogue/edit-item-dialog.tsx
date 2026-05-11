@@ -62,8 +62,10 @@ export function EditItemDialog({ item, open: controlledOpen, onClose, onUpdated 
 
   // Update state when item changes
   useEffect(() => {
-    setSelectedGroup(item.item_group)
-    setIsStockItem(String(item.is_stock_item || 0))
+    queueMicrotask(() => {
+      setSelectedGroup(item.item_group)
+      setIsStockItem(String(item.is_stock_item || 0))
+    })
   }, [item])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

@@ -32,7 +32,7 @@ export default function ProvisioningPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
 
-  const startTimeRef = useRef<number>(Date.now())
+  const startTimeRef = useRef<number>(0)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Progress derived from elapsed time (holds at 95% until done)

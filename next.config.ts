@@ -8,9 +8,23 @@ const nextConfig: NextConfig = {
     },
   },
 
+  /**
+   * Webpack perf budgets removed for Next.js 16 default Turbopack builds.
+   * Use Lighthouse CI thresholds (see PERFORMANCE_AUDIT.md) or `next build --webpack`
+   * with a migrated webpack.performance block when you ship webpack-only pipelines.
+   */
+
+  compress: true,
+
   // Security headers for production
   async headers() {
     return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [

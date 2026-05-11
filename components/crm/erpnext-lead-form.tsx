@@ -362,7 +362,7 @@ export default function ERPNextLeadForm() {
                   <option value="Exhibition">Exhibition</option>
                   <option value="Supplier Reference">Supplier Reference</option>
                   <option value="Mass Mailing">Mass Mailing</option>
-                  <option value="Customer's Vendor">Customer's Vendor</option>
+                  <option value={"Customer's Vendor"}>Customer&apos;s Vendor</option>
                   <option value="Campaign">Campaign</option>
                   <option value="Walk In">Walk In</option>
                 </select>

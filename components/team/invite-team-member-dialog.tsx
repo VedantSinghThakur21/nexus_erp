@@ -150,7 +150,7 @@ export function InviteTeamMemberDialog() {
             <DialogHeader>
               <DialogTitle>Invite Team Member</DialogTitle>
               <DialogDescription>
-                Send an invitation to join your organization. They'll receive an email with setup instructions.
+                Send an invitation to join your organization. They will receive an email with setup instructions.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">

@@ -77,9 +77,16 @@ export default function NewInvoicePage() {
   // Prefill from Sales Order if linked
   useEffect(() => {
     if (!salesOrderParam) return
-    setFetchingSO(true)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) setFetchingSO(true)
+    })
     getSalesOrder(salesOrderParam).then(so => {
-      if (!so) { setFetchingSO(false); return }
+      if (cancelled) return
+      if (!so) {
+        setFetchingSO(false)
+        return
+      }
       setLinkedSalesOrder(so.name)
       setCustomer(so.customer_name || so.customer || '')
       if (so.taxes_and_charges) setTaxTemplate(so.taxes_and_charges)
@@ -95,7 +102,12 @@ export default function NewInvoicePage() {
         })))
       }
       setFetchingSO(false)
-    }).catch(() => setFetchingSO(false))
+    }).catch(() => {
+      if (!cancelled) setFetchingSO(false)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [salesOrderParam])
 
   // Fetch selected tax template details when template changes
@@ -105,7 +117,9 @@ export default function NewInvoicePage() {
         setSelectedTaxTemplateDetails(details)
       })
     } else {
-      setSelectedTaxTemplateDetails(null)
+      queueMicrotask(() => {
+        setSelectedTaxTemplateDetails(null)
+      })
     }
   }, [taxTemplate])
 
@@ -116,7 +130,9 @@ export default function NewInvoicePage() {
         if (data) setCustomerDetails(data)
       })
     } else {
-      setCustomerDetails(null)
+      queueMicrotask(() => {
+        setCustomerDetails(null)
+      })
     }
   }, [customer])
 

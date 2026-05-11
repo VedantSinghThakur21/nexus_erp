@@ -49,15 +49,6 @@ export function CreateItemDialog({ onCreated }: CreateItemDialogProps = {}) {
   const [creatingBrand, setCreatingBrand] = useState(false)
   const router = useRouter()
 
-  // Load brands when dialog opens
-  useEffect(() => {
-    if (open) {
-      loadBrands()
-      loadItemGroups()
-      loadUOMs()
-    }
-  }, [open])
-
   async function loadBrands() {
     if (cachedBrands && cachedBrands.length > 0) {
       setBrands(cachedBrands)
@@ -117,6 +108,16 @@ export function CreateItemDialog({ onCreated }: CreateItemDialogProps = {}) {
       setSelectedUom(fetchedUoms[0])
     }
   }
+
+  // Load brands when dialog opens (effect after loaders so hooks immutability is satisfied)
+  useEffect(() => {
+    if (!open) return
+    queueMicrotask(() => {
+      void loadBrands()
+      void loadItemGroups()
+      void loadUOMs()
+    })
+  }, [open])
 
   async function handleCreateBrand() {
     if (!newBrandName.trim()) return

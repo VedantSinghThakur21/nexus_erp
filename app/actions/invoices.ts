@@ -591,7 +591,7 @@ async function ensureTaxTemplate(templateName: string) {
       const igstAcc = await getTaxAccount('IGST', companyName) || await getTaxAccount('Tax', companyName) || 'IGST';
 
       // Define rows based on template name
-      let taxes = [];
+      const taxes = [];
       if (templateName.includes('Out of State')) {
         taxes.push({
           charge_type: "On Net Total",
@@ -1585,7 +1585,7 @@ export async function createInvoiceFromSalesOrderProdReady(
       }
     }
 
-    let invoiceDoc = invoiceDraft.message
+    const invoiceDoc = invoiceDraft.message
 
     // 5. Apply custom data
     if (options?.postingDate) {

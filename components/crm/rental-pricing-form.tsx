@@ -44,7 +44,9 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
       
       // Only update if duration actually changed
       if (duration !== item.rental_duration) {
-        onChange({ rental_duration: duration })
+        queueMicrotask(() => {
+          onChange({ rental_duration: duration })
+        })
       }
     }
   }, [item.rental_start_date, item.rental_end_date, item.rental_start_time, item.rental_end_time, item.rental_type])
@@ -78,7 +80,9 @@ export function RentalPricingForm({ item, onChange, itemCategory }: RentalPricin
   // Update components when changed from parent
   useEffect(() => {
     if (item.pricing_components && JSON.stringify(item.pricing_components) !== JSON.stringify(components)) {
-      setComponents(item.pricing_components)
+      queueMicrotask(() => {
+        setComponents(item.pricing_components || {})
+      })
     }
   }, [item.pricing_components])
 

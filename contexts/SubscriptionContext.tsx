@@ -214,7 +214,7 @@ export function UsageGuard({
     return (
       <div className="p-4 border border-yellow-500 bg-yellow-50 rounded-md">
         <p className="text-sm text-yellow-800">
-          You've reached your plan limit of {limit} {feature}. Upgrade to continue.
+          You have reached your plan limit of {limit} {feature}. Upgrade to continue.
         </p>
       </div>
     )

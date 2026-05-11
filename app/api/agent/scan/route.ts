@@ -29,7 +29,11 @@ export async function POST(request: Request) {
       objective: 'Find stale leads and suggest one safe follow-up action for approval.',
     })
 
-    return NextResponse.json({ success: true, jobId: job.id })
+    return NextResponse.json({
+      success: true,
+      jobId: job.id,
+      streamUrl: `/api/agent/jobs/${encodeURIComponent(String(job.id))}/stream`,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to enqueue scan'
 

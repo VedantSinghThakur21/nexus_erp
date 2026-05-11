@@ -333,7 +333,7 @@ export async function createLead(data: any) {
   let defaultCompany: string | undefined = undefined;
   try {
     // 1. Check Global Defaults
-    let checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
+    const checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
       doctype: 'Global Defaults',
       fieldname: 'default_company'
     }) as { default_company?: string }
@@ -729,7 +729,7 @@ export async function convertLeadToOpportunity(
 
     if (!defaultCompany) {
       // 2. Try Global Defaults
-      let checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
+      const checkCompany = await frappeRequest('frappe.client.get_value', 'GET', {
         doctype: 'Global Defaults',
         fieldname: 'default_company'
       }) as { default_company?: string }
@@ -754,7 +754,7 @@ export async function convertLeadToOpportunity(
 
 
     // 5. Always construct Opportunity doc from Lead data (no make_opportunity call)
-    let opportunityDoc: any = {
+    const opportunityDoc: any = {
       doctype: 'Opportunity',
       opportunity_from: createCustomer ? 'Customer' : 'Lead',
       party_name: createCustomer && lead.company_name ? lead.company_name : leadId,

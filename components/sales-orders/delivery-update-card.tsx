@@ -30,8 +30,10 @@ export function DeliveryUpdateCard({ deliveryDate, deliveryStatus, orderId }: De
   const { addToast } = useToast();
 
   useEffect(() => {
-    setDate(deliveryDate);
-    setStatus(deliveryStatus);
+    queueMicrotask(() => {
+      setDate(deliveryDate);
+      setStatus(deliveryStatus);
+    });
   }, [deliveryDate, deliveryStatus]);
 
   const handleUpdate = async () => {

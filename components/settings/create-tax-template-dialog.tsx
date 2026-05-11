@@ -266,7 +266,7 @@ export function CreateTaxTemplateDialog() {
             <div className="text-xs text-slate-600  space-y-1 bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
               <p className="font-semibold text-blue-900 dark:text-blue-100">Account Selection:</p>
               <p>✓ Select tax accounts from the dropdown (fetched from your ERPNext Chart of Accounts)</p>
-              <p>✓ Common tax accounts: Look for "Output Tax CGST", "Output Tax SGST", "Output Tax IGST"</p>
+              <p>✓ Common tax accounts: Look for Output Tax CGST, Output Tax SGST, Output Tax IGST in Chart of Accounts</p>
               {availableAccounts.length === 0 && !loadingAccounts && (
                 <p className="text-amber-700 dark:text-amber-400 mt-2">⚠️ No tax accounts found. You may need to create them in ERPNext first.</p>
               )}

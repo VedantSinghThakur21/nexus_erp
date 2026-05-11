@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { useOrganization } from '@/contexts/organization-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,13 +12,22 @@ import { SUBSCRIPTION_PLANS, getUsagePercentage } from '@/types/subscription'
 export function SubscriptionBanner() {
   const { organization, loading } = useOrganization()
 
+  const trialEnd = organization?.subscription.trial_end
+  const [nowMs, setNowMs] = useState(0)
+  useEffect(() => {
+    queueMicrotask(() => setNowMs(Date.now()))
+    const id = window.setInterval(() => setNowMs(Date.now()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+  const trialDaysLeft = useMemo(() => {
+    if (!trialEnd || !nowMs) return 0
+    return Math.ceil((new Date(trialEnd).getTime() - nowMs) / (1000 * 60 * 60 * 24))
+  }, [trialEnd, nowMs])
+
   if (loading || !organization) return null
 
   const plan = SUBSCRIPTION_PLANS[organization.subscription.plan]
   const isTrialing = organization.subscription.status === 'trial'
-  const trialDaysLeft = organization.subscription.trial_end
-    ? Math.ceil((new Date(organization.subscription.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : 0
 
   // Check if nearing any limits
   const leadsPercentage = getUsagePercentage(organization.usage.leads, plan.features.maxLeads)
@@ -54,7 +64,7 @@ export function SubscriptionBanner() {
             <TrendingUp className="h-5 w-5 text-orange-600" />
             <div>
               <p className="font-semibold text-orange-900">
-                You're nearing your leads limit
+                You are nearing your leads limit
               </p>
               <p className="text-sm text-orange-700">
                 {organization.usage.leads} / {plan.features.maxLeads} leads used

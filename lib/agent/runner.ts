@@ -86,7 +86,7 @@ export async function runAgent(context: AgentRunContext, tenant: AgentTenantCont
   const client = new Anthropic({ apiKey })
   const toolResults: Array<{ tool: string; output: unknown }> = []
 
-  let messages: Anthropic.Messages.MessageParam[] = [
+  const messages: Anthropic.Messages.MessageParam[] = [
     {
       role: 'user',
       content: buildPrompt(context, tenant),

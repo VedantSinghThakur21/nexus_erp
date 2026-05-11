@@ -53,8 +53,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check initial theme
-    setIsDark(document.documentElement.classList.contains("dark"));
+    // Check initial theme (defer to microtask — avoids sync setState-in-effect)
+    queueMicrotask(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
 
     // Load all data
     Promise.all([

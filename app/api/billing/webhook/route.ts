@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { getPlanFromStripePriceId, verifyStripeWebhookSignature, type StripeCheckoutSession, type StripeSubscription } from '@/lib/subscription/stripe'
 import { normalizePlan } from '@/types/subscription'
 import { updateSaasTenantPlan } from '@/lib/subscription/master'
+
+function bumpSubscriptionSnapshot(subdomain: string) {
+  revalidateTag(`subscription:${subdomain}`, 'max')
+}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,6 +41,7 @@ async function handleCheckoutCompleted(session: StripeCheckoutSession) {
     changedBy: 'stripe:webhook',
     reason: 'checkout.session.completed',
   })
+  bumpSubscriptionSnapshot(subdomain)
 }
 
 async function handleSubscriptionUpdated(subscription: StripeSubscription) {
@@ -54,6 +60,7 @@ async function handleSubscriptionUpdated(subscription: StripeSubscription) {
     changedBy: 'stripe:webhook',
     reason: 'customer.subscription.updated',
   })
+  bumpSubscriptionSnapshot(subdomain)
 }
 
 async function handleSubscriptionDeleted(subscription: StripeSubscription) {
@@ -70,6 +77,7 @@ async function handleSubscriptionDeleted(subscription: StripeSubscription) {
     changedBy: 'stripe:webhook',
     reason: 'customer.subscription.deleted',
   })
+  bumpSubscriptionSnapshot(subdomain)
 }
 
 async function handleInvoicePaymentFailed(invoice: Record<string, unknown>) {
@@ -93,6 +101,7 @@ async function handleInvoicePaymentFailed(invoice: Record<string, unknown>) {
     changedBy: 'stripe:webhook',
     reason: 'invoice.payment_failed',
   })
+  bumpSubscriptionSnapshot(subdomain)
 }
 
 export async function POST(request: NextRequest) {

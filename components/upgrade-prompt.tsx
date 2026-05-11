@@ -51,7 +51,7 @@ export function UpgradePrompt({
             Upgrade Your Plan
           </DialogTitle>
           <DialogDescription>
-            You've reached your limit of {limit} {limitLabels[limitType]} on the {PLAN_FEATURES[currentPlan].name} plan.
+            You have reached your limit of {limit} {limitLabels[limitType]} on the {PLAN_FEATURES[currentPlan].name} plan.
           </DialogDescription>
         </DialogHeader>
 

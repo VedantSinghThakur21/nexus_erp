@@ -140,7 +140,7 @@ export function AIRiskScore({ inspection }: { inspection: any }) {
         {!result && !loading && !error && (
             <div className="text-center p-6">
                 <p className="text-sm text-muted-foreground  max-w-sm mx-auto">
-                    Click "Analyze Risk" to evaluate this inspection and surface potential issues using our AI engine.
+                    Click Analyze Risk to evaluate this inspection and surface potential issues using our AI engine.
                 </p>
             </div>
         )}

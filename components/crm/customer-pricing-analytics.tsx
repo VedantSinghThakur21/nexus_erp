@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Percent, DollarSign, TrendingDown, AlertCircle, Sparkles } from "lucide-react";
@@ -30,13 +30,7 @@ export function CustomerPricingAnalytics({ customerName }: CustomerPricingAnalyt
   const [analytics, setAnalytics] = useState<CustomerPricingRuleAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (customerName) {
-      loadAnalytics();
-    }
-  }, [customerName]);
-
-  async function loadAnalytics() {
+  const loadAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       // TODO: Implement backend endpoint to fetch customer pricing analytics
@@ -76,7 +70,14 @@ export function CustomerPricingAnalytics({ customerName }: CustomerPricingAnalyt
       console.error("Failed to load pricing analytics:", error);
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!customerName) return
+    queueMicrotask(() => {
+      void loadAnalytics()
+    })
+  }, [customerName, loadAnalytics]);
 
   if (loading) {
     return (

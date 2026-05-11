@@ -219,7 +219,7 @@ export default function TeamPage() {
                   Team Members
                 </h2>
                 <p className="text-sm text-muted-foreground ">
-                  Manage your organization's team members and their access with AI insights
+                  Manage your organization team members and their access with AI insights
                 </p>
               </div>
 

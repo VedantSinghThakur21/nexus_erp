@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers'
+import { dedupeInFlight } from '@/lib/performance/in-flight-dedupe'
 import { AGENTIC_ALLOWED_PLANS, AGENTIC_BASE_FLAG, getModelPolicy } from './config'
 import { normalizePlan } from '@/types/subscription'
 import type { AgenticEntitlement, AgenticFeatureFlag, AgenticPlan, AgenticTenantContext } from './types'
@@ -55,58 +56,71 @@ async function fetchTenantPlanRow(tenantId: string): Promise<TenantPlanRow | nul
     }
   }
 
-  const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-  const apiKey = process.env.ERP_API_KEY
-  const apiSecret = process.env.ERP_API_SECRET
-  if (!apiKey || !apiSecret) return null
+  return dedupeInFlight(`tenant-plan-row:${tenantId}`, async () => {
+    const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+    const apiKey = process.env.ERP_API_KEY
+    const apiSecret = process.env.ERP_API_SECRET
+    if (!apiKey || !apiSecret) return null
 
-  const headersBase = {
-    'Content-Type': 'application/json',
-    'Authorization': `token ${apiKey}:${apiSecret}`,
-    'X-Frappe-Site-Name': process.env.FRAPPE_SITE_NAME || 'erp.localhost',
-  }
+    const headersBase = {
+      'Content-Type': 'application/json',
+      'Authorization': `token ${apiKey}:${apiSecret}`,
+      'X-Frappe-Site-Name': process.env.FRAPPE_SITE_NAME || 'erp.localhost',
+    }
 
-  async function query(fields: string[]) {
-    const response = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
-      method: 'POST',
-      headers: headersBase,
-      body: JSON.stringify({
-        doctype: 'SaaS Tenant',
-        filters: { subdomain: tenantId },
-        fields,
-        limit_page_length: 1,
-      }),
-      cache: 'no-store',
-    })
+    async function query(fields: string[]) {
+      const response = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
+        method: 'POST',
+        headers: headersBase,
+        body: JSON.stringify({
+          doctype: 'SaaS Tenant',
+          filters: { subdomain: tenantId },
+          fields,
+          limit_page_length: 1,
+        }),
+        cache: 'no-store',
+      })
 
-    if (!response.ok) return null
-    const data = await response.json().catch(() => ({})) as { message?: TenantPlanRow[] }
-    return data.message?.[0] || null
-  }
+      if (!response.ok) return null
+      const data = await response.json().catch(() => ({})) as { message?: TenantPlanRow[] }
+      return data.message?.[0] || null
+    }
 
-  const tenant = (
-    await query(['name', 'plan_type', 'status', 'subscription_status', 'stripe_customer_id', 'stripe_subscription_id'])
-  ) || (await query(['name', 'plan_type', 'status']))
+    async function fetchOrgMirror(): Promise<TenantPlanRow | null> {
+      try {
+        const response = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
+          method: 'POST',
+          headers: headersBase,
+          body: JSON.stringify({
+            doctype: 'Organization',
+            filters: { slug: tenantId },
+            fields: ['name', 'subscription_plan', 'subscription_status', 'agentic_ai_enabled', 'agentic_finance_enabled', 'agentic_destructive_tools_enabled'],
+            limit_page_length: 1,
+          }),
+          cache: 'no-store',
+        })
 
-  const org = await (async () => {
-    const response = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
-      method: 'POST',
-      headers: headersBase,
-      body: JSON.stringify({
-        doctype: 'Organization',
-        filters: { slug: tenantId },
-        fields: ['name', 'subscription_plan', 'subscription_status', 'agentic_ai_enabled', 'agentic_finance_enabled', 'agentic_destructive_tools_enabled'],
-        limit_page_length: 1,
-      }),
-      cache: 'no-store',
-    })
+        if (!response.ok) return null
+        const data = await response.json().catch(() => ({})) as { message?: TenantPlanRow[] }
+        return data.message?.[0] || null
+      } catch {
+        return null
+      }
+    }
 
-    if (!response.ok) return null
-    const data = await response.json().catch(() => ({})) as { message?: TenantPlanRow[] }
-    return data.message?.[0] || null
-  })().catch(() => null)
+    const [tenantWide, org] = await Promise.all([
+      (async (): Promise<TenantPlanRow | null> => {
+        const primary = await query(['name', 'plan_type', 'status', 'subscription_status', 'stripe_customer_id', 'stripe_subscription_id'])
+        if (primary) return primary
+        return query(['name', 'plan_type', 'status'])
+      })(),
+      fetchOrgMirror(),
+    ])
 
-  return tenant ? { ...tenant, ...org } : org
+    const tenant = tenantWide
+
+    return tenant ? { ...tenant, ...org } : org
+  })
 }
 
 function buildFlags(tenantId: string, row: TenantPlanRow | null): Partial<Record<AgenticFeatureFlag, boolean>> {
@@ -185,12 +199,18 @@ export async function getEntitlement(orgId?: string): Promise<{
   model: string | null
 }> {
   const tenantContext = orgId
-    ? {
-        ...(await getAgenticTenantContext()),
-        tenantId: orgId,
-        flags: buildFlags(orgId, await fetchTenantPlanRow(orgId)),
-        plan: normalizePlan((await fetchTenantPlanRow(orgId))?.subscription_plan || (await fetchTenantPlanRow(orgId))?.plan_type) as AgenticPlan,
-      }
+    ? await (async () => {
+        const [base, row] = await Promise.all([
+          getAgenticTenantContext(),
+          fetchTenantPlanRow(orgId),
+        ])
+        return {
+          ...base,
+          tenantId: orgId,
+          flags: buildFlags(orgId, row),
+          plan: normalizePlan(row?.subscription_plan || row?.plan_type) as AgenticPlan,
+        }
+      })()
     : await getAgenticTenantContext()
 
   if (!AGENTIC_ALLOWED_PLANS.includes(tenantContext.plan)) {

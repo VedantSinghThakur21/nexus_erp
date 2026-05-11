@@ -51,7 +51,9 @@ export default async function SalesOrderDetailPage({ params }: { params: Promise
     return (
       <div className="p-8 flex flex-col gap-4">
         <h1 className="text-2xl font-bold">Sales Order Not Found</h1>
-        <p className="text-muted-foreground">The sales order "{orderName}" could not be found.</p>
+        <p className="text-muted-foreground">
+          The sales order <span className="font-mono">{orderName}</span> could not be found.
+        </p>
         <Link href="/sales-orders">
           <Button variant="outline">Back to Sales Orders</Button>
         </Link>

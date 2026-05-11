@@ -73,7 +73,7 @@ export function InvoicesList({ invoices, totalRevenue }: InvoicesListProps) {
                 {invoices.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                      No invoices found. Click "New Invoice" to create one.
+                      No invoices found. Click New Invoice to create one.
                     </td>
                   </tr>
                 ) : (

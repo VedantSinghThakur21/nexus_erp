@@ -115,7 +115,7 @@ async function ensureMasterData(doctype: string, name: string, extraFields: any 
 
     console.log(`Creating missing ${doctype}: ${name}`);
     try {
-        let finalFields = { ...extraFields };
+        const finalFields = { ...extraFields };
         
         // Special logic for Warehouse parent
         if (doctype === 'Warehouse' && !finalFields.parent_warehouse) {

@@ -1073,7 +1073,7 @@ export async function createInvoiceFromReadySalesOrder(orderId: string, invoiceD
       throw new Error('Failed to generate invoice from Sales Order template')
     }
 
-    let invoiceDoc = invoiceDraft.message
+    const invoiceDoc = invoiceDraft.message
 
     // 4. Apply custom dates if provided
     if (invoiceData?.postingDate) {

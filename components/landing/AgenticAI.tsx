@@ -62,7 +62,7 @@ const AgenticAI = () => {
             <span className="text-blue-600">AI Workforce</span>
           </h2>
           <p className="text-lg text-slate-600  mx-auto">
-            Autonomous AI agents that work 24/7. They don't just assist — 
+            Autonomous AI agents that work 24/7. They do not just assist — 
             they execute. Trained on your business data, aligned with your goals.
           </p>
         </div>

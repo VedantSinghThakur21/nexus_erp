@@ -54,7 +54,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     return (
       <div className="p-8 flex flex-col gap-4">
         <h1 className="text-2xl font-bold">Lead Not Found</h1>
-        <p className="text-muted-foreground">The lead "{id}" could not be found in ERPNext.</p>
+        <p className="text-muted-foreground">
+          The lead <span className="font-mono">{id}</span> could not be found in ERPNext.
+        </p>
         <Link href="/crm/leads">
           <Button variant="outline">Back to CRM</Button>
         </Link>

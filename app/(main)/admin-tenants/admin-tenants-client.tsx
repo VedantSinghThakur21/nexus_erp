@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { listAllTenants, getTenantSiteStatus, deleteTenantSite, restartTenantSite } from '@/app/actions/admin-tenants'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,17 +16,21 @@ interface Tenant {
   creation: string
 }
 
+/** Mirrors `getTenantSiteStatus` return shape from `@/app/actions/admin-tenants` */
+interface TenantSiteStatus {
+  success: boolean
+  exists?: boolean
+  database?: string
+  apps?: string[]
+  error?: string
+}
+
 export function AdminTenantsClient() {
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [loading, setLoading] = useState(true)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [siteStatuses, setSiteStatuses] = useState<Record<string, any>>({})
+  const [siteStatuses, setSiteStatuses] = useState<Record<string, TenantSiteStatus>>({})
 
-  useEffect(() => {
-    loadTenants()
-  }, [])
-
-  async function loadTenants() {
+  const loadTenants = useCallback(async () => {
     setLoading(true)
     const result = await listAllTenants()
     if (result.success && result.tenants) {
@@ -39,7 +43,13 @@ export function AdminTenantsClient() {
       }
     }
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void loadTenants()
+    })
+  }, [loadTenants])
 
   async function handleDelete(tenantName: string, siteUrl: string) {
     if (!confirm(`Delete tenant "${tenantName}" and all its data? This cannot be undone!`)) {

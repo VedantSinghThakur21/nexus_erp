@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Download, CheckCircle, Calendar, Receipt } from "lucide-react"
@@ -75,8 +75,10 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
   const endIndex = startIndex + ITEMS_PER_PAGE
   const paginatedInvoices = filteredInvoices.slice(startIndex, endIndex)
 
-  useMemo(() => {
-    setCurrentPage(1)
+  useEffect(() => {
+    queueMicrotask(() => {
+      setCurrentPage(1)
+    })
   }, [searchQuery])
 
   // Helper functions

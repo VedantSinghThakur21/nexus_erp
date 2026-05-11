@@ -25,7 +25,9 @@ export function PricingRulesIndicator({
 
   useEffect(() => {
     if (!transactionDate) return;
-    setLoading(true);
+    queueMicrotask(() => {
+      setLoading(true);
+    });
     getApplicablePricingRules({
       customer,
       customer_group: customerGroup,

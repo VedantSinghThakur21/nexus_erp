@@ -45,7 +45,9 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
     return (
       <div className="p-8 flex flex-col gap-4">
         <h1 className="text-2xl font-bold">Quotation Not Found</h1>
-        <p className="text-muted-foreground">The quotation "{quotationName}" could not be found.</p>
+        <p className="text-muted-foreground">
+          The quotation <span className="font-mono">{quotationName}</span> could not be found.
+        </p>
         <Link href="/crm/quotations">
           <Button variant="outline">Back to Quotations</Button>
         </Link>

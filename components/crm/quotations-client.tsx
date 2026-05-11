@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search, Filter, TrendingUp, Wallet, Zap, User, Calendar, DollarSign, Package, ArrowRight } from "lucide-react"
@@ -95,8 +95,10 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
   const paginatedQuotations = filteredQuotations.slice(startIndex, endIndex)
 
   // Reset to page 1 when filters change
-  useMemo(() => {
-    setCurrentPage(1)
+  useEffect(() => {
+    queueMicrotask(() => {
+      setCurrentPage(1)
+    })
   }, [searchQuery, statusFilter, selectedTab])
 
   // Helper: Get status badge styling

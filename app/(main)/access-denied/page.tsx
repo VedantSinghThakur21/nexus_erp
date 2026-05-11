@@ -14,7 +14,7 @@ import { UserRoleBadge } from '@/components/user-role-badge'
 export default function AccessDeniedPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const module = searchParams.get('module') || 'this module'
+  const blockedModule = searchParams.get('module') || 'this module'
   const requiredRole = searchParams.get('role')
 
   return (
@@ -29,7 +29,7 @@ export default function AccessDeniedPage() {
               Access Denied
             </CardTitle>
             <CardDescription className="mt-2">
-              You don't have permission to access {module}
+              You do not have permission to access {blockedModule}
             </CardDescription>
           </div>
         </CardHeader>

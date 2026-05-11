@@ -14,7 +14,9 @@ export function useClientTenant(): string {
 
   useEffect(() => {
     const hostname = window.location.hostname
-    setTenant(extractTenantFromHostname(hostname))
+    queueMicrotask(() => {
+      setTenant(extractTenantFromHostname(hostname))
+    })
   }, [])
 
   return tenant

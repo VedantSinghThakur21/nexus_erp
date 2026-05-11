@@ -459,11 +459,11 @@ export default function CataloguePage() {
                 <div className="space-y-4">
                   <div className="p-4 bg-card-dark rounded-lg border border-slate-700">
                     <p className="text-sm font-semibold text-white mb-1.5">Market Trend Alert</p>
-                    <p className="text-xs text-slate-300 leading-relaxed">Rental demand for 'Heavy Cranes' is up 15% this quarter. Consider adjusting pricing.</p>
+                    <p className="text-xs text-slate-300 leading-relaxed">Rental demand for Heavy Cranes is up 15% this quarter. Consider adjusting pricing.</p>
                   </div>
                   <div className="p-4 bg-card-dark rounded-lg border border-slate-700">
                     <p className="text-sm font-semibold text-white mb-1.5">Inventory Optimization</p>
-                    <p className="text-xs text-slate-300 leading-relaxed">2 items have had no bookings for 60 days. Recommend marking as 'Clearance'.</p>
+                    <p className="text-xs text-slate-300 leading-relaxed">2 items have had no bookings for 60 days. Recommend marking as Clearance.</p>
                   </div>
                 </div>
                 <button className="w-full mt-6 py-2.5 text-xs font-bold text-vibrant-yellow hover:text-yellow-300 flex items-center justify-center transition uppercase tracking-wider">

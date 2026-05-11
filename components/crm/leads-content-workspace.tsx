@@ -746,7 +746,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                 </div>
                                                 <h4 className="text-sm font-semibold mb-2 text-foreground">Acme Corp HQ - Phase II</h4>
                                                 <p className="text-[12px] text-muted-foreground mb-5 leading-relaxed">
-                                                    Decision maker hasn't opened proposal for 5 days. Competitive threat detected.
+                                                    Decision maker has not opened proposal for 5 days. Competitive threat detected.
                                                 </p>
                                                 <button className="w-full h-9 rounded-md bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-semibold text-xs transition uppercase tracking-wider">
                                                     Priority Outreach
@@ -787,7 +787,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                                                 <span className="text-xs font-bold text-emerald-500">+14.2%</span>
                                             </div>
                                             <p className="text-[11px] text-slate-400 italic font-medium">
-                                                "Cycle time is accelerating by 2 days this month."
+                                                Cycle time is accelerating by 2 days this month.
                                             </p>
                                         </div>
                                     </div>

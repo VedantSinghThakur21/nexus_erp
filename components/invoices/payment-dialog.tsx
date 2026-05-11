@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation"
 export function PaymentDialog({ invoice }: { invoice: any }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [optimisticApplied, setOptimisticApplied] = useState(0)
   const [paymentModes, setPaymentModes] = useState<string[]>([])
   const [loadingModes, setLoadingModes] = useState(false)
   const [formData, setFormData] = useState({
@@ -38,6 +39,14 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
     referenceDate: new Date().toISOString().split('T')[0]
   })
   const router = useRouter()
+
+  useEffect(() => {
+    setOptimisticApplied(0)
+    setFormData((f) => ({
+      ...f,
+      paymentAmount: Number(invoice.outstanding_amount ?? invoice.grand_total ?? 0),
+    }))
+  }, [invoice.name, invoice.outstanding_amount, invoice.grand_total])
 
   // Fetch modes from ERPNext when dialog opens
   useEffect(() => {
@@ -52,7 +61,8 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
     }).catch(() => setLoadingModes(false))
   }, [open])
 
-  const outstandingAmount = invoice.outstanding_amount || invoice.grand_total || 0
+  const baseOutstanding = Number(invoice.outstanding_amount ?? invoice.grand_total ?? 0)
+  const displayOutstanding = Math.max(0, baseOutstanding - optimisticApplied)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,29 +72,37 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
       return
     }
 
-    if (formData.paymentAmount > outstandingAmount) {
-      alert(`Payment amount cannot exceed outstanding amount of ${invoice.currency} ${outstandingAmount.toLocaleString()}`)
+    if (formData.paymentAmount > displayOutstanding + 1e-6) {
+      alert(`Payment amount cannot exceed outstanding amount of ${invoice.currency} ${displayOutstanding.toLocaleString()}`)
       return
     }
 
+    const paidNow = formData.paymentAmount
+    setOptimisticApplied((prev) => prev + paidNow)
     setLoading(true)
-    const result = await createPaymentEntry({
-      invoiceName: invoice.name,
-      paymentAmount: formData.paymentAmount,
-      paymentDate: formData.paymentDate,
-      modeOfPayment: formData.modeOfPayment,
-      referenceNo: formData.referenceNo,
-      referenceDate: formData.referenceDate
-    })
+    try {
+      const result = await createPaymentEntry({
+        invoiceName: invoice.name,
+        paymentAmount: paidNow,
+        paymentDate: formData.paymentDate,
+        modeOfPayment: formData.modeOfPayment,
+        referenceNo: formData.referenceNo,
+        referenceDate: formData.referenceDate
+      })
 
-    setLoading(false)
-
-    if (result.error) {
-      alert('Error: ' + result.error)
-    } else {
-      alert('✅ Payment entry created successfully!')
-      setOpen(false)
-      router.refresh()
+      if (result.error) {
+        setOptimisticApplied((prev) => Math.max(0, prev - paidNow))
+        alert('Error: ' + result.error)
+      } else {
+        alert('✅ Payment entry created successfully!')
+        setOpen(false)
+        router.refresh()
+      }
+    } catch {
+      setOptimisticApplied((prev) => Math.max(0, prev - paidNow))
+      alert('Payment failed. Please retry.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -110,7 +128,7 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
             <div className="p-4 bg-slate-50 dark:bg-background rounded-lg">
               <div className="text-sm text-muted-foreground">Outstanding Amount</div>
               <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                {invoice.currency} {outstandingAmount.toLocaleString()}
+                {invoice.currency} {displayOutstanding.toLocaleString()}
               </div>
             </div>
 
@@ -122,7 +140,7 @@ export function PaymentDialog({ invoice }: { invoice: any }) {
                 type="number"
                 step="0.01"
                 min="0"
-                max={outstandingAmount}
+                max={displayOutstanding}
                 value={formData.paymentAmount}
                 onChange={(e) => setFormData({ ...formData, paymentAmount: parseFloat(e.target.value) || 0 })}
                 required

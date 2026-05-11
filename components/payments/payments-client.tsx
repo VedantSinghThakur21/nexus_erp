@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
@@ -74,8 +74,10 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
   const paginatedPayments = filteredPayments.slice(startIndex, endIndex)
 
   // Reset to page 1 when filters change
-  useMemo(() => {
-    setCurrentPage(1)
+  useEffect(() => {
+    queueMicrotask(() => {
+      setCurrentPage(1)
+    })
   }, [searchQuery, activeTab])
 
   // Helper functions

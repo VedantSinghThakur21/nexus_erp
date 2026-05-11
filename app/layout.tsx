@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { Providers } from "@/components/providers";
+import { WebVitalsReporter } from "@/components/web-vitals-reporter";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -44,6 +45,7 @@ export default function RootLayout({
         >
           <Providers>
             <ToastProvider>
+              <WebVitalsReporter />
               {children}
             </ToastProvider>
           </Providers>

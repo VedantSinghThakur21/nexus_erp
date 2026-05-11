@@ -22,6 +22,7 @@ interface Opportunity {
   probability: number
   opportunity_amount: number
   currency: string
+  owner?: string
 }
 
 interface OpportunitiesClientProps {
@@ -48,11 +49,15 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 20
 
-  // Filter opportunities
-  const openOpportunities = opportunities.filter(opp => opp.status === "Open")
-  const wonOpportunities = opportunities.filter(opp => opp.status === "Converted")
-
-  // Calculate stats
+  // Calculate stats (stable derivations from `opportunities` prop)
+  const openOpportunities = useMemo(
+    () => opportunities.filter((opp) => opp.status === "Open"),
+    [opportunities],
+  )
+  const wonOpportunities = useMemo(
+    () => opportunities.filter((opp) => opp.status === "Converted"),
+    [opportunities],
+  )
   const totalOpenOpportunities = openOpportunities.length
   const wonThisMonth = wonOpportunities.length
   const avgProbability = openOpportunities.length > 0
@@ -86,12 +91,14 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
 
   // Reset to page 1 when filters change
   useEffect(() => {
-    setCurrentPage(1)
+    queueMicrotask(() => {
+      setCurrentPage(1)
+    })
   }, [searchQuery, selectedStage])
 
   // Helper: extract owner display name from ERPNext owner field (email → name)
   const getOwnerDisplay = (opp: Opportunity): { initials: string; name: string } => {
-    const raw = (opp as any).owner || ''
+    const raw = opp.owner || ''
     // ERPNext owner is usually an email like "admin@example.com" or a username
     const parts = raw.split('@')[0].replace(/[._-]/g, ' ').split(' ')
     const initials = parts.map((p: string) => p[0]?.toUpperCase() || '').join('').slice(0, 2) || '?'

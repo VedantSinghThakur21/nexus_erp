@@ -146,7 +146,7 @@ export function UsageWidget({ subdomain }: { subdomain: string }) {
               )}
               {nearLimit && (
                 <p className="text-xs text-orange-600">
-                  You're approaching your limit. Consider upgrading.
+                  You are approaching your limit. Consider upgrading.
                 </p>
               )}
             </div>

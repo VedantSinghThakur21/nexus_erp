@@ -10,17 +10,25 @@ import { ActionButton } from "@/components/ui/action-button"
 
 export function InvoiceActions({ invoice }: { invoice: any }) {
   const [loading, setLoading] = useState(false)
+  const [cancellationPending, setCancellationPending] = useState(false)
   const router = useRouter()
 
   const handleAction = async () => {
     setLoading(true)
-    const res = await cancelInvoice(invoice.name)
-    
-    setLoading(false)
-    if (res.success) {
-      router.refresh()
-    } else {
-      alert("Error: " + res.error)
+    setCancellationPending(true)
+    try {
+      const res = await cancelInvoice(invoice.name)
+      if (res.success) {
+        router.refresh()
+      } else {
+        setCancellationPending(false)
+        alert("Error: " + res.error)
+      }
+    } catch {
+      setCancellationPending(false)
+      alert("Could not cancel the invoice — check your connection and try again.")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -60,8 +68,8 @@ export function InvoiceActions({ invoice }: { invoice: any }) {
           />
         )}
 
-        {/* Cancel Button (Only for Submitted) */}
-        {invoice.docstatus === 1 && (
+        {/* Cancel Button (Only for Submitted, optimistic state while cancellation is in flight) */}
+        {invoice.docstatus === 1 && !cancellationPending && (
             <Button 
                 onClick={handleAction}
                 disabled={loading}
@@ -70,6 +78,12 @@ export function InvoiceActions({ invoice }: { invoice: any }) {
             >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                 Cancel
+            </Button>
+        )}
+        {invoice.docstatus === 1 && cancellationPending && (
+            <Button disabled variant="secondary" className="gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Cancelling invoice…
             </Button>
         )}
 

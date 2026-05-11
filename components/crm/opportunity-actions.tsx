@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -49,22 +49,36 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
   const [isStageDialogOpen, setIsStageDialogOpen] = useState(false)
   const [isLostDialogOpen, setIsLostDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [view, setView] = useState(opportunity)
   const [selectedStage, setSelectedStage] = useState(opportunity.sales_stage)
   const [lostReason, setLostReason] = useState('')
   const followUpDate = new Date().toISOString().slice(0, 10)
   const router = useRouter()
 
+  useEffect(() => {
+    setView(opportunity)
+    setSelectedStage(opportunity.sales_stage)
+  }, [opportunity])
+
   const handleUpdateStage = async () => {
-    setIsLoading(true)
+    const stage = SALES_STAGES.find(s => s.value === selectedStage)
+    if (!stage) return
+
+    const snapshotBefore = view
     try {
-      const stage = SALES_STAGES.find(s => s.value === selectedStage)
-      if (!stage) return
-      
-      await updateOpportunitySalesStage(opportunity.name, stage.value, stage.probability)
+      setView(v => ({
+        ...v,
+        sales_stage: stage.value,
+      }))
       setIsStageDialogOpen(false)
+      setIsLoading(true)
+
+      await updateOpportunitySalesStage(opportunity.name, stage.value, stage.probability)
       router.refresh()
     } catch (error) {
       console.error("Stage update failed:", error)
+      setView(snapshotBefore)
+      setSelectedStage(snapshotBefore.sales_stage)
       alert("Failed to update stage. Please try again.")
     } finally {
       setIsLoading(false)
@@ -72,12 +86,18 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
   }
 
   const handleMarkAsWon = async () => {
+    const previous = view
+    setView(v => ({
+      ...v,
+      status: 'Converted',
+    }))
     setIsLoading(true)
     try {
       await markOpportunityAsWon(opportunity.name)
       router.refresh()
     } catch (error) {
       console.error("Mark as won failed:", error)
+      setView(previous)
       alert("Failed to mark as won. Please try again.")
     } finally {
       setIsLoading(false)
@@ -85,6 +105,11 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
   }
 
   const handleMarkAsLost = async () => {
+    const previous = view
+    setView(v => ({
+      ...v,
+      status: 'Lost',
+    }))
     setIsLoading(true)
     try {
       await markOpportunityAsLost(opportunity.name, lostReason)
@@ -92,6 +117,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
       router.refresh()
     } catch (error) {
       console.error("Mark as lost failed:", error)
+      setView(previous)
       alert("Failed to mark as lost. Please try again.")
     } finally {
       setIsLoading(false)
@@ -99,21 +125,27 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
   }
 
   const handleReopenOpportunity = async () => {
+    const previous = view
+    setView(v => ({
+      ...v,
+      status: 'Open',
+    }))
     setIsLoading(true)
     try {
       await reopenOpportunity(opportunity.name)
       router.refresh()
     } catch (error) {
       console.error("Reopen failed:", error)
+      setView(previous)
       alert("Failed to reopen opportunity. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const isOpen = opportunity.status === 'Open'
-  const isWon = opportunity.status === 'Converted'
-  const isLost = opportunity.status === 'Lost'
+  const isOpen = view.status === 'Open'
+  const isWon = view.status === 'Converted'
+  const isLost = view.status === 'Lost'
 
   return (
     <div className="space-y-3">
@@ -165,7 +197,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
       )}
 
       {/* Create Quotation */}
-      {isOpen && !isWon && !isLost && opportunity.sales_stage === 'Proposal/Price Quote' && (
+      {isOpen && !isWon && !isLost && view.sales_stage === 'Proposal/Price Quote' && (
         <ActionButton
           module="quotations"
           action="create"
@@ -183,7 +215,7 @@ export function OpportunityActions({ opportunity }: OpportunityActionsProps) {
       )}
 
       {/* Mark as Won */}
-      {isOpen && !isWon && !isLost && opportunity.sales_stage === 'Negotiation/Review' && (
+      {isOpen && !isWon && !isLost && view.sales_stage === 'Negotiation/Review' && (
         <Button 
           className="w-full gap-2 bg-green-600 hover:bg-green-700" 
           onClick={handleMarkAsWon}

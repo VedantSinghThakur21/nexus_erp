@@ -22,7 +22,7 @@ async function getAllTenants() {
 function siteFolderExists(siteUrl: string) {
   if (!siteUrl) return false;
   // Extract subdomain or site name from URL
-  let siteName = siteUrl.replace(/^https?:\/\//, '').replace(/[:/].*$/, '');
+  const siteName = siteUrl.replace(/^https?:\/\//, '').replace(/[:/].*$/, '');
   try {
     execSync(`ls ${path.join(SITES_DIR, siteName)}`);
     return true;
