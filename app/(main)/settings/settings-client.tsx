@@ -46,7 +46,7 @@ export function SettingsClient(props: {
   const [fiscalYearMessage, setFiscalYearMessage] = useState<string | null>(null)
   const [isDark, setIsDark] = useState(false)
   const [subscription, setSubscription] = useState(props.initial.subscription)
-  const [agentic] = useState(props.initial.agentic ?? null)
+  const [agentic, setAgentic] = useState(props.initial.agentic ?? null)
   const [subscriptionBusy, setSubscriptionBusy] = useState(false)
 
   useEffect(() => {
@@ -82,6 +82,26 @@ export function SettingsClient(props: {
     setIsDark(!isDark)
   }
 
+  const refreshEntitlement = async () => {
+    try {
+      const res = await fetch('/api/agentic/entitlement', { cache: 'no-store' })
+      const data = await res.json().catch(() => ({})) as {
+        allowed?: boolean
+        reason?: string
+        plan?: string
+      }
+      if (res.ok && typeof data.allowed === 'boolean') {
+        setAgentic({
+          allowed: data.allowed,
+          reason: typeof data.reason === 'string' ? data.reason : undefined,
+          plan: typeof data.plan === 'string' ? data.plan : subscription.plan,
+        })
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   const refreshSubscription = async () => {
     if (!subscription.tenantId) return
     setSubscriptionBusy(true)
@@ -93,6 +113,7 @@ export function SettingsClient(props: {
       const data = await res.json().catch(() => ({}))
       if (res.ok && data?.plan && data?.status) {
         setSubscription((prev) => ({ ...prev, plan: data.plan, status: data.status }))
+        await refreshEntitlement()
       }
     } finally {
       setSubscriptionBusy(false)
@@ -167,7 +188,18 @@ export function SettingsClient(props: {
                     analytics chat (bottom-right) is separate from agent runs.
                   </p>
                   {agentic && !agentic.allowed && agentic.reason ? (
-                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-2">{agentic.reason}</p>
+                    <div className="mt-2 space-y-1">
+                      <p className="text-sm text-amber-700 dark:text-amber-400">{agentic.reason}</p>
+                      {(subscription.plan === 'pro' || subscription.plan === 'enterprise') &&
+                      agentic.reason?.includes('not enabled') ? (
+                        <p className="text-sm text-muted-foreground">
+                          Your plan is already Pro or Enterprise; the app also needs the{' '}
+                          <strong>agentic_ai_enabled</strong> flag on your <strong>Organization</strong> mirror in the
+                          master site. Click <strong>Refresh</strong> in the Subscription section above (runs a sync), or
+                          set that checkbox in Frappe Desk.
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2 shrink-0">
@@ -186,13 +218,22 @@ export function SettingsClient(props: {
                         Open AI Agent
                       </Link>
                     </>
-                  ) : (
+                  ) : subscription.plan === 'free' ? (
                     <Link
                       href="/settings/billing"
                       className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg shadow-sm hover:opacity-90 transition-opacity"
                     >
-                      View plans (Pro+)
+                      View billing plans
                     </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void refreshSubscription()}
+                      disabled={subscriptionBusy || !subscription.tenantId}
+                      className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg shadow-sm hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {subscriptionBusy ? 'Syncing…' : 'Sync subscription & AI flags'}
+                    </button>
                   )}
                 </div>
               </div>
