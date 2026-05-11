@@ -93,8 +93,24 @@ async function fetchTenantPlanRow(tenantId: string): Promise<TenantPlanRow | nul
 }
 
 function buildFlags(tenantId: string, row: TenantPlanRow | null): Partial<Record<AgenticFeatureFlag, boolean>> {
+  const plan = normalizePlan(row?.subscription_plan || row?.plan_type)
+  const planUnlocksAgentic = plan === 'pro' || plan === 'enterprise'
+  const explicitAi = row?.agentic_ai_enabled
+  const raw = explicitAi as unknown
+  const explicitlyOff =
+    explicitAi === 0 ||
+    explicitAi === false ||
+    raw === '0' ||
+    raw === 'No'
+
+  let agenticAi = boolFlag(row?.agentic_ai_enabled)
+  if (planUnlocksAgentic) {
+    // Paid plan: default ON when the field is missing from API reads; only an explicit off disables.
+    agenticAi = !explicitlyOff
+  }
+
   const flags: Partial<Record<AgenticFeatureFlag, boolean>> = {
-    agentic_ai_enabled: boolFlag(row?.agentic_ai_enabled),
+    agentic_ai_enabled: agenticAi,
     agentic_finance_enabled: boolFlag(row?.agentic_finance_enabled),
     agentic_destructive_tools_enabled: boolFlag(row?.agentic_destructive_tools_enabled),
   }

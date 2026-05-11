@@ -83,9 +83,14 @@ export function SettingsClient(props: {
   }
 
   const refreshEntitlement = async () => {
+    const ac = new AbortController()
+    const timer = window.setTimeout(() => ac.abort(), 12_000)
     try {
-      const res = await fetch('/api/agentic/entitlement', { cache: 'no-store' })
-      const data = await res.json().catch(() => ({})) as {
+      const res = await fetch('/api/agentic/entitlement', {
+        cache: 'no-store',
+        signal: ac.signal,
+      })
+      const data = (await res.json().catch(() => ({}))) as {
         allowed?: boolean
         reason?: string
         plan?: string
@@ -98,24 +103,36 @@ export function SettingsClient(props: {
         })
       }
     } catch {
-      /* ignore */
+      /* ignore — timeout or network */
+    } finally {
+      window.clearTimeout(timer)
     }
   }
 
   const refreshSubscription = async () => {
     if (!subscription.tenantId) return
     setSubscriptionBusy(true)
+    const ac = new AbortController()
+    const timer = window.setTimeout(() => ac.abort(), 45_000)
     try {
       const res = await fetch('/api/subscription/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: ac.signal,
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data?.plan && data?.status) {
         setSubscription((prev) => ({ ...prev, plan: data.plan, status: data.status }))
-        await refreshEntitlement()
+        // Do not await — a hung entitlement call previously blocked `finally` and left the UI stuck on "Refreshing…"
+        void refreshEntitlement()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('nexus-subscription-synced'))
+        }
       }
+    } catch {
+      /* timeout or network */
     } finally {
+      window.clearTimeout(timer)
       setSubscriptionBusy(false)
     }
   }

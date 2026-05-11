@@ -76,6 +76,9 @@ export function BillingClient(props: { current: CurrentSubscription }) {
           status: sync.status,
         }))
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('nexus-subscription-synced'))
+      }
       router.refresh()
     } catch (e) {
       console.error(e)

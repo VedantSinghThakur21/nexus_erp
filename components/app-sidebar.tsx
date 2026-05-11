@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ComponentType } from 'react'
 import {
   Bot,
@@ -157,24 +157,32 @@ function SidebarNav({
     return () => clearTimeout(t)
   }, [loading, roles, router, agenticAllowed])
 
-  useEffect(() => {
-    let active = true
-
-    async function loadAgenticEntitlement() {
-      try {
-        const response = await fetch('/api/agentic/entitlement', { cache: 'no-store' })
-        const data = await response.json().catch(() => ({})) as { allowed?: boolean }
-        if (active) setAgenticAllowed(response.ok && !!data.allowed)
-      } catch {
-        if (active) setAgenticAllowed(false)
-      }
-    }
-
-    loadAgenticEntitlement()
-    return () => {
-      active = false
+  const loadAgenticEntitlement = useCallback(async () => {
+    const ac = new AbortController()
+    const timer = window.setTimeout(() => ac.abort(), 12_000)
+    try {
+      const response = await fetch('/api/agentic/entitlement', {
+        cache: 'no-store',
+        signal: ac.signal,
+      })
+      const data = (await response.json().catch(() => ({}))) as { allowed?: boolean }
+      setAgenticAllowed(response.ok && !!data.allowed)
+    } catch {
+      setAgenticAllowed(false)
+    } finally {
+      window.clearTimeout(timer)
     }
   }, [])
+
+  useEffect(() => {
+    void loadAgenticEntitlement()
+  }, [loadAgenticEntitlement])
+
+  useEffect(() => {
+    const onSynced = () => void loadAgenticEntitlement()
+    window.addEventListener('nexus-subscription-synced', onSynced)
+    return () => window.removeEventListener('nexus-subscription-synced', onSynced)
+  }, [loadAgenticEntitlement])
 
   useEffect(() => {
     let active = true
