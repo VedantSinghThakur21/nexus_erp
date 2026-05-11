@@ -15,6 +15,7 @@
     "verify:prod:pre": "tsx scripts/verify-prod.ts --pre",
     "verify:prod:post": "tsx scripts/verify-prod.ts --post",
     "subscription:backfill": "tsx scripts/backfill-subscription-mirrors.ts",
+    "subscription:set-plan": "tsx scripts/set-tenant-plan.ts",
     "reset:tenants": "tsx scripts/reset-all-tenants.ts",
     "worker:agent": "tsx worker/index.ts",
     "agent:scan": "tsx -e \"import { enqueueAgentJob } from './lib/agent/queue'; const tenant = process.argv[2] || 'master'; const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'; const prod = process.env.NODE_ENV === 'production'; const site = tenant === 'master' ? (process.env.FRAPPE_SITE_NAME || 'erp.localhost') : (prod ? `${tenant}.${root}` : `${tenant}.localhost`); enqueueAgentJob({ tenant: { tenantId: tenant, siteName: site }, triggeredBy: 'manual-cli', jobType: 'stale_lead_scan', objective: 'CLI triggered safe scan' }).then((j) => { console.log('queued', j.id); process.exit(0); }).catch((e) => { console.error(e); process.exit(1); });\""
