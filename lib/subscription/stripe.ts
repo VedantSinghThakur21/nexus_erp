@@ -30,6 +30,23 @@ export function getStripePriceId(plan: SubscriptionTier): string | null {
   return null
 }
 
+/** Human-readable hint for operators when checkout env is missing. */
+export function missingStripePriceEnvMessage(plan: SubscriptionTier): string {
+  if (plan === 'pro') {
+    return (
+      `Stripe Price ID for "${plan}" is not set. Add STRIPE_PRO_PRICE_ID to the server environment ` +
+      `(Stripe Dashboard → Product catalog → your Pro subscription price → copy the Price ID, e.g. price_…).`
+    )
+  }
+  if (plan === 'enterprise') {
+    return (
+      `Stripe Price ID for "${plan}" is not set. Add STRIPE_ENTERPRISE_PRICE_ID to the server environment ` +
+      `(same as Pro: use the Enterprise recurring price’s API ID).`
+    )
+  }
+  return `Stripe Price ID is not configured for plan "${plan}".`
+}
+
 export function getPlanFromStripePriceId(priceId?: string): SubscriptionTier {
   if (priceId && priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) return 'enterprise'
   if (priceId && priceId === process.env.STRIPE_PRO_PRICE_ID) return 'pro'
@@ -75,7 +92,7 @@ export async function createStripeCheckoutSession(input: {
   cancelUrl: string
 }): Promise<StripeCheckoutSession> {
   const priceId = getStripePriceId(input.plan)
-  if (!priceId) throw new Error(`Stripe price ID is not configured for ${input.plan}`)
+  if (!priceId) throw new Error(missingStripePriceEnvMessage(input.plan))
 
   const params = new URLSearchParams()
   params.set('mode', 'subscription')
