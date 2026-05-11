@@ -34,14 +34,19 @@ export default async function SettingsPage() {
   }
 
   if (!isMaster && tenantId) {
-    const snapshot = await getCachedSubscriptionRead(tenantId)
-    if (snapshot.found) {
-      subscription = {
-        plan: normalizePlan(snapshot.tenant.plan_type),
-        status: snapshot.synced.status,
-        tenantId,
+    try {
+      const snapshot = await getCachedSubscriptionRead(tenantId)
+      if (snapshot.found) {
+        subscription = {
+          plan: normalizePlan(snapshot.tenant.plan_type),
+          status: snapshot.synced.status,
+          tenantId,
+        }
+      } else {
+        subscription = { plan: 'free', status: 'trial', tenantId }
       }
-    } else {
+    } catch (e) {
+      console.error('[settings] Failed to read subscription snapshot:', e)
       subscription = { plan: 'free', status: 'trial', tenantId }
     }
   }

@@ -38,13 +38,16 @@ type AuthzResult = {
  */
 export async function requireAuth(): Promise<AuthResult> {
   const cookieStore = await cookies()
-  const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+  const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value || 'unknown'
   const hasApiKey = cookieStore.get('tenant_api_key')?.value
   const hasSid = cookieStore.get('sid')?.value
   const hasSession = cookieStore.get('next-auth.session-token')?.value ||
     cookieStore.get('__Secure-next-auth.session-token')?.value
 
-  if (!userEmail || (!hasApiKey && !hasSid && !hasSession)) {
+  // Important: Do NOT require `user_email` cookie here.
+  // Some sessions authenticate via sid/token but do not have user_email populated yet.
+  // Downstream routes can derive the current user via `frappe.auth.get_logged_user`.
+  if (!hasApiKey && !hasSid && !hasSession) {
     return {
       authenticated: false,
       response: NextResponse.json(

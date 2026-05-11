@@ -22,17 +22,15 @@ export default async function BillingPage() {
     )
   }
 
-  const snapshot = await getCachedSubscriptionRead(tenantId)
-  if (!snapshot.found) {
-    return (
-      <BillingClient
-        current={{
-          tenant: { subdomain: tenantId },
-          plan: 'free',
-          status: 'trial',
-        }}
-      />
-    )
+  let snapshot: Awaited<ReturnType<typeof getCachedSubscriptionRead>> | null = null
+  try {
+    snapshot = await getCachedSubscriptionRead(tenantId)
+  } catch (e) {
+    console.error('[billing] Failed to read subscription snapshot:', e)
+  }
+
+  if (!snapshot || !snapshot.found) {
+    return <BillingClient current={{ tenant: { subdomain: tenantId }, plan: 'free', status: 'trial' }} />
   }
 
   return (
