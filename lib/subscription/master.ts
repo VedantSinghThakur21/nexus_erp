@@ -105,9 +105,33 @@ export async function masterFrappeCall<T>(
   return (data.message ?? data.data ?? data) as T
 }
 
+/** Columns that may be blocked on `get_list` but are readable via `frappe.client.get`. */
+const SAAS_TENANT_DOC_FIELDS: (keyof SaasTenantRow)[] = [
+  'subdomain',
+  'company_name',
+  'owner_email',
+  'plan_type',
+  'subscription_status',
+  'status',
+  'stripe_customer_id',
+  'stripe_subscription_id',
+]
+
+function mergeSaasTenantFromDoc(row: SaasTenantRow, doc: Record<string, unknown>): SaasTenantRow {
+  const merged: SaasTenantRow = { ...row }
+  for (const key of SAAS_TENANT_DOC_FIELDS) {
+    const v = doc[key as string]
+    if (typeof v === 'string') {
+      ;(merged as Record<string, string>)[key] = v
+    }
+  }
+  return merged
+}
+
 /**
- * Frappe may restrict which columns `get_list` returns on custom DocTypes (e.g. plan_type).
- * Load subscription fields from a single-doc fetch instead.
+ * Frappe may restrict which columns `get_list` returns on custom DocTypes (plan_type,
+ * stripe_customer_id, etc.). Resolve the row by `name` from a minimal list, then load
+ * the full document via `frappe.client.get`.
  */
 async function enrichSaasTenantFromDoc(row: SaasTenantRow): Promise<SaasTenantRow> {
   try {
@@ -116,35 +140,41 @@ async function enrichSaasTenantFromDoc(row: SaasTenantRow): Promise<SaasTenantRo
       { doctype: 'SaaS Tenant', name: row.name },
       'GET'
     )
-    return {
-      ...row,
-      ...(typeof doc.plan_type === 'string' ? { plan_type: doc.plan_type } : {}),
-      ...(typeof doc.subscription_status === 'string' ? { subscription_status: doc.subscription_status } : {}),
-      ...(typeof doc.status === 'string' ? { status: doc.status } : {}),
-    }
+    return mergeSaasTenantFromDoc(row, doc)
   } catch {
     return row
   }
 }
 
 export async function getSaasTenantBySubdomain(subdomain: string): Promise<SaasTenantRow | null> {
-  const rows = await masterFrappeCall<SaasTenantRow[]>('frappe.client.get_list', {
+  const rows = await masterFrappeCall<Pick<SaasTenantRow, 'name'>[]>('frappe.client.get_list', {
     doctype: 'SaaS Tenant',
     filters: { subdomain },
-    fields: [
-      'name',
-      'subdomain',
-      'company_name',
-      'owner_email',
-      'stripe_customer_id',
-      'stripe_subscription_id',
-    ],
+    fields: ['name'],
     limit_page_length: 1,
   })
 
   const row = rows[0]
-  if (!row) return null
-  return enrichSaasTenantFromDoc(row)
+  if (!row?.name) return null
+
+  let tenant = await enrichSaasTenantFromDoc({ name: row.name, subdomain })
+
+  if (!tenant.stripe_customer_id?.trim() || !tenant.stripe_subscription_id?.trim()) {
+    try {
+      const org = await getOrganizationBySlug(subdomain)
+      if (org) {
+        tenant = {
+          ...tenant,
+          stripe_customer_id: tenant.stripe_customer_id || org.stripe_customer_id,
+          stripe_subscription_id: tenant.stripe_subscription_id || org.stripe_subscription_id,
+        }
+      }
+    } catch {
+      // ignore — portal/sync callers may still use SaaS doc only
+    }
+  }
+
+  return tenant
 }
 
 export async function getOrganizationBySlug(slug: string): Promise<OrganizationRow | null> {

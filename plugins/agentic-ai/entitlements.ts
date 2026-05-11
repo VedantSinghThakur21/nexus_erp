@@ -1,5 +1,6 @@
 import { cookies, headers } from 'next/headers'
 import { dedupeInFlight } from '@/lib/performance/in-flight-dedupe'
+import { getSaasTenantBySubdomain } from '@/lib/subscription/master'
 import { AGENTIC_ALLOWED_PLANS, AGENTIC_BASE_FLAG, getModelPolicy } from './config'
 import { normalizePlan } from '@/types/subscription'
 import type { AgenticEntitlement, AgenticFeatureFlag, AgenticPlan, AgenticTenantContext } from './types'
@@ -8,6 +9,7 @@ type TenantPlanRow = {
   name?: string
   plan_type?: string
   subscription_plan?: string
+  subscription_status?: string
   status?: string
   agentic_ai_enabled?: 0 | 1 | boolean
   agentic_finance_enabled?: 0 | 1 | boolean
@@ -68,24 +70,6 @@ async function fetchTenantPlanRow(tenantId: string): Promise<TenantPlanRow | nul
       'X-Frappe-Site-Name': process.env.FRAPPE_SITE_NAME || 'erp.localhost',
     }
 
-    async function query(fields: string[]) {
-      const response = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
-        method: 'POST',
-        headers: headersBase,
-        body: JSON.stringify({
-          doctype: 'SaaS Tenant',
-          filters: { subdomain: tenantId },
-          fields,
-          limit_page_length: 1,
-        }),
-        cache: 'no-store',
-      })
-
-      if (!response.ok) return null
-      const data = await response.json().catch(() => ({})) as { message?: TenantPlanRow[] }
-      return data.message?.[0] || null
-    }
-
     async function fetchOrgMirror(): Promise<TenantPlanRow | null> {
       try {
         const response = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
@@ -108,14 +92,16 @@ async function fetchTenantPlanRow(tenantId: string): Promise<TenantPlanRow | nul
       }
     }
 
-    const [tenantWide, org] = await Promise.all([
-      (async (): Promise<TenantPlanRow | null> => {
-        const primary = await query(['name', 'plan_type', 'status', 'subscription_status', 'stripe_customer_id', 'stripe_subscription_id'])
-        if (primary) return primary
-        return query(['name', 'plan_type', 'status'])
-      })(),
-      fetchOrgMirror(),
-    ])
+    const [saas, org] = await Promise.all([getSaasTenantBySubdomain(tenantId), fetchOrgMirror()])
+
+    const tenantWide: TenantPlanRow | null = saas
+      ? {
+          name: saas.name,
+          plan_type: saas.plan_type,
+          status: saas.status,
+          subscription_status: saas.subscription_status,
+        }
+      : null
 
     const tenant = tenantWide
 
