@@ -312,13 +312,18 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
 
   async function handleLogout() {
     setLoggingOut(true)
-    // Navigate immediately — don't wait for server action or NextAuth to finish.
-    // Cookie deletion is server-side so the next page load will be unauthenticated.
-    router.push('/login')
-    // Run cleanup in parallel, not in sequence
-    try { sessionStorage.removeItem('nexus_user_roles_cache') } catch {}
-    void logoutUser()
-    void signOut({ redirect: false })
+    try {
+      try {
+        sessionStorage.removeItem('nexus_user_roles_cache')
+      } catch {
+        /* ignore */
+      }
+      await logoutUser()
+      await signOut({ redirect: false })
+      router.push('/login')
+    } catch {
+      router.push('/login')
+    }
   }
 
   return (

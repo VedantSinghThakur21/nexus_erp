@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { Metadata } from "next"
 import { LoginForm } from "@/components/auth/login-form"
 import { AuroraBackground } from "@/components/aurora-background"
@@ -7,7 +6,17 @@ export const metadata: Metadata = {
   title: "Sign in - Nexus ERP",
 }
 
+/** Public marketing / app origin — avoid `href="/"` on tenant subdomains (that URL always redirects into the app). */
+function marketingHomeHref(): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
+  if (configured) return configured
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "avariq.in"
+  return `https://${root}`
+}
+
 export default function LoginPage() {
+  const homeHref = marketingHomeHref()
+
   return (
     <div className="landing-page relative min-h-screen overflow-hidden text-neutral-200">
       <AuroraBackground className="fixed inset-0 -z-10 !h-screen !w-screen bg-[#050505] text-neutral-200" />
@@ -16,7 +25,10 @@ export default function LoginPage() {
       <div className="relative z-10 min-h-screen flex flex-col">
         <header className="w-full border-b border-white/5 bg-[#050505]/70 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3 group">
+            <a
+              href={homeHref}
+              className="flex items-center gap-3 group"
+            >
               <div className="w-8 h-8 bg-white/5 border border-white/10 flex items-center justify-center relative overflow-hidden group-hover:border-orange-500/50 transition-colors duration-500">
                 <div className="absolute inset-0 bg-orange-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
                 <span className="text-white font-bold">N</span>
@@ -24,7 +36,7 @@ export default function LoginPage() {
               <span className="font-sans font-bold tracking-tight text-lg text-white">
                 nexus<span className="text-white/20">erp</span>
               </span>
-            </Link>
+            </a>
 
             <div className="text-xs font-mono text-neutral-400 uppercase tracking-widest">
               System Login
