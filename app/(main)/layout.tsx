@@ -29,7 +29,7 @@ export default async function DashboardLayout({
     cookieStore.has('__Secure-next-auth.session-token')
 
   return (
-    <div className="flex min-h-dvh overflow-hidden bg-background text-foreground">
+    <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       <RouteTransitionIndicator />
       <AppSidebar />
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain">

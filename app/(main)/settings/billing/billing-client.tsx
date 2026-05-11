@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -27,10 +28,12 @@ async function postJson(url: string, body?: unknown): Promise<any> {
 }
 
 export function BillingClient(props: { current: CurrentSubscription }) {
-  const [busy, setBusy] = useState<null | 'portal' | 'upgrade'>(null)
+  const router = useRouter()
+  const [busy, setBusy] = useState<null | 'portal' | 'upgrade' | 'refresh'>(null)
+  const [current, setCurrent] = useState<CurrentSubscription>(props.current)
 
-  const currentPlan = SUBSCRIPTION_PLANS[props.current.plan]
-  const isTenantWorkspace = !!props.current.tenant?.subdomain
+  const currentPlan = SUBSCRIPTION_PLANS[current.plan]
+  const isTenantWorkspace = !!current.tenant?.subdomain
 
   const canUpgrade = useMemo(() => {
     // For master workspace, billing is not relevant.
@@ -48,13 +51,34 @@ export function BillingClient(props: { current: CurrentSubscription }) {
   }
 
   async function handleSelectPlan(plan: SubscriptionTier) {
-    if (plan === props.current.plan) return
+    if (plan === current.plan) return
 
     // We use Stripe Billing Portal for upgrades/downgrades (tenant must be linked to Stripe).
     setBusy('upgrade')
     try {
       const { url } = await postJson('/api/billing/portal')
       window.location.assign(url)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function refreshSubscription() {
+    if (!isTenantWorkspace) return
+    setBusy('refresh')
+    try {
+      const sync = await postJson('/api/subscription/sync')
+      // Best-effort: update UI immediately from sync response.
+      if (sync?.plan && sync?.status) {
+        setCurrent((prev) => ({
+          ...prev,
+          plan: sync.plan,
+          status: sync.status,
+        }))
+      }
+      router.refresh()
+    } catch (e) {
+      console.error(e)
     } finally {
       setBusy(null)
     }
@@ -97,6 +121,9 @@ export function BillingClient(props: { current: CurrentSubscription }) {
                   <Button variant="outline" onClick={() => void openPortal()} disabled={busy !== null}>
                     {busy === 'portal' ? 'Opening…' : 'Update payment method'}
                   </Button>
+                  <Button variant="outline" onClick={() => void refreshSubscription()} disabled={busy !== null}>
+                    {busy === 'refresh' ? 'Refreshing…' : 'Refresh subscription'}
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -111,12 +138,12 @@ export function BillingClient(props: { current: CurrentSubscription }) {
           <CardContent className="text-sm text-muted-foreground space-y-1">
             <div>
               <span className="font-medium text-foreground">Tenant:</span>{' '}
-              {props.current.tenant?.subdomain || 'master'}
+              {current.tenant?.subdomain || 'master'}
             </div>
-            {props.current.stripe_customer_id && (
+            {current.stripe_customer_id && (
               <div>
                 <span className="font-medium text-foreground">Stripe customer:</span>{' '}
-                {props.current.stripe_customer_id}
+                {current.stripe_customer_id}
               </div>
             )}
           </CardContent>
@@ -125,7 +152,7 @@ export function BillingClient(props: { current: CurrentSubscription }) {
 
       <div>
         <h2 className="text-2xl font-bold mb-6">Available Plans</h2>
-        <PricingTable currentPlan={props.current.plan} onSelectPlan={handleSelectPlan} />
+        <PricingTable currentPlan={current.plan} onSelectPlan={handleSelectPlan} />
         {canUpgrade && (
           <p className="text-xs text-muted-foreground mt-3">
             Plan changes are completed in Stripe Billing Portal.

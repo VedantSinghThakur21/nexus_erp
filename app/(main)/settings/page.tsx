@@ -7,6 +7,9 @@ import {
   getTeam,
 } from '@/app/actions/settings'
 import { SettingsClient } from './settings-client'
+import { headers } from 'next/headers'
+import { getCachedSubscriptionRead } from '@/lib/subscription/cached-subscription-read'
+import { normalizePlan, type SubscriptionTier } from '@/types/subscription'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +23,29 @@ export default async function SettingsPage() {
     getCurrentFiscalYearInfo().catch(() => null),
   ])
 
+  const headersList = await headers()
+  const tenantId = headersList.get('x-tenant-id') || headersList.get('X-Subdomain') || null
+  const isMaster = !tenantId || tenantId === 'master'
+
+  let subscription: { plan: SubscriptionTier; status: string; tenantId: string | null } = {
+    plan: 'enterprise',
+    status: 'active',
+    tenantId: isMaster ? null : tenantId,
+  }
+
+  if (!isMaster && tenantId) {
+    const snapshot = await getCachedSubscriptionRead(tenantId)
+    if (snapshot.found) {
+      subscription = {
+        plan: normalizePlan(snapshot.tenant.plan_type),
+        status: snapshot.synced.status,
+        tenantId,
+      }
+    } else {
+      subscription = { plan: 'free', status: 'trial', tenantId }
+    }
+  }
+
   return (
     <SettingsClient
       initial={{
@@ -29,6 +55,7 @@ export default async function SettingsPage() {
         company,
         bankAccounts,
         fiscalYear,
+        subscription,
       }}
     />
   )

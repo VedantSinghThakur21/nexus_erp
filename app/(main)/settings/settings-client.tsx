@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import {
   ensureCurrentFiscalYear,
   getCurrentFiscalYearInfo,
@@ -11,6 +12,7 @@ import {
   type getTaxTemplates,
   type getTeam,
 } from '@/app/actions/settings'
+import { SUBSCRIPTION_PLANS, type SubscriptionTier } from '@/types/subscription'
 import { CreateBankAccountDialog } from '@/components/settings/create-bank-account-dialog'
 import { CreateTaxTemplateDialog } from '@/components/settings/create-tax-template-dialog'
 import { CrmSetupSection } from '@/components/settings/crm-setup-section'
@@ -30,6 +32,7 @@ export function SettingsClient(props: {
     company: Company | null
     bankAccounts: BankAccount[]
     fiscalYear: FiscalYearInfo | null
+    subscription: { plan: SubscriptionTier; status: string; tenantId: string | null }
   }
 }) {
   const [profile] = useState<User | null>(props.initial.profile)
@@ -41,6 +44,8 @@ export function SettingsClient(props: {
   const [fiscalYearLoading, setFiscalYearLoading] = useState(false)
   const [fiscalYearMessage, setFiscalYearMessage] = useState<string | null>(null)
   const [isDark, setIsDark] = useState(false)
+  const [subscription, setSubscription] = useState(props.initial.subscription)
+  const [subscriptionBusy, setSubscriptionBusy] = useState(false)
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -75,6 +80,23 @@ export function SettingsClient(props: {
     setIsDark(!isDark)
   }
 
+  const refreshSubscription = async () => {
+    if (!subscription.tenantId) return
+    setSubscriptionBusy(true)
+    try {
+      const res = await fetch('/api/subscription/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data?.plan && data?.status) {
+        setSubscription((prev) => ({ ...prev, plan: data.plan, status: data.status }))
+      }
+    } finally {
+      setSubscriptionBusy(false)
+    }
+  }
+
   const getInitials = (name?: string) => {
     if (!name) return '?'
     return name
@@ -98,6 +120,37 @@ export function SettingsClient(props: {
         </header>
 
         <div className="pt-4 w-full space-y-6">
+          {/* Subscription */}
+          <section className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className="p-6 flex items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-slate-900 dark:text-white">
+                  <span className="material-symbols-outlined text-slate-400">workspace_premium</span>
+                  <h2 className="font-semibold text-base">Subscription</h2>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Current plan: <span className="font-semibold text-foreground">{SUBSCRIPTION_PLANS[subscription.plan].name}</span>{' '}
+                  <span className="text-muted-foreground">({subscription.status})</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => void refreshSubscription()}
+                  disabled={subscriptionBusy || !subscription.tenantId}
+                  className="px-4 py-2 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {subscriptionBusy ? 'Refreshing…' : 'Refresh'}
+                </button>
+                <Link
+                  href="/settings/billing"
+                  className="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg shadow-sm hover:bg-blue-600 transition-colors"
+                >
+                  Manage / Upgrade
+                </Link>
+              </div>
+            </div>
+          </section>
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-border bg-card p-6 shadow-none">
               <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">Team Size</span>
