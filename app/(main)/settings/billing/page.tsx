@@ -38,7 +38,7 @@ export default async function BillingPage() {
   return (
     <BillingClient
       current={{
-        tenant: { name: snapshot.tenant.company_name || snapshot.tenant.organization_name, subdomain: tenantId },
+        tenant: { name: snapshot.tenant.company_name, subdomain: tenantId },
         plan: normalizePlan(snapshot.tenant.plan_type),
         status: snapshot.synced.status,
         stripe_customer_id: snapshot.tenant.stripe_customer_id,

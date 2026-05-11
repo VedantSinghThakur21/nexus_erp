@@ -62,7 +62,7 @@ export async function GET() {
       stripe_customer_id: tenant.stripe_customer_id,
       stripe_subscription_id: tenant.stripe_subscription_id,
       tenant: {
-        name: tenant.company_name || tenant.organization_name,
+        name: tenant.company_name,
         subdomain: tenantId,
       },
     })

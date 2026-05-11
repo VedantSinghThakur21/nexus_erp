@@ -19,7 +19,6 @@ export type SaasTenantRow = {
   name: string
   subdomain?: string
   company_name?: string
-  organization_name?: string
   owner_email?: string
   plan_type?: string
   subscription_status?: string
@@ -114,7 +113,6 @@ export async function getSaasTenantBySubdomain(subdomain: string): Promise<SaasT
       'name',
       'subdomain',
       'company_name',
-      'organization_name',
       'owner_email',
       'plan_type',
       'subscription_status',
@@ -261,7 +259,7 @@ export async function syncSubscriptionFromSaasTenant(input: {
   const existingOrg = await getOrganizationBySlug(input.subdomain)
   const organization = await upsertOrganizationMirror({
     subdomain: input.subdomain,
-    organizationName: tenant.organization_name || tenant.company_name,
+    organizationName: tenant.company_name,
     ownerEmail: tenant.owner_email,
     plan,
     status,
@@ -319,7 +317,7 @@ export async function updateSaasTenantPlan(input: {
 
   const organization = await upsertOrganizationMirror({
     subdomain: input.subdomain,
-    organizationName: tenant.organization_name || tenant.company_name,
+    organizationName: tenant.company_name,
     ownerEmail: tenant.owner_email,
     plan: input.plan,
     status: input.status,
