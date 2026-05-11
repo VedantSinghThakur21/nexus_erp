@@ -1,20 +1,10 @@
-import { syncSubscriptionFromSaasTenant, masterFrappeCall, type SaasTenantRow } from '@/lib/subscription/master'
+import { syncSubscriptionFromSaasTenant, masterFrappeCall } from '@/lib/subscription/master'
 
 async function main() {
-  const tenants = await masterFrappeCall<SaasTenantRow[]>('frappe.client.get_list', {
+  // Keep list fields minimal — master site may restrict columns on SaaS Tenant (e.g. plan_type).
+  const tenants = await masterFrappeCall<{ name: string; subdomain?: string }[]>('frappe.client.get_list', {
     doctype: 'SaaS Tenant',
-    fields: [
-      'name',
-      'subdomain',
-      'company_name',
-      'organization_name',
-      'owner_email',
-      'plan_type',
-      'subscription_status',
-      'status',
-      'stripe_customer_id',
-      'stripe_subscription_id',
-    ],
+    fields: ['name', 'subdomain'],
     limit_page_length: 500,
   })
 

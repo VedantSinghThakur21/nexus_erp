@@ -105,6 +105,28 @@ export async function masterFrappeCall<T>(
   return (data.message ?? data.data ?? data) as T
 }
 
+/**
+ * Frappe may restrict which columns `get_list` returns on custom DocTypes (e.g. plan_type).
+ * Load subscription fields from a single-doc fetch instead.
+ */
+async function enrichSaasTenantFromDoc(row: SaasTenantRow): Promise<SaasTenantRow> {
+  try {
+    const doc = await masterFrappeCall<Record<string, unknown>>(
+      'frappe.client.get',
+      { doctype: 'SaaS Tenant', name: row.name },
+      'GET'
+    )
+    return {
+      ...row,
+      ...(typeof doc.plan_type === 'string' ? { plan_type: doc.plan_type } : {}),
+      ...(typeof doc.subscription_status === 'string' ? { subscription_status: doc.subscription_status } : {}),
+      ...(typeof doc.status === 'string' ? { status: doc.status } : {}),
+    }
+  } catch {
+    return row
+  }
+}
+
 export async function getSaasTenantBySubdomain(subdomain: string): Promise<SaasTenantRow | null> {
   const rows = await masterFrappeCall<SaasTenantRow[]>('frappe.client.get_list', {
     doctype: 'SaaS Tenant',
@@ -114,16 +136,15 @@ export async function getSaasTenantBySubdomain(subdomain: string): Promise<SaasT
       'subdomain',
       'company_name',
       'owner_email',
-      'plan_type',
-      'subscription_status',
-      'status',
       'stripe_customer_id',
       'stripe_subscription_id',
     ],
     limit_page_length: 1,
   })
 
-  return rows[0] || null
+  const row = rows[0]
+  if (!row) return null
+  return enrichSaasTenantFromDoc(row)
 }
 
 export async function getOrganizationBySlug(slug: string): Promise<OrganizationRow | null> {
@@ -254,9 +275,13 @@ export async function syncSubscriptionFromSaasTenant(input: {
   const tenant = await getSaasTenantBySubdomain(input.subdomain)
   if (!tenant) throw new Error(`SaaS Tenant not found for subdomain ${input.subdomain}`)
 
-  const plan = normalizePlan(tenant.plan_type)
-  const status = input.statusOverride || normalizeSubscriptionStatus(tenant.subscription_status || tenant.status || 'active')
   const existingOrg = await getOrganizationBySlug(input.subdomain)
+  const plan = normalizePlan(tenant.plan_type ?? existingOrg?.subscription_plan)
+  const status =
+    input.statusOverride ||
+    normalizeSubscriptionStatus(
+      tenant.subscription_status || tenant.status || existingOrg?.subscription_status || 'active'
+    )
   const organization = await upsertOrganizationMirror({
     subdomain: input.subdomain,
     organizationName: tenant.company_name,
