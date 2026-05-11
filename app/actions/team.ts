@@ -5,6 +5,7 @@ import { frappeRequest } from '@/app/lib/api'
 import { canInviteUser, incrementUsage } from './usage-limits'
 import { headers, cookies } from 'next/headers'
 import { sendInviteEmail } from '@/lib/email'
+import { mapWithConcurrency } from '@/lib/performance/map-with-concurrency'
 
 /**
  * NEW-2 Fix: Require a valid NextAuth session before any mutation.
@@ -234,11 +235,12 @@ export async function getTeamMembers(): Promise<any[]> {
     const { getUserRolesForUser } = await import('@/app/actions/user-roles')
     const { getPrimaryRole } = await import('@/lib/role-permissions')
 
-    const enrichedUsers = await Promise.all(users.map(async (u: any) => {
-      // Fetch the actual roles via standard API for accurate rendering,
-      // avoiding the misleading assumption based purely on role_profile_name.
+    // Cap concurrent role fetches — many users × provisioning was very slow and could time out.
+    const ROLE_LOOKUP_CONCURRENCY = 6
+
+    const enrichedUsers = await mapWithConcurrency(users, ROLE_LOOKUP_CONCURRENCY, async (u: any) => {
       const actualRoles = await getUserRolesForUser(u.name)
-      
+
       let primaryRole = PROFILE_PRIMARY[u.role_profile_name] || null
       if (!primaryRole && actualRoles.length > 0) {
         primaryRole = getPrimaryRole(actualRoles)
@@ -254,8 +256,8 @@ export async function getTeamMembers(): Promise<any[]> {
         modules_count: accessibleModules.length,
         has_broken_roles: hasBrokenRoles,
       }
-    }))
-    
+    })
+
     return enrichedUsers
   } catch (error) {
     console.error('Failed to fetch team members:', error)

@@ -10,22 +10,40 @@ import { SettingsClient } from './settings-client'
 import { headers } from 'next/headers'
 import { getCachedSubscriptionRead } from '@/lib/subscription/cached-subscription-read'
 import type { SubscriptionTier } from '@/types/subscription'
+import { getAgenticEntitlement } from '@/plugins/agentic-ai/entitlements'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SettingsPage() {
-  const [profile, team, taxTemplates, company, bankAccounts, fiscalYear] = await Promise.all([
+  const headersList = await headers()
+  const tenantId = headersList.get('x-tenant-id') || headersList.get('X-Subdomain') || null
+  const isMaster = !tenantId || tenantId === 'master'
+
+  const tenantScoped = !isMaster && !!tenantId
+
+  const [
+    profile,
+    team,
+    taxTemplates,
+    company,
+    bankAccounts,
+    fiscalYear,
+    snapshot,
+    agenticEntitlement,
+  ] = await Promise.all([
     getProfile().catch(() => null),
     getTeam().catch(() => []),
     getTaxTemplates().catch(() => []),
     getCompany().catch(() => null),
     getBankAccounts().catch(() => []),
     getCurrentFiscalYearInfo().catch(() => null),
+    tenantScoped
+      ? getCachedSubscriptionRead(tenantId!).catch(() => null)
+      : Promise.resolve(null),
+    tenantScoped
+      ? getAgenticEntitlement().catch(() => null)
+      : Promise.resolve(null),
   ])
-
-  const headersList = await headers()
-  const tenantId = headersList.get('x-tenant-id') || headersList.get('X-Subdomain') || null
-  const isMaster = !tenantId || tenantId === 'master'
 
   let subscription: { plan: SubscriptionTier; status: string; tenantId: string | null } = {
     plan: 'enterprise',
@@ -33,23 +51,26 @@ export default async function SettingsPage() {
     tenantId: isMaster ? null : tenantId,
   }
 
-  if (!isMaster && tenantId) {
-    try {
-      const snapshot = await getCachedSubscriptionRead(tenantId)
-      if (snapshot.found) {
-        subscription = {
-          plan: snapshot.synced.plan,
-          status: snapshot.synced.status,
-          tenantId,
-        }
-      } else {
-        subscription = { plan: 'free', status: 'trial', tenantId }
+  if (tenantScoped && tenantId) {
+    if (snapshot && snapshot.found) {
+      subscription = {
+        plan: snapshot.synced.plan,
+        status: snapshot.synced.status,
+        tenantId,
       }
-    } catch (e) {
-      console.error('[settings] Failed to read subscription snapshot:', e)
+    } else {
       subscription = { plan: 'free', status: 'trial', tenantId }
     }
   }
+
+  const agentic =
+    tenantScoped && agenticEntitlement
+      ? {
+          allowed: agenticEntitlement.allowed,
+          reason: agenticEntitlement.reason,
+          plan: agenticEntitlement.plan,
+        }
+      : null
 
   return (
     <SettingsClient
@@ -61,6 +82,7 @@ export default async function SettingsPage() {
         bankAccounts,
         fiscalYear,
         subscription,
+        agentic,
       }}
     />
   )

@@ -39,8 +39,6 @@ export async function getProfile() {
       return null
     }
 
-    console.log('Getting profile for user:', userEmail)
-
     // Use frappe.client.get (whitelisted) to fetch single user document
     const user = await userRequest('frappe.client.get', 'GET', {
       doctype: 'User',
@@ -58,7 +56,6 @@ export async function getProfile() {
     const { getUserRolesForUser } = await import('@/app/actions/user-roles')
     user.roles = await getUserRolesForUser(userEmail)
 
-    console.log('User profile:', { name: user.name, email: user.email, roles: user.roles })
     return user
   } catch (e) {
     console.error('Get profile error:', e)

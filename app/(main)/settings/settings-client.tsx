@@ -33,6 +33,7 @@ export function SettingsClient(props: {
     bankAccounts: BankAccount[]
     fiscalYear: FiscalYearInfo | null
     subscription: { plan: SubscriptionTier; status: string; tenantId: string | null }
+    agentic?: { allowed: boolean; reason?: string; plan: string } | null
   }
 }) {
   const [profile] = useState<User | null>(props.initial.profile)
@@ -45,6 +46,7 @@ export function SettingsClient(props: {
   const [fiscalYearMessage, setFiscalYearMessage] = useState<string | null>(null)
   const [isDark, setIsDark] = useState(false)
   const [subscription, setSubscription] = useState(props.initial.subscription)
+  const [agentic] = useState(props.initial.agentic ?? null)
   const [subscriptionBusy, setSubscriptionBusy] = useState(false)
 
   useEffect(() => {
@@ -150,6 +152,52 @@ export function SettingsClient(props: {
               </div>
             </div>
           </section>
+
+          {subscription.tenantId ? (
+            <section className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+              <div className="p-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2 text-slate-900 dark:text-white">
+                    <span className="material-symbols-outlined text-slate-400">smart_toy</span>
+                    <h2 className="font-semibold text-base">AI &amp; automation</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                    When your workspace is entitled, <strong>Agent Inbox</strong> and <strong>AI Agent</strong> appear
+                    under <strong>Management</strong> in the left sidebar (same area as Team and Settings). The floating
+                    analytics chat (bottom-right) is separate from agent runs.
+                  </p>
+                  {agentic && !agentic.allowed && agentic.reason ? (
+                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-2">{agentic.reason}</p>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  {agentic?.allowed ? (
+                    <>
+                      <Link
+                        href="/agent"
+                        className="px-4 py-2 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        Open Agent Inbox
+                      </Link>
+                      <Link
+                        href="/agents"
+                        className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg shadow-sm hover:opacity-90 transition-opacity"
+                      >
+                        Open AI Agent
+                      </Link>
+                    </>
+                  ) : (
+                    <Link
+                      href="/settings/billing"
+                      className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg shadow-sm hover:opacity-90 transition-opacity"
+                    >
+                      View plans (Pro+)
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-border bg-card p-6 shadow-none">
