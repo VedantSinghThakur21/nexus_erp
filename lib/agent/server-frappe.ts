@@ -124,36 +124,57 @@ export async function serverFrappeCall<T = unknown>(
   return (data.message ?? data.data ?? data) as T
 }
 
-export function isMissingAgentActionLogError(error: unknown): boolean {
-  if (!(error instanceof ServerFrappeError)) return false
-
-  const serverMessages = typeof error.data._server_messages === 'string'
-    ? error.data._server_messages
-    : ''
-
-  return (
-    error.status === 404 &&
-    (
-      error.message.includes('DocType Agent Action Log not found') ||
-      serverMessages.includes('DocType Agent Action Log not found')
-    )
-  )
+/** Collect all human-readable fragments Frappe may put on an error (message, _server_messages JSON array, nested JSON). */
+function collectFrappeErrorBlob(err: ServerFrappeError): string {
+  const chunks: string[] = [err.message, String(err.data.exception || ''), String(err.data.exc_type || '')]
+  const sm = err.data._server_messages
+  if (typeof sm === 'string') {
+    chunks.push(sm)
+    try {
+      const parsed = JSON.parse(sm) as unknown
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (typeof item === 'string') {
+            chunks.push(item)
+            try {
+              const inner = JSON.parse(item) as { message?: string }
+              if (typeof inner?.message === 'string') chunks.push(inner.message)
+            } catch {
+              /* item was plain text */
+            }
+          }
+        }
+      }
+    } catch {
+      /* sm not JSON */
+    }
+  }
+  return chunks.join(' ')
 }
 
+/** DocType missing, renamed, or not migrated on this tenant site — not always HTTP 404. */
 export function isAgentActionLogUnavailableError(error: unknown): boolean {
-  if (isMissingAgentActionLogError(error)) return true
-  if (!(error instanceof ServerFrappeError)) return false
+  if (error instanceof ServerFrappeError) {
+    const blob = collectFrappeErrorBlob(error).toLowerCase()
+    if (blob.includes('doctype agent action log not found')) return true
+    if (blob.includes('agent action log') && blob.includes('not found')) return true
+    if (
+      error.status === 403 &&
+      blob.includes('agent action log') &&
+      (blob.includes('permission') || blob.includes('not permitted') || blob.includes('permissionerror'))
+    ) {
+      return true
+    }
+  }
+  if (error instanceof Error) {
+    const m = error.message.toLowerCase()
+    if (m.includes('doctype agent action log not found')) return true
+    if (m.includes('agent action log') && m.includes('not found')) return true
+  }
+  return false
+}
 
-  const message = String(error.message || '')
-  const serverMessages = typeof error.data._server_messages === 'string'
-    ? error.data._server_messages
-    : ''
-  const excType = String(error.data.exc_type || '')
-
-  // Tenant may not have this DocType permission yet even when module is visible.
-  return (
-    error.status === 403 &&
-    (excType.includes('PermissionError') || message.includes('PermissionError') || serverMessages.includes('PermissionError')) &&
-    (message.includes('Agent Action Log') || serverMessages.includes('Agent Action Log'))
-  )
+/** @deprecated use isAgentActionLogUnavailableError */
+export function isMissingAgentActionLogError(error: unknown): boolean {
+  return isAgentActionLogUnavailableError(error)
 }

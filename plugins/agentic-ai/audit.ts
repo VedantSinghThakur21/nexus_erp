@@ -1,6 +1,10 @@
-import { serverFrappeCall } from '@/lib/agent/server-frappe'
+import { isAgentActionLogUnavailableError, serverFrappeCall } from '@/lib/agent/server-frappe'
 import type { MCPToolCall, MCPToolResult } from './mcp/types'
 import type { AgenticActionStatus } from './types'
+
+/** Shown when ERPNext is missing the Agent Action Log DocType (tenant not migrated / custom app not installed). */
+export const AGENT_ACTION_LOG_SETUP_NOTICE =
+  'Install the Agent Action Log DocType on your ERPNext site (see frappe-config/agent_action_log.json in the Nexus repo), then run bench migrate for that site.'
 
 export type PendingAgenticAction = {
   id: string
@@ -54,7 +58,7 @@ export async function createPendingAgenticAction(input: {
   dryRun?: MCPToolResult
   createdBy?: string
   idempotencyKey?: string
-}): Promise<{ ok: boolean; action?: PendingAgenticAction; error?: string }> {
+}): Promise<{ ok: boolean; action?: PendingAgenticAction; error?: string; setupRequired?: boolean }> {
   const payload = {
     doctype: 'Agent Action Log',
     tool_name: input.toolCall.name,
@@ -74,11 +78,23 @@ export async function createPendingAgenticAction(input: {
     if (!row?.name) return { ok: false, error: 'Agent Action Log insert returned no record id' }
     return { ok: true, action: normalizeAction(row) }
   } catch (error) {
+    if (isAgentActionLogUnavailableError(error)) {
+      return {
+        ok: false,
+        error: AGENT_ACTION_LOG_SETUP_NOTICE,
+        setupRequired: true,
+      }
+    }
     return { ok: false, error: error instanceof Error ? error.message : 'Failed to create pending action' }
   }
 }
 
-export async function listPendingAgenticActions(): Promise<{ ok: boolean; actions: PendingAgenticAction[]; error?: string }> {
+export async function listPendingAgenticActions(): Promise<{
+  ok: boolean
+  actions: PendingAgenticAction[]
+  error?: string
+  setupRequired?: boolean
+}> {
   try {
     const response = await serverFrappeCall<AgentActionLogRow[]>('frappe.client.get_list', 'POST', {
       doctype: 'Agent Action Log',
@@ -93,6 +109,13 @@ export async function listPendingAgenticActions(): Promise<{ ok: boolean; action
       actions: (response || []).map(normalizeAction),
     }
   } catch (error) {
+    if (isAgentActionLogUnavailableError(error)) {
+      return {
+        ok: true,
+        actions: [],
+        setupRequired: true,
+      }
+    }
     return {
       ok: false,
       actions: [],
@@ -124,26 +147,56 @@ export async function setAgenticActionStatus(
   })
 }
 
+/** Reject / status updates when DocType exists; no-op success shape when DocType is missing (tenant not migrated). */
+export async function setAgenticActionStatusIfAvailable(
+  id: string,
+  status: AgenticActionStatus,
+  fields: Record<string, unknown> = {}
+): Promise<{ ok: true } | { ok: false; setupRequired: true }> {
+  try {
+    await setAgenticActionStatus(id, status, fields)
+    return { ok: true }
+  } catch (error) {
+    if (isAgentActionLogUnavailableError(error)) {
+      return { ok: false, setupRequired: true }
+    }
+    throw error
+  }
+}
+
 export async function claimPendingAgenticAction(
   id: string,
   approvedBy: string
-): Promise<{ ok: boolean; action?: PendingAgenticAction; conflict?: boolean; error?: string }> {
-  const action = await getAgenticAction(id)
-  if (!action) return { ok: false, error: 'Action not found' }
-  if (action.status !== 'pending_approval') {
-    return { ok: false, conflict: true, error: 'This action has already been handled.' }
+): Promise<{
+  ok: boolean
+  action?: PendingAgenticAction
+  conflict?: boolean
+  error?: string
+  setupRequired?: boolean
+}> {
+  try {
+    const action = await getAgenticAction(id)
+    if (!action) return { ok: false, error: 'Action not found' }
+    if (action.status !== 'pending_approval') {
+      return { ok: false, conflict: true, error: 'This action has already been handled.' }
+    }
+
+    await setAgenticActionStatus(id, 'approved', {
+      approved_by: approvedBy,
+      approved_at: new Date().toISOString(),
+    })
+
+    const claimed = await getAgenticAction(id)
+    if (!claimed || claimed.status !== 'approved') {
+      return { ok: false, conflict: true, error: 'Action could not be claimed for approval.' }
+    }
+
+    return { ok: true, action: claimed }
+  } catch (error) {
+    if (isAgentActionLogUnavailableError(error)) {
+      return { ok: false, error: AGENT_ACTION_LOG_SETUP_NOTICE, setupRequired: true }
+    }
+    throw error
   }
-
-  await setAgenticActionStatus(id, 'approved', {
-    approved_by: approvedBy,
-    approved_at: new Date().toISOString(),
-  })
-
-  const claimed = await getAgenticAction(id)
-  if (!claimed || claimed.status !== 'approved') {
-    return { ok: false, conflict: true, error: 'Action could not be claimed for approval.' }
-  }
-
-  return { ok: true, action: claimed }
 }
 

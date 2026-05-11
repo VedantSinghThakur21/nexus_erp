@@ -96,7 +96,15 @@ export async function runAgenticChat(input: {
 export async function createAgenticRun(input: {
   toolCall: MCPToolCall
   requestedBy?: string
-}): Promise<{ ok: boolean; action?: unknown; dryRun?: unknown; result?: unknown; error?: string; status?: number }> {
+}): Promise<{
+  ok: boolean
+  action?: unknown
+  dryRun?: unknown
+  result?: unknown
+  error?: string
+  status?: number
+  setupRequired?: boolean
+}> {
   const entitlement = await getAgenticEntitlement()
   if (!entitlement.allowed) {
     return { ok: false, error: entitlement.reason, status: 403 }
@@ -116,7 +124,12 @@ export async function createAgenticRun(input: {
       createdBy: input.requestedBy,
       idempotencyKey: `${tenant.tenantId}:${input.toolCall.name}:${JSON.stringify(input.toolCall.input)}`,
     })
-    if (!pending.ok) return { ok: false, error: pending.error, status: 500 }
+    if (!pending.ok) {
+      if (pending.setupRequired) {
+        return { ok: false, error: pending.error, status: 503, setupRequired: true }
+      }
+      return { ok: false, error: pending.error, status: 500 }
+    }
     return { ok: true, action: pending.action, dryRun }
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { PageHeader } from "@/components/page-header";
@@ -150,19 +151,6 @@ export default function AgentsPage() {
     handleSend();
   };
 
-  // Calculate KPIs from messages
-  const kpis = useMemo(() => {
-    const totalQueries = messages.filter((m) => m.role === "user").length;
-    const accuracy = 98; // Mock - would need real calculation
-    const efficiencyBoost = totalQueries * 3.5; // Mock calculation
-
-    return {
-      totalQueries: totalQueries > 1000 ? `${(totalQueries / 1000).toFixed(1)}k` : totalQueries,
-      accuracy: `${accuracy}%`,
-      efficiencyBoost: `${Math.round(efficiencyBoost)}h`,
-    };
-  }, [messages]);
-
   return (
     <div className="flex min-h-full flex-col overflow-hidden">
       {/* Debug Toggle Button */}
@@ -210,50 +198,16 @@ export default function AgentsPage() {
 
       {!entitlementLoading && entitlement?.allowed && (
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* KPI Cards - Matching Leads Page Styling */}
-        <section className="w-full border-b border-border/60 bg-background/40">
-          <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-4 px-4 py-4 md:grid-cols-3 md:px-6 md:py-5">
-            <div className="rounded-xl border border-border bg-card p-6 shadow-none">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
-                  Total Queries
-                </span>
-                <div className="rounded-lg bg-slate-700/50 p-2 text-slate-300">
-                  <span className="material-symbols-outlined text-xl">query_stats</span>
-                </div>
-              </div>
-              <div className="mt-2 flex items-end justify-between">
-                <span className="text-3xl font-bold text-foreground leading-none">{kpis.totalQueries}</span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-6 shadow-none">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
-                  Accuracy
-                </span>
-                <div className="rounded-lg bg-green-500/10 p-2 text-green-400">
-                  <span className="material-symbols-outlined text-xl">verified</span>
-                </div>
-              </div>
-              <div className="mt-2 flex items-end justify-between">
-                <span className="text-3xl font-bold text-foreground leading-none">{kpis.accuracy}</span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-6 shadow-none">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 text-[12px] font-bold tracking-widest uppercase">
-                  Efficiency Boost
-                </span>
-                <div className="rounded-lg bg-blue-500/10 p-2 text-blue-400">
-                  <span className="material-symbols-outlined text-xl">trending_up</span>
-                </div>
-              </div>
-              <div className="mt-2 flex items-end justify-between">
-                <span className="text-3xl font-bold text-foreground leading-none">{kpis.efficiencyBoost}</span>
-              </div>
-            </div>
+        <section className="w-full border-b border-border/60 bg-muted/25">
+          <div className="mx-auto max-w-6xl px-4 py-4 md:px-6">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground">Agentic AI</span> reads your tenant’s ERPNext data through Nexus.
+              Side-effecting tool runs may need a human step in{" "}
+              <Link href="/agent" className="font-medium text-primary underline-offset-4 hover:underline">
+                Agent inbox
+              </Link>
+              {" "}before they apply in Frappe.
+            </p>
           </div>
         </section>
 
@@ -271,7 +225,7 @@ export default function AgentsPage() {
                     <div key={m.id} className="flex gap-5 justify-end">
                       <div className="space-y-1 max-w-[70%] text-right">
                         <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">
-                          Alex Thompson
+                          You
                         </p>
                         <div className="bg-accent text-white px-4 py-2 rounded-xl rounded-tr-none shadow-md inline-block">
                           <p className="text-xs font-medium">{m.content}</p>
@@ -397,58 +351,37 @@ export default function AgentsPage() {
           {/* Sidebar */}
           <aside className="hidden w-72 overflow-y-auto border-l border-border bg-background/50 p-5 xl:block">
             <div className="flex items-center justify-between mb-5">
-              <h4 className="font-bold text-[8px]  uppercase tracking-[0.15em] text-muted-foreground">
-                Action Preview
+              <h4 className="font-bold text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                Workspace
               </h4>
-              <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
             </div>
-            <div className="space-y-4">
-              <div className="p-3 bg-card dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
-                <p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">
-                  Source Module
+            <div className="space-y-4 text-xs text-muted-foreground">
+              <div className="rounded-lg border border-border bg-card p-3 shadow-none">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
+                  Approvals
                 </p>
-                <p className="text-xs font-semibold text-slate-900 dark:text-white">
-                  CRM / Leads
-                </p>
-              </div>
-              <div className="p-3 bg-card dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
-                <p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">
-                  Last Sync
-                </p>
-                <p className="text-xs font-semibold text-slate-900 dark:text-white">
-                  2 minutes ago
+                <p className="mt-2 leading-relaxed">
+                  Pending writes from the agent are listed under{" "}
+                  <Link href="/agent" className="font-medium text-primary underline-offset-4 hover:underline">
+                    Agent inbox
+                  </Link>
+                  .
                 </p>
               </div>
-              <div className="pt-5 mt-3 border-t border-slate-100 dark:border-slate-800">
-                <h5 className="text-[7px] font-bold text-slate-400 uppercase mb-3 tracking-[0.08em]">
-                  Quick Shortcuts
-                </h5>
-                <div className="space-y-1.5">
-                  <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-background dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group">
-                    <span className="font-medium text-slate-600  group-hover:text-accent text-xs">
-                      Export as CSV
-                    </span>
-                    <span className="material-symbols-outlined text-slate-400 text-base group-hover:text-accent">
-                      download
-                    </span>
-                  </button>
-                  <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-background dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all text-xs group">
-                    <span className="font-medium text-slate-600  group-hover:text-accent text-xs">
-                      Open in ERPNext
-                    </span>
-                    <span className="material-symbols-outlined text-slate-400 text-base group-hover:text-accent">
-                      open_in_new
-                    </span>
-                  </button>
-                </div>
+              <div className="rounded-lg border border-border bg-card p-3 shadow-none">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
+                  ERPNext
+                </p>
+                <p className="mt-2 leading-relaxed">
+                  Answers use live data from your site. If something looks off, verify the record in Frappe.
+                </p>
               </div>
-              <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                <h5 className="text-[7px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-1.5 tracking-wider">
-                  Agent Intelligence
-                </h5>
-                <p className="text-[10px] text-slate-600  leading-relaxed">
-                  Based on current leads, I suggest prioritizing{" "}
-                  <strong>Global Tech Corp</strong> due to high interest score (8.9/10).
+              <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3">
+                <p className="text-[10px] font-medium text-foreground">
+                  Tip
+                </p>
+                <p className="mt-1.5 text-[11px] leading-relaxed">
+                  Citations in replies point to the documents the model used; open them in ERPNext to double-check.
                 </p>
               </div>
             </div>
@@ -460,12 +393,6 @@ export default function AgentsPage() {
           <div className="mx-auto w-full max-w-6xl">
             <form onSubmit={handleCustomSubmit}>
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-background/80 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 pr-1.5 shadow-inner focus-within:ring-2 focus-within:ring-accent/20 transition-all">
-                <button
-                  type="button"
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-lg">attach_file</span>
-                </button>
                 <input
                   value={input}
                   onChange={handleInputChange}
@@ -486,8 +413,8 @@ export default function AgentsPage() {
               </div>
             </form>
             <div className="flex items-center justify-between mt-3">
-              <p className="text-[7px] text-slate-400 uppercase tracking-[0.25em] font-bold">
-                AvarIQ v2.4 • Enterprise Suite
+              <p className="text-[10px] text-muted-foreground">
+                Nexus · Agentic AI
               </p>
               <button
                 onClick={() => setShowDebug(!showDebug)}
