@@ -9,7 +9,7 @@ import {
 import { SettingsClient } from './settings-client'
 import { headers } from 'next/headers'
 import { getCachedSubscriptionRead } from '@/lib/subscription/cached-subscription-read'
-import { normalizePlan, type SubscriptionTier } from '@/types/subscription'
+import type { SubscriptionTier } from '@/types/subscription'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +38,7 @@ export default async function SettingsPage() {
       const snapshot = await getCachedSubscriptionRead(tenantId)
       if (snapshot.found) {
         subscription = {
-          plan: normalizePlan(snapshot.tenant.plan_type),
+          plan: snapshot.synced.plan,
           status: snapshot.synced.status,
           tenantId,
         }

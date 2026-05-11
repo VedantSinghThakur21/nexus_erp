@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { revalidateTag } from 'next/cache'
 import { requireAuth } from '@/app/api/_lib/auth'
 import { syncSubscriptionFromSaasTenant } from '@/lib/subscription/master'
 
@@ -25,6 +26,8 @@ export async function POST(request: NextRequest) {
       changedBy: auth.userEmail,
       reason: 'manual_subscription_sync',
     })
+
+    revalidateTag(`subscription:${subdomain}`, 'max')
 
     return NextResponse.json({
       ok: true,

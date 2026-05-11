@@ -394,41 +394,61 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         ...(cookieDomain ? { domain: cookieDomain } : {}),
       })
 
-      // Detect the user's role type (admin/member/sales/accounts/projects) and store
-      // it in a cookie so the self-heal path in frappeRequest can assign the correct
-      // ROLE_SET rather than blindly adding base roles to everyone.
-      // We check if they're the tenant owner first (guaranteed admin), then map other roles.
-      try {
-        let roleType = 'member'
-        
-        if (userEmail === tenant.owner_email) {
-          roleType = 'admin'
-        } else {
+      // Role-type probe + API key mint run in parallel — both hit the network and
+      // previously ran sequentially (added noticeable latency on every login).
+      const resolveTenantRoleType = async (): Promise<string> => {
+        if (!userEmail) return 'member'
+        if (userEmail === tenant.owner_email) return 'admin'
+        try {
+          const sid = setCookieHeader?.match(/sid=([^;]+)/)?.[1]
           const userDocReq = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'X-Frappe-Site-Name': siteName,
-              ...(setCookieHeader?.match(/sid=([^;]+)/)?.[1]
-                ? { Cookie: `sid=${setCookieHeader.match(/sid=([^;]+)/)?.[1]}` }
-                : {}),
+              ...(sid ? { Cookie: `sid=${sid}` } : {}),
             },
             body: JSON.stringify({ doctype: 'User', name: userEmail }),
             signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
           })
-          if (userDocReq.ok) {
-            const userDocData = await userDocReq.json()
-            const userDoc = userDocData?.message || userDocData
-            const roles: string[] = (userDoc?.roles || [])
-              .map((r: any) => r.role || r.name).filter(Boolean)
-            
-            if (roles.includes('System Manager')) roleType = 'admin'
-            else if (roles.includes('Accounts Manager')) roleType = 'accounts'
-            else if (roles.includes('Projects Manager')) roleType = 'projects'
-            else if (roles.includes('Sales Manager')) roleType = 'sales'
-          }
+          if (!userDocReq.ok) return 'member'
+          const userDocData = await userDocReq.json()
+          const userDoc = userDocData?.message || userDocData
+          const roles: string[] = (userDoc?.roles || [])
+            .map((r: any) => r.role || r.name)
+            .filter(Boolean)
+
+          if (roles.includes('System Manager')) return 'admin'
+          if (roles.includes('Accounts Manager')) return 'accounts'
+          if (roles.includes('Projects Manager')) return 'projects'
+          if (roles.includes('Sales Manager')) return 'sales'
+          return 'member'
+        } catch {
+          return 'member'
         }
-        
+      }
+
+      const mintApiKeys = async (): Promise<{ apiKey: string | null; apiSecret: string | null }> => {
+        if (fastLogin || !userEmail) return { apiKey: null, apiSecret: null }
+        try {
+          const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
+          if (provKeys && typeof provKeys === 'object' && 'api_key' in provKeys && 'api_secret' in provKeys) {
+            return {
+              apiKey: typeof provKeys.api_key === 'string' ? provKeys.api_key : null,
+              apiSecret: typeof provKeys.api_secret === 'string' ? provKeys.api_secret : null,
+            }
+          }
+          throw new Error('Provisioning response missing api_key/api_secret')
+        } catch (apiError: any) {
+          console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
+          console.warn('[Login] Proceeding with SID session cookie authentication.')
+          return { apiKey: null, apiSecret: null }
+        }
+      }
+
+      const [roleType, { apiKey, apiSecret }] = await Promise.all([resolveTenantRoleType(), mintApiKeys()])
+
+      try {
         cookieStore.set('tenant_role_type', roleType, {
           httpOnly: true,
           secure: cookieSecure,
@@ -438,35 +458,7 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
           ...(cookieDomain ? { domain: cookieDomain } : {}),
         })
       } catch {
-        // Non-fatal — role type detection is best-effort
-      }
-
-      // ── Generate fresh API keys on every login ──
-      // Route unconditionally to the provisioning service which uses
-      // ignore_permissions=True internally — works for ALL users regardless
-      // of Frappe role (eliminates the old try-generate_keys → 403 → fallback pattern).
-      // The provisioning service is protected by X-Provisioning-Secret so only
-      // this server-side action can call it; the raw secret never reaches the browser.
-      let apiKey: string | null = null
-      let apiSecret: string | null = null
-
-      if (!fastLogin) {
-        try {
-          const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
-          // Some older/partially deployed provisioning builds can return null/invalid
-          // payloads with HTTP 200. Guard shape before reading properties.
-          if (provKeys && typeof provKeys === 'object' && 'api_key' in provKeys && 'api_secret' in provKeys) {
-            apiKey = typeof provKeys.api_key === 'string' ? provKeys.api_key : null
-            apiSecret = typeof provKeys.api_secret === 'string' ? provKeys.api_secret : null
-          } else {
-            throw new Error('Provisioning response missing api_key/api_secret')
-          }
-        } catch (apiError: any) {
-          // Non-fatal: if provisioning endpoint is unavailable (e.g. old service image),
-          // we fall back natively to sid session cookies in frappeRequest.
-          console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
-          console.warn('[Login] Proceeding with SID session cookie authentication.')
-        }
+        // Non-fatal — role type cookie is best-effort
       }
 
       if (apiKey && apiSecret) {

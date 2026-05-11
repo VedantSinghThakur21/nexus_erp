@@ -51,6 +51,9 @@ async function main() {
   })
 
   console.log(`OK — ${subdomain} is now ${plan} (${status}) on master (SaaS Tenant + Organization).`)
+  console.log(
+    'If the app still shows the old plan for ~60s, open Billing and click “Refresh subscription”, or POST /api/subscription/sync (clears the Next subscription cache).',
+  )
 }
 
 main().catch((e) => {

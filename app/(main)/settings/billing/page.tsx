@@ -1,6 +1,5 @@
 import { headers } from 'next/headers'
 import { getCachedSubscriptionRead } from '@/lib/subscription/cached-subscription-read'
-import { normalizePlan } from '@/types/subscription'
 import { BillingClient } from './billing-client'
 
 export const dynamic = 'force-dynamic'
@@ -37,7 +36,7 @@ export default async function BillingPage() {
     <BillingClient
       current={{
         tenant: { name: snapshot.tenant.company_name, subdomain: tenantId },
-        plan: normalizePlan(snapshot.tenant.plan_type),
+        plan: snapshot.synced.plan,
         status: snapshot.synced.status,
         stripe_customer_id: snapshot.tenant.stripe_customer_id,
         stripe_subscription_id: snapshot.tenant.stripe_subscription_id,

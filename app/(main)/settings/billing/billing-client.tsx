@@ -97,8 +97,8 @@ export function BillingClient(props: { current: CurrentSubscription }) {
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <CardTitle>Current Plan</CardTitle>
-                <Badge variant={props.current.status === 'active' ? 'default' : 'secondary'}>
-                  {props.current.status}
+                <Badge variant={current.status === 'active' ? 'default' : 'secondary'}>
+                  {current.status}
                 </Badge>
               </div>
               <CardDescription>You are currently on the {currentPlan.name} plan</CardDescription>

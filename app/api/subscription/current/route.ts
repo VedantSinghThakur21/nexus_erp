@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { requireAuth } from '@/app/api/_lib/auth'
-import { normalizePlan, normalizeSubscriptionStatus } from '@/types/subscription'
+import { normalizePlan, toProvisioningPlanType } from '@/types/subscription'
 import { getCachedSubscriptionRead } from '@/lib/subscription/cached-subscription-read'
 
 export const runtime = 'nodejs'
@@ -55,8 +55,8 @@ export async function GET() {
     const { tenant, synced } = snapshot
     const res = NextResponse.json({
       plan: synced.plan,
-      plan_type: tenant.plan_type,
-      status: normalizeSubscriptionStatus(tenant.subscription_status || tenant.status || synced.status),
+      plan_type: toProvisioningPlanType(synced.plan),
+      status: synced.status,
       source: 'saas_tenant',
       agentic_ai_enabled: !!synced.organization?.agentic_ai_enabled,
       stripe_customer_id: tenant.stripe_customer_id,
