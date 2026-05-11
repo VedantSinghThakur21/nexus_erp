@@ -1,6 +1,6 @@
 import { cookies, headers } from 'next/headers'
 import { dedupeInFlight } from '@/lib/performance/in-flight-dedupe'
-import { getSaasTenantBySubdomain } from '@/lib/subscription/master'
+import { getOrganizationBySlug, getSaasTenantBySubdomain } from '@/lib/subscription/master'
 import { AGENTIC_ALLOWED_PLANS, AGENTIC_BASE_FLAG, getModelPolicy } from './config'
 import { normalizePlan } from '@/types/subscription'
 import type { AgenticEntitlement, AgenticFeatureFlag, AgenticPlan, AgenticTenantContext } from './types'
@@ -59,40 +59,23 @@ async function fetchTenantPlanRow(tenantId: string): Promise<TenantPlanRow | nul
   }
 
   return dedupeInFlight(`tenant-plan-row:${tenantId}`, async () => {
-    const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-    const apiKey = process.env.ERP_API_KEY
-    const apiSecret = process.env.ERP_API_SECRET
-    if (!apiKey || !apiSecret) return null
+    if (!process.env.ERP_API_KEY || !process.env.ERP_API_SECRET) return null
 
-    const headersBase = {
-      'Content-Type': 'application/json',
-      'Authorization': `token ${apiKey}:${apiSecret}`,
-      'X-Frappe-Site-Name': process.env.FRAPPE_SITE_NAME || 'erp.localhost',
-    }
+    const [saas, orgRow] = await Promise.all([
+      getSaasTenantBySubdomain(tenantId),
+      getOrganizationBySlug(tenantId),
+    ])
 
-    async function fetchOrgMirror(): Promise<TenantPlanRow | null> {
-      try {
-        const response = await fetch(`${baseUrl}/api/method/frappe.client.get_list`, {
-          method: 'POST',
-          headers: headersBase,
-          body: JSON.stringify({
-            doctype: 'Organization',
-            filters: { slug: tenantId },
-            fields: ['name', 'subscription_plan', 'subscription_status', 'agentic_ai_enabled', 'agentic_finance_enabled', 'agentic_destructive_tools_enabled'],
-            limit_page_length: 1,
-          }),
-          cache: 'no-store',
-        })
-
-        if (!response.ok) return null
-        const data = await response.json().catch(() => ({})) as { message?: TenantPlanRow[] }
-        return data.message?.[0] || null
-      } catch {
-        return null
-      }
-    }
-
-    const [saas, org] = await Promise.all([getSaasTenantBySubdomain(tenantId), fetchOrgMirror()])
+    const org: TenantPlanRow | null = orgRow
+      ? {
+          name: orgRow.name,
+          subscription_plan: orgRow.subscription_plan,
+          subscription_status: orgRow.subscription_status,
+          agentic_ai_enabled: orgRow.agentic_ai_enabled,
+          agentic_finance_enabled: orgRow.agentic_finance_enabled,
+          agentic_destructive_tools_enabled: orgRow.agentic_destructive_tools_enabled,
+        }
+      : null
 
     const tenantWide: TenantPlanRow | null = saas
       ? {

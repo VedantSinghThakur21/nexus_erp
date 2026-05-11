@@ -35,6 +35,8 @@ export type OrganizationRow = {
   subscription_plan?: string
   subscription_status?: string
   agentic_ai_enabled?: 0 | 1 | boolean
+  agentic_finance_enabled?: 0 | 1 | boolean
+  agentic_destructive_tools_enabled?: 0 | 1 | boolean
   plan_synced_at?: string
   plan_source?: PlanSource
   stripe_customer_id?: string
@@ -177,27 +179,77 @@ export async function getSaasTenantBySubdomain(subdomain: string): Promise<SaasT
   return tenant
 }
 
+function docCheckbox(doc: Record<string, unknown>, key: string): 0 | 1 | boolean | undefined {
+  const v = doc[key]
+  if (typeof v === 'boolean') return v
+  if (v === 0 || v === 1) return v
+  if (v === '0' || v === '1') return v === '1' ? 1 : 0
+  return undefined
+}
+
+const ORG_STRING_FIELDS = [
+  'organization_name',
+  'slug',
+  'owner_email',
+  'subscription_plan',
+  'subscription_status',
+  'plan_synced_at',
+  'stripe_customer_id',
+  'stripe_subscription_id',
+] as const satisfies readonly (keyof OrganizationRow)[]
+
+function mergeOrganizationFromDoc(row: OrganizationRow, doc: Record<string, unknown>): OrganizationRow {
+  const merged: OrganizationRow = { ...row }
+  for (const key of ORG_STRING_FIELDS) {
+    const v = doc[key as string]
+    if (typeof v === 'string') {
+      ;(merged as unknown as Record<string, string>)[key] = v
+    }
+  }
+
+  const src = doc.plan_source
+  if (typeof src === 'string' && (src === 'saas_tenant' || src === 'stripe' || src === 'manual')) {
+    merged.plan_source = src
+  }
+
+  const ai = docCheckbox(doc, 'agentic_ai_enabled')
+  if (ai !== undefined) merged.agentic_ai_enabled = ai
+  const fin = docCheckbox(doc, 'agentic_finance_enabled')
+  if (fin !== undefined) merged.agentic_finance_enabled = fin
+  const dest = docCheckbox(doc, 'agentic_destructive_tools_enabled')
+  if (dest !== undefined) merged.agentic_destructive_tools_enabled = dest
+
+  return merged
+}
+
+/**
+ * Same pattern as SaaS Tenant: `get_list` may forbid sensitive columns (e.g. agentic_ai_enabled).
+ * Resolve by `name` then load the full doc with `frappe.client.get`.
+ */
+async function enrichOrganizationFromDoc(row: OrganizationRow): Promise<OrganizationRow> {
+  try {
+    const doc = await masterFrappeCall<Record<string, unknown>>(
+      'frappe.client.get',
+      { doctype: 'Organization', name: row.name },
+      'GET'
+    )
+    return mergeOrganizationFromDoc(row, doc)
+  } catch {
+    return row
+  }
+}
+
 export async function getOrganizationBySlug(slug: string): Promise<OrganizationRow | null> {
-  const rows = await masterFrappeCall<OrganizationRow[]>('frappe.client.get_list', {
+  const rows = await masterFrappeCall<Pick<OrganizationRow, 'name'>[]>('frappe.client.get_list', {
     doctype: 'Organization',
     filters: { slug },
-    fields: [
-      'name',
-      'organization_name',
-      'slug',
-      'owner_email',
-      'subscription_plan',
-      'subscription_status',
-      'agentic_ai_enabled',
-      'plan_synced_at',
-      'plan_source',
-      'stripe_customer_id',
-      'stripe_subscription_id',
-    ],
+    fields: ['name'],
     limit_page_length: 1,
   })
 
-  return rows[0] || null
+  const row = rows[0]
+  if (!row?.name) return null
+  return enrichOrganizationFromDoc({ ...row, slug })
 }
 
 export async function upsertOrganizationMirror(input: {
