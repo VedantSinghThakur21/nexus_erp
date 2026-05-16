@@ -53,6 +53,8 @@ export async function deleteLead(leadId: string) {
 
     revalidatePath('/crm')
     revalidatePath('/crm/leads')
+    const { revalidateLeadsListCache } = await import('@/lib/crm/cached-leads')
+    await revalidateLeadsListCache()
     return { success: true }
   } catch (error: any) {
     console.error('Delete lead error:', error)
@@ -473,6 +475,9 @@ export async function createLead(data: any) {
     }
 
     revalidatePath('/crm')
+    revalidatePath('/crm/leads')
+    const { revalidateLeadsListCache } = await import('@/lib/crm/cached-leads')
+    await revalidateLeadsListCache()
     return { success: true }
   } catch (error: any) {
     console.error("Create lead error:", error)

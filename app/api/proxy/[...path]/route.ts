@@ -87,6 +87,7 @@ async function handler(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
+  const started = performance.now()
   const { path } = await params
   const frappePath = path.join('/')
 
@@ -147,10 +148,12 @@ async function handler(
 
     const responseData = await upstreamResponse.text()
 
+    const ms = Math.round(performance.now() - started)
     return new NextResponse(responseData, {
       status: upstreamResponse.status,
       headers: {
         'Content-Type': upstreamResponse.headers.get('content-type') ?? 'application/json',
+        'X-Response-Time': `${ms}ms`,
       },
     })
   } catch (error) {

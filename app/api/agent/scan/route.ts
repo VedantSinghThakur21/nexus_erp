@@ -29,10 +29,13 @@ export async function POST(request: Request) {
       objective: 'Find stale leads and suggest one safe follow-up action for approval.',
     })
 
+    const jobIdStr = encodeURIComponent(String(job.id))
     return NextResponse.json({
       success: true,
       jobId: job.id,
-      streamUrl: `/api/agent/jobs/${encodeURIComponent(String(job.id))}/stream`,
+      streamUrl: `/api/agent/jobs/${jobIdStr}/stream`,
+      /** Spec / UI alias — identical SSE handler */
+      streamUrlAgentic: `/api/agentic/runs/${jobIdStr}/stream`,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to enqueue scan'

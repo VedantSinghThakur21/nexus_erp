@@ -21,13 +21,16 @@ export function DeleteOpportunityForm({ opportunityId }: DeleteOpportunityFormPr
     }
 
     setIsDeleting(true)
+    const detailPath = `/crm/opportunities/${encodeURIComponent(opportunityId)}`
+    router.push('/crm/opportunities')
+
     const result = await deleteOpportunity(opportunityId)
-    
+
     if (result?.error) {
+      router.push(detailPath)
       alert('Failed to delete opportunity: ' + result.error)
       setIsDeleting(false)
     } else {
-      router.push('/crm/opportunities')
       router.refresh()
     }
   }

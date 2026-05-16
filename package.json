@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:analyze": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test:e2e": "playwright test",

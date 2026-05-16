@@ -1,6 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { TenantGuard } from "@/components/auth/tenant-guard";
-import { FloatingAIChat } from "@/components/ai/floating-chat";
+import { FloatingAIChatLazy } from "@/components/ai/floating-chat-lazy";
 import { RouteTransitionIndicator } from "@/components/route-transition-indicator";
 import { requireAuth } from "@/lib/auth-guard"
 import { cookies } from "next/headers"
@@ -39,7 +39,7 @@ export default async function DashboardLayout({
       </main>
       {/* FloatingAIChat must be outside <main> — overflow-x-hidden on main clips
           position:fixed children in Chromium, making the button invisible. */}
-      <FloatingAIChat />
+      <FloatingAIChatLazy />
     </div>
   )
 }

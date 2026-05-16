@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { getPlanFromStripePriceId, verifyStripeWebhookSignature, type StripeCheckoutSession, type StripeSubscription } from '@/lib/subscription/stripe'
 import { normalizePlan } from '@/types/subscription'
+import { invalidateEntitlementCache } from '@/lib/cache/entitlement-cache'
 import { updateSaasTenantPlan } from '@/lib/subscription/master'
 
 function bumpSubscriptionSnapshot(subdomain: string) {
   revalidateTag(`subscription:${subdomain}`, 'max')
+  invalidateEntitlementCache(subdomain)
 }
 
 export const runtime = 'nodejs'

@@ -1,3 +1,7 @@
+/**
+ * Alias for BullMQ agent job SSE — same contract as `GET /api/agent/jobs/[id]/stream`.
+ * Lets product code use the `/api/agentic/runs/.../stream` naming from the performance spec.
+ */
 import { headers } from 'next/headers'
 import { requireAuth } from '@/app/api/_lib/auth'
 import { createBullmqAgentJobSseResponse } from '@/lib/agent/bullmq-job-sse'

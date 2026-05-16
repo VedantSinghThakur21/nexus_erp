@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { useBullmqJobStream } from '@/lib/hooks/use-bullmq-job-stream'
 import Link from 'next/link'
 import { PageHeader } from '@/components/page-header'
 import { InboxCard } from '@/components/agent/inbox-card'
@@ -46,6 +47,9 @@ export default function AgentInboxPage() {
   const [error, setError] = useState<string | null>(null)
   const [lockedReason, setLockedReason] = useState<string | null>(null)
   const [setupNotice, setSetupNotice] = useState<string | null>(null)
+  const [scanStreamUrl, setScanStreamUrl] = useState<string | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const scanStream = useBullmqJobStream(scanStreamUrl, Boolean(scanStreamUrl))
 
   async function loadInbox() {
     setLoading(true)
@@ -87,6 +91,9 @@ export default function AgentInboxPage() {
     setActionLoadingId(id)
     setError(null)
 
+    const prevItems = items
+    setItems((list) => list.filter((it) => (it.id || it.name) !== id))
+
     try {
       const res = await fetch(`/api/agentic/actions/${encodeURIComponent(id)}`, {
         method: 'POST',
@@ -95,6 +102,7 @@ export default function AgentInboxPage() {
       })
       const data = await res.json()
       if (!res.ok) {
+        setItems(prevItems)
         if (data.setupRequired && data.error) {
           setSetupNotice(data.error)
           await loadInbox()
@@ -103,40 +111,58 @@ export default function AgentInboxPage() {
         throw new Error(data.error || 'Failed to process action')
       }
       await loadInbox()
+      window.dispatchEvent(new Event('nexus-agent-inbox-changed'))
     } catch (err) {
+      setItems(prevItems)
       setError(err instanceof Error ? err.message : 'Failed to process action')
     } finally {
       setActionLoadingId(null)
     }
   }
 
+  useEffect(() => {
+    if (!scanStream.done) return
+    setScanStreamUrl(null)
+    setScanning(false)
+    if (scanStream.failed && scanStream.error) {
+      setError(scanStream.error)
+      return
+    }
+    void loadInbox()
+    window.dispatchEvent(new Event('nexus-agent-inbox-changed'))
+  }, [scanStream.done, scanStream.failed, scanStream.error])
+
   async function triggerScan() {
     setError(null)
+    setScanning(true)
 
     try {
-      const res = await fetch('/api/agentic/runs', {
+      const res = await fetch('/api/agent/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toolCall: {
-            name: 'tasks.create_follow_up_task',
-            input: {
-              subject: 'Review Agentic AI safe scan recommendation',
-              date: new Date().toISOString().slice(0, 10),
-            },
-          },
-        }),
+        body: JSON.stringify({}),
       })
       const data = await res.json()
       if (!res.ok) {
+        setScanning(false)
         if (data.setupRequired && data.error) {
           setSetupNotice(data.error)
           return
         }
         throw new Error(data.error || 'Failed to enqueue scan')
       }
-      await loadInbox()
+      const streamUrl =
+        (typeof data.streamUrlAgentic === 'string' && data.streamUrlAgentic) ||
+        (typeof data.streamUrl === 'string' && data.streamUrl) ||
+        null
+      if (!streamUrl) {
+        setScanning(false)
+        await loadInbox()
+        return
+      }
+      setScanStreamUrl(streamUrl)
     } catch (err) {
+      setScanning(false)
       setError(err instanceof Error ? err.message : 'Failed to enqueue scan')
     }
   }
@@ -149,8 +175,13 @@ export default function AgentInboxPage() {
           onClick={triggerScan}
           variant="secondary"
           className="shrink-0"
+          disabled={scanning}
         >
-          Run safe scan
+          {scanning
+            ? scanStream.progress > 0
+              ? `Scanning… ${Math.round(scanStream.progress)}%`
+              : 'Scanning…'
+            : 'Run safe scan'}
         </Button>
       </PageHeader>
 

@@ -10,6 +10,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { cache as reactCache } from 'react'
 import { frappeRequest, getTenantContext } from '@/app/lib/api'
 import { canAccessModule } from '@/lib/role-permissions'
 
@@ -139,7 +140,7 @@ export async function requireAuthAPI(): Promise<AuthResult> {
  * Fetch user's roles from Frappe backend
  * Cached per request via React cache
  */
-export async function getUserRoles(userEmail?: string): Promise<string[]> {
+async function resolveUserRoles(userEmail?: string): Promise<string[]> {
   const cookieStore = await cookies()
   const email = userEmail || cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
   
@@ -168,6 +169,9 @@ export async function getUserRoles(userEmail?: string): Promise<string[]> {
   // Fail closed: returning no roles is safer than over-granting.
   return []
 }
+
+/** Dedupes role fetches within a single RSC/request. */
+export const getUserRoles = reactCache(resolveUserRoles)
 
 /**
  * Check if user has a specific role

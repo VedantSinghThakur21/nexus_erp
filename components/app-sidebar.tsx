@@ -209,10 +209,19 @@ function SidebarNav({
     }
 
     loadPendingCount()
-    const timer = setInterval(loadPendingCount, 30000)
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void loadPendingCount()
+    }
+    const onInboxChanged = () => void loadPendingCount()
+
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('nexus-agent-inbox-changed', onInboxChanged)
+
     return () => {
       active = false
-      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('nexus-agent-inbox-changed', onInboxChanged)
     }
   }, [loading, roles, agenticAllowed])
 
@@ -284,6 +293,9 @@ function SidebarNav({
                       try {
                         router.prefetch(item.href)
                       } catch {}
+                      if (item.module === 'agents' || item.module === 'agent-inbox') {
+                        void loadAgenticEntitlement()
+                      }
                     }}
                     className={cn(
                       'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors',

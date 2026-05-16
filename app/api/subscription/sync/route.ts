@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { revalidateTag } from 'next/cache'
 import { requireAuth } from '@/app/api/_lib/auth'
+import { invalidateEntitlementCache } from '@/lib/cache/entitlement-cache'
 import { syncSubscriptionFromSaasTenant } from '@/lib/subscription/master'
 
 export const runtime = 'nodejs'
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     })
 
     revalidateTag(`subscription:${subdomain}`, 'max')
+    invalidateEntitlementCache(subdomain)
 
     return NextResponse.json({
       ok: true,

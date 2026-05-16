@@ -6,7 +6,10 @@ import { UserProvider } from '@/contexts/user-context'
 
 function SubscriptionWarmPrefetch() {
   useEffect(() => {
-    void fetch('/api/subscription/current', { credentials: 'include' }).catch(() => undefined)
+    void Promise.all([
+      fetch('/api/subscription/current', { credentials: 'include' }),
+      fetch('/api/agentic/entitlement', { credentials: 'include' }),
+    ]).catch(() => undefined)
   }, [])
   return null
 }

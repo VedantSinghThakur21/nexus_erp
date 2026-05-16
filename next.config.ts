@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb',
       allowedOrigins: (process.env.ALLOWED_ORIGINS || 'localhost:3000').split(','),
     },
+    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns', 'framer-motion'],
   },
 
   /**

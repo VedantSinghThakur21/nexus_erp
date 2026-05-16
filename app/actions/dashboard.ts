@@ -35,11 +35,12 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
       return typeof raw === 'number' ? raw : Number(raw) || 0
     }
 
-    // 1. Win Rate Calculation (Quotations Converted to Sales Orders vs Lost)
-    let winRate = 0;
-    let winRateChange = 0;
-
-    if (accessibleModules.includes('quotations')) {
+    const winRatePromise = (async () => {
+      let winRate = 0
+      let winRateChange = 0
+      if (!accessibleModules.includes('quotations')) {
+        return { winRate, winRateChange }
+      }
       const [
         quotationsWonMTDRaw,
         quotationsLostMTDRaw,
@@ -75,56 +76,58 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
       const totalClosedLastMonth = quotationsWonLastMonth + quotationsLostLastMonth
       const lastMonthWinRate = totalClosedLastMonth > 0 ? (quotationsWonLastMonth / totalClosedLastMonth) * 100 : 0
       winRateChange = winRate - lastMonthWinRate
-    }
+      return { winRate, winRateChange }
+    })()
 
-    // 2. Pipeline Value (Sum of all open Quotations + Open Sales Orders)
-    let pipelineValue = 0;
+    const pipelinePromise = (async () => {
+      const [openQuotesPipeline, pipelineOrders] = await Promise.all([
+        accessibleModules.includes('quotations')
+          ? safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Quotation',
+            fields: '["base_grand_total", "grand_total"]',
+            filters: '[["status", "=", "Open"]]',
+            limit_page_length: 1000,
+          }), [])
+          : Promise.resolve([]),
+        accessibleModules.includes('sales-orders')
+          ? safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
+            doctype: 'Sales Order',
+            fields: '["base_grand_total", "grand_total"]',
+            filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
+            limit_page_length: 1000,
+          }), [])
+          : Promise.resolve([]),
+      ]) as [any[], any[]]
 
-    const [openQuotesPipeline, pipelineOrders] = await Promise.all([
-      accessibleModules.includes('quotations')
-        ? safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Quotation',
-          fields: '["base_grand_total", "grand_total"]',
-          filters: '[["status", "=", "Open"]]',
-          limit_page_length: 1000,
-        }), [])
-        : Promise.resolve([]),
-      accessibleModules.includes('sales-orders')
-        ? safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
-          doctype: 'Sales Order',
-          fields: '["base_grand_total", "grand_total"]',
-          filters: '[["status", "in", ["Draft", "To Deliver and Bill", "To Bill"]]]',
-          limit_page_length: 1000,
-        }), [])
-        : Promise.resolve([]),
-    ]) as [any[], any[]]
+      let pipelineValue = 0
+      if (Array.isArray(openQuotesPipeline)) {
+        pipelineValue += openQuotesPipeline.reduce((sum: number, q: any) => sum + getAmount(q), 0)
+      }
+      if (Array.isArray(pipelineOrders)) {
+        pipelineValue += pipelineOrders.reduce((sum: number, o: any) => sum + getAmount(o), 0)
+      }
+      return pipelineValue
+    })()
 
-    if (Array.isArray(openQuotesPipeline)) {
-      pipelineValue += openQuotesPipeline.reduce((sum: number, q: any) => sum + getAmount(q), 0)
-    }
-    if (Array.isArray(pipelineOrders)) {
-      pipelineValue += pipelineOrders.reduce((sum: number, o: any) => sum + getAmount(o), 0)
-    }
-
-    // 3. Revenue MTD (from Paid Sales Invoices this month)
-    let revenue = 0;
-    if (accessibleModules.includes('invoices')) {
+    const revenuePromise = (async () => {
+      if (!accessibleModules.includes('invoices')) return 0
       const revenueInvoices = await safeFetch(() => frappeRequest('frappe.client.get_list', 'GET', {
         doctype: 'Sales Invoice',
         fields: '["base_grand_total", "grand_total"]',
         filters: `[["status", "in", ["Paid", "Partly Paid"]], ["posting_date", ">=", "${monthStart}"]]`,
         limit_page_length: 1000
       }), []) as any[]
-      revenue = Array.isArray(revenueInvoices)
+      return Array.isArray(revenueInvoices)
         ? revenueInvoices.reduce((sum: number, inv: any) => sum + getAmount(inv), 0)
         : 0
-    }
+    })()
 
-    // 4. Active Leads
-    let currentLeadCount = 0;
-    let leadsChange = 0;
-
-    if (accessibleModules.includes('crm')) {
+    const leadsPromise = (async () => {
+      let currentLeadCount = 0
+      let leadsChange = 0
+      if (!accessibleModules.includes('crm')) {
+        return { currentLeadCount, leadsChange }
+      }
       const [activeLeadsRaw, lastMonthLeadsRaw] = await Promise.all([
         safeFetch(() => frappeRequest('frappe.client.get_count', 'GET', {
           doctype: 'Lead',
@@ -139,7 +142,15 @@ export async function getDashboardStats(accessibleModules: string[] = []) {
       currentLeadCount = toNumber(activeLeadsRaw)
       const lastMonthLeads = toNumber(lastMonthLeadsRaw)
       leadsChange = lastMonthLeads > 0 ? ((currentLeadCount - lastMonthLeads) / lastMonthLeads) * 100 : 0
-    }
+      return { currentLeadCount, leadsChange }
+    })()
+
+    const [{ winRate, winRateChange }, pipelineValue, revenue, { currentLeadCount, leadsChange }] = await Promise.all([
+      winRatePromise,
+      pipelinePromise,
+      revenuePromise,
+      leadsPromise,
+    ])
 
     return {
       pipelineValue,

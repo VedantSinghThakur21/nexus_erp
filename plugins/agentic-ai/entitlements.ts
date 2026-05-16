@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers'
+import { getCachedEntitlement, setCachedEntitlement } from '@/lib/cache/entitlement-cache'
 import { dedupeInFlight } from '@/lib/performance/in-flight-dedupe'
 import { getOrganizationBySlug, getSaasTenantBySubdomain } from '@/lib/subscription/master'
 import { AGENTIC_ALLOWED_PLANS, AGENTIC_BASE_FLAG, getModelPolicy } from './config'
@@ -174,7 +175,13 @@ export function evaluateAgenticEntitlement(context: AgenticTenantContext): Agent
 }
 
 export async function getAgenticEntitlement(): Promise<AgenticEntitlement> {
-  return evaluateAgenticEntitlement(await getAgenticTenantContext())
+  const tenantId = await getRequestTenantId()
+  const hit = getCachedEntitlement(tenantId)
+  if (hit) return hit
+
+  const entitlement = evaluateAgenticEntitlement(await getAgenticTenantContext())
+  setCachedEntitlement(tenantId, entitlement)
+  return entitlement
 }
 
 export async function getEntitlement(orgId?: string): Promise<{

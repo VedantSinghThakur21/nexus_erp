@@ -1,4 +1,10 @@
 import { cookies, headers } from 'next/headers'
+import { coalesceFrappeGet, frappeGetCoalesceKey } from '@/lib/performance/frappe-get-coalesce'
+import {
+  readFrappeGetCache,
+  writeFrappeGetCache,
+} from '@/lib/performance/frappe-get-response-cache'
+import { cache as reactCache } from 'react'
 
 // ============================================================================
 // CONFIGURATION
@@ -26,6 +32,8 @@ interface TenantContext {
   apiKey: string | null
   apiSecret: string | null
   hasCredentials: boolean
+  /** Frappe `sid` when present — avoids a second `cookies()` read in hot paths */
+  sessionId: string | null
 }
 
 interface ApiRequestOptions {
@@ -131,10 +139,9 @@ async function parseResponseData(response: Response): Promise<Record<string, unk
  * Read tenant context from headers (injected by middleware)
  * Returns comprehensive tenant information for API routing
  */
-export async function getTenantContext(): Promise<TenantContext> {
+async function resolveTenantContext(): Promise<TenantContext> {
   try {
-    const headersList = await headers()
-    const cookieStore = await cookies()
+    const [headersList, cookieStore] = await Promise.all([headers(), cookies()])
 
     // 1. Get Tenant ID from Middleware Header (Source of Truth)
     const headerTenantId = headersList.get('x-tenant-id')
@@ -168,6 +175,7 @@ export async function getTenantContext(): Promise<TenantContext> {
       apiKey: tenantApiKey || null,
       apiSecret: tenantApiSecret || null,
       hasCredentials: !!(tenantApiKey && tenantApiSecret),
+      sessionId: cookieStore.get('sid')?.value ?? null,
     }
   } catch (error) {
     console.warn('[API] Failed to read tenant context:', error)
@@ -178,9 +186,13 @@ export async function getTenantContext(): Promise<TenantContext> {
       apiKey: null,
       apiSecret: null,
       hasCredentials: false,
+      sessionId: null,
     }
   }
 }
+
+/** Dedupes tenant context reads within a single RSC/request. */
+export const getTenantContext = reactCache(resolveTenantContext)
 
 /**
  * Build authorization header based on tenant context
@@ -490,15 +502,42 @@ export async function frappeRequest(
   body: Record<string, unknown> | null = null,
   options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted'> = {}
 ): Promise<unknown> {
-  // Get tenant context from cookies/headers
   const context = await getTenantContext()
 
-  // Use appropriate site name (siteOverride takes priority, then master/tenant logic)
   const siteName = options.siteOverride || (options.useMasterCredentials ? MASTER_SITE_NAME : context.siteName)
 
-  // Grab session cookie in case authHeader is null or stale tenant-token fallback is needed.
-  const cookieStore = await cookies()
-  const sid = cookieStore.get('sid')?.value
+  const shouldCoalesce =
+    method === 'GET' &&
+    !options.hasRoleRepairAttempted &&
+    !options.hasSessionFallbackAttempted &&
+    !options.hasTenantTokenRetryAttempted
+
+  const run = () => frappeRequestWithContext(context, siteName, endpoint, method, body, options)
+
+  if (shouldCoalesce) {
+    const key = frappeGetCoalesceKey(siteName, endpoint, body, context)
+    const cached = await readFrappeGetCache(key)
+    if (cached !== undefined) return cached
+
+    return coalesceFrappeGet(key, async () => {
+      const result = await run()
+      await writeFrappeGetCache(key, result)
+      return result
+    })
+  }
+
+  return run()
+}
+
+async function frappeRequestWithContext(
+  context: TenantContext,
+  siteName: string,
+  endpoint: string,
+  method: ApiRequestOptions['method'] = 'GET',
+  body: Record<string, unknown> | null = null,
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted'> = {}
+): Promise<unknown> {
+  const sid = context.sessionId ?? undefined
   const useSessionAuthFromStaleTenantToken =
     context.isTenant &&
     context.hasCredentials &&
@@ -527,7 +566,7 @@ export async function frappeRequest(
   if (authHeader) {
     requestHeaders['Authorization'] = authHeader
   }
-  
+
   if (sid) {
     requestHeaders['Cookie'] = `sid=${sid}`
   }

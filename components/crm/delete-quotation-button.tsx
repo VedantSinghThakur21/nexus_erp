@@ -26,7 +26,9 @@ export function DeleteQuotationButton({ quotationId, quotationStatus }: DeleteQu
 
     setDeleting(true)
 
+    const detailPath = `/crm/quotations/${encodeURIComponent(quotationId)}`
     try {
+      router.push('/crm/quotations')
       const response = await fetch(`/api/quotations/${encodeURIComponent(quotationId)}/delete`, {
         method: 'POST'
       })
@@ -34,13 +36,13 @@ export function DeleteQuotationButton({ quotationId, quotationStatus }: DeleteQu
       const result = await response.json()
 
       if (!response.ok) {
+        router.push(detailPath)
         throw new Error(result.error || 'Failed to delete quotation')
       }
-
-      router.push('/crm/quotations')
     } catch (error: any) {
       console.error('Error deleting quotation:', error)
       alert(`Failed to delete quotation: ${error.message}`)
+    } finally {
       setDeleting(false)
     }
   }
