@@ -27,3 +27,8 @@ export interface RagIndexer {
   index(documents: RagDocument[]): Promise<{ indexed: number }>
 }
 
+export type RetrieveOpts = {
+  topK?: number
+  minScore?: number
+}
+

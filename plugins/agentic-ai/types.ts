@@ -40,6 +40,8 @@ export interface AgenticRunMetadata {
   fallbackUsed?: boolean
   latencyMs?: number
   contextCount?: number
+  inputTokens?: number
+  outputTokens?: number
 }
 
 export interface AgenticChatResult {

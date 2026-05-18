@@ -1,4 +1,4 @@
-import { AgentsChatClient } from '@/components/agents/agents-chat-client'
+import { AgentWorkspaceClient } from '@/components/agents/agent-workspace-client'
 import {
   evaluateAgenticEntitlement,
   getAgenticTenantContext,
@@ -13,7 +13,7 @@ export default async function AgentsPage() {
   const tools = entitlement.allowed ? await getAgenticTools() : []
 
   return (
-    <AgentsChatClient
+    <AgentWorkspaceClient
       initialEntitlement={{
         allowed: entitlement.allowed,
         reason: entitlement.reason,

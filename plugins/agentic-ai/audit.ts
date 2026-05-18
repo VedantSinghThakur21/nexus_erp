@@ -1,6 +1,31 @@
 import { isAgentActionLogUnavailableError, serverFrappeCall } from '@/lib/agent/server-frappe'
 import type { MCPToolCall, MCPToolResult } from './mcp/types'
+import type { ToolClassification } from './mcp/types'
 import type { AgenticActionStatus } from './types'
+
+export type AuditEventType =
+  | 'run.started'
+  | 'run.completed'
+  | 'run.failed'
+  | 'tool.called'
+  | 'tool.succeeded'
+  | 'tool.failed'
+  | 'action.created'
+  | 'action.approved'
+  | 'action.rejected'
+  | 'action.executed'
+  | 'entitlement.denied'
+
+export type AuditEntry = {
+  tenantId: string
+  userId: string
+  runId: string
+  event: AuditEventType
+  toolName?: string
+  classification?: ToolClassification
+  payload: Record<string, unknown>
+  outcome: 'success' | 'failure' | 'pending'
+}
 
 /** Shown when ERPNext is missing the Agent Action Log DocType (tenant not migrated / custom app not installed). */
 export const AGENT_ACTION_LOG_SETUP_NOTICE =
@@ -197,6 +222,58 @@ export async function claimPendingAgenticAction(
       return { ok: false, error: AGENT_ACTION_LOG_SETUP_NOTICE, setupRequired: true }
     }
     throw error
+  }
+}
+
+export async function writeAudit(entry: AuditEntry, _tenantId: string): Promise<string> {
+  try {
+    const row = await serverFrappeCall<{ name?: string }>('frappe.client.insert', 'POST', {
+      doc: {
+        doctype: 'Agent Audit Log',
+        tenant_id: entry.tenantId,
+        user_id: entry.userId,
+        run_id: entry.runId,
+        event: entry.event,
+        tool_name: entry.toolName ?? '',
+        classification: entry.classification ?? '',
+        payload: JSON.stringify(entry.payload),
+        outcome: entry.outcome,
+      },
+    })
+    return row?.name ?? entry.runId
+  } catch {
+    return entry.runId
+  }
+}
+
+export async function queryAudit(
+  tenantId: string,
+  opts: { limit?: number },
+  _ctxTenantId: string
+): Promise<AuditEntry[]> {
+  try {
+    const rows = await serverFrappeCall<Array<Record<string, unknown>>>('frappe.client.get_list', 'POST', {
+      doctype: 'Agent Audit Log',
+      filters: { tenant_id: tenantId },
+      fields: ['name', 'tenant_id', 'user_id', 'run_id', 'event', 'tool_name', 'classification', 'payload', 'outcome'],
+      order_by: 'creation desc',
+      limit_page_length: opts.limit ?? 50,
+    })
+    return (rows || []).map((row) => ({
+      tenantId: String(row.tenant_id ?? tenantId),
+      userId: String(row.user_id ?? ''),
+      runId: String(row.run_id ?? ''),
+      event: String(row.event ?? '') as AuditEventType,
+      toolName: row.tool_name ? String(row.tool_name) : undefined,
+      classification: row.classification ? (String(row.classification) as ToolClassification) : undefined,
+      payload:
+        typeof row.payload === 'string'
+          ? (JSON.parse(row.payload) as Record<string, unknown>)
+          : {},
+      outcome: String(row.outcome ?? 'pending') as AuditEntry['outcome'],
+    }))
+  } catch {
+    return []
   }
 }
 

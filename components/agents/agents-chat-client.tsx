@@ -22,8 +22,10 @@ export type AgentsInitialEntitlement = {
 
 export function AgentsChatClient({
   initialEntitlement,
+  embedded = false,
 }: {
   initialEntitlement: AgentsInitialEntitlement;
+  embedded?: boolean;
 }) {
   const entitlement = initialEntitlement;
   const [showDebug, setShowDebug] = useState(false);
@@ -157,7 +159,7 @@ export function AgentsChatClient({
       {/* Header */}
       <PageHeader />
 
-      {!entitlement.allowed && (
+      {!embedded && !entitlement.allowed && (
         <main className="flex-1 px-4 py-6 md:px-6">
           <section className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-8 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -174,7 +176,7 @@ export function AgentsChatClient({
         </main>
       )}
 
-      {entitlement.allowed && (
+      {(embedded || entitlement.allowed) && (
       <main className="flex-1 flex flex-col overflow-hidden">
         <section className="w-full border-b border-border/60 bg-muted/25">
           <div className="mx-auto max-w-6xl px-4 py-4 md:px-6">

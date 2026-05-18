@@ -1,6 +1,6 @@
 import type { AgenticFeatureFlag } from '../types'
 
-export type MCPToolClassification = 'read' | 'write' | 'destructive'
+export type ToolClassification = 'read' | 'write' | 'destructive'
 
 export type MCPToolName =
   | 'crm.search_leads'
@@ -15,7 +15,9 @@ export type MCPToolName =
   | 'payments.record_payment'
   | 'tasks.create_follow_up_task'
 
-export type MCPTool = {
+export type MCPToolClassification = ToolClassification
+
+export type MCPTool<TInput = unknown, TOutput = unknown> = {
   name: MCPToolName
   description: string
   inputSchema: {
@@ -26,8 +28,44 @@ export type MCPTool = {
   requiredPlan: 'pro' | 'enterprise'
   requiredFlag?: AgenticFeatureFlag
   requiresApproval: boolean
-  classification: MCPToolClassification
-  dryRunSupported: boolean
+  classification: ToolClassification
+  supportsDryRun: boolean
+  auditPayloadShape: string[]
+  execute: (input: TInput, context: ToolContext) => Promise<MCPToolResult<TOutput>>
+  dryRun?: (input: TInput, context: ToolContext) => Promise<MCPDryRunResult>
+}
+
+export type ToolContext = {
+  tenantId: string
+  userId: string
+  runId: string
+  frappe: (method: string, path: string, body?: unknown) => Promise<unknown>
+}
+
+export type MCPToolResult<T = unknown> = {
+  success: boolean
+  data?: T
+  error?: string
+  idempotencyKey: string
+  dryRun?: boolean
+  ok?: boolean
+}
+
+export type MCPDryRunResult = {
+  preview: string
+  affectedRecords: string[]
+  estimatedImpact: 'low' | 'medium' | 'high'
+}
+
+export type ProposedAction = {
+  id: string
+  toolName: string
+  input: unknown
+  dryRunResult: MCPDryRunResult
+  runId: string
+  tenantId: string
+  status: 'pending' | 'approved' | 'rejected' | 'executed' | 'failed'
+  expiresAt: Date
 }
 
 export type MCPToolCall = {
@@ -35,10 +73,10 @@ export type MCPToolCall = {
   input: Record<string, unknown>
 }
 
-export type MCPToolResult = {
+/** @deprecated use MCPToolResult.success */
+export type LegacyMCPToolResult = {
   ok: boolean
   data?: unknown
   error?: string
   dryRun?: boolean
 }
-
