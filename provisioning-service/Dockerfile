@@ -16,10 +16,12 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY provisioning-service/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py .
+COPY provisioning-service/app.py ./app.py
+COPY provisioning-service/agent_doctypes.py ./agent_doctypes.py
+COPY frappe-config ./frappe-config
 
 ENV PROVISIONING_PORT=8001
 

@@ -260,6 +260,30 @@ export async function seedTenantDocPerms(subdomain: string): Promise<{
 }
 
 /**
+ * Import Agent Action Log + Agent Audit Log on a tenant site (idempotent).
+ * Called during provisioning for new tenants; use to repair existing sites.
+ */
+export async function seedTenantAgentDoctypes(subdomain: string): Promise<{
+  success: boolean
+  site: string
+  result: {
+    imported: string[]
+    skipped: string[]
+    errors: string[]
+    custom_fields?: {
+      created: string[]
+      skipped: string[]
+      errors: string[]
+    }
+  }
+}> {
+  return serviceRequest(
+    `/api/v1/seed-agent-doctypes/${encodeURIComponent(subdomain)}`,
+    { method: 'POST', timeout: 120_000 },
+  )
+}
+
+/**
  * Fetch tenant-specific catalogue defaults from ERPNext via ignore_permissions.
  * Returns resolved values that are safe to use for Item creation links.
  */

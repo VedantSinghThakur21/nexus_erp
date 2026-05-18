@@ -7,8 +7,8 @@
 services:
   provisioning:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: provisioning-service/Dockerfile
     container_name: nexus-provisioning
     restart: unless-stopped
     ports:

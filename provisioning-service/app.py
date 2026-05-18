@@ -38,6 +38,12 @@ from fastapi import FastAPI, HTTPException, Depends, Header, Request
 from pydantic import BaseModel, EmailStr, field_validator
 import uvicorn
 
+from agent_doctypes import (
+    AGENT_ACTION_LOG_CUSTOM_FIELDS,
+    build_seed_agent_doctypes_frappe_code,
+    load_agent_doctype_fixtures,
+)
+
 # ============================================================================
 # Configuration
 # ============================================================================
@@ -103,9 +109,11 @@ DOC_PERM_MINIMUM = [
     {"doctype": "Item", "role": "Stock User", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Item", "role": "Projects Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Item", "role": "Projects User", "read": 1, "write": 0, "create": 0, "delete": 0},
-    {"doctype": "Agent Action Log", "role": "Sales Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Agent Action Log", "role": "Sales Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
     {"doctype": "Agent Action Log", "role": "Projects Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Agent Action Log", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+    {"doctype": "Agent Audit Log", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+    {"doctype": "Agent Audit Log", "role": "Sales Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
     # Quality inspections (ERPNext built-in doctype).
     # Required by the Nexus "Inspections" module which uses Quality Inspection as its backing store.
     {"doctype": "Quality Inspection", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
@@ -346,6 +354,16 @@ def _indent(code: str, spaces: int) -> str:
     """Indent a block of code by N spaces."""
     prefix = " " * spaces
     return "\n".join(prefix + line for line in code.splitlines())
+
+
+def seed_agent_doctypes_on_site(site_name: str) -> dict[str, Any]:
+    """
+    Import Agent Action Log + Agent Audit Log on a tenant site (idempotent).
+    Also upserts custom fields when Action Log already exists from an older schema.
+    """
+    fixtures = load_agent_doctype_fixtures()
+    code = build_seed_agent_doctypes_frappe_code(fixtures, AGENT_ACTION_LOG_CUSTOM_FIELDS)
+    return _parse_json_output(run_frappe_code(site_name, code))
 
 
 def generate_subdomain(org_name: str) -> str:
@@ -668,6 +686,29 @@ print(json.dumps({{"roles": current_roles}}))
         steps_completed.append("owner_roles_verified")
     except Exception as e:
         return ProvisionResponse(success=False, site_name=site_name, subdomain=subdomain, error=str(e), steps_completed=steps_completed)
+
+    # Step 5.9: Agent Action Log + Agent Audit Log (required for Agent Inbox / agentic-ai plugin)
+    try:
+        agent_dt_result = seed_agent_doctypes_on_site(site_name)
+        if agent_dt_result.get("errors"):
+            logger.warning(f"agent doctype seed errors for {site_name}: {agent_dt_result.get('errors')}")
+        imported = agent_dt_result.get("imported") or []
+        skipped = agent_dt_result.get("skipped") or []
+        if not imported and not any(
+            name in skipped for name in ("Agent Action Log", "Agent Audit Log")
+        ):
+            raise Exception(f"Agent doctypes not present after seed: {agent_dt_result}")
+        steps_completed.append("agent_doctypes_seeded")
+        logger.info(f"Agent doctypes for {site_name}: {agent_dt_result}")
+    except Exception as e:
+        logger.error(f"Agent doctype seed failed for {site_name}: {e}")
+        return ProvisionResponse(
+            success=False,
+            site_name=site_name,
+            subdomain=subdomain,
+            error=f"Agent doctype setup failed: {e}",
+            steps_completed=steps_completed,
+        )
 
     # Step 6: set DocPerm matrix
     try:
@@ -1486,6 +1527,28 @@ print(json.dumps(result))
         return {"success": True, "site": site_name, "result": parsed}
     except Exception as e:
         logger.error(f"seed-custom-fields failed for {site_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/seed-agent-doctypes/{subdomain}")
+async def seed_tenant_agent_doctypes(subdomain: str, _auth: bool = Depends(verify_api_secret)):
+    """
+    Import Agent Action Log and Agent Audit Log on an existing tenant (idempotent).
+    Repairs tenants provisioned before agentic-ai doctypes were part of provisioning.
+    """
+    import re
+
+    if not re.match(r"^[a-z0-9][a-z0-9\-]{1,61}[a-z0-9]$", subdomain):
+        raise HTTPException(status_code=400, detail="Invalid subdomain format")
+
+    site_name = get_site_name(subdomain)
+
+    try:
+        parsed = seed_agent_doctypes_on_site(site_name)
+        logger.info(f"seed-agent-doctypes for {site_name}: {parsed}")
+        return {"success": True, "site": site_name, "result": parsed}
+    except Exception as e:
+        logger.error(f"seed-agent-doctypes failed for {site_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -45,6 +45,14 @@ export interface EnsureDocPermsResult {
   raw?: Record<string, unknown>
 }
 
+export interface EnsureAgentDoctypesResult {
+  imported: string[]
+  skipped: string[]
+  errors: string[]
+  error?: string
+  raw?: Record<string, unknown>
+}
+
 const DEFAULT_PRICE_LIST_NAME = 'Standard Selling'
 
 /**
@@ -153,6 +161,35 @@ export async function ensureTenantDocPerms(subdomain: string): Promise<EnsureDoc
     }
   } catch (e: any) {
     result.error = `provisioning seed-docperms failed: ${e?.message || e}`
+  }
+
+  return result
+}
+
+/**
+ * Ensure Agent Action Log + Agent Audit Log exist on the tenant (idempotent).
+ * Required for Agent Inbox and the agentic-ai plugin.
+ */
+export async function ensureTenantAgentDoctypes(subdomain: string): Promise<EnsureAgentDoctypesResult> {
+  const result: EnsureAgentDoctypesResult = {
+    imported: [],
+    skipped: [],
+    errors: [],
+  }
+
+  try {
+    const { seedTenantAgentDoctypes } = await import('@/lib/provisioning-client')
+    const resp = await seedTenantAgentDoctypes(subdomain)
+    result.raw = resp?.result as unknown as Record<string, unknown>
+    result.imported = Array.isArray(resp?.result?.imported) ? resp.result.imported : []
+    result.skipped = Array.isArray(resp?.result?.skipped) ? resp.result.skipped : []
+    result.errors = Array.isArray(resp?.result?.errors) ? resp.result.errors : []
+    if (result.errors.length > 0) {
+      result.error = `agent doctype seed returned errors (${result.errors.length})`
+    }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    result.error = `provisioning seed-agent-doctypes failed: ${message}`
   }
 
   return result
