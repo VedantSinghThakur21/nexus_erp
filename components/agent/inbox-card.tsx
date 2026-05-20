@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 type AgentInboxItem = {
   name?: string
@@ -13,11 +13,16 @@ type AgentInboxItem = {
   payload: string | Record<string, unknown>
 }
 
-function parsePayload(payload: string | Record<string, unknown>): { title: string; reason: string; confidence: number } {
+function parsePayload(payload: string | Record<string, unknown>): {
+  title: string
+  reason: string
+  confidence: number
+} {
   try {
-    const parsed = typeof payload === 'string'
-      ? JSON.parse(payload) as { title?: string; reason?: string; confidence?: number }
-      : payload as { title?: string; reason?: string; confidence?: number }
+    const parsed =
+      typeof payload === 'string'
+        ? (JSON.parse(payload) as { title?: string; reason?: string; confidence?: number })
+        : (payload as { title?: string; reason?: string; confidence?: number })
     return {
       title: parsed.title || 'Agent suggestion',
       reason: parsed.reason || JSON.stringify(payload, null, 2),
@@ -43,40 +48,61 @@ export function InboxCard({
   loading,
   onApprove,
   onReject,
+  compact,
 }: {
   item: AgentInboxItem
   loading: boolean
   onApprove: () => void
   onReject: () => void
+  compact?: boolean
 }) {
   const parsed = parsePayload(item.payload)
   const actionType = item.action_type || item.toolName || 'Agent action'
   const createdAt = item.creation || item.createdAt || new Date().toISOString()
 
   return (
-    <Card className="border-slate-200 bg-background shadow-sm">
-      <CardHeader className="space-y-2">
-        <CardTitle className="text-base text-slate-900">{parsed.title}</CardTitle>
-        <CardDescription className="text-slate-600">{parsed.reason}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground md:grid-cols-2">
-          <p><span className="font-semibold text-slate-700">Action:</span> {actionType}</p>
-          <p><span className="font-semibold text-slate-700">Tenant:</span> {item.tenant || 'current tenant'}</p>
-          <p><span className="font-semibold text-slate-700">Triggered by:</span> {item.triggered_by || 'Agentic AI'}</p>
-          <p><span className="font-semibold text-slate-700">Created:</span> {new Date(createdAt).toLocaleString()}</p>
-          <p><span className="font-semibold text-slate-700">Confidence:</span> {confidenceLabel(parsed.confidence)}</p>
-        </div>
+    <article
+      className={cn(
+        'rounded-2xl bg-card/80 p-5 ring-1 ring-border/60 transition hover:ring-border',
+        compact && 'p-4',
+      )}
+    >
+      <header className="space-y-1.5">
+        <h3 className="text-base font-semibold text-foreground">{parsed.title}</h3>
+        <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">{parsed.reason}</p>
+      </header>
 
-        <div className="flex items-center gap-2">
-          <Button disabled={loading} onClick={onApprove} className="bg-emerald-600 hover:bg-emerald-700">
-            Approve
-          </Button>
-          <Button disabled={loading} onClick={onReject} variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50">
-            Reject
-          </Button>
+      <dl className="mt-4 grid grid-cols-1 gap-x-4 gap-y-1.5 text-xs text-muted-foreground sm:grid-cols-2">
+        <div>
+          <dt className="inline font-medium text-foreground/80">Action: </dt>
+          <dd className="inline">{actionType}</dd>
         </div>
-      </CardContent>
-    </Card>
+        <div>
+          <dt className="inline font-medium text-foreground/80">Tenant: </dt>
+          <dd className="inline">{item.tenant || 'current tenant'}</dd>
+        </div>
+        <div>
+          <dt className="inline font-medium text-foreground/80">By: </dt>
+          <dd className="inline">{item.triggered_by || 'Agentic AI'}</dd>
+        </div>
+        <div>
+          <dt className="inline font-medium text-foreground/80">Created: </dt>
+          <dd className="inline">{new Date(createdAt).toLocaleString()}</dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="inline font-medium text-foreground/80">Confidence: </dt>
+          <dd className="inline">{confidenceLabel(parsed.confidence)}</dd>
+        </div>
+      </dl>
+
+      <footer className="mt-5 flex flex-wrap gap-2">
+        <Button disabled={loading} onClick={onApprove} size="sm">
+          Approve
+        </Button>
+        <Button disabled={loading} onClick={onReject} variant="outline" size="sm">
+          Reject
+        </Button>
+      </footer>
+    </article>
   )
 }

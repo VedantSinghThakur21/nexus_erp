@@ -1,8 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { Inbox } from 'lucide-react'
 import { InboxCard } from '@/components/agent/inbox-card'
 import { useToast } from '@/components/ui/toast'
+import { Button } from '@/components/ui/button'
 
 type InboxItem = {
   id: string
@@ -52,13 +55,37 @@ export function AgentInboxTab() {
     setActionId(null)
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading inbox…</p>
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2].map((k) => (
+          <div key={k} className="h-28 animate-pulse rounded-2xl bg-muted/40 ring-1 ring-border/40" />
+        ))}
+      </div>
+    )
+  }
+
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">No pending approvals.</p>
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50 text-muted-foreground ring-1 ring-border/50">
+          <Inbox className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-foreground">No pending approvals</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            When the agent proposes a write, it appears here for review.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/agent">Open full inbox</Link>
+        </Button>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="mx-auto max-w-3xl space-y-3">
       {items.map((item) => (
         <InboxCard
           key={item.id || item.name}
@@ -66,6 +93,7 @@ export function AgentInboxTab() {
           loading={actionId === (item.id || item.name)}
           onApprove={() => decide(item.id || item.name || '', true)}
           onReject={() => decide(item.id || item.name || '', false)}
+          compact
         />
       ))}
     </div>
