@@ -86,9 +86,21 @@ export function AgentsChatClient({
         body: JSON.stringify({ message: userMessageContent, mode: 'chat' }),
       })
 
-      const data = await response.json()
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string
+        code?: string
+        result?: { answer?: string; citations?: Array<{ title: string; citation?: string }> }
+      }
+
       if (!response.ok) {
-        throw new Error(data.error || `Request failed (${response.status})`)
+        const detail = data.error || `Request failed (${response.status})`
+        if (response.status === 403) {
+          throw new Error(detail || 'Agentic AI is not enabled for this tenant.')
+        }
+        if (response.status === 429) {
+          throw new Error('Too many requests — wait a minute and try again.')
+        }
+        throw new Error(detail)
       }
 
       const citations = (data.result?.citations ?? []) as Array<{ title: string; citation?: string }>
@@ -103,14 +115,20 @@ export function AgentsChatClient({
           citations: citations.length > 0 ? citations : undefined,
         },
       ])
-    } catch {
+    } catch (err) {
+      const apiMessage = err instanceof Error ? err.message : ''
+      const hint =
+        apiMessage.includes('OPENROUTER') || apiMessage.includes('Model unavailable')
+          ? ' Add `OPENROUTER_API_KEY` to **nexus_erp/.env.local** (project root), then restart `npm run dev` or PM2.'
+          : ''
       setMessages((prev) => [
         ...prev,
         {
           id: String(Date.now()),
           role: 'assistant',
           content:
-            'I could not reach the model right now. Check `OPENROUTER_API_KEY` on the server, or try again in a moment.',
+            apiMessage ||
+            `I could not reach the model right now.${hint || ' Check the server logs or try again in a moment.'}`,
         },
       ])
     } finally {
