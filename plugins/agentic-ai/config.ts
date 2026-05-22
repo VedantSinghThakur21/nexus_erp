@@ -1,8 +1,43 @@
 import type { AgenticFeatureFlag, AgenticPlan } from './types'
 
+function trimEnv(name: string): string {
+  return (process.env[name] || '').trim().replace(/^['"]|['"]$/g, '')
+}
+
+const OPENROUTER_KEY_ENV_NAMES = [
+  'OPENROUTER_API_KEY',
+  'OPEN_ROUTER_API_KEY',
+  'OPENROUTER_KEY',
+] as const
+
+export type OpenRouterKeySource =
+  | (typeof OPENROUTER_KEY_ENV_NAMES)[number]
+  | 'OPENAI_API_KEY'
+  | null
+
+/** Where the OpenRouter key was resolved from (for diagnostics only). */
+export function getOpenRouterKeySource(): OpenRouterKeySource {
+  for (const name of OPENROUTER_KEY_ENV_NAMES) {
+    if (trimEnv(name)) return name
+  }
+  const openAi = trimEnv('OPENAI_API_KEY')
+  if (openAi.startsWith('sk-or-')) return 'OPENAI_API_KEY'
+  return null
+}
+
+function resolveOpenRouterApiKey(): string {
+  for (const name of OPENROUTER_KEY_ENV_NAMES) {
+    const value = trimEnv(name)
+    if (value) return value
+  }
+  const openAi = trimEnv('OPENAI_API_KEY')
+  if (openAi.startsWith('sk-or-')) return openAi
+  return ''
+}
+
 export const AGENTIC_CONFIG = {
   get openRouterApiKey(): string {
-    return process.env.OPENROUTER_API_KEY || ''
+    return resolveOpenRouterApiKey()
   },
   openRouterBaseUrl: 'https://openrouter.ai/api/v1',
   modelPolicies: {
@@ -24,7 +59,7 @@ export const AGENTIC_CONFIG = {
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://avariq.in',
   appName: 'Nexus ERP',
   redis: {
-    url: process.env.REDIS_URL ?? 'redis://127.0.0.1:6379',
+    url: process.env.REDIS_URL ?? '',
   },
   rateLimits: {
     chat: { requests: 30, windowMs: 60_000 },

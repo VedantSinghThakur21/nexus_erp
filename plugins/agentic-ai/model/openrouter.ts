@@ -95,9 +95,13 @@ export async function runWithModel(opts: {
   }
 
   if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    const detail = body ? body.slice(0, 280) : ''
     const error: AgenticModelError = {
       code: 'MODEL_UNAVAILABLE',
-      message: `OpenRouter returned ${res.status}`,
+      message: detail
+        ? `OpenRouter returned ${res.status}: ${detail}`
+        : `OpenRouter returned ${res.status}`,
     }
     throw error
   }

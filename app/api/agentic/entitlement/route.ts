@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withTimingHeaders } from '@/lib/api/with-timing'
 import { withAgenticHeaders } from '@/lib/agentic/response-headers'
 import { requireAgenticEntitlement } from '@/lib/agentic/api-helpers'
+import { AGENTIC_CONFIG, getOpenRouterKeySource } from '@/plugins/agentic-ai/config'
 import { registry } from '@/plugins/agentic-ai/mcp/registry'
 
 export const runtime = 'nodejs'
@@ -33,6 +34,8 @@ export async function GET() {
           requiredPlan: t.requiredPlan,
           requiredFlag: t.requiredFlag,
         })),
+      openRouterConfigured: Boolean(AGENTIC_CONFIG.openRouterApiKey),
+      openRouterKeySource: getOpenRouterKeySource(),
     })
   )
   res.headers.set('Cache-Control', 'private, max-age=0, s-maxage=30, stale-while-revalidate=120')

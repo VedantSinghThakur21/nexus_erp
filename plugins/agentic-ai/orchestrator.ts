@@ -287,10 +287,12 @@ export async function runAgenticChat(input: {
     if (agenticModelError?.code === 'MODEL_UNAVAILABLE') {
       const msg = agenticModelError.message || 'Model unavailable'
       const friendly = msg.includes('not configured')
-        ? 'OPENROUTER_API_KEY is not set on the server. Add it to nexus_erp/.env.local and restart the app.'
+        ? 'OPENROUTER_API_KEY is missing in nexus_erp/.env.local (project root). Add OPENROUTER_API_KEY=sk-or-v1-... — not OPENAI_API_KEY (sk-proj). Restart npm run dev or PM2.'
         : msg.includes('OpenRouter returned 401') || msg.includes('OpenRouter returned 403')
-          ? 'OpenRouter rejected the API key (invalid or expired). Check OPENROUTER_API_KEY in nexus_erp/.env.local.'
-          : msg
+          ? 'OpenRouter rejected the API key (invalid or expired). Use a key from https://openrouter.ai/keys in OPENROUTER_API_KEY.'
+          : msg.includes('OpenRouter returned 402')
+            ? 'OpenRouter credits exhausted. Add credits at https://openrouter.ai/credits'
+            : msg
       return { ok: false, error: friendly, status: 502 }
     }
 
