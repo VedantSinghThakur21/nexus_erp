@@ -10,9 +10,11 @@ import { executeMcpTool } from './mcp/executor'
 import { getMcpTool, listMcpToolsForTenant, registry } from './mcp/registry'
 import { buildToolContext } from './mcp/tool-runtime'
 import type { MCPToolCall, ProposedAction } from './mcp/types'
+import { formatToolResultForChat } from './format-tool-result'
 import { formatContextForPrompt, retrieve } from './rag/retriever'
 import type { RetrievedContext } from './rag/types'
 import type { AgenticChatResult, AgenticEntitlement, AgenticMode } from './types'
+import type { MCPToolResult } from './mcp/types'
 
 function newRunId(): string {
   return randomBytes(8).toString('hex')
@@ -57,7 +59,7 @@ function buildSystemPrompt(
       toolNames.map((n) => `${toApiToolName(n)}=${n}`).join(', ') || 'none'
     }`,
     `Current mode: ${mode}`,
-    "- In 'chat' mode: answer questions using read tools only. Do not execute writes.",
+    "- In 'chat' mode: call read tools (e.g. srchld for leads); results are fetched from ERPNext automatically. Do not call write tools.",
     "- In 'plan' mode: propose actions as a plan. Do not execute anything.",
     "- In 'act' mode: execute read tools immediately. For write/destructive tools, create pending approval.",
   ].join('\n\n')
@@ -120,7 +122,29 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
 
     for (const call of modelResult.toolCalls) {
       const tool = getMcpTool(call.toolName as MCPToolCall['name'])
-      if (!tool) continue
+      if (!tool) {
+        notes.push(`Unknown tool "${call.toolName}".`)
+        continue
+      }
+
+      if (input.mode === 'chat' && tool.classification === 'read') {
+        const result = (await tool.execute(call.input, toolContext)) as MCPToolResult
+        await writeAudit(
+          {
+            tenantId: input.tenantId,
+            userId: input.userId,
+            runId,
+            event: result.success ? 'tool.succeeded' : 'tool.failed',
+            toolName: tool.name,
+            classification: tool.classification,
+            payload: { idempotencyKey: result.idempotencyKey },
+            outcome: result.success ? 'success' : 'failure',
+          },
+          input.tenantId
+        ).catch(() => undefined)
+        notes.push(formatToolResultForChat(tool.name, result))
+        continue
+      }
 
       if (input.mode === 'chat' && tool.classification !== 'read') {
         notes.push(`I can propose "${tool.name}" in Plan or Act mode.`)
@@ -182,6 +206,13 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
 
     if (notes.length > 0) {
       response = [response, ...notes].filter(Boolean).join('\n\n')
+    }
+
+    if (!response.trim()) {
+      response =
+        modelResult.toolCalls.length > 0
+          ? 'I ran the requested lookup but had nothing to show. Try narrowing your question.'
+          : 'I was not able to generate a response. Please try again or rephrase your question.'
     }
 
     auditId = await writeAudit(

@@ -122,9 +122,15 @@ export async function runWithModel(opts: {
   const toolCalls = (choice.message.tool_calls ?? []).map((tc) => {
     const apiName = tc.function.name
     const canonical = fromApiToolName(apiName) ?? apiName
+    let input: unknown = {}
+    try {
+      input = JSON.parse(tc.function.arguments || '{}') as unknown
+    } catch {
+      input = {}
+    }
     return {
       toolName: canonical,
-      input: JSON.parse(tc.function.arguments) as unknown,
+      input,
     }
   })
 
