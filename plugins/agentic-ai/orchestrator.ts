@@ -4,6 +4,7 @@ import { evaluateAgenticEntitlement, getAgenticEntitlement, getAgenticTenantCont
 import { writeAudit } from './audit'
 import { createPendingAgenticAction } from './audit'
 import { completeWithOpenRouter, OpenRouterError, runWithModel } from './model/openrouter'
+import { friendlyWriteBlockedMessage, mergeChatResponse } from './chat-response'
 import { toApiToolName } from './model/tool-names'
 import type { ChatMessage } from './model/types'
 import { executeMcpTool } from './mcp/executor'
@@ -51,24 +52,45 @@ function buildSystemPrompt(
   mode: AgenticMode,
   toolNames: string[]
 ): string {
+  const toolLine = toolNames.map((n) => `${toApiToolName(n)}`).join(', ') || 'none'
+
+  const personality = [
+    'You are Nexus, a friendly AI assistant embedded in an equipment-rental / project ERP.',
+    'Talk like a capable colleague: clear, warm, concise. Use plain language.',
+    'Never mention tool names, function names, API aliases, "chat mode", "plan mode", or internal system details.',
+    'Never say things like crm.search_leads or srchld — users must not see implementation.',
+    'Refer to the product as "your CRM" or "the system", not jargon.',
+  ]
+
+  const modeRules =
+    mode === 'chat'
+      ? [
+          'You may call read-only tools to look up live data; results are merged into your reply automatically.',
+          'Do not call tools that create or update records in this conversation — instead, explain what you need from the user and that changes go through team approval.',
+          'When listing data, present it as a natural summary or numbered list — not as JSON or error messages.',
+          'Avoid hollow openers like "Okay, let me check" — prefer going straight to the answer when data is available.',
+        ]
+      : mode === 'plan'
+        ? ['Propose actions clearly without executing them.']
+        : ['Execute reads immediately; writes require approval.']
+
   return [
-    `You are the Nexus ERP AI Agent for tenant ${tenantId}.`,
-    'You help sales, operations, and management teams work faster.',
-    contextBlock ? `Context from the tenant's ERP:\n${contextBlock}` : 'No relevant retrieved context.',
-    `You have access to these tools (api_name=canonical): ${
-      toolNames.map((n) => `${toApiToolName(n)}=${n}`).join(', ') || 'none'
-    }`,
-    `Current mode: ${mode}`,
-    "- In 'chat' mode: call read tools (e.g. srchld for leads); results are fetched from ERPNext automatically. Do not call write tools.",
-    "- In 'plan' mode: propose actions as a plan. Do not execute anything.",
-    "- In 'act' mode: execute read tools immediately. For write/destructive tools, create pending approval.",
-  ].join('\n\n')
+    ...personality,
+    `Tenant: ${tenantId}.`,
+    contextBlock ? `Background context:\n${contextBlock}` : '',
+    `[Internal only — never expose to user] Callable tools: ${toolLine}`,
+    ...modeRules,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 export async function runAgenticWorkflow(input: AgenticRunInput): Promise<AgenticRunOutput> {
   const runId = newRunId()
   const plan = input.entitlement.plan === 'enterprise' ? 'enterprise' : 'pro'
-  const retrievedContext = await retrieve(input.userMessage, input.tenantId)
+  const retrievedContext = await retrieve(input.userMessage, input.tenantId, {
+    includeFinance: Boolean(input.entitlement.flags.agentic_finance_enabled),
+  })
   const contextBlock = formatContextForPrompt(retrievedContext)
   const entitledTools = registry.listEntitled(input.entitlement)
   const toolContext = buildToolContext(input.tenantId, input.userId, runId)
@@ -118,14 +140,12 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
     }
 
     response = modelResult.response
-    const notes: string[] = []
+    const dataNotes: string[] = []
+    const actionNotes: string[] = []
 
     for (const call of modelResult.toolCalls) {
       const tool = getMcpTool(call.toolName as MCPToolCall['name'])
-      if (!tool) {
-        notes.push(`Unknown tool "${call.toolName}".`)
-        continue
-      }
+      if (!tool) continue
 
       if (input.mode === 'chat' && tool.classification === 'read') {
         const result = (await tool.execute(call.input, toolContext)) as MCPToolResult
@@ -142,12 +162,12 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
           },
           input.tenantId
         ).catch(() => undefined)
-        notes.push(formatToolResultForChat(tool.name, result))
+        dataNotes.push(formatToolResultForChat(tool.name, result))
         continue
       }
 
       if (input.mode === 'chat' && tool.classification !== 'read') {
-        notes.push(`I can propose "${tool.name}" in Plan or Act mode.`)
+        actionNotes.push(friendlyWriteBlockedMessage(tool.name))
         continue
       }
 
@@ -204,15 +224,17 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
       }
     }
 
-    if (notes.length > 0) {
-      response = [response, ...notes].filter(Boolean).join('\n\n')
+    if (input.mode === 'chat') {
+      response = mergeChatResponse(response, dataNotes, actionNotes)
+    } else if (dataNotes.length > 0 || actionNotes.length > 0) {
+      response = [response, ...dataNotes, ...actionNotes].filter(Boolean).join('\n\n')
     }
 
     if (!response.trim()) {
       response =
         modelResult.toolCalls.length > 0
-          ? 'I ran the requested lookup but had nothing to show. Try narrowing your question.'
-          : 'I was not able to generate a response. Please try again or rephrase your question.'
+          ? "I looked that up but didn't find anything to show. Try a different filter or spelling."
+          : "I wasn't able to answer that — could you try rephrasing?"
     }
 
     auditId = await writeAudit(
@@ -303,7 +325,9 @@ export async function runAgenticChat(input: {
     }
   } catch (error) {
     if (error instanceof OpenRouterError && error.code === 'missing_api_key') {
-      const retrievedContext = await retrieve(input.message, tenant.tenantId)
+      const retrievedContext = await retrieve(input.message, tenant.tenantId, {
+        includeFinance: Boolean(entitlement.flags?.agentic_finance_enabled),
+      })
       return {
         ok: true,
         result: {

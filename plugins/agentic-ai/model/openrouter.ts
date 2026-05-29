@@ -49,7 +49,7 @@ export async function runWithModel(opts: {
     type: 'function' as const,
     function: {
       name: toApiToolName(t.name),
-      description: `[${t.name}] ${t.description}`,
+      description: t.description,
       parameters: t.inputSchema,
     },
   }))

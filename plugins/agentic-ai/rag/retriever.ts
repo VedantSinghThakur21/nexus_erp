@@ -1,4 +1,5 @@
-import { getIndexedRagDocuments } from './indexer'
+import { getIndexedRagDocuments, getTenantRagDocuments } from './indexer'
+import { ensureTenantRagIndexed } from './erp-sync'
 import { getStaticRagDocuments } from './sources'
 import type { RagRetriever, RagSource, RetrievedContext, RetrieveOpts } from './types'
 
@@ -17,8 +18,6 @@ function cosineSimilarity(query: string, content: string): number {
   return hits / queryTokens.length
 }
 
-const docStore = new Map<string, ReturnType<typeof getIndexedRagDocuments>>()
-
 export function formatContextForPrompt(chunks: RetrievedContext[]): string {
   if (chunks.length === 0) return ''
   return chunks.map((c, i) => `[${i + 1}] ${c.title} (${c.source})\n${c.content}`).join('\n\n---\n\n')
@@ -32,12 +31,19 @@ export async function retrieve(
   tenantId: string,
   opts: RetrieveOpts = {}
 ): Promise<RetrievedContext[]> {
-  const topK = opts.topK ?? 5
-  const minScore = opts.minScore ?? 0.3
+  const topK = opts.topK ?? 8
+  const minScore = opts.minScore ?? 0.2
+
+  if (tenantId && tenantId !== 'master' && opts.syncErp !== false) {
+    await ensureTenantRagIndexed(tenantId, {
+      includeFinance: opts.includeFinance,
+    }).catch(() => undefined)
+  }
 
   const tenantDocs = [
     ...getStaticRagDocuments(),
-    ...(docStore.get(tenantId) ?? getIndexedRagDocuments().filter((d) => d.tenantId === tenantId)),
+    ...getTenantRagDocuments(tenantId),
+    ...getIndexedRagDocuments().filter((d) => d.tenantId === tenantId),
   ]
 
   const scored = tenantDocs

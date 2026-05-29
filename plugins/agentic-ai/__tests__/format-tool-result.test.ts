@@ -9,7 +9,7 @@ describe('formatToolResultForChat', () => {
       data: [{ lead_name: 'Acme', status: 'Lead', email_id: 'a@acme.com' }],
     })
     expect(text).toContain('Acme')
-    expect(text).toContain('**1** lead')
+    expect(text).toContain('lead I found')
   })
 
   it('formats errors', () => {

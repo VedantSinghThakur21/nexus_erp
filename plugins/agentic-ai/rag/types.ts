@@ -30,5 +30,8 @@ export interface RagIndexer {
 export type RetrieveOpts = {
   topK?: number
   minScore?: number
+  /** When false, skip live ERP sync (tests). Default true. */
+  syncErp?: boolean
+  includeFinance?: boolean
 }
 

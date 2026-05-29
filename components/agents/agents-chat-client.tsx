@@ -42,7 +42,7 @@ export function AgentsChatClient({
       id: 'welcome',
       role: 'assistant',
       content:
-        "I'm your **Nexus agent** — grounded in your tenant's ERPNext data. Ask about leads, inventory, quotes, or invoices. Writes that change data may need approval in the [Agent inbox](/agent) first.",
+        "Hi — I'm Nexus. I can look up leads, stock, quotes, and invoices from your live CRM, and help you draft changes that your team approves before they go live. What would you like to know?",
     },
   ])
   const [input, setInput] = useState('')
@@ -144,11 +144,11 @@ export function AgentsChatClient({
     <div className={cn('flex min-h-0 flex-1 flex-col', embedded ? 'h-full' : '')}>
       {embedded && (
         <p className="shrink-0 border-b border-border/40 bg-muted/20 px-4 py-2 text-center text-[11px] text-muted-foreground md:px-6">
-          Answers use live ERPNext data. Writes may require approval in{' '}
+          Live CRM data · changes go through{' '}
           <Link href="/agent" className="font-medium text-primary hover:underline">
-            Agent inbox
+            team approval
           </Link>
-          .
+          first
         </p>
       )}
       <div className="flex min-h-0 flex-1 overflow-hidden">
