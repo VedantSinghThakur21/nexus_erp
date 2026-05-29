@@ -4,6 +4,7 @@ import { evaluateAgenticEntitlement, getAgenticEntitlement, getAgenticTenantCont
 import { writeAudit } from './audit'
 import { createPendingAgenticAction } from './audit'
 import { completeWithOpenRouter, OpenRouterError, runWithModel } from './model/openrouter'
+import { toApiToolName } from './model/tool-names'
 import type { ChatMessage } from './model/types'
 import { executeMcpTool } from './mcp/executor'
 import { getMcpTool, listMcpToolsForTenant, registry } from './mcp/registry'
@@ -52,7 +53,9 @@ function buildSystemPrompt(
     `You are the Nexus ERP AI Agent for tenant ${tenantId}.`,
     'You help sales, operations, and management teams work faster.',
     contextBlock ? `Context from the tenant's ERP:\n${contextBlock}` : 'No relevant retrieved context.',
-    `You have access to these tools: ${toolNames.join(', ') || 'none'}`,
+    `You have access to these tools (api_name=canonical): ${
+      toolNames.map((n) => `${toApiToolName(n)}=${n}`).join(', ') || 'none'
+    }`,
     `Current mode: ${mode}`,
     "- In 'chat' mode: answer questions using read tools only. Do not execute writes.",
     "- In 'plan' mode: propose actions as a plan. Do not execute anything.",

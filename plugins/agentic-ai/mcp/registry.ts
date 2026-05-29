@@ -1,5 +1,6 @@
 import type { AgenticEntitlement, AgenticTenantContext } from '../types'
 import { canUseAgenticTool } from '../entitlements'
+import { resolveCanonicalToolName } from '../model/tool-names'
 import type { MCPTool, MCPToolName, ToolClassification } from './types'
 import { crmTools } from './tools/crm'
 import { quotesTools } from './tools/quotes'
@@ -50,8 +51,9 @@ export const registry = new MCPRegistry()
   (t) => registry.register(t)
 )
 
-export function getMcpTool(name: MCPToolName): MCPTool | undefined {
-  return registry.get(name) as MCPTool | undefined
+export function getMcpTool(name: MCPToolName | string): MCPTool | undefined {
+  const canonical = resolveCanonicalToolName(name) as MCPToolName
+  return registry.get(canonical) as MCPTool | undefined
 }
 
 export function listMcpToolsForTenant(context: AgenticTenantContext) {

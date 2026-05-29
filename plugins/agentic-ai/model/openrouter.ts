@@ -1,5 +1,6 @@
 import { AGENTIC_CONFIG, getModelPolicy, type ModelPolicy } from '../config'
 import type { MCPTool } from '../mcp/types'
+import { fromApiToolName, toApiToolName } from './tool-names'
 import type { AgenticPlan } from '../types'
 import type { AgenticModelError, ChatMessage, ModelResult } from './types'
 
@@ -47,8 +48,8 @@ export async function runWithModel(opts: {
   const toolDefs = opts.tools.map((t) => ({
     type: 'function' as const,
     function: {
-      name: t.name,
-      description: t.description,
+      name: toApiToolName(t.name),
+      description: `[${t.name}] ${t.description}`,
       parameters: t.inputSchema,
     },
   }))
@@ -118,10 +119,14 @@ export async function runWithModel(opts: {
   }
 
   const choice = data.choices[0]
-  const toolCalls = (choice.message.tool_calls ?? []).map((tc) => ({
-    toolName: tc.function.name,
-    input: JSON.parse(tc.function.arguments) as unknown,
-  }))
+  const toolCalls = (choice.message.tool_calls ?? []).map((tc) => {
+    const apiName = tc.function.name
+    const canonical = fromApiToolName(apiName) ?? apiName
+    return {
+      toolName: canonical,
+      input: JSON.parse(tc.function.arguments) as unknown,
+    }
+  })
 
   return {
     response: choice.message.content ?? '',
