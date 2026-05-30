@@ -123,3 +123,31 @@ export function itemMatchesPriceFilter(
   const rate = itemRate(item)
   return rate >= minPrice && rate <= maxPrice
 }
+
+export function catalogueHealthScore(items: CatalogueItemInput[]): number {
+  if (items.length === 0) return 0
+  const available = items.filter((i) => i.available).length
+  const stockItems = items.filter((i) => i.stock_qty !== null)
+  const outOfStock = stockItems.filter((i) => !i.available).length
+  const availabilityRatio = available / items.length
+  const stockPenalty = stockItems.length > 0 ? outOfStock / stockItems.length : 0
+  const score = Math.round(availabilityRatio * 70 + 30 - stockPenalty * 25)
+  return Math.min(100, Math.max(0, score))
+}
+
+export function catalogueHealthLabel(score: number): string {
+  if (score >= 75) return 'Strong availability'
+  if (score >= 50) return 'Moderate capacity'
+  if (score > 0) return 'Needs restock'
+  return 'Empty catalogue'
+}
+
+export function bookableItems(items: CatalogueItemInput[]): CatalogueItemInput[] {
+  return items
+    .filter((i) => i.available)
+    .sort((a, b) => (b.standard_rate || 0) - (a.standard_rate || 0))
+}
+
+export function outOfStockItems(items: CatalogueItemInput[]): CatalogueItemInput[] {
+  return items.filter((i) => i.stock_qty !== null && !i.available)
+}

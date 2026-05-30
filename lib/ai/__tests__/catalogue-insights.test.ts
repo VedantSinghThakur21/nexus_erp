@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildCatalogueInsights,
+  catalogueHealthScore,
   itemMatchesPriceFilter,
 } from '@/lib/ai/catalogue-insights'
 
@@ -33,5 +34,10 @@ describe('catalogue-insights', () => {
     const insights = buildCatalogueInsights(items)
     expect(insights.summary.outOfStock).toBe(1)
     expect(insights.alerts.some((a) => a.title === 'Stock alert')).toBe(true)
+  })
+
+  it('computes health score from availability', () => {
+    expect(catalogueHealthScore(items)).toBeGreaterThan(0)
+    expect(catalogueHealthScore([])).toBe(0)
   })
 })

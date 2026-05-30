@@ -480,8 +480,11 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
               )}
             </div>
 
-            <aside className="col-span-12 lg:col-span-3 xl:col-span-3 space-y-6">
-              <CatalogueAiInsights items={filteredItems.length > 0 ? filteredItems : allItems} />
+            <aside className="col-span-12 flex flex-col gap-6 lg:col-span-3 xl:col-span-3">
+              <CatalogueAiInsights
+                items={filteredItems.length > 0 ? filteredItems : allItems}
+                onViewItem={(code) => void handleQuickView(code)}
+              />
               <div className="bg-gradient-to-br from-midnight-blue to-slate-800 rounded-xl p-6 text-white shadow-xl">
                 <span className="material-symbols-outlined text-3xl mb-4 text-blue-400">help_center</span>
                 <h4 className="font-bold mb-2">Need Workspace Help?</h4>
