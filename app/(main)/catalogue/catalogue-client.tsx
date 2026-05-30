@@ -6,7 +6,9 @@ import { getItemRentalAnalytics } from '@/app/actions/bookings'
 import { CreateItemDialog } from '@/components/catalogue/create-item-dialog'
 import { EditItemDialog } from '@/components/catalogue/edit-item-dialog'
 import { CreateBookingDialog } from '@/components/bookings/create-booking-dialog'
+import { CatalogueAiInsights } from '@/components/catalogue/catalogue-ai-insights'
 import { PageHeader } from '@/components/page-header'
+import { itemMatchesPriceFilter } from '@/lib/ai/catalogue-insights'
 
 interface Item {
   item_code: string
@@ -34,11 +36,17 @@ interface RentalAnalytics {
 }
 
 export function CatalogueClient(props: { initialItems: Item[] }) {
+  const priceCeilingFromItems = useMemo(() => {
+    const rates = props.initialItems.map((i) => i.standard_rate || 0)
+    const max = rates.length ? Math.max(...rates) : 5000
+    return Math.max(5000, Math.ceil(max / 1000) * 1000)
+  }, [props.initialItems])
+
   const [allItems, setAllItems] = useState<Item[]>(props.initialItems)
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set(['All']))
   const [searchQuery, setSearchQuery] = useState('')
   const [minPrice, setMinPrice] = useState(0)
-  const [maxPrice, setMaxPrice] = useState(5000)
+  const [maxPrice, setMaxPrice] = useState(priceCeilingFromItems)
   const [selectedItem, setSelectedItem] = useState<ItemDetails | null>(null)
   const [itemAnalytics, setItemAnalytics] = useState<RentalAnalytics | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -67,11 +75,15 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
     }
   }, [])
 
+  const priceCeiling = useMemo(() => {
+    const rates = allItems.map((i) => i.standard_rate || 0)
+    const max = rates.length ? Math.max(...rates, maxPrice) : maxPrice
+    return Math.max(5000, Math.ceil(max / 1000) * 1000)
+  }, [allItems, maxPrice])
+
   const filteredItems: Item[] = useMemo(() => {
     let items = allItems
-    if (selectedCategories.has('All')) {
-      // no-op
-    } else if (selectedCategories.size > 0) {
+    if (!selectedCategories.has('All') && selectedCategories.size > 0) {
       items = items.filter((item: Item) => selectedCategories.has(item.item_group))
     }
     if (searchQuery) {
@@ -83,8 +95,9 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
           item.description?.toLowerCase().includes(query)
       )
     }
+    items = items.filter((item) => itemMatchesPriceFilter(item, minPrice, maxPrice))
     return items
-  }, [allItems, searchQuery, selectedCategories])
+  }, [allItems, searchQuery, selectedCategories, minPrice, maxPrice])
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
   const paginatedItems = useMemo(() => {
@@ -95,14 +108,25 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
 
   useEffect(() => {
     queueMicrotask(() => setCurrentPage(1))
-  }, [filteredItems])
+  }, [filteredItems, minPrice, maxPrice])
 
   const totalItems = allItems.length
   const availableItems = allItems.filter((item) => item.available).length
+  const filteredAvailable = filteredItems.filter((item) => item.available).length
 
   const getCategoryCount = (category: string) => {
-    if (category === 'All') return totalItems
-    return allItems.filter((item) => item.item_group === category).length
+    let items = allItems.filter((item) => itemMatchesPriceFilter(item, minPrice, maxPrice))
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      items = items.filter(
+        (item) =>
+          item.item_name.toLowerCase().includes(query) ||
+          item.item_code.toLowerCase().includes(query) ||
+          item.description?.toLowerCase().includes(query)
+      )
+    }
+    if (category === 'All') return items.length
+    return items.filter((item) => item.item_group === category).length
   }
 
   const toggleCategory = (category: string) => {
@@ -187,13 +211,17 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
                 </div>
               </div>
               <div className="flex items-end gap-3">
-                <p className="text-2xl font-medium text-foreground leading-none">{availableItems}</p>
-                <span className="text-sm font-semibold text-slate-400 mb-1">Ready to book</span>
+                <p className="text-2xl font-medium text-foreground leading-none">{filteredAvailable}</p>
+                <span className="text-sm font-semibold text-slate-400 mb-1">
+                  {filteredItems.length === totalItems ? 'Ready to book' : `of ${filteredItems.length} shown`}
+                </span>
               </div>
               <div className="mt-5 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"
-                  style={{ width: `${totalItems > 0 ? Math.round((availableItems / totalItems) * 100) : 0}%` }}
+                  style={{
+                    width: `${filteredItems.length > 0 ? Math.round((filteredAvailable / filteredItems.length) * 100) : 0}%`,
+                  }}
                 ></div>
               </div>
             </div>
@@ -208,7 +236,11 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
               <div className="flex items-end gap-3">
                 <p className="text-2xl font-medium text-foreground leading-none">{filteredItems.length}</p>
                 <span className="text-sm font-semibold text-slate-400 mb-1 truncate">
-                  {selectedCategories.has('All') ? 'Showing All' : Array.from(selectedCategories).join(', ')}
+                  {selectedCategories.has('All')
+                    ? minPrice > 0 || maxPrice < priceCeiling
+                      ? `₹${minPrice.toLocaleString('en-IN')}–${maxPrice.toLocaleString('en-IN')}`
+                      : 'Showing All'
+                    : Array.from(selectedCategories).join(', ')}
                 </span>
               </div>
               <div className="mt-5 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -267,7 +299,7 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
                         className="w-full pl-6 pr-3 py-1.5 bg-card border border-slate-200 rounded text-sm bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         type="text"
                         value={maxPrice}
-                        onChange={(e) => setMaxPrice(parseInt(e.target.value) || 5000)}
+                        onChange={(e) => setMaxPrice(parseInt(e.target.value, 10) || priceCeiling)}
                       />
                     </div>
                   </div>
@@ -275,11 +307,14 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
                 <input
                   className="w-full bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                   type="range"
-                  min="0"
-                  max="5000"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(parseInt(e.target.value))}
+                  min={0}
+                  max={priceCeiling}
+                  value={Math.min(maxPrice, priceCeiling)}
+                  onChange={(e) => setMaxPrice(parseInt(e.target.value, 10))}
                 />
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  Drag to filter by daily/session rate (max ₹{priceCeiling.toLocaleString('en-IN')})
+                </p>
               </div>
             </aside>
 
@@ -446,29 +481,7 @@ export function CatalogueClient(props: { initialItems: Item[] }) {
             </div>
 
             <aside className="col-span-12 lg:col-span-3 xl:col-span-3 space-y-6">
-              <div className="bg-panel-dark border border-slate-800 rounded-xl p-6 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <h5 className="text-[11px] uppercase font-bold tracking-widest text-slate-300">AI Intelligence</h5>
-                  <span className="material-symbols-outlined text-vibrant-blue text-xl">auto_awesome</span>
-                </div>
-                <div className="space-y-4">
-                  <div className="p-4 bg-card-dark rounded-lg border border-slate-700">
-                    <p className="text-sm font-semibold text-white mb-1.5">Market Trend Alert</p>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      Rental demand for Heavy Cranes is up 15% this quarter. Consider adjusting pricing.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-card-dark rounded-lg border border-slate-700">
-                    <p className="text-sm font-semibold text-white mb-1.5">Inventory Optimization</p>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      2 items have had no bookings for 60 days. Recommend marking as Clearance.
-                    </p>
-                  </div>
-                </div>
-                <button className="w-full mt-6 py-2.5 text-xs font-bold text-vibrant-yellow hover:text-yellow-300 flex items-center justify-center transition uppercase tracking-wider">
-                  Full AI Report <span className="material-symbols-outlined text-xs ml-1.5">arrow_forward</span>
-                </button>
-              </div>
+              <CatalogueAiInsights items={filteredItems.length > 0 ? filteredItems : allItems} />
               <div className="bg-gradient-to-br from-midnight-blue to-slate-800 rounded-xl p-6 text-white shadow-xl">
                 <span className="material-symbols-outlined text-3xl mb-4 text-blue-400">help_center</span>
                 <h4 className="font-bold mb-2">Need Workspace Help?</h4>

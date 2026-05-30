@@ -6,6 +6,7 @@ import {
     type LeadScoreInput,
 } from '@/lib/ai/crm-scoring';
 import { buildCrmInsightsHeuristic } from '@/lib/ai/crm-pipeline-insights';
+import { buildCatalogueInsights } from '@/lib/ai/catalogue-insights';
 import { buildDifyInputs, getDifyApiUrl, resolveDifyApiKey } from '@/lib/ai/dify-config';
 
 function heuristicResult(action: string, inputs: Record<string, unknown> | undefined) {
@@ -41,8 +42,39 @@ function heuristicResult(action: string, inputs: Record<string, unknown> | undef
             return { risk_score: 35, risk_level: 'low', source: 'heuristic' };
         case 'fraud-check':
             return { fraud_risk: 'low', flags: [], source: 'heuristic' };
-        case 'forecast':
+        case 'forecast': {
+            const raw = safeInputs.catalogue_data ?? safeInputs.catalogue_summary;
+            if (raw) {
+                type CatalogueSummary = {
+                    total?: number
+                    available?: number
+                    out_of_stock?: number
+                    avg_rate?: number
+                    top_category?: string
+                }
+                let parsed: { summary?: CatalogueSummary } & CatalogueSummary = {};
+                try {
+                    parsed = typeof raw === 'string' ? JSON.parse(raw) : (raw as typeof parsed);
+                } catch {
+                    parsed = {};
+                }
+                const summary: CatalogueSummary = parsed.summary ?? parsed;
+                const total = summary.total ?? 0;
+                const available = summary.available ?? 0;
+                const outOfStock = summary.out_of_stock ?? 0;
+                const utilization = total > 0 ? Math.round((available / total) * 100) : 0;
+                return {
+                    forecast_growth_pct: Math.min(25, Math.max(0, utilization - outOfStock)),
+                    confidence: 'medium',
+                    executive_summary:
+                        total > 0
+                            ? `Catalogue has ${total} items with ${available} bookable (${utilization}% availability). ${outOfStock > 0 ? `${outOfStock} need restock.` : 'Inventory looks healthy.'}${summary.top_category ? ` Top category: ${summary.top_category}.` : ''}`
+                            : 'Add catalogue items to generate occupancy forecasts.',
+                    source: 'heuristic',
+                };
+            }
             return { forecast_growth_pct: 8, confidence: 'medium', source: 'heuristic' };
+        }
         default:
             return null;
     }
