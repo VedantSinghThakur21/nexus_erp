@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Bot, Loader2, Send, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MarkdownBodyLazy } from '@/components/agents/markdown-body-lazy'
+import { AnalyticsResponseRenderer } from '@/components/ai/structured-chat-response'
+import type { AnalyticsResponse } from '@/lib/analyticsApi'
 import { cn } from '@/lib/utils'
 
 interface Message {
@@ -12,6 +14,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   citations?: Array<{ title: string; citation?: string }>
+  displays?: AnalyticsResponse[]
 }
 
 export type AgentsInitialEntitlement = {
@@ -89,7 +92,11 @@ export function AgentsChatClient({
       const data = (await response.json().catch(() => ({}))) as {
         error?: string
         code?: string
-        result?: { answer?: string; citations?: Array<{ title: string; citation?: string }> }
+        result?: {
+          answer?: string
+          citations?: Array<{ title: string; citation?: string }>
+          displays?: AnalyticsResponse[]
+        }
       }
 
       if (!response.ok) {
@@ -104,7 +111,8 @@ export function AgentsChatClient({
       }
 
       const citations = (data.result?.citations ?? []) as Array<{ title: string; citation?: string }>
-      const answer = data.result?.answer || 'No response generated.'
+      const displays = data.result?.displays
+      const answer = data.result?.answer || (displays?.length ? '' : 'No response generated.')
 
       setMessages((prev) => [
         ...prev,
@@ -112,6 +120,7 @@ export function AgentsChatClient({
           id: String(Date.now() + 1),
           role: 'assistant',
           content: answer,
+          displays: displays?.length ? displays : undefined,
           citations: citations.length > 0 ? citations : undefined,
         },
       ])
@@ -168,10 +177,22 @@ export function AgentsChatClient({
                       <Bot className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <div className="rounded-2xl rounded-tl-md bg-muted/50 px-4 py-3 ring-1 ring-border/40">
-                        <div className="prose prose-sm max-w-none text-foreground dark:prose-invert">
-                          <MarkdownBodyLazy content={m.content} />
-                        </div>
+                      <div className="space-y-3">
+                        {m.content.trim() && (
+                          <div className="rounded-2xl rounded-tl-md bg-muted/50 px-4 py-3 ring-1 ring-border/40">
+                            <div className="prose prose-sm max-w-none text-foreground dark:prose-invert">
+                              <MarkdownBodyLazy content={m.content} />
+                            </div>
+                          </div>
+                        )}
+                        {m.displays?.map((display, i) => (
+                          <AnalyticsResponseRenderer key={`${m.id}-d-${i}`} response={display} />
+                        ))}
+                        {!m.content.trim() && !m.displays?.length && (
+                          <div className="rounded-2xl rounded-tl-md bg-muted/50 px-4 py-3 ring-1 ring-border/40 text-sm text-muted-foreground">
+                            No response generated.
+                          </div>
+                        )}
                       </div>
                       {m.citations && m.citations.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">

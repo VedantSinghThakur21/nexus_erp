@@ -1,23 +1,36 @@
 import { describe, expect, it } from 'vitest'
-import { formatToolResultForChat } from '../format-tool-result'
+import { buildToolChatPayload } from '../format-tool-result'
 
-describe('formatToolResultForChat', () => {
-  it('formats lead search results', () => {
-    const text = formatToolResultForChat('crm.search_leads', {
+describe('buildToolChatPayload', () => {
+  it('returns table display for leads', () => {
+    const payload = buildToolChatPayload('crm.search_leads', {
       success: true,
       idempotencyKey: 'x',
-      data: [{ lead_name: 'Acme', status: 'Lead', email_id: 'a@acme.com' }],
+      data: [{ name: 'L-1', lead_name: 'Acme', status: 'Open', email_id: 'a@acme.com' }],
     })
-    expect(text).toContain('Acme')
-    expect(text).toContain('lead I found')
+    expect(payload.display?.type).toBe('table')
+    if (payload.display?.type === 'table') {
+      expect(payload.display.title).toBe('Leads')
+      expect(payload.display.rows).toHaveLength(1)
+      expect(payload.display.exportable).toBe(true)
+    }
   })
 
-  it('formats errors', () => {
-    const text = formatToolResultForChat('crm.search_leads', {
+  it('returns info display for empty leads', () => {
+    const payload = buildToolChatPayload('crm.search_leads', {
+      success: true,
+      idempotencyKey: 'x',
+      data: [],
+    })
+    expect(payload.display?.type).toBe('info')
+  })
+
+  it('returns error display on failure', () => {
+    const payload = buildToolChatPayload('crm.search_leads', {
       success: false,
       idempotencyKey: 'x',
       error: 'Unauthorized',
     })
-    expect(text).toContain('Unauthorized')
+    expect(payload.display?.type).toBe('error')
   })
 })

@@ -17,6 +17,7 @@ export type TableResponse = {
   columns: string[]
   rows: any[][]
   exportable: true
+  title?: string
   note?: string
   insight?: AnalyticsInsight
 }

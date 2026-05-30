@@ -1,3 +1,5 @@
+import type { AnalyticsResponse } from '@/lib/analyticsApi'
+
 export type AgenticPlan = 'free' | 'pro' | 'enterprise'
 
 export type AgenticFeatureFlag =
@@ -48,5 +50,6 @@ export interface AgenticChatResult {
   answer: string
   citations: Array<{ title: string; citation?: string }>
   metadata: AgenticRunMetadata
+  /** Structured tables/KPIs — same format as analytics chat */
+  displays?: AnalyticsResponse[]
 }
-

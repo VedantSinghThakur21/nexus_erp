@@ -10,12 +10,12 @@ import type { ChatMessage } from './model/types'
 import { executeMcpTool } from './mcp/executor'
 import { getMcpTool, listMcpToolsForTenant, registry } from './mcp/registry'
 import { buildToolContext } from './mcp/tool-runtime'
-import type { MCPToolCall, ProposedAction } from './mcp/types'
-import { formatToolResultForChat } from './format-tool-result'
+import type { MCPToolCall, MCPToolResult, ProposedAction } from './mcp/types'
+import { buildToolChatPayload } from './format-tool-result'
 import { formatContextForPrompt, retrieve } from './rag/retriever'
 import type { RetrievedContext } from './rag/types'
+import type { AnalyticsResponse } from '@/lib/analyticsApi'
 import type { AgenticChatResult, AgenticEntitlement, AgenticMode } from './types'
-import type { MCPToolResult } from './mcp/types'
 
 function newRunId(): string {
   return randomBytes(8).toString('hex')
@@ -44,6 +44,7 @@ export type AgenticRunOutput = {
     latencyMs: number
   }
   auditId: string
+  dataDisplays: AnalyticsResponse[]
 }
 
 function buildSystemPrompt(
@@ -98,6 +99,7 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
   const proposedActions: ProposedAction[] = []
   const pendingApprovals: string[] = []
   let response = ''
+  let dataDisplays: AnalyticsResponse[] = []
   let modelMetadata = { model: getModelPolicy(plan).model, inputTokens: 0, outputTokens: 0, latencyMs: 0 }
   let auditId = ''
 
@@ -141,6 +143,7 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
 
     response = modelResult.response
     const dataNotes: string[] = []
+    dataDisplays = []
     const actionNotes: string[] = []
 
     for (const call of modelResult.toolCalls) {
@@ -162,7 +165,12 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
           },
           input.tenantId
         ).catch(() => undefined)
-        dataNotes.push(formatToolResultForChat(tool.name, result))
+        const payload = buildToolChatPayload(tool.name, result)
+        if (payload.display) {
+          dataDisplays.push(payload.display)
+        } else if (payload.summary) {
+          dataNotes.push(payload.summary)
+        }
         continue
       }
 
@@ -225,7 +233,11 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
     }
 
     if (input.mode === 'chat') {
-      response = mergeChatResponse(response, dataNotes, actionNotes)
+      const notesForMerge = dataDisplays.length > 0 ? [] : dataNotes
+      response = mergeChatResponse(response, notesForMerge, actionNotes)
+      if (dataDisplays.length > 0 && /^okay\b|^sure\b|^let me\b|^i'll\b/i.test(response.trim())) {
+        response = actionNotes.length > 0 ? actionNotes.join('\n\n') : ''
+      }
     } else if (dataNotes.length > 0 || actionNotes.length > 0) {
       response = [response, ...dataNotes, ...actionNotes].filter(Boolean).join('\n\n')
     }
@@ -276,6 +288,7 @@ export async function runAgenticWorkflow(input: AgenticRunInput): Promise<Agenti
     pendingApprovals,
     modelMetadata,
     auditId: auditId || runId,
+    dataDisplays,
   }
 }
 
@@ -310,6 +323,7 @@ export async function runAgenticChat(input: {
       ok: true,
       result: {
         answer: workflow.response,
+        displays: workflow.dataDisplays.length > 0 ? workflow.dataDisplays : undefined,
         citations: workflow.retrievedContext.map((item) => ({
           title: item.title,
           citation: item.citation,
