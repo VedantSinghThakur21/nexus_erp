@@ -18,6 +18,7 @@ import { DashboardSectionFailed } from "@/components/dashboard/section-failed"
 import { SectionErrorBoundary } from "@/components/ui/section-error-boundary"
 import type { DashboardPayload } from "@/lib/dashboard/load-dashboard-data"
 import { formatIndianCurrency } from "@/lib/currency"
+import { AICrmInsights } from "@/components/crm/ai-crm-insights"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -349,6 +350,14 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
             </div>
 
             <div className="space-y-4 lg:col-span-4">
+              {(accessibleModules.includes("crm") || accessibleModules.includes("quotations")) && (
+                <AICrmInsights
+                  accessibleModules={accessibleModules}
+                  atRiskDeals={atRiskDeals ?? []}
+                  highProbOpportunities={highProbOpportunities}
+                />
+              )}
+
               {initialData.activitiesError ? (
                 <DashboardSectionFailed title="Recent activity" message={initialData.activitiesError.message} />
               ) : (
@@ -373,34 +382,6 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                           <p className="truncate text-sm text-muted-foreground">{activity.company}</p>
                           <p className="text-xs text-muted-foreground">{relativeTimeLabel(activity.time)}</p>
                         </div>
-                      </motion.div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {initialData.atRiskError ? (
-                <DashboardSectionFailed title="At-risk deals" message={initialData.atRiskError.message} />
-              ) : (
-                <Card className="rounded-xl border border-border bg-card shadow-none">
-                  <CardHeader>
-                    <CardTitle className="text-base">At-Risk Deals</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {atRiskDeals.length === 0 && (
-                      <p className="text-sm text-muted-foreground">No deals currently flagged by risk checks.</p>
-                    )}
-                    {atRiskDeals.slice(0, 4).map((deal, index) => (
-                      <motion.div
-                        key={deal.name}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.04 }}
-                        className="rounded-md border border-border p-3"
-                      >
-                        <p className="text-sm font-medium text-foreground">{deal.customer_name}</p>
-                        <p className="text-xs text-muted-foreground">{deal.days_since_activity} days inactive</p>
-                        <p className="mt-1 text-xs text-red-600">{deal.reason}</p>
                       </motion.div>
                     ))}
                   </CardContent>

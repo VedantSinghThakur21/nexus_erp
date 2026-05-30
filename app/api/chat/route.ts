@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDifyApiUrl } from '@/lib/ai/dify-config';
 
 export const runtime = 'edge';
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     const query = messages[messages.length - 1].content;
 
     // Call Dify API
-    const response = await fetch(`${process.env.DIFY_API_URL}/chat-messages`, {
+    const response = await fetch(`${getDifyApiUrl()}/chat-messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.DIFY_CHAT_API_KEY}`,

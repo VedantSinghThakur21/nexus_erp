@@ -8,6 +8,7 @@ import { getOpportunity } from "@/app/actions/crm"
 import { OpportunityActions } from "@/components/crm/opportunity-actions"
 import { EditOpportunityDialog } from "@/components/crm/edit-opportunity-dialog"
 import { DeleteOpportunityForm } from "@/components/crm/delete-opportunity-form"
+import { OpportunityAiInsightPanel } from "@/components/crm/opportunity-ai-insight-panel"
 
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -156,6 +157,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </CardContent>
         </Card>
       </div>
+
+      {!isClosed && <OpportunityAiInsightPanel opportunity={opportunity} />}
 
       <div className="grid md:grid-cols-3 gap-6">
         {/* Left Column: Details */}

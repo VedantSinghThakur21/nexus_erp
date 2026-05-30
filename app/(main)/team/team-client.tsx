@@ -7,6 +7,7 @@ import { EditPermissionsDialog } from '@/components/team/edit-permissions-dialog
 import Link from 'next/link'
 import { PageHeader } from '@/components/page-header'
 import { useUser } from '@/contexts/user-context'
+import { teamMemberAiInsight } from '@/lib/ai/document-insights'
 
 type TeamMember = Awaited<ReturnType<typeof getTeamMembers>>[number] & {
   primary_role?: string
@@ -80,35 +81,7 @@ export function TeamClient(props: { initialTeamMembers: TeamMember[] }) {
     return diffDays
   }
 
-  function getAIInsight(member: TeamMember) {
-    const daysSinceLogin = getDaysSinceLogin(member.last_login)
-
-    if (!member.last_login) {
-      return {
-        message: 'Inactive for 30 days - consider deactivating',
-        color: 'amber',
-        icon: 'report_problem',
-      }
-    }
-
-    if (daysSinceLogin && daysSinceLogin <= 1) {
-      return {
-        message: 'High Activity - Potential Lead',
-        color: 'purple',
-        icon: 'insights',
-      }
-    }
-
-    if (daysSinceLogin && daysSinceLogin > 30) {
-      return {
-        message: 'Inactive for 30 days - consider deactivating',
-        color: 'amber',
-        icon: 'report_problem',
-      }
-    }
-
-    return null
-  }
+  const getAIInsight = teamMemberAiInsight
 
   const filteredMembers = useMemo(() => {
     return teamMembers.filter((member) => {

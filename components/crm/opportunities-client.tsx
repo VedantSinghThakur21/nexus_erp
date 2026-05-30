@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header"
 import { useUser } from "@/contexts/user-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { calculateOpportunityProbability, opportunityHealthLabel } from "@/lib/ai/crm-scoring"
 
 interface Opportunity {
   name: string
@@ -106,15 +107,17 @@ export function OpportunitiesClient({ opportunities }: OpportunitiesClientProps)
     return { initials, name }
   }
 
-  // Helper: Get AI status badge
+  // Helper: Get AI status badge (uses ERP probability or smart estimate)
   const getAIStatus = (opp: Opportunity) => {
-    if (opp.probability >= 75) {
-      return { icon: CheckCircle, text: "On Track", color: "text-green-600 dark:text-green-400 bg-green-500/10 border-green-500/20" }
-    } else if (opp.probability >= 40) {
-      return { icon: PauseCircle, text: "Stalled", color: "text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/20" }
-    } else {
-      return { icon: AlertCircle, text: "At Risk", color: "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20" }
+    const prob = opp.probability || calculateOpportunityProbability(opp)
+    const health = opportunityHealthLabel(prob)
+    if (health === 'On Track') {
+      return { icon: CheckCircle, text: health, color: "text-green-600 dark:text-green-400 bg-green-500/10 border-green-500/20" }
     }
+    if (health === 'Stalled') {
+      return { icon: PauseCircle, text: health, color: "text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/20" }
+    }
+    return { icon: AlertCircle, text: health, color: "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20" }
   }
 
   // Handle stage change

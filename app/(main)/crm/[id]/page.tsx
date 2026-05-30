@@ -6,6 +6,7 @@ import Link from "next/link"
 import { EditLeadSheet } from "@/components/crm/edit-lead-sheet"
 import { ConvertLeadDialog } from "@/components/crm/convert-lead-dialog"
 import { CustomerPricingAnalytics } from "@/components/crm/customer-pricing-analytics"
+import { LeadAiInsightPanel } from "@/components/crm/lead-ai-insight-panel"
 import { DeleteLeadForm } from "@/components/crm/delete-lead-form"
 
 interface Lead {
@@ -162,6 +163,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </CardContent>
         </Card>
       </div>
+
+      <LeadAiInsightPanel lead={lead} />
 
       {/* Pricing Rules Analytics - Only show for converted customers */}
       {lead.status === 'Converted' && lead.lead_name && (

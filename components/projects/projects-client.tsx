@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CreateProjectDialog } from "./create-project-dialog"
 import { PageHeader } from "@/components/page-header"
+import { projectAiInsight } from "@/lib/ai/document-insights"
 
 interface Project {
   name: string
@@ -39,22 +40,7 @@ export function ProjectsClient({ projects }: ProjectsClientProps) {
     return { label: 'Critical', color: 'red' }
   }
 
-  // Get AI insight based on project metrics
-  const getAIInsight = (project: Project): { text: string; color: string; icon: string } => {
-    if (project.status === 'Completed') {
-      return { text: 'Completed Successfully', color: 'emerald', icon: 'check_circle' }
-    }
-    if (project.percent_complete === 0) {
-      return { text: 'Not Started', color: 'slate', icon: 'schedule' }
-    }
-    if (project.percent_complete >= 80) {
-      return { text: 'Ahead of Schedule', color: 'emerald', icon: 'trending_up' }
-    }
-    if (project.percent_complete >= 50) {
-      return { text: 'On Track', color: 'blue', icon: 'auto_awesome' }
-    }
-    return { text: 'Bottleneck Detected', color: 'amber', icon: 'warning_amber' }
-  }
+  const getAIInsight = projectAiInsight
 
   return (
     <div className="app-shell text-foreground min-h-screen flex flex-col">

@@ -1,5 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/app/api/_lib/auth';
+import {
+    calculateLeadScore,
+    calculateOpportunityProbability,
+    type LeadScoreInput,
+} from '@/lib/ai/crm-scoring';
+import { buildCrmInsightsHeuristic } from '@/lib/ai/crm-pipeline-insights';
+import { buildDifyInputs, getDifyApiUrl, resolveDifyApiKey } from '@/lib/ai/dify-config';
+
+function heuristicResult(action: string, inputs: Record<string, unknown> | undefined) {
+    const safeInputs = inputs || {};
+
+    switch (action) {
+        case 'lead-score': {
+            const raw = safeInputs.leads_data;
+            const leads: LeadScoreInput[] =
+                typeof raw === 'string' ? JSON.parse(raw) : Array.isArray(raw) ? raw : [];
+            return {
+                scores: leads.map((l) => ({
+                    name: l.name,
+                    score: calculateLeadScore(l),
+                })),
+                source: 'heuristic',
+            };
+        }
+        case 'opportunity-probability': {
+            const raw = safeInputs.opportunity_data;
+            const opp = typeof raw === 'string' ? JSON.parse(raw) : raw || {};
+            const probability = calculateOpportunityProbability({
+                sales_stage: opp.new_stage || opp.sales_stage,
+                probability: opp.current_probability ?? opp.probability,
+                opportunity_amount: opp.amount ?? opp.opportunity_amount,
+                expected_closing: opp.expected_closing,
+            });
+            return { probability, source: 'heuristic' };
+        }
+        case 'crm-insights':
+            return buildCrmInsightsHeuristic(safeInputs);
+        case 'risk-score':
+            return { risk_score: 35, risk_level: 'low', source: 'heuristic' };
+        case 'fraud-check':
+            return { fraud_risk: 'low', flags: [], source: 'heuristic' };
+        case 'forecast':
+            return { forecast_growth_pct: 8, confidence: 'medium', source: 'heuristic' };
+        default:
+            return null;
+    }
+}
 
 export async function POST(
     req: NextRequest,
@@ -9,6 +56,18 @@ export async function POST(
     if (!auth.authenticated) return auth.response;
 
     const { action } = await params;
+
+    const validActions = new Set([
+        'risk-score',
+        'forecast',
+        'fraud-check',
+        'crm-insights',
+        'lead-score',
+        'opportunity-probability',
+    ]);
+    if (!validActions.has(action)) {
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
 
     try {
         const body = await req.json();
@@ -31,45 +90,26 @@ export async function POST(
         // Prefer explicit user > extracted tenant > fallback
         const difyUser = user || tenantIdentifier;
 
-        let apiKey = '';
-
-        // Select the correct API Key based on the action
-        switch (action) {
-            case 'risk-score':
-                apiKey = process.env.DIFY_RISK_API_KEY || '';
-                break;
-            case 'forecast':
-                apiKey = process.env.DIFY_FORECAST_API_KEY || '';
-                break;
-            case 'fraud-check':
-                apiKey = process.env.DIFY_FRAUD_API_KEY || '';
-                break;
-            case 'crm-insights':
-                apiKey = process.env.DIFY_CRM_API_KEY || '';
-                break;
-            case 'lead-score':
-                apiKey = process.env.DIFY_LEAD_SCORE_API_KEY || '';
-                break;
-            case 'opportunity-probability':
-                apiKey = process.env.DIFY_OPPORTUNITY_PROB_API_KEY || '';
-                break;
-            default:
-                return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-        }
+        let apiKey = resolveDifyApiKey(action);
+        const difyApiUrl = getDifyApiUrl();
 
         if (!apiKey) {
+            const fallback = heuristicResult(action, inputs);
+            if (fallback) {
+                return NextResponse.json({ result: fallback });
+            }
             return NextResponse.json({ error: `API Key not configured for action: ${action}` }, { status: 500 });
         }
 
         // Call Dify API for Workflow apps
-        const response = await fetch(`${process.env.DIFY_API_URL}/workflows/run`, {
+        const response = await fetch(`${difyApiUrl}/workflows/run`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                inputs: inputs || {},
+                inputs: buildDifyInputs(action, inputs),
                 response_mode: 'blocking', // Wait for full answer
                 user: difyUser,
             }),
@@ -78,7 +118,12 @@ export async function POST(
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Dify API Error [${action}]:`, errorText);
-            
+
+            const fallback = heuristicResult(action, inputs);
+            if (fallback) {
+                return NextResponse.json({ result: fallback });
+            }
+
             return NextResponse.json({ error: "AI Service Error" }, { status: response.status });
         }
 

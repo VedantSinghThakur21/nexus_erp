@@ -7,6 +7,7 @@ import { Search, Filter, TrendingUp, Wallet, Zap, User, Calendar, DollarSign, Pa
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { quotationAiInsight } from "@/lib/ai/document-insights"
 
 
 interface Quotation {
@@ -114,20 +115,7 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
   }
 
   // Helper: Get AI insight badge
-  const getAIInsight = (quotation: Quotation) => {
-    if (quotation.status === 'Draft') {
-      return {
-        text: 'Follow-up Recommended',
-        color: 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800'
-      }
-    } else if (quotation.status === 'Open' && quotation.grand_total > 25000) {
-      return {
-        text: 'High Win Probability',
-        color: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-      }
-    }
-    return null
-  }
+  const getAIInsight = quotationAiInsight
 
   // Helper: Format currency
   const formatCurrency = (amount: number) => {

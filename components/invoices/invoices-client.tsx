@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { invoiceAiInsight } from "@/lib/ai/document-insights"
 
 interface Invoice {
   name: string
@@ -105,18 +106,7 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
     return styles[status] || 'bg-muted text-muted-foreground'
   }
 
-  const getAIInsight = (invoice: Invoice) => {
-    if (invoice.status === 'Paid') {
-      return { label: 'LIKELY TO PAY', icon: 'verified', color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800' }
-    }
-    if (invoice.due_date && new Date(invoice.due_date) < new Date() && invoice.status !== 'Paid') {
-      return { label: 'HIGH RISK', icon: 'priority_high', color: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800' }
-    }
-    if (invoice.status === 'Sent' && invoice.grand_total > 100000) {
-      return { label: 'LIKELY TO PAY', icon: 'verified', color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800' }
-    }
-    return null
-  }
+  const getAIInsight = invoiceAiInsight
 
   const getDaysOverdue = (dueDate: string, status: string) => {
     if (status === 'Paid' || status === 'Cancelled') return null

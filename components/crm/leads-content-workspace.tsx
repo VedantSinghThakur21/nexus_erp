@@ -19,6 +19,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToastHelpers } from "@/components/ui/toast"
 import { useUser } from "@/contexts/user-context"
+import { calculateLeadScore } from "@/lib/ai/crm-scoring"
+import { LeadsAiInsightsSidebar } from "@/components/crm/leads-ai-insights-sidebar"
 
 interface Lead {
     name: string
@@ -49,21 +51,6 @@ const LEAD_STAGES = [
     "Converted",
     "Do Not Contact"
 ]
-
-// Deterministic AI score heuristic (no randomness — stable across renders)
-function calculateAIScore(lead: Lead): number {
-    let score = 40
-    if (lead.email_id) score += 10
-    if (lead.mobile_no) score += 8
-    if (lead.company_name) score += 12
-    if (lead.job_title) score += 8
-    if (lead.source) score += 5
-    if (lead.industry) score += 5
-    if (lead.status === 'Interested') score += 18
-    else if (lead.status === 'Replied') score += 12
-    else if (lead.status === 'Opportunity') score += 20
-    return Math.min(100, score)
-}
 
 // Helper function to get stage badge color
 function getStageColor(stage: string): string {
@@ -123,7 +110,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     // Enrich leads with heuristic AI scores as initial values
     const heuristicScores = useMemo(() => {
         const map: Record<string, number> = {}
-        leads.forEach(lead => { map[lead.name] = calculateAIScore(lead) })
+        leads.forEach(lead => { map[lead.name] = calculateLeadScore(lead) })
         return map
     }, [leads])
 
@@ -181,7 +168,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
     const leadsWithScores = useMemo(() => {
         return leads.map(lead => ({
             ...lead,
-            aiScore: aiScores[lead.name] ?? calculateAIScore(lead)
+            aiScore: aiScores[lead.name] ?? calculateLeadScore(lead)
         }))
     }, [leads, aiScores])
 
@@ -729,68 +716,7 @@ export function LeadsContentWorkspace({ leads }: LeadsContentWorkspaceProps) {
                             {/* AI Insights Panel - Hidden in Kanban view */}
                             {viewMode === "list" && (
                                 <div className="col-span-3">
-                                    <div className="rounded-xl border border-border bg-card shadow-none overflow-hidden h-full flex flex-col">
-                                        <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
-                                            <div className="flex items-center gap-3">
-                                                <span className="material-symbols-outlined text-yellow-400">bolt</span>
-                                                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-foreground">AI Insights</h3>
-                                            </div>
-                                            <span className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                                        </div>
-                                        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-                                            {/* Deal at Risk */}
-                                            <div className="rounded-xl border border-border bg-muted/20 p-5 relative overflow-hidden">
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <span className="material-symbols-outlined text-yellow-400 text-sm">warning</span>
-                                                    <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-tighter">Deal at Risk</span>
-                                                </div>
-                                                <h4 className="text-sm font-semibold mb-2 text-foreground">Acme Corp HQ - Phase II</h4>
-                                                <p className="text-[12px] text-muted-foreground mb-5 leading-relaxed">
-                                                    Decision maker has not opened proposal for 5 days. Competitive threat detected.
-                                                </p>
-                                                <button className="w-full h-9 rounded-md bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-semibold text-xs transition uppercase tracking-wider">
-                                                    Priority Outreach
-                                                </button>
-                                            </div>
-
-                                            {/* Recommended Actions */}
-                                            <div>
-                                                <div className="flex justify-between items-center mb-5">
-                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recommended Actions</p>
-                                                    <button className="text-[10px] text-blue-400 font-bold hover:underline">VIEW ALL</button>
-                                                </div>
-                                                <div className="space-y-3">
-                                                    <div className="rounded-xl border border-border bg-muted/20 p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/40 transition-colors">
-                                                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                                            <span className="material-symbols-outlined">alternate_email</span>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[13px] font-semibold text-foreground">Follow up - Globtel</p>
-                                                            <p className="text-[11px] text-muted-foreground font-medium">High velocity activity.</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="rounded-xl border border-border bg-muted/20 p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/40 transition-colors">
-                                                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                                            <span className="material-symbols-outlined text-lg">check_circle_outline</span>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[13px] font-semibold text-foreground">Contract - Urban</p>
-                                                            <p className="text-[11px] text-muted-foreground font-medium">Review is complete.</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="p-6 bg-muted/20 border-t border-border">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sales Velocity</span>
-                                                <span className="text-xs font-bold text-emerald-500">+14.2%</span>
-                                            </div>
-                                            <p className="text-[11px] text-slate-400 italic font-medium">
-                                                Cycle time is accelerating by 2 days this month.
-                                            </p>
-                                        </div>
-                                    </div>
+                                    <LeadsAiInsightsSidebar leads={leadsWithScores} />
                                 </div>
                             )}
                         </div>

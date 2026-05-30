@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { salesOrderAiInsight, salesOrderDeliveryRisk } from "@/lib/ai/document-insights"
 
 interface SalesOrdersClientProps {
   orders: SalesOrder[]
@@ -73,26 +74,20 @@ export function SalesOrdersClient({ orders, readyQuotations, stats }: SalesOrder
     return "text-slate-500 dark:text-slate-400"
   }
 
-  const getAIRisk = (order: SalesOrder) => {
-    // Mock AI risk assessment - replace with real logic
-    if (order.per_delivered === 100) {
-      return { label: "On Time", className: "text-emerald-700" }
-    }
-    if (order.per_delivered && order.per_delivered > 0) {
-      return { label: "In Progress", className: "text-blue-700" }
-    }
-    return { label: "Delayed", className: "text-red-700" }
-  }
+  const SALES_ORDER_ICONS = {
+    sparkles: Sparkles,
+    'trending-up': TrendingUp,
+    'check-circle': CheckCircle,
+  } as const
 
+  const getAIRisk = salesOrderDeliveryRisk
   const getAIInsight = (order: SalesOrder) => {
-    // Mock AI insights - replace with real logic
-    if (order.per_delivered === 100 && order.per_billed !== 100) {
-      return { label: "Ready to Bill", icon: Sparkles, color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" }
+    const insight = salesOrderAiInsight(order)
+    return {
+      label: insight.label,
+      icon: SALES_ORDER_ICONS[insight.icon],
+      color: insight.color,
     }
-    if (order.status === "Draft") {
-      return { label: "Expedite Shipping", icon: TrendingUp, color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" }
-    }
-    return { label: "On Track", icon: CheckCircle, color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" }
   }
 
   return (
