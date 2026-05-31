@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { quotationAiInsight } from "@/lib/ai/document-insights"
+import { validityLabel } from "@/lib/ai/quotation-insights"
+import { QuotationsAiInsights } from "@/components/crm/quotations-ai-insights"
 
 
 interface Quotation {
@@ -125,20 +127,8 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
     return `₹${amount.toLocaleString('en-IN')}`
   }
 
-  // Helper: Calculate days remaining
-  const getDaysRemaining = (validTill: string) => {
-    const today = new Date()
-    const validDate = new Date(validTill)
-    const diffTime = validDate.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays < 0) {
-      return { text: 'Expired', color: 'text-red-500' }
-    } else if (diffDays < 7) {
-      return { text: `${diffDays} days remaining`, color: 'text-orange-500' }
-    }
-    return { text: `${diffDays} days remaining`, color: 'text-slate-400' }
-  }
+  // Helper: Calculate days remaining (local date — avoids UTC false "Expired")
+  const getDaysRemaining = (validTill: string) => validityLabel(validTill)
 
   // Find opportunities in Proposal/Price Quote stage, Open status, and no draft quotation exists
   const draftQuotations = quotations.filter(q => q.status === 'Draft')
@@ -178,10 +168,15 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
             </div>
             <div className="flex items-end gap-3">
               <p className="text-2xl font-medium text-foreground leading-none">{totalQuotations}</p>
-              <span className="text-sm font-semibold text-blue-400 mb-1">+12%</span>
             </div>
-            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 w-[72%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+            <div className="mt-3 text-[11px] font-medium text-muted-foreground">
+              {openQuotations} open · {formatCurrency(totalValue)} pipeline
+            </div>
+            <div className="mt-4 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full bg-blue-500 rounded-full"
+                style={{ width: `${totalQuotations > 0 ? Math.min(100, (openQuotations / totalQuotations) * 100) : 0}%` }}
+              />
             </div>
           </div>
 
@@ -196,8 +191,11 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
               <p className="text-2xl font-medium text-foreground leading-none">{openQuotations}</p>
               <span className="text-sm font-semibold text-slate-400 mb-1">Target: 10</span>
             </div>
-            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 w-[50%] rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+            <div className="mt-4 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full"
+                style={{ width: `${Math.min(100, (openQuotations / 10) * 100)}%` }}
+              />
             </div>
           </div>
 
@@ -211,24 +209,24 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
             <div className="flex items-end gap-3">
               <p className="text-2xl font-medium text-foreground leading-none">{formatCurrency(totalValue)}</p>
             </div>
-            <div className="mt-5 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-yellow-400 w-[85%] rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
+            <div className="mt-4 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div className="h-full bg-yellow-400 w-full rounded-full" />
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="bg-card dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-          <div className="p-8 border-b border-slate-100 dark:border-slate-700">
-            {/* Tabs */}
-            <div className="flex items-center gap-10 mb-8 border-b border-slate-100 dark:border-slate-700">
+        <div className="grid grid-cols-12 gap-8">
+          <div className="col-span-12 xl:col-span-9">
+        <div className="rounded-xl border border-border bg-card shadow-none overflow-hidden">
+          <div className="border-b border-border p-6">
+            <div className="mb-6 flex items-center gap-8 border-b border-border pb-4">
               {STATUS_TABS.map((tab) => (
                 <button
                   key={tab.filter}
                   onClick={() => setSelectedTab(tab.filter)}
-                  className={`text-[16px] font-bold pb-4 transition-all ${selectedTab === tab.filter
-                      ? 'text-slate-900 dark:text-white border-b-4 border-blue-600'
-                      : 'text-muted-foreground hover:text-slate-700 dark:hover:text-slate-300 font-medium'
+                  className={`pb-3 text-sm font-semibold transition-all ${selectedTab === tab.filter
+                      ? 'border-b-2 border-primary text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   {tab.name} ({tab.filter === "all" ? quotations.length : draftQuotations.length + proposalOpportunities.length})
@@ -236,21 +234,20 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
               ))}
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center gap-6">
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  className="h-10 w-full pl-12 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="h-10 w-full pl-10 bg-background border-border/60 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                   placeholder="Search by ID, customer name, or item..."
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <select
-                  className="bg-slate-50 dark:bg-background border border-slate-200 dark:border-slate-700 rounded-xl text-sm py-3 px-4 pr-10 focus:ring-blue-600 shadow-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -260,35 +257,28 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   <option value="cancelled">Cancelled</option>
                 </select>
                 <select
-                  className="bg-slate-50 dark:bg-background border border-slate-200 dark:border-slate-700 rounded-xl text-sm py-3 px-4 pr-10 focus:ring-blue-600 shadow-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
                 >
-                  <option value="last30">Date Range: Last 30 Days</option>
+                  <option value="last30">Last 30 Days</option>
                   <option value="thisMonth">This Month</option>
                   <option value="custom">Custom Range</option>
                 </select>
                 <Button variant="outline" className="h-10">
                   <Filter className="h-4 w-4" />
-                  More Filters
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Quotations List */}
-          <div className="p-8 space-y-6">
-            <div className="flex justify-between items-center mb-2 px-2">
+          <div className="space-y-4 p-6">
+            <div className="flex items-center justify-between px-1">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Active Quotations</h3>
-                <p className="text-[14px] text-muted-foreground mt-1">Showing {filteredQuotations.length} results from all channels</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-slate-400 font-medium bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full uppercase tracking-widest">Last synced: 2m ago</span>
+                <h3 className="text-base font-semibold text-foreground">Active Quotations</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Showing {filteredQuotations.length} results</p>
               </div>
             </div>
-
-            {/* Quotation Cards */}
             {readyQuotationsAndOpportunities.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 No quotations found
@@ -302,76 +292,50 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   return (
                     <div
                       key={quotation.name}
-                      className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-card dark:bg-slate-800/50 relative cursor-pointer"
+                      className="group relative cursor-pointer rounded-xl border border-border bg-card p-6 transition-colors hover:bg-muted/30"
                       onClick={() => router.push(`/crm/quotations/${quotation.name}`)}
                     >
-                      <div className="absolute top-10 right-10 flex items-center gap-4">
+                      <div className="absolute right-4 top-4 flex items-center gap-2">
                         {aiInsight && (
-                          <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase flex items-center gap-2 ${aiInsight.color}`}>
-                            <Zap className="h-3.5 w-3.5" /> {aiInsight.text}
+                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${aiInsight.color}`}>
+                            {aiInsight.text}
                           </span>
                         )}
                         {selectedTab === "ready" && (
                           <Link href={`/crm/quotations/new?from=${quotation.name}`}>
-                            <button
-                              className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Create Quotation <ArrowRight className="h-3.5 w-3.5" />
-                            </button>
+                            <Button size="sm" onClick={(e) => e.stopPropagation()}>
+                              Create Quotation
+                            </Button>
                           </Link>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-4 mb-10">
-                        <h4 className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">{quotation.name}</h4>
-                        <span className={`text-[11px] px-3 py-1 rounded-md font-bold uppercase tracking-widest ${getStatusBadge(quotation.status)}`}>
+                      <div className="mb-4 flex flex-wrap items-center gap-3 pr-32">
+                        <h4 className="text-base font-semibold text-foreground">{quotation.name}</h4>
+                        <span className={`rounded-md px-2.5 py-0.5 text-[10px] font-bold uppercase ${getStatusBadge(quotation.status)}`}>
                           {quotation.status}
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-16">
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                            <User className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Customer</p>
-                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{quotation.customer_name || quotation.party_name}</p>
-                          </div>
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Customer</p>
+                          <p className="text-sm font-semibold text-foreground">{quotation.customer_name || quotation.party_name}</p>
                         </div>
-
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-                            <Calendar className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Valid till</p>
-                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">
-                              {new Date(quotation.valid_till).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </p>
-                            <p className={`text-sm font-medium ${daysRemaining.color}`}>{daysRemaining.text}</p>
-                          </div>
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Valid till</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {new Date(quotation.valid_till).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                          <p className={`text-xs font-medium ${daysRemaining.color}`}>{daysRemaining.text}</p>
                         </div>
-
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                            <DollarSign className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Amount</p>
-                            <p className="text-[20px] font-bold text-slate-900 dark:text-white leading-tight">{formatCurrency(quotation.grand_total)}</p>
-                          </div>
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Amount</p>
+                          <p className="text-sm font-bold text-foreground">{formatCurrency(quotation.grand_total)}</p>
                         </div>
-
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-background flex items-center justify-center text-slate-400 shrink-0">
-                            <Package className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Items</p>
-                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{quotation.total_qty || 0} SKUs</p>
-                          </div>
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Items</p>
+                          <p className="text-sm font-semibold text-foreground">{quotation.total_qty || 0} SKUs</p>
                         </div>
                       </div>
                     </div>
@@ -381,60 +345,35 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
                   return (
                     <div
                       key={opp.name}
-                      className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-10 hover:border-blue-600/50 hover:shadow-xl transition-all bg-card dark:bg-slate-800/50 relative"
+                      className="relative rounded-xl border border-border bg-card p-6"
                     >
-                      <div className="absolute top-10 right-10 flex items-center gap-4">
+                      <div className="absolute right-4 top-4">
                         <Link href={`/crm/quotations/new?opportunity=${opp.name}`}>
-                          <button
-                            className="text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-lg px-6 py-3 transition-colors flex items-center gap-2"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Create Quotation <ArrowRight className="h-3.5 w-3.5" />
-                          </button>
+                          <Button size="sm">Create Quotation</Button>
                         </Link>
                       </div>
-                      <div className="flex items-center gap-4 mb-10">
-                        <h4 className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">{opp.name}</h4>
-                        <span className="text-[11px] px-3 py-1 rounded-md font-bold uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 border border-blue-100 dark:border-blue-900">
+                      <div className="mb-4 flex flex-wrap items-center gap-3">
+                        <h4 className="text-base font-semibold text-foreground">{opp.name}</h4>
+                        <span className="rounded-md border border-blue-200 bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold uppercase text-blue-700">
                           Proposal/Price Quote
                         </span>
                       </div>
-                      <div className="grid grid-cols-4 gap-16">
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                            <User className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Customer</p>
-                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{opp.customer_name || opp.party_name}</p>
-                          </div>
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium uppercase text-muted-foreground">Customer</p>
+                          <p className="text-sm font-semibold">{opp.customer_name || opp.party_name}</p>
                         </div>
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-                            <Calendar className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Expected Closing</p>
-                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">{new Date(opp.expected_closing).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                          </div>
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium uppercase text-muted-foreground">Expected close</p>
+                          <p className="text-sm font-semibold">{new Date(opp.expected_closing).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                         </div>
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                            <DollarSign className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Amount</p>
-                            <p className="text-[20px] font-bold text-slate-900 dark:text-white leading-tight">{formatCurrency(opp.opportunity_amount)}</p>
-                          </div>
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium uppercase text-muted-foreground">Amount</p>
+                          <p className="text-sm font-bold">{formatCurrency(opp.opportunity_amount)}</p>
                         </div>
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-background flex items-center justify-center text-slate-400 shrink-0">
-                            <Package className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Stage</p>
-                            <p className="text-[18px] font-semibold text-slate-900 dark:text-white leading-tight">Proposal/Price Quote</p>
-                          </div>
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium uppercase text-muted-foreground">Probability</p>
+                          <p className="text-sm font-semibold">{opp.probability}%</p>
                         </div>
                       </div>
                     </div>
@@ -495,6 +434,12 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
               </div>
             )}
           </div>
+        </div>
+          </div>
+
+          <aside className="col-span-12 xl:col-span-3">
+            <QuotationsAiInsights quotations={quotations} />
+          </aside>
         </div>
         </div>
       </main>

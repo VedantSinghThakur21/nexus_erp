@@ -28,6 +28,8 @@ export function quotationAiInsight(quotation: {
   return null
 }
 
+import { isOverdue } from '@/lib/ai/date-utils'
+
 export function invoiceAiInsight(invoice: {
   status: string
   due_date?: string
@@ -41,12 +43,7 @@ export function invoiceAiInsight(invoice: {
         'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800',
     }
   }
-  if (
-    invoice.due_date &&
-    new Date(invoice.due_date) < new Date() &&
-    invoice.status !== 'Paid' &&
-    invoice.status !== 'Cancelled'
-  ) {
+  if (isOverdue(invoice.due_date, invoice.status)) {
     return {
       label: 'HIGH RISK',
       icon: 'priority_high',

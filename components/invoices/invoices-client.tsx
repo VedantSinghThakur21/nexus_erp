@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { invoiceAiInsight } from "@/lib/ai/document-insights"
+import { isOverdue, daysFromToday } from "@/lib/ai/date-utils"
+import { InvoicesAiInsights } from "@/components/invoices/invoices-ai-insights"
 
 interface Invoice {
   name: string
@@ -47,10 +49,7 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
   // Calculate KPIs
   const totalInvoices = invoices.length
   const pendingInvoices = invoices.filter(inv => inv.status === 'Draft' || inv.status === 'Unpaid').length
-  const overdueInvoices = invoices.filter(inv => {
-    if (!inv.due_date) return false
-    return new Date(inv.due_date) < new Date() && inv.status !== 'Paid' && inv.status !== 'Cancelled'
-  }).length
+  const overdueInvoices = invoices.filter(inv => isOverdue(inv.due_date, inv.status)).length
   const totalCollected = invoices
     .filter(inv => inv.status === 'Paid')
     .reduce((sum, inv) => sum + (inv.grand_total || 0), 0)
@@ -109,13 +108,9 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
   const getAIInsight = invoiceAiInsight
 
   const getDaysOverdue = (dueDate: string, status: string) => {
-    if (status === 'Paid' || status === 'Cancelled') return null
-    const due = new Date(dueDate)
-    const today = new Date()
-    const diffTime = today.getTime() - due.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    if (diffDays > 0) return diffDays
-    return null
+    if (!isOverdue(dueDate, status)) return null
+    const days = daysFromToday(dueDate)
+    return days === null ? null : Math.abs(days)
   }
 
   return (
@@ -140,8 +135,8 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
               <Receipt className="h-5 w-5 text-muted-foreground" />
             </div>
             <div className="text-2xl font-medium text-foreground">{totalInvoices}</div>
-            <div className="mt-3 flex items-center gap-1 text-[11px] font-medium text-emerald-600">
-              <span className="text-sm">↗</span> +12% from last month
+            <div className="mt-3 text-[11px] font-medium text-muted-foreground">
+              {pendingInvoices} pending · {readyForInvoice.length} ready to bill
             </div>
           </div>
 
@@ -160,8 +155,8 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
               <span className="text-red-600">⚠</span>
             </div>
             <div className="text-2xl font-medium text-foreground">{overdueInvoices}</div>
-            <div className="mt-3 flex items-center gap-1 text-[11px] font-medium text-red-600">
-              <span className="text-sm">⚡</span> High risk identified
+            <div className={`mt-3 text-[11px] font-medium ${overdueInvoices > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+              {overdueInvoices > 0 ? 'Action required on overdue accounts' : 'All invoices on schedule'}
             </div>
           </div>
 
@@ -175,6 +170,8 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
           </div>
         </section>
 
+        <div className="grid grid-cols-12 gap-8">
+          <div className="col-span-12 space-y-6 xl:col-span-9">
         {readyForInvoice && readyForInvoice.length > 0 && (
           <section className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center gap-2 mb-6">
@@ -339,6 +336,12 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
             </div>
           )}
         </section>
+          </div>
+
+          <aside className="col-span-12 xl:col-span-3">
+            <InvoicesAiInsights invoices={invoices} readyForInvoice={readyForInvoice} />
+          </aside>
+        </div>
         </div>
       </main>
     </div>
