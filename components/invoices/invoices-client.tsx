@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { invoiceAiInsight } from "@/lib/ai/document-insights"
 import { isOverdue, daysFromToday } from "@/lib/ai/date-utils"
-import { InvoicesAiInsights } from "@/components/invoices/invoices-ai-insights"
 
 interface Invoice {
   name: string
@@ -170,8 +169,6 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
           </div>
         </section>
 
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 space-y-6 xl:col-span-9">
         {readyForInvoice && readyForInvoice.length > 0 && (
           <section className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center gap-2 mb-6">
@@ -336,12 +333,6 @@ export function InvoicesClient({ invoices, readyForInvoice }: InvoicesClientProp
             </div>
           )}
         </section>
-          </div>
-
-          <aside className="col-span-12 xl:col-span-3">
-            <InvoicesAiInsights invoices={invoices} readyForInvoice={readyForInvoice} />
-          </aside>
-        </div>
         </div>
       </main>
     </div>

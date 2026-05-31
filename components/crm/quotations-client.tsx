@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { quotationAiInsight } from "@/lib/ai/document-insights"
 import { validityLabel } from "@/lib/ai/quotation-insights"
-import { QuotationsAiInsights } from "@/components/crm/quotations-ai-insights"
 
 
 interface Quotation {
@@ -215,8 +214,6 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 xl:col-span-9">
         <div className="rounded-xl border border-border bg-card shadow-none overflow-hidden">
           <div className="border-b border-border p-6">
             <div className="mb-6 flex items-center gap-8 border-b border-border pb-4">
@@ -434,12 +431,6 @@ export function QuotationsClient({ quotations, opportunities }: QuotationsClient
               </div>
             )}
           </div>
-        </div>
-          </div>
-
-          <aside className="col-span-12 xl:col-span-3">
-            <QuotationsAiInsights quotations={quotations} />
-          </aside>
         </div>
         </div>
       </main>
