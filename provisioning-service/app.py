@@ -237,6 +237,16 @@ class SubdomainCheckResponse(BaseModel):
     reason: Optional[str] = None
 
 
+class TenantRecordLookupRequest(BaseModel):
+    owner_email: Optional[EmailStr] = None
+    username: Optional[str] = None
+
+
+class TenantRecordLookupResponse(BaseModel):
+    found: bool
+    tenant: Optional[dict[str, Any]] = None
+
+
 class TenantUserCreateRequest(BaseModel):
     user_email: EmailStr
     first_name: str
@@ -465,6 +475,89 @@ print(json.dumps({{"exists": bool(exists)}}))
     except Exception as e:
         logger.warning(f"Subdomain check failed, assuming available: {e}")
         return SubdomainCheckResponse(available=True, subdomain=subdomain)
+
+
+TENANT_RECORD_FIELDS = [
+    "name",
+    "subdomain",
+    "site_url",
+    "status",
+    "owner_email",
+    "site_config",
+    "api_key",
+]
+
+
+def _lookup_saas_tenant_on_master(filters: dict) -> dict:
+    """Read SaaS Tenant on the master site with ignore_permissions (bench console)."""
+    code = f"""
+import json
+rows = frappe.get_all(
+    "SaaS Tenant",
+    filters={json.dumps(filters)},
+    fields={json.dumps(TENANT_RECORD_FIELDS)},
+    limit=1,
+    ignore_permissions=True,
+)
+print(json.dumps({{"found": bool(rows), "tenant": rows[0] if rows else None}}, default=str))
+"""
+    output = run_frappe_code(MASTER_SITE, code)
+    return _parse_json_output(output)
+
+
+@app.get("/api/v1/tenant-record/subdomain/{subdomain}", response_model=TenantRecordLookupResponse)
+async def get_tenant_record_by_subdomain(subdomain: str, _auth: bool = Depends(verify_api_secret)):
+    """Resolve a tenant by subdomain from the Master DB (ignores API user DocPerms)."""
+    subdomain = generate_subdomain(subdomain)
+    try:
+        result = _lookup_saas_tenant_on_master({"subdomain": subdomain})
+        return TenantRecordLookupResponse(
+            found=bool(result.get("found")),
+            tenant=result.get("tenant"),
+        )
+    except Exception as e:
+        logger.error(f"tenant-record subdomain lookup failed for {subdomain}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/tenant-record/lookup", response_model=TenantRecordLookupResponse)
+async def lookup_tenant_record(req: TenantRecordLookupRequest, _auth: bool = Depends(verify_api_secret)):
+    """Resolve a tenant by owner email or master-site username."""
+    if not req.owner_email and not req.username:
+        raise HTTPException(status_code=400, detail="owner_email or username is required")
+
+    try:
+        if req.owner_email:
+            result = _lookup_saas_tenant_on_master({"owner_email": str(req.owner_email)})
+            return TenantRecordLookupResponse(
+                found=bool(result.get("found")),
+                tenant=result.get("tenant"),
+            )
+
+        code = f"""
+import json
+user_email = frappe.db.get_value("User", {{"username": {json.dumps(req.username)}}}, "email")
+if not user_email:
+    print(json.dumps({{"found": False, "tenant": None}}))
+else:
+    rows = frappe.get_all(
+        "SaaS Tenant",
+        filters={{"owner_email": user_email}},
+        fields={json.dumps(TENANT_RECORD_FIELDS)},
+        limit=1,
+        ignore_permissions=True,
+    )
+    print(json.dumps({{"found": bool(rows), "tenant": rows[0] if rows else None}}, default=str))
+"""
+        output = run_frappe_code(MASTER_SITE, code)
+        result = _parse_json_output(output)
+        return TenantRecordLookupResponse(
+            found=bool(result.get("found")),
+            tenant=result.get("tenant"),
+        )
+    except Exception as e:
+        logger.error(f"tenant-record lookup failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/v1/provision", response_model=ProvisionResponse)

@@ -56,6 +56,21 @@ export interface SubdomainCheckResult {
   reason?: string
 }
 
+export interface TenantRecord {
+  name: string
+  subdomain: string
+  site_url: string
+  status: string
+  owner_email?: string
+  site_config?: string
+  api_key?: string
+}
+
+export interface TenantRecordLookupResult {
+  found: boolean
+  tenant: TenantRecord | null
+}
+
 interface ServiceHealth {
   status: string
   bench_path: string
@@ -173,6 +188,34 @@ export async function checkSubdomain(subdomain: string): Promise<SubdomainCheckR
     `/api/v1/check-subdomain/${encodeURIComponent(subdomain)}`,
     { timeout: 30_000 }, // docker exec overhead can add 3-5s; 30s is safe
   )
+}
+
+/**
+ * Look up a SaaS Tenant on the master site via the provisioning service.
+ * Uses ignore_permissions in bench — does not depend on ERP_API_KEY DocPerms.
+ */
+export async function lookupTenantBySubdomain(subdomain: string): Promise<TenantRecord | null> {
+  const result = await serviceRequest<TenantRecordLookupResult>(
+    `/api/v1/tenant-record/subdomain/${encodeURIComponent(subdomain)}`,
+    { timeout: 30_000 },
+  )
+  return result.found && result.tenant ? result.tenant : null
+}
+
+export async function lookupTenantByOwnerEmail(email: string): Promise<TenantRecord | null> {
+  const result = await serviceRequest<TenantRecordLookupResult>(
+    '/api/v1/tenant-record/lookup',
+    { method: 'POST', body: { owner_email: email }, timeout: 30_000 },
+  )
+  return result.found && result.tenant ? result.tenant : null
+}
+
+export async function lookupTenantByUsername(username: string): Promise<TenantRecord | null> {
+  const result = await serviceRequest<TenantRecordLookupResult>(
+    '/api/v1/tenant-record/lookup',
+    { method: 'POST', body: { username }, timeout: 30_000 },
+  )
+  return result.found && result.tenant ? result.tenant : null
 }
 
 /**

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { frappeRequest } from '@/app/lib/api'
+import { lookupTenantBySubdomain } from '@/lib/provisioning-client'
 import { requireAuth } from '@/app/api/_lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -9,33 +9,21 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const tenant = searchParams.get('tenant')
-    
+
     if (!tenant) {
       return NextResponse.json(
         { error: 'Tenant parameter is required' },
         { status: 400 }
       )
     }
-    
-    // Check if tenant site exists and is ready
-    const siteName = `${tenant}.avariq.in`
-    
+
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+    const siteName = `${tenant}.${rootDomain}`
+
     try {
-      // Try to get site info from the main ERPNext instance
-      const siteInfo = await frappeRequest(
-        'frappe.client.get_list',
-        'GET',
-        {
-          doctype: 'SaaS Tenant',
-          filters: JSON.stringify([['subdomain', '=', tenant]]),
-          fields: JSON.stringify(['status', 'site_url', 'subdomain', 'api_key'])
-        }
-      ) as any[]
-      
-      if (siteInfo && siteInfo.length > 0) {
-        const tenantRecord = siteInfo[0]
-        
-        // Check if API keys are set (means provisioning is complete)
+      const tenantRecord = await lookupTenantBySubdomain(tenant)
+
+      if (tenantRecord) {
         if (tenantRecord.api_key && tenantRecord.status === 'Active') {
           return NextResponse.json({
             ready: true,
@@ -59,17 +47,14 @@ export async function GET(request: NextRequest) {
           })
         }
       }
-      
-      // If no tenant record found, assume still provisioning
+
       return NextResponse.json({
         ready: false,
         status: 'unknown',
         siteName,
         message: 'Checking status...'
       })
-      
-    } catch (error) {
-      // If error fetching tenant, might be in early provisioning
+    } catch {
       return NextResponse.json({
         ready: false,
         status: 'provisioning',
@@ -77,11 +62,11 @@ export async function GET(request: NextRequest) {
         message: 'Creating workspace...'
       })
     }
-    
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error checking provisioning status:', error)
+    const message = error instanceof Error ? error.message : 'Failed to check status'
     return NextResponse.json(
-      { error: error.message || 'Failed to check status' },
+      { error: message },
       { status: 500 }
     )
   }

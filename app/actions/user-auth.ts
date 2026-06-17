@@ -1,8 +1,16 @@
 'use server'
 
 import { cookies, headers } from 'next/headers'
-import { provisionTenantSite, generateUserApiKeys } from '@/lib/provisioning-client'
+import {
+  provisionTenantSite,
+  generateUserApiKeys,
+  lookupTenantBySubdomain,
+  lookupTenantByOwnerEmail,
+  lookupTenantByUsername,
+  type TenantRecord,
+} from '@/lib/provisioning-client'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
+import { buildTenantFromSubdomain } from '@/lib/tenant'
 
 // Timeout for all direct Frappe fetch() calls (ms).
 // Keep well under nginx's upstream timeout (typically 60s).
@@ -148,66 +156,40 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     // Step 1: Resolve tenant — prefer the current subdomain from middleware (allows
     // invited team members who are NOT the owner to log in), falling back to
     // owner_email lookup for root-domain logins.
-    let tenantData: any[] = []
-
-    const { masterRequest } = await import('@/app/lib/api')
+    // Uses the provisioning service (ignore_permissions on master) so login does not
+    // depend on ERP_API_KEY having SaaS Tenant DocPerm.
     const headersList = await headers()
     const currentSubdomain = headersList.get('x-tenant-id')
 
-    if (currentSubdomain && currentSubdomain !== 'master') {
-      // User is logging in from a tenant subdomain (e.g. vfixit.avariq.in/login).
-      // Look up the tenant by subdomain — works for both owners AND invited members.
-      const results = await masterRequest('frappe.client.get_list', 'POST', {
-        doctype: 'SaaS Tenant',
-        filters: { subdomain: currentSubdomain },
-        fields: ['name', 'subdomain', 'site_url', 'status'],
-        limit_page_length: 1,
-        ignore_permissions: true
-      }) as any[]
-      tenantData = results || []
-    } else if (email) {
-      // Root-domain login: look up the tenant the user owns.
-      const results = await masterRequest('frappe.client.get_list', 'POST', {
-        doctype: 'SaaS Tenant',
-        filters: { owner_email: email },
-        fields: ['name', 'subdomain', 'site_url', 'status'],
-        limit_page_length: 1,
-        ignore_permissions: true
-      }) as any[]
-      tenantData = results || []
-    } else {
-      const userResults = await masterRequest('frappe.client.get_list', 'POST', {
-        doctype: 'User',
-        filters: { username: usernameOrEmail },
-        fields: ['email'],
-        limit_page_length: 1,
-        ignore_permissions: true
-      }) as any[]
+    let tenant: TenantRecord | null = null
+    const onTenantSubdomain = !!(currentSubdomain && currentSubdomain !== 'master')
 
-      if (userResults && userResults.length > 0) {
-        const userEmail = userResults[0].email
-        const results = await masterRequest('frappe.client.get_list', 'POST', {
-          doctype: 'SaaS Tenant',
-          filters: { owner_email: userEmail },
-          fields: ['name', 'subdomain', 'site_url', 'status'],
-          limit_page_length: 1,
-          ignore_permissions: true
-        }) as any[]
-        tenantData = results || []
+    try {
+      if (onTenantSubdomain) {
+        tenant = await lookupTenantBySubdomain(currentSubdomain!)
+      } else if (email) {
+        tenant = await lookupTenantByOwnerEmail(email)
+      } else {
+        tenant = await lookupTenantByUsername(usernameOrEmail)
       }
+    } catch (lookupError) {
+      console.warn('Provisioning tenant lookup failed:', lookupError)
     }
 
-    const isTenantUser = tenantData && tenantData.length > 0
+    // Subdomain logins do not require master DB access — derive site from the host.
+    if (!tenant && onTenantSubdomain) {
+      tenant = buildTenantFromSubdomain(currentSubdomain!)
+      console.warn(
+        `[Login] Using synthesized tenant record for ${currentSubdomain} (provisioning/master lookup unavailable)`,
+      )
+    }
 
-    if (!isTenantUser) {
-      // In the new multi-tenant architecture, root domain login requires a tenant
+    if (!tenant) {
       return {
         success: false,
         error: 'No workspace found for this account. Please sign up to create a workspace first.'
       }
     }
-
-    const tenant = tenantData[0] as TenantData
 
     // Validate tenant status
     const tenantStatus = String(tenant.status || '').toLowerCase()
@@ -573,6 +555,22 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         }
       } else {
         console.warn('API key generation incomplete — user will authenticate via session cookie only')
+        // Without API keys, server-side ERP calls fail. Repair roles/docperms via provisioning
+        // so the next login (or auto-repair on 403) can mint working keys.
+        if (userEmail && !fastLogin) {
+          void (async () => {
+            try {
+              const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
+              const { ROLE_SETS } = await import('@/lib/role-sets')
+              await seedTenantDocPerms(tenant.subdomain)
+              const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
+              await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
+              console.warn(`[Login] Repaired roles/docperms for ${userEmail} after API key mint failure`)
+            } catch (repairErr) {
+              console.warn('[Login] Post-login permission repair failed:', repairErr)
+            }
+          })()
+        }
       }
 
       // ── Normalize roles on every login ──

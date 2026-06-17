@@ -35,6 +35,30 @@ export type TenantContext = {
  * Get enhanced tenant context with additional metadata
  * Server-side only
  */
+/**
+ * Build a minimal SaaS Tenant record from subdomain when master DB lookup is unavailable.
+ * Used for tenant-subdomain logins (middleware already validated the host).
+ */
+export function buildTenantFromSubdomain(subdomain: string): {
+  name: string
+  subdomain: string
+  site_url: string
+  status: string
+} {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+  const isProduction = process.env.NODE_ENV === 'production'
+  const siteUrl = isProduction
+    ? `https://${subdomain}.${rootDomain}`
+    : `http://${subdomain}.localhost:8080`
+
+  return {
+    name: subdomain,
+    subdomain,
+    site_url: siteUrl,
+    status: 'Active',
+  }
+}
+
 export async function getTenantContext(): Promise<TenantContext> {
   const tenant = await getTenant()
 

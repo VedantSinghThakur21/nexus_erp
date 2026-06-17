@@ -53,41 +53,50 @@ async function lookupTenantInMasterDB(email: string): Promise<{
   subdomain?: string
 }> {
   try {
-    const apiKey = process.env.ERP_API_KEY
-    const apiSecret = process.env.ERP_API_SECRET
-    if (!apiKey || !apiSecret) return { hasTenant: false }
-
-    const params = new URLSearchParams({
-      doctype: 'SaaS Tenant',
-      filters: JSON.stringify({ owner_email: email, status: 'Active' }),
-      fields: JSON.stringify(['subdomain']),
-      limit_page_length: '1',
-    })
-
-    const response = await fetch(
-      `${ERP_URL}/api/method/frappe.client.get_list?${params}`,
-      {
-        headers: {
-          'Authorization': `token ${apiKey}:${apiSecret}`,
-          'X-Frappe-Site-Name': MASTER_SITE,
-        },
-        // No cache — always check fresh
-        cache: 'no-store',
-      }
-    )
-
-    if (!response.ok) return { hasTenant: false }
-
-    const data = await response.json()
-    const tenants = data.message || data.data || []
-
-    if (tenants.length > 0) {
-      return { hasTenant: true, subdomain: tenants[0].subdomain }
+    const { lookupTenantByOwnerEmail } = await import('@/lib/provisioning-client')
+    const tenant = await lookupTenantByOwnerEmail(email)
+    if (tenant && String(tenant.status || '').toLowerCase() === 'active') {
+      return { hasTenant: true, subdomain: tenant.subdomain }
     }
     return { hasTenant: false }
-  } catch (error) {
-    console.error('[Auth] Master DB tenant lookup failed:', error)
-    return { hasTenant: false }
+  } catch {
+    // Fallback when provisioning service is unavailable (dev without Docker)
+    try {
+      const apiKey = process.env.ERP_API_KEY
+      const apiSecret = process.env.ERP_API_SECRET
+      if (!apiKey || !apiSecret) return { hasTenant: false }
+
+      const params = new URLSearchParams({
+        doctype: 'SaaS Tenant',
+        filters: JSON.stringify({ owner_email: email, status: 'Active' }),
+        fields: JSON.stringify(['subdomain']),
+        limit_page_length: '1',
+      })
+
+      const response = await fetch(
+        `${ERP_URL}/api/method/frappe.client.get_list?${params}`,
+        {
+          headers: {
+            'Authorization': `token ${apiKey}:${apiSecret}`,
+            'X-Frappe-Site-Name': MASTER_SITE,
+          },
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) return { hasTenant: false }
+
+      const data = await response.json()
+      const tenants = data.message || data.data || []
+
+      if (tenants.length > 0) {
+        return { hasTenant: true, subdomain: tenants[0].subdomain }
+      }
+      return { hasTenant: false }
+    } catch (error) {
+      console.error('[Auth] Master DB tenant lookup failed:', error)
+      return { hasTenant: false }
+    }
   }
 }
 

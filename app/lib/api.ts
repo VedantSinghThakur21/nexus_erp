@@ -48,7 +48,9 @@ interface ApiRequestOptions {
 }
 
 const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
+const DOCPERM_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
 const roleRepairLastAttempt = new Map<string, number>()
+const docpermRepairLastAttempt = new Map<string, number>()
 const apiErrorLogLastSeen = new Map<string, number>()
 const staleTenantTokenLastSeen = new Map<string, number>()
 
@@ -435,6 +437,49 @@ function extractDeniedDoctypeFromPermissionError(data: Record<string, unknown>):
   return null
 }
 
+async function tryRepairTenantDocPerms(
+  context: TenantContext,
+  errorData: Record<string, unknown>
+): Promise<boolean> {
+  if (!context.isTenant || !context.subdomain || !isDoctypeRolePermissionError(errorData)) {
+    return false
+  }
+
+  const cookieStore = await cookies()
+  const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+  if (!userEmail) return false
+
+  const cooldownKey = `${context.subdomain}:${userEmail}`
+  const now = Date.now()
+  const lastAttempt = docpermRepairLastAttempt.get(cooldownKey)
+  if (lastAttempt && now - lastAttempt < DOCPERM_REPAIR_COOLDOWN_MS) {
+    return false
+  }
+
+  docpermRepairLastAttempt.set(cooldownKey, now)
+
+  try {
+    const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
+    const { ROLE_SETS } = await import('@/lib/role-sets')
+
+    await seedTenantDocPerms(context.subdomain)
+
+    const roleType = cookieStore.get('tenant_role_type')?.value || 'member'
+    const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
+    await assignUserRoles(context.subdomain, userEmail, rolesToAssign)
+
+    const deniedDoctype = extractDeniedDoctypeFromPermissionError(errorData)
+    console.warn(
+      `[API] Auto-repaired DocPerms/roles for ${userEmail} on ${context.subdomain}` +
+        (deniedDoctype ? ` (denied: ${deniedDoctype})` : ''),
+    )
+    return true
+  } catch (error) {
+    console.warn('[API] Automatic tenant DocPerm repair failed:', error)
+    return false
+  }
+}
+
 async function tryRepairTenantRoles(
   context: TenantContext,
   errorData: Record<string, unknown>
@@ -607,6 +652,24 @@ async function frappeRequestWithContext(
     if (!response.ok) {
       if (
         response.status === 403 &&
+        useSessionAuth &&
+        !options.hasTenantTokenRetryAttempted &&
+        context.hasCredentials &&
+        isMethodNotWhitelistedError(data)
+      ) {
+        if (shouldEmitThrottledLog(`session-not-whitelisted:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+          console.warn(`[API] Session auth cannot call ${endpoint}; retrying with tenant API token`)
+        }
+        return frappeRequest(endpoint, method, body, {
+          ...options,
+          hasTenantTokenRetryAttempted: true,
+          hasSessionFallbackAttempted: true,
+          useSessionAuth: false,
+        })
+      }
+
+      if (
+        response.status === 403 &&
         useSessionAuthFromStaleTenantToken &&
         !options.useSessionAuth &&
         !options.hasTenantTokenRetryAttempted &&
@@ -628,7 +691,7 @@ async function frappeRequestWithContext(
         response.status === 403 &&
         !options.useMasterCredentials &&
         !options.hasRoleRepairAttempted &&
-        await tryRepairTenantRoles(context, data)
+        (await tryRepairTenantDocPerms(context, data) || await tryRepairTenantRoles(context, data))
       ) {
         return frappeRequest(endpoint, method, body, {
           ...options,
