@@ -1,5 +1,50 @@
 import { headers } from 'next/headers'
 
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+
+/**
+ * Parse tenant subdomain from Host / X-Forwarded-Host (same rules as proxy.ts).
+ */
+export function parseTenantSubdomainFromHost(host: string): string | null {
+  const hostname = host.split(':')[0].toLowerCase()
+
+  if (hostname.includes('localhost')) {
+    const parts = hostname.split('.')
+    if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
+      return parts[0] || null
+    }
+    return null
+  }
+
+  if (hostname === ROOT_DOMAIN || hostname === `www.${ROOT_DOMAIN}`) {
+    return null
+  }
+
+  if (hostname.endsWith(`.${ROOT_DOMAIN}`)) {
+    const sub = hostname.slice(0, -(ROOT_DOMAIN.length + 1))
+    return sub && sub !== 'www' ? sub : null
+  }
+
+  return null
+}
+
+/**
+ * Resolve tenant id from middleware header, falling back to the request Host.
+ */
+export async function resolveTenantId(): Promise<string> {
+  const headersList = await headers()
+  const fromMiddleware = headersList.get('x-tenant-id')
+  if (fromMiddleware && fromMiddleware !== 'master') {
+    return fromMiddleware
+  }
+
+  const host = headersList.get('x-forwarded-host') || headersList.get('host') || ''
+  const fromHost = parseTenantSubdomainFromHost(host)
+  if (fromHost) return fromHost
+
+  return fromMiddleware || 'master'
+}
+
 /**
  * Get current tenant identifier from x-tenant-id header
  * Server-side only (uses next/headers)
@@ -12,15 +57,7 @@ import { headers } from 'next/headers'
  * @returns tenant identifier (e.g., "tesla", "master")
  */
 export async function getTenant(): Promise<string> {
-  const headersList = await headers()
-  const tenant = headersList.get('x-tenant-id')
-
-  if (!tenant) {
-    console.warn('[getTenant] Tenant header not found. Middleware may not be configured correctly.')
-    return 'master'
-  }
-
-  return tenant
+  return resolveTenantId()
 }
 
 /**

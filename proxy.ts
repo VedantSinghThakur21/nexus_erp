@@ -23,6 +23,29 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+/** Inject headers on the incoming request so Server Actions / RSC can read them via headers(). */
+function forwardWithHeaders(
+  request: NextRequest,
+  extra: Record<string, string>,
+  rewriteUrl?: URL,
+): NextResponse {
+  const requestHeaders = new Headers(request.headers)
+  for (const [key, value] of Object.entries(extra)) {
+    requestHeaders.set(key, value)
+  }
+
+  const init = { request: { headers: requestHeaders } } as const
+  const response = rewriteUrl
+    ? NextResponse.rewrite(rewriteUrl, init)
+    : NextResponse.next(init)
+
+  for (const [key, value] of Object.entries(extra)) {
+    response.headers.set(key, value)
+  }
+
+  return response
+}
+
 /**
  * CVE-3 Fix: Restrict returnTo to relative paths only.
  * Strips any host/protocol so external-redirect phishing is impossible.
@@ -178,15 +201,11 @@ export function proxy(request: NextRequest) {
       )
     }
 
-    const apiResponse = NextResponse.next()
-    apiResponse.headers.set('x-tenant-id', apiTenantSlug || 'master')
-    
-    // Pass user email for server-side role checks
-    const userEmail = getUserEmail(request)
-    if (userEmail) {
-      apiResponse.headers.set('x-user-email', userEmail)
-    }
-    
+    const apiResponse = forwardWithHeaders(request, {
+      'x-tenant-id': apiTenantSlug || 'master',
+      ...(getUserEmail(request) ? { 'x-user-email': getUserEmail(request)! } : {}),
+    })
+
     return apiResponse
   }
 
@@ -194,10 +213,10 @@ export function proxy(request: NextRequest) {
   // /site tree. Let the app route handle it directly so /billing/checkout does
   // not rewrite to /site/billing/checkout.
   if (pathname === '/billing/checkout' || pathname.startsWith('/billing/checkout/')) {
-    const response = NextResponse.next()
-    response.headers.set('x-tenant-id', 'master')
-    response.headers.set('x-current-path', pathname)
-    return response
+    return forwardWithHeaders(request, {
+      'x-tenant-id': 'master',
+      'x-current-path': pathname,
+    })
   }
 
   // ── 2. Block direct browser access to internal route groups ──
@@ -238,19 +257,18 @@ export function proxy(request: NextRequest) {
     const siteUrl = new URL(`/site${pathname}`, request.url)
     siteUrl.search = request.nextUrl.search
 
-    const response = NextResponse.rewrite(siteUrl)
-    response.headers.set('x-tenant-id', 'master')
-    response.headers.set('x-current-path', pathname)
-    response.headers.set('x-middleware-executed', 'true')
-    response.headers.set('x-rewrite-to', siteUrl.pathname)
-    
-    // Pass user email for server-side role checks
     const userEmail = getUserEmail(request)
-    if (userEmail) {
-      response.headers.set('x-user-email', userEmail)
-    }
-    
-    return response
+    return forwardWithHeaders(
+      request,
+      {
+        'x-tenant-id': 'master',
+        'x-current-path': pathname,
+        'x-middleware-executed': 'true',
+        'x-rewrite-to': siteUrl.pathname,
+        ...(userEmail ? { 'x-user-email': userEmail } : {}),
+      },
+      siteUrl,
+    )
   }
 
   // ── 5. TENANT SUBDOMAIN → rewrite to /tenant ──
@@ -291,19 +309,18 @@ export function proxy(request: NextRequest) {
   const tenantUrl = new URL(`/tenant${pathname}`, request.url)
   tenantUrl.search = request.nextUrl.search
 
-  const response = NextResponse.rewrite(tenantUrl)
-  response.headers.set('x-tenant-id', tenantSlug)
-  response.headers.set('x-current-path', pathname)
-  response.headers.set('x-middleware-executed', 'true')
-  response.headers.set('x-rewrite-to', tenantUrl.pathname)
-  
-  // Pass user email for server-side role checks
   const userEmail = getUserEmail(request)
-  if (userEmail) {
-    response.headers.set('x-user-email', userEmail)
-  }
-
-  return response
+  return forwardWithHeaders(
+    request,
+    {
+      'x-tenant-id': tenantSlug,
+      'x-current-path': pathname,
+      'x-middleware-executed': 'true',
+      'x-rewrite-to': tenantUrl.pathname,
+      ...(userEmail ? { 'x-user-email': userEmail } : {}),
+    },
+    tenantUrl,
+  )
 }
 
 export const config = {

@@ -7,10 +7,11 @@ import {
   lookupTenantBySubdomain,
   lookupTenantByOwnerEmail,
   lookupTenantByUsername,
+  lookupTenantForUserEmail,
   type TenantRecord,
 } from '@/lib/provisioning-client'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
-import { buildTenantFromSubdomain } from '@/lib/tenant'
+import { buildTenantFromSubdomain, resolveTenantId } from '@/lib/tenant'
 
 // Timeout for all direct Frappe fetch() calls (ms).
 // Keep well under nginx's upstream timeout (typically 60s).
@@ -158,17 +159,20 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     // owner_email lookup for root-domain logins.
     // Uses the provisioning service (ignore_permissions on master) so login does not
     // depend on ERP_API_KEY having SaaS Tenant DocPerm.
-    const headersList = await headers()
-    const currentSubdomain = headersList.get('x-tenant-id')
+    const currentSubdomain = await resolveTenantId()
+    const onRootDomain = currentSubdomain === 'master'
 
     let tenant: TenantRecord | null = null
-    const onTenantSubdomain = !!(currentSubdomain && currentSubdomain !== 'master')
+    const onTenantSubdomain = !onRootDomain
 
     try {
       if (onTenantSubdomain) {
-        tenant = await lookupTenantBySubdomain(currentSubdomain!)
+        tenant = await lookupTenantBySubdomain(currentSubdomain)
       } else if (email) {
         tenant = await lookupTenantByOwnerEmail(email)
+        if (!tenant) {
+          tenant = await lookupTenantForUserEmail(email)
+        }
       } else {
         tenant = await lookupTenantByUsername(usernameOrEmail)
       }
@@ -178,16 +182,19 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
 
     // Subdomain logins do not require master DB access — derive site from the host.
     if (!tenant && onTenantSubdomain) {
-      tenant = buildTenantFromSubdomain(currentSubdomain!)
+      tenant = buildTenantFromSubdomain(currentSubdomain)
       console.warn(
         `[Login] Using synthesized tenant record for ${currentSubdomain} (provisioning/master lookup unavailable)`,
       )
     }
 
     if (!tenant) {
+      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
       return {
         success: false,
-        error: 'No workspace found for this account. Please sign up to create a workspace first.'
+        error: onRootDomain
+          ? `No workspace found for this account. If you were invited to a team, sign in at yourcompany.${rootDomain}/login instead of the main site.`
+          : 'No workspace found for this account. Please sign up to create a workspace first.',
       }
     }
 

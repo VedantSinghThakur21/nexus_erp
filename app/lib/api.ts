@@ -4,6 +4,7 @@ import {
   readFrappeGetCache,
   writeFrappeGetCache,
 } from '@/lib/performance/frappe-get-response-cache'
+import { parseTenantSubdomainFromHost } from '@/lib/tenant'
 import { cache as reactCache } from 'react'
 
 // ============================================================================
@@ -145,14 +146,16 @@ async function resolveTenantContext(): Promise<TenantContext> {
   try {
     const [headersList, cookieStore] = await Promise.all([headers(), cookies()])
 
-    // 1. Get Tenant ID from Middleware Header (Source of Truth)
+    // 1. Get Tenant ID from Middleware Header (Source of Truth), with Host fallback
     const headerTenantId = headersList.get('x-tenant-id')
-    const iframeContext = headersList.get('x-iframe-context') // Future proofing
+    const host = headersList.get('x-forwarded-host') || headersList.get('host') || ''
+    const hostTenantId = parseTenantSubdomainFromHost(host)
+    const effectiveTenantId =
+      (headerTenantId && headerTenantId !== 'master' ? headerTenantId : null) ||
+      hostTenantId
 
     // 2. Determine Subdomain
-    // logic: if header is 'master' or missing -> null (root domain)
-    // else -> subdomain string
-    const subdomain = (headerTenantId && headerTenantId !== 'master') ? headerTenantId : null
+    const subdomain = effectiveTenantId || null
     const isTenant = !!subdomain
 
     // 3. Compute Site Name

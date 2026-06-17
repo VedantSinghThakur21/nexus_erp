@@ -240,6 +240,7 @@ class SubdomainCheckResponse(BaseModel):
 class TenantRecordLookupRequest(BaseModel):
     owner_email: Optional[EmailStr] = None
     username: Optional[str] = None
+    user_email: Optional[EmailStr] = None
 
 
 class TenantRecordLookupResponse(BaseModel):
@@ -522,9 +523,9 @@ async def get_tenant_record_by_subdomain(subdomain: str, _auth: bool = Depends(v
 
 @app.post("/api/v1/tenant-record/lookup", response_model=TenantRecordLookupResponse)
 async def lookup_tenant_record(req: TenantRecordLookupRequest, _auth: bool = Depends(verify_api_secret)):
-    """Resolve a tenant by owner email or master-site username."""
-    if not req.owner_email and not req.username:
-        raise HTTPException(status_code=400, detail="owner_email or username is required")
+    """Resolve a tenant by owner email, member user email, or master-site username."""
+    if not req.owner_email and not req.username and not req.user_email:
+        raise HTTPException(status_code=400, detail="owner_email, user_email, or username is required")
 
     try:
         if req.owner_email:
@@ -533,6 +534,44 @@ async def lookup_tenant_record(req: TenantRecordLookupRequest, _auth: bool = Dep
                 found=bool(result.get("found")),
                 tenant=result.get("tenant"),
             )
+
+        if req.user_email:
+            user_email = str(req.user_email)
+            master_code = f"""
+import json
+tenants = frappe.get_all(
+    "SaaS Tenant",
+    filters={{"status": "Active"}},
+    fields={json.dumps(TENANT_RECORD_FIELDS)},
+    limit=50,
+    ignore_permissions=True,
+)
+print(json.dumps({{"tenants": tenants}}, default=str))
+"""
+            master_output = run_frappe_code(MASTER_SITE, master_code)
+            master_result = _parse_json_output(master_output)
+            tenant_rows = master_result.get("tenants") or []
+
+            for row in tenant_rows:
+                subdomain = row.get("subdomain")
+                if not subdomain:
+                    continue
+                site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
+                check_code = f"""
+import json
+exists = frappe.db.exists("User", {json.dumps(user_email)})
+print(json.dumps({{"exists": bool(exists)}}))
+"""
+                try:
+                    check_output = run_frappe_code(site_name, check_code)
+                    check_result = _parse_json_output(check_output)
+                    if check_result.get("exists"):
+                        return TenantRecordLookupResponse(found=True, tenant=row)
+                except Exception as check_err:
+                    logger.warning(f"resolve-user: skip {site_name}: {check_err}")
+                    continue
+
+            return TenantRecordLookupResponse(found=False, tenant=None)
 
         code = f"""
 import json

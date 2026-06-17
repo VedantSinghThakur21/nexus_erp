@@ -218,6 +218,15 @@ export async function lookupTenantByUsername(username: string): Promise<TenantRe
   return result.found && result.tenant ? result.tenant : null
 }
 
+/** Find the tenant workspace where a user (owner or invited member) has an account. */
+export async function lookupTenantForUserEmail(email: string): Promise<TenantRecord | null> {
+  const result = await serviceRequest<TenantRecordLookupResult>(
+    '/api/v1/tenant-record/lookup',
+    { method: 'POST', body: { user_email: email }, timeout: 120_000 },
+  )
+  return result.found && result.tenant ? result.tenant : null
+}
+
 /**
  * Provision a new tenant site.
  * 
