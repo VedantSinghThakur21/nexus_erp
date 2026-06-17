@@ -169,10 +169,6 @@ async function serviceRequest<T>(
   }
 }
 
-    throw error
-  }
-}
-
 async function optionalServiceRequest<T>(
   path: string,
   options: {
