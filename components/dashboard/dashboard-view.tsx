@@ -46,6 +46,17 @@ function relativeTimeLabel(value: string): string {
   return `${Math.floor(deltaHours / 24)}d ago`
 }
 
+/** Avoid hydration mismatch — relative time depends on Date.now() (client-only). */
+function RelativeTime({ value }: { value: string }) {
+  const [label, setLabel] = useState('')
+
+  useEffect(() => {
+    setLabel(relativeTimeLabel(value))
+  }, [value])
+
+  return <p className="text-xs text-muted-foreground">{label}</p>
+}
+
 function stageBadge(stage: string): "default" | "secondary" | "outline" {
   if (stage.includes("Negotiation")) return "default"
   if (stage.includes("Qualification")) return "secondary"
@@ -123,7 +134,7 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
       icon: ReceiptText,
     },
     {
-      title: "Open Opportunities",
+      title: "Active Leads",
       value: stats.openOpportunities.toLocaleString(),
       delta: stats.leadsChange,
       icon: FolderOpenDot,
@@ -371,7 +382,7 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-foreground">{activity.owner}</p>
                           <p className="truncate text-sm text-muted-foreground">{activity.company}</p>
-                          <p className="text-xs text-muted-foreground">{relativeTimeLabel(activity.time)}</p>
+                          <RelativeTime value={activity.time} />
                         </div>
                       </motion.div>
                     ))}

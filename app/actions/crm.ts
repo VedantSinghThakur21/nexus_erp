@@ -266,23 +266,42 @@ export async function getOpportunityMetadata() {
 // ========== LEADS ==========
 
 // 1. READ: Fetch list of leads
+const LEAD_LIST_FIELD_SETS = [
+  '["name", "lead_name", "email_id", "mobile_no", "status", "company_name", "job_title", "territory", "source", "creation"]',
+  '["name", "lead_name", "email_id", "mobile_no", "status", "company_name", "creation"]',
+  '["name", "lead_name", "status", "company_name", "creation"]',
+] as const
+
 export async function getLeads() {
-  try {
-    const response = await frappeRequest(
-      'frappe.client.get_list',
-      'GET',
-      {
-        doctype: 'Lead',
-        fields: '["name", "lead_name", "email_id", "mobile_no", "status", "company_name", "job_title", "territory", "source", "creation"]',
-        order_by: 'creation desc',
-        limit_page_length: 100
+  let lastError: unknown = null
+
+  for (const fields of LEAD_LIST_FIELD_SETS) {
+    try {
+      const response = await frappeRequest(
+        'frappe.client.get_list',
+        'GET',
+        {
+          doctype: 'Lead',
+          fields,
+          order_by: 'creation desc',
+          limit_page_length: 100,
+        }
+      )
+
+      if (Array.isArray(response)) {
+        return response as Lead[]
       }
-    )
-    return response as Lead[]
-  } catch (error) {
-    console.error("Failed to fetch leads:", error)
-    return []
+
+      console.error('getLeads: unexpected response shape (not an array):', response)
+      return []
+    } catch (error) {
+      lastError = error
+      // Retry with a smaller field set — some tenant sites lack optional Lead columns.
+    }
   }
+
+  console.error('Failed to fetch leads after field-set fallbacks:', lastError)
+  return []
 }
 
 // 2. CREATE: Add a new lead (Expanded for Detailed View)
