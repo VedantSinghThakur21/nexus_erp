@@ -22,6 +22,74 @@ function timeoutSignal(ms: number): AbortSignal {
   return AbortSignal.timeout(ms)
 }
 
+function getTenantSiteName(subdomain: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+  return process.env.NODE_ENV === 'production'
+    ? `${subdomain}.${rootDomain}`
+    : `${subdomain}.localhost`
+}
+
+function validateTenantStatus(tenant: TenantRecord): LoginResult | null {
+  const tenantStatus = String(tenant.status || 'active').toLowerCase()
+
+  if (tenantStatus === 'suspended') {
+    return {
+      success: false,
+      error: tenant.site_config
+        ? 'Your account is suspended. Please contact support to reactivate.'
+        : 'Account setup incomplete. Please try signing up again or contact support.',
+    }
+  }
+
+  if (tenantStatus === 'cancelled') {
+    return {
+      success: false,
+      error: 'Your account has been cancelled. Contact support to restore access.',
+    }
+  }
+
+  if (tenantStatus === 'pending') {
+    return {
+      success: false,
+      error: 'Your account is still being set up. This usually takes 2-3 minutes. Please try again shortly.',
+    }
+  }
+
+  return null
+}
+
+async function getTenantDiscoverySubdomains(): Promise<string[]> {
+  const fromEnv = (process.env.NEXUS_TENANT_DISCOVERY_SUBDOMAINS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+
+  const { listActiveTenantSubdomains } = await import('@/lib/provisioning-client')
+  const fromProvisioning = await listActiveTenantSubdomains()
+
+  const seen = new Set<string>()
+  const merged: string[] = []
+  for (const sub of [...fromEnv, ...fromProvisioning]) {
+    const normalized = sub.toLowerCase()
+    if (!seen.has(normalized)) {
+      seen.add(normalized)
+      merged.push(normalized)
+    }
+  }
+  return merged.slice(0, 20)
+}
+
+function normalizeTenantRecord(tenant: TenantRecord): TenantRecord {
+  let siteUrl = tenant.site_url || ''
+  if (!siteUrl) {
+    return buildTenantFromSubdomain(tenant.subdomain)
+  }
+  if (!siteUrl.startsWith('http')) {
+    siteUrl = `https://${siteUrl}`
+  }
+  return { ...tenant, site_url: siteUrl }
+}
+
 /**
  * Tenant data structure from Frappe API
  */
@@ -123,7 +191,11 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
   }
 }
 
-export async function loginUser(usernameOrEmail: string, password: string): Promise<LoginResult> {
+export async function loginUser(
+  usernameOrEmail: string,
+  password: string,
+  workspaceHint?: string,
+): Promise<LoginResult> {
   try {
     // For E2E / troubleshooting: allow skipping expensive side effects (provisioning,
     // role normalization) to reduce login latency and flakiness.
@@ -161,150 +233,139 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
     // depend on ERP_API_KEY having SaaS Tenant DocPerm.
     const currentSubdomain = await resolveTenantId()
     const onRootDomain = currentSubdomain === 'master'
-
-    let tenant: TenantRecord | null = null
     const onTenantSubdomain = !onRootDomain
 
-    try {
-      if (onTenantSubdomain) {
-        tenant = await lookupTenantBySubdomain(currentSubdomain)
-      } else if (email) {
-        tenant = await lookupTenantByOwnerEmail(email)
-        if (!tenant) {
-          tenant = await lookupTenantForUserEmail(email)
-        }
-      } else {
-        tenant = await lookupTenantByUsername(usernameOrEmail)
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+    const tenantsToTry: TenantRecord[] = []
+
+    if (onTenantSubdomain) {
+      let resolved = await lookupTenantBySubdomain(currentSubdomain)
+      if (!resolved) resolved = buildTenantFromSubdomain(currentSubdomain)
+      tenantsToTry.push(resolved)
+    } else if (email) {
+      const owned = await lookupTenantByOwnerEmail(email)
+      if (owned) tenantsToTry.push(owned)
+      else {
+        const member = await lookupTenantForUserEmail(email)
+        if (member) tenantsToTry.push(member)
       }
-    } catch (lookupError) {
-      console.warn('Provisioning tenant lookup failed:', lookupError)
+    } else {
+      const byUsername = await lookupTenantByUsername(usernameOrEmail)
+      if (byUsername) tenantsToTry.push(byUsername)
     }
 
-    // Subdomain logins do not require master DB access — derive site from the host.
-    if (!tenant && onTenantSubdomain) {
-      tenant = buildTenantFromSubdomain(currentSubdomain)
-      console.warn(
-        `[Login] Using synthesized tenant record for ${currentSubdomain} (provisioning/master lookup unavailable)`,
-      )
+    if (onRootDomain) {
+      const hint = workspaceHint?.trim().toLowerCase()
+      if (hint) {
+        const hinted = buildTenantFromSubdomain(hint)
+        if (!tenantsToTry.some((t) => t.subdomain === hinted.subdomain)) {
+          tenantsToTry.unshift(hinted)
+        }
+      }
+
+      // Always try configured / provisioned subdomains on root login so credentials
+      // can be matched to the right workspace (e.g. dabed.avariq.in) without master DB lookup.
+      const discoverySubs = await getTenantDiscoverySubdomains()
+      for (const sub of discoverySubs) {
+        const built = buildTenantFromSubdomain(sub)
+        if (!tenantsToTry.some((t) => t.subdomain === built.subdomain)) {
+          tenantsToTry.push(built)
+        }
+      }
     }
 
-    if (!tenant) {
-      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+    if (tenantsToTry.length === 0) {
       return {
         success: false,
         error: onRootDomain
-          ? `No workspace found for this account. If you were invited to a team, sign in at yourcompany.${rootDomain}/login instead of the main site.`
+          ? `No workspace found for this account. Enter your workspace name below (e.g. dabed) or sign in at dabed.${rootDomain}/login.`
           : 'No workspace found for this account. Please sign up to create a workspace first.',
       }
     }
 
-    // Validate tenant status
-    const tenantStatus = String(tenant.status || '').toLowerCase()
-
-    if (tenantStatus === 'suspended') {
-      if (!tenant.site_config) {
-        return {
-          success: false,
-          error: 'Account setup incomplete. Please try signing up again or contact support.'
-        }
-      }
-      return {
-        success: false,
-        error: 'Your account is suspended. Please contact support to reactivate.'
-      }
-    }
-
-    if (tenantStatus === 'cancelled') {
-      return {
-        success: false,
-        error: 'Your account has been cancelled. Contact support to restore access.'
-      }
-    }
-
-    if (tenantStatus === 'pending') {
-      return {
-        success: false,
-        error: 'Your account is still being set up. This usually takes 2-3 minutes. Please try again shortly.'
-      }
-    }
-
-    if (!tenant.site_url) {
-      return {
-        success: false,
-        error: 'Account configuration error. Please contact support.'
-      }
-    }
-
-    if (!tenant.site_url.startsWith('http')) {
-      tenant.site_url = `https://${tenant.site_url}`
-    }
-
-    // Step 2: Authenticate against the tenant's Frappe site.
-    // IMPORTANT: X-Frappe-Site-Name must be the bench site name, NOT the public URL.
-    // In production bench, tenant sites are named like "subdomain.avariq.in".
-    // We build it from the subdomain + root domain rather than stripping the site_url,
-    // because site_url may contain https:// prefixes or trailing slashes that confuse bench.
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-    const siteName = process.env.NODE_ENV === 'production'
-      ? `${tenant.subdomain}.${rootDomain}`
-      : `${tenant.subdomain}.localhost`
-
-    // Retry helper — Frappe may throw OperationalError(1020) if a concurrent
-    // request (e.g. provisioning service generating API keys) modified the User
-    // doc between read and write during session creation.
+    // Step 2: Authenticate — on root domain, try each candidate until credentials match.
     const MAX_LOGIN_ATTEMPTS = 3
+    let tenant: TenantRecord | null = null
     let response!: Response
-    let data: any
+    let data: any = {}
+    let siteName = ''
 
-    for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
-      response = await fetch(`${masterUrl}/api/method/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Frappe-Site-Name': siteName,
-          // NOTE: Do NOT set 'Host' header — let the HTTP stack handle it.
-          // Overriding Host can confuse nginx when Next.js and Frappe share the same server.
-        },
-        body: new URLSearchParams({
-          usr: usernameOrEmail,
-          pwd: password
-        }),
-        signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
-      })
-
-      const responseText = await response.text()
-
-      try {
-        data = JSON.parse(responseText)
-      } catch (e) {
-        if (response.status === 404) {
-          return { success: false, error: 'Workspace not found. Please check your site URL and try again.' }
-        }
-        if (response.status === 403 || response.status === 401) {
-          return { success: false, error: 'Invalid credentials or access denied.' }
-        }
-        if (response.status >= 500) {
-          return { success: false, error: 'Server error. Please try again later.' }
-        }
-        return { success: false, error: 'Unable to connect to your workspace. Please ensure your site is properly configured.' }
-      }
-
-      // Check for OperationalError (MySQL row changed during login session creation)
-      const isOperationalError =
-        data.exc_type === 'OperationalError' ||
-        (typeof data.exception === 'string' && data.exception.includes('OperationalError'))
-
-      if (isOperationalError && attempt < MAX_LOGIN_ATTEMPTS) {
-        console.warn(`⚠️ Login OperationalError (attempt ${attempt}/${MAX_LOGIN_ATTEMPTS}) — retrying after delay...`)
-        await new Promise(r => setTimeout(r, 1000 * attempt))
+    for (const candidate of tenantsToTry.map(normalizeTenantRecord)) {
+      const statusError = validateTenantStatus(candidate)
+      if (statusError) {
+        if (tenantsToTry.length === 1) return statusError
         continue
       }
 
-      break
+      siteName = getTenantSiteName(candidate.subdomain)
+
+      for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
+        response = await fetch(`${masterUrl}/api/method/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Frappe-Site-Name': siteName,
+          },
+          body: new URLSearchParams({
+            usr: usernameOrEmail,
+            pwd: password,
+          }),
+          signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
+        })
+
+        const responseText = await response.text()
+
+        try {
+          data = JSON.parse(responseText)
+        } catch {
+          if (response.status === 404) {
+            if (onRootDomain && tenantsToTry.length > 1) break
+            return { success: false, error: 'Workspace not found. Please check your site URL and try again.' }
+          }
+          if (response.status === 403 || response.status === 401) {
+            if (onRootDomain && tenantsToTry.length > 1) break
+            return { success: false, error: 'Invalid credentials or access denied.' }
+          }
+          if (response.status >= 500) {
+            return { success: false, error: 'Server error. Please try again later.' }
+          }
+          return {
+            success: false,
+            error: 'Unable to connect to your workspace. Please ensure your site is properly configured.',
+          }
+        }
+
+        const isOperationalError =
+          data.exc_type === 'OperationalError' ||
+          (typeof data.exception === 'string' && data.exception.includes('OperationalError'))
+
+        if (isOperationalError && attempt < MAX_LOGIN_ATTEMPTS) {
+          console.warn(`⚠️ Login OperationalError (attempt ${attempt}/${MAX_LOGIN_ATTEMPTS}) — retrying after delay...`)
+          await new Promise((r) => setTimeout(r, 1000 * attempt))
+          continue
+        }
+
+        break
+      }
+
+      if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
+        tenant = candidate
+        break
+      }
     }
 
-    if (data.message === 'Logged In' || data.message === 'No App' || response.ok) {
-      const cookieStore = await cookies()
+    if (!tenant) {
+      return {
+        success: false,
+        error:
+          typeof data?.message === 'string' && data.message && data.message !== 'Incorrect password'
+            ? data.message
+            : `Invalid email or password. Try entering workspace "dabed" below, or sign in at dabed.${rootDomain}/login.`,
+      }
+    }
+
+    // ── Successful auth: set cookies and complete login ──
+    const cookieStore = await cookies()
 
       const cookieDomain = process.env.NODE_ENV === 'production'
         ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'}` : undefined
@@ -831,9 +892,6 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
         redirectUrl,
         requirePasswordChange
       }
-    }
-
-    return { success: false, error: data.message || 'Invalid credentials' }
   } catch (error: any) {
     console.error('Login error:', error)
     return { success: false, error: error.message }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,20 +8,35 @@ import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 import { loginUser } from "@/app/actions/user-auth"
 
+function isRootDomainHost(): boolean {
+  if (typeof window === "undefined") return false
+  const host = window.location.hostname.split(":")[0].toLowerCase()
+  const root = (process.env.NEXT_PUBLIC_ROOT_DOMAIN || "avariq.in").toLowerCase()
+  return host === root || host === `www.${root}` || host === "localhost"
+}
+
 export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [workspace, setWorkspace] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+
+  const showWorkspaceField = useMemo(() => isRootDomainHost(), [])
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "avariq.in"
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      const result = await loginUser(email, password)
+      const result = await loginUser(
+        email,
+        password,
+        workspace.trim() || undefined,
+      )
       if (!result.success) {
         throw new Error(result.error || "Invalid credentials")
       }
@@ -40,8 +55,8 @@ export function LoginForm() {
 
       router.push("/dashboard")
       router.refresh()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Sign in failed")
     } finally {
       setLoading(false)
     }
@@ -52,7 +67,30 @@ export function LoginForm() {
       {error && (
         <div className="flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-200">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
+          <span>{error}</span>
+        </div>
+      )}
+
+      {showWorkspaceField && (
+        <div className="space-y-1.5">
+          <Label htmlFor="workspace" className="text-sm font-medium text-neutral-200">
+            Workspace <span className="text-neutral-500 font-normal">(optional)</span>
+          </Label>
+          <div className="flex items-center gap-0 rounded-md border border-white/10 bg-white/5 overflow-hidden focus-within:border-orange-500">
+            <Input
+              id="workspace"
+              type="text"
+              placeholder="dabed"
+              value={workspace}
+              onChange={(e) => setWorkspace(e.target.value.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase())}
+              autoComplete="organization"
+              className="h-10 border-0 bg-transparent text-neutral-100 placeholder:text-neutral-500 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+            />
+            <span className="pr-3 text-sm text-neutral-500 whitespace-nowrap">.{rootDomain}</span>
+          </div>
+          <p className="text-xs text-neutral-500">
+            Your company URL slug — e.g. if you use <span className="text-neutral-400">dabed.{rootDomain}</span>, enter <span className="text-neutral-400">dabed</span>.
+          </p>
         </div>
       )}
 

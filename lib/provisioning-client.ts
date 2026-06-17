@@ -169,6 +169,49 @@ async function serviceRequest<T>(
   }
 }
 
+    throw error
+  }
+}
+
+async function optionalServiceRequest<T>(
+  path: string,
+  options: {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    body?: Record<string, unknown>
+    timeout?: number
+  } = {},
+): Promise<T | null> {
+  try {
+    return await serviceRequest<T>(path, options)
+  } catch (error) {
+    const status =
+      error &&
+      typeof error === 'object' &&
+      'status' in error &&
+      typeof (error as { status: unknown }).status === 'number'
+        ? (error as { status: number }).status
+        : 0
+
+    if ([404, 502, 503, 504].includes(status)) {
+      return null
+    }
+
+    throw error
+  }
+}
+
+/** Tenant-record API is optional — 404 means the provisioning service needs a redeploy. */
+async function optionalTenantRecordRequest(
+  path: string,
+  options: {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    body?: Record<string, unknown>
+    timeout?: number
+  } = {},
+): Promise<TenantRecordLookupResult | null> {
+  return optionalServiceRequest<TenantRecordLookupResult>(path, options)
+}
+
 // ============================================================================
 // Public API
 // ============================================================================
@@ -195,36 +238,45 @@ export async function checkSubdomain(subdomain: string): Promise<SubdomainCheckR
  * Uses ignore_permissions in bench — does not depend on ERP_API_KEY DocPerms.
  */
 export async function lookupTenantBySubdomain(subdomain: string): Promise<TenantRecord | null> {
-  const result = await serviceRequest<TenantRecordLookupResult>(
+  const result = await optionalTenantRecordRequest(
     `/api/v1/tenant-record/subdomain/${encodeURIComponent(subdomain)}`,
     { timeout: 30_000 },
   )
-  return result.found && result.tenant ? result.tenant : null
+  return result?.found && result.tenant ? result.tenant : null
 }
 
 export async function lookupTenantByOwnerEmail(email: string): Promise<TenantRecord | null> {
-  const result = await serviceRequest<TenantRecordLookupResult>(
+  const result = await optionalTenantRecordRequest(
     '/api/v1/tenant-record/lookup',
     { method: 'POST', body: { owner_email: email }, timeout: 30_000 },
   )
-  return result.found && result.tenant ? result.tenant : null
+  return result?.found && result.tenant ? result.tenant : null
 }
 
 export async function lookupTenantByUsername(username: string): Promise<TenantRecord | null> {
-  const result = await serviceRequest<TenantRecordLookupResult>(
+  const result = await optionalTenantRecordRequest(
     '/api/v1/tenant-record/lookup',
     { method: 'POST', body: { username }, timeout: 30_000 },
   )
-  return result.found && result.tenant ? result.tenant : null
+  return result?.found && result.tenant ? result.tenant : null
 }
 
 /** Find the tenant workspace where a user (owner or invited member) has an account. */
 export async function lookupTenantForUserEmail(email: string): Promise<TenantRecord | null> {
-  const result = await serviceRequest<TenantRecordLookupResult>(
+  const result = await optionalTenantRecordRequest(
     '/api/v1/tenant-record/lookup',
     { method: 'POST', body: { user_email: email }, timeout: 120_000 },
   )
-  return result.found && result.tenant ? result.tenant : null
+  return result?.found && result.tenant ? result.tenant : null
+}
+
+/** Active tenant subdomains from master DB — used for root-domain login discovery. */
+export async function listActiveTenantSubdomains(): Promise<string[]> {
+  const result = await optionalServiceRequest<{ subdomains?: string[] }>(
+    '/api/v1/tenant-record/active-subdomains',
+    { timeout: 30_000 },
+  )
+  return (result?.subdomains || []).filter((s): s is string => typeof s === 'string' && s.length > 0)
 }
 
 /**

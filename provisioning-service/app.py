@@ -506,6 +506,29 @@ print(json.dumps({{"found": bool(rows), "tenant": rows[0] if rows else None}}, d
     return _parse_json_output(output)
 
 
+@app.get("/api/v1/tenant-record/active-subdomains")
+async def list_active_tenant_subdomains(_auth: bool = Depends(verify_api_secret)):
+    """List active tenant subdomains from the Master DB (for root-domain login discovery)."""
+    try:
+        code = """
+import json
+rows = frappe.get_all(
+    "SaaS Tenant",
+    filters={"status": "Active"},
+    fields=["subdomain"],
+    limit=100,
+    ignore_permissions=True,
+)
+print(json.dumps({"subdomains": [r["subdomain"] for r in rows if r.get("subdomain")]}, default=str))
+"""
+        output = run_frappe_code(MASTER_SITE, code)
+        parsed = _parse_json_output(output)
+        return {"subdomains": parsed.get("subdomains") or []}
+    except Exception as e:
+        logger.error(f"active-subdomains list failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/v1/tenant-record/subdomain/{subdomain}", response_model=TenantRecordLookupResponse)
 async def get_tenant_record_by_subdomain(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """Resolve a tenant by subdomain from the Master DB (ignores API user DocPerms)."""
