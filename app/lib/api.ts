@@ -61,6 +61,61 @@ const docpermRepairInFlight = new Map<string, Promise<boolean>>()
 const apiErrorLogLastSeen = new Map<string, number>()
 const remintInFlight = new Map<string, Promise<{ apiKey: string; apiSecret: string } | null>>()
 const remintLastAttempt = new Map<string, number>()
+/** Process-local cache for keys re-minted during RSC (cannot write cookies there) */
+const REMINTED_CREDENTIAL_TTL_MS = 10 * 60 * 1000
+const remintedCredentials = new Map<string, { apiKey: string; apiSecret: string; mintedAt: number }>()
+
+function remintCredentialKey(subdomain: string, userEmail: string): string {
+  return `${subdomain}:${userEmail}`
+}
+
+function getRemintedCredentials(
+  subdomain: string,
+  userEmail: string,
+): { apiKey: string; apiSecret: string } | null {
+  const key = remintCredentialKey(subdomain, userEmail)
+  const entry = remintedCredentials.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.mintedAt > REMINTED_CREDENTIAL_TTL_MS) {
+    remintedCredentials.delete(key)
+    return null
+  }
+  return { apiKey: entry.apiKey, apiSecret: entry.apiSecret }
+}
+
+function storeRemintedCredentials(
+  subdomain: string,
+  userEmail: string,
+  apiKey: string,
+  apiSecret: string,
+): void {
+  remintedCredentials.set(remintCredentialKey(subdomain, userEmail), {
+    apiKey,
+    apiSecret,
+    mintedAt: Date.now(),
+  })
+}
+
+async function persistTenantApiKeyCookies(apiKey: string, apiSecret: string): Promise<void> {
+  try {
+    const cookieStore = await cookies()
+    const cookieDomain = IS_PRODUCTION ? `.${ROOT_DOMAIN}` : undefined
+    const cookieSecure = IS_PRODUCTION
+    const cookieSameSite = IS_PRODUCTION ? ('none' as const) : ('lax' as const)
+    const cookieOpts = {
+      httpOnly: true,
+      secure: cookieSecure,
+      sameSite: cookieSameSite,
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    }
+    cookieStore.set('tenant_api_key', apiKey, cookieOpts)
+    cookieStore.set('tenant_api_secret', apiSecret, cookieOpts)
+  } catch {
+    // Cookie writes are only allowed in Server Actions / Route Handlers — RSC uses in-memory cache.
+  }
+}
 
 function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
   const now = Date.now()
@@ -85,6 +140,25 @@ function withCredentialOverride(
   }
 }
 
+async function enrichContextWithRemintedKeys(context: TenantContext): Promise<TenantContext> {
+  if (!context.isTenant || !context.subdomain) return context
+  try {
+    const cookieStore = await cookies()
+    const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+    if (!userEmail) return context
+    const reminted = getRemintedCredentials(context.subdomain, userEmail)
+    if (!reminted) return context
+    return {
+      ...context,
+      apiKey: reminted.apiKey,
+      apiSecret: reminted.apiSecret,
+      hasCredentials: true,
+    }
+  } catch {
+    return context
+  }
+}
+
 async function tryRemintTenantApiKeys(
   context: TenantContext,
 ): Promise<{ apiKey: string; apiSecret: string } | null> {
@@ -94,17 +168,17 @@ async function tryRemintTenantApiKeys(
   const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
   if (!userEmail) return null
 
-  const flightKey = `${context.subdomain}:${userEmail}`
+  const flightKey = remintCredentialKey(context.subdomain, userEmail)
   const inFlight = remintInFlight.get(flightKey)
   if (inFlight) return inFlight
+
+  const cached = getRemintedCredentials(context.subdomain, userEmail)
+  if (cached) return cached
 
   const now = Date.now()
   const lastAttempt = remintLastAttempt.get(flightKey)
   if (lastAttempt && now - lastAttempt < 3_000) {
-    const apiKey = cookieStore.get('tenant_api_key')?.value
-    const apiSecret = cookieStore.get('tenant_api_secret')?.value
-    if (apiKey && apiSecret) return { apiKey, apiSecret }
-    return null
+    return getRemintedCredentials(context.subdomain, userEmail)
   }
 
   const promise = (async (): Promise<{ apiKey: string; apiSecret: string } | null> => {
@@ -114,20 +188,8 @@ async function tryRemintTenantApiKeys(
       const result = await generateUserApiKeys(context.subdomain!, userEmail, 30_000)
       if (!result?.api_key || !result?.api_secret) return null
 
-      const cookieDomain = IS_PRODUCTION ? `.${ROOT_DOMAIN}` : undefined
-      const cookieSecure = IS_PRODUCTION
-      const cookieSameSite = IS_PRODUCTION ? ('none' as const) : ('lax' as const)
-      const cookieOpts = {
-        httpOnly: true,
-        secure: cookieSecure,
-        sameSite: cookieSameSite,
-        maxAge: 60 * 60 * 24 * 7,
-        path: '/',
-        ...(cookieDomain ? { domain: cookieDomain } : {}),
-      }
-
-      cookieStore.set('tenant_api_key', result.api_key, cookieOpts)
-      cookieStore.set('tenant_api_secret', result.api_secret, cookieOpts)
+      storeRemintedCredentials(context.subdomain!, userEmail, result.api_key, result.api_secret)
+      await persistTenantApiKeyCookies(result.api_key, result.api_secret)
 
       if (shouldEmitThrottledLog(`token-remint:${flightKey}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
         console.warn(`[API] Re-minted tenant API keys for ${userEmail} on ${context.subdomain}`)
@@ -230,8 +292,18 @@ async function resolveTenantContext(): Promise<TenantContext> {
     //    tokens) take priority over cookie-based user credentials.
     const headerApiKey = headersList.get('x-tenant-api-key')
     const headerApiSecret = headersList.get('x-tenant-api-secret')
-    const tenantApiKey = headerApiKey || cookieStore.get('tenant_api_key')?.value
-    const tenantApiSecret = headerApiSecret || cookieStore.get('tenant_api_secret')?.value
+    const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+    let tenantApiKey = headerApiKey || cookieStore.get('tenant_api_key')?.value
+    let tenantApiSecret = headerApiSecret || cookieStore.get('tenant_api_secret')?.value
+
+    // Prefer freshly re-minted keys (RSC cannot persist cookies; see tryRemintTenantApiKeys).
+    if (!headerApiKey && !headerApiSecret && isTenant && subdomain && userEmail) {
+      const reminted = getRemintedCredentials(subdomain, userEmail)
+      if (reminted) {
+        tenantApiKey = reminted.apiKey
+        tenantApiSecret = reminted.apiSecret
+      }
+    }
 
     return {
       isTenant,
@@ -666,7 +738,8 @@ async function frappeRequestWithContext(
   body: Record<string, unknown> | null = null,
   options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted' | 'hasTokenRemintAttempted' | 'credentialOverride'> = {}
 ): Promise<unknown> {
-  const effectiveContext = withCredentialOverride(context, options.credentialOverride)
+  const enrichedContext = await enrichContextWithRemintedKeys(context)
+  const effectiveContext = withCredentialOverride(enrichedContext, options.credentialOverride)
   const sid = effectiveContext.sessionId ?? undefined
   const useSessionAuth = options.useSessionAuth === true
 
