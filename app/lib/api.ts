@@ -21,6 +21,28 @@ const REQUEST_TIMEOUT_MS = Number(process.env.ERP_REQUEST_TIMEOUT_MS || '15000')
 const DEFAULT_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_ERROR_LOG_THROTTLE_MS || '120000')
 const AUTH_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_AUTH_ERROR_LOG_THROTTLE_MS || '600000')
 
+/**
+ * Tenant API calls in production should hit the tenant site host (via nginx),
+ * matching how the provisioning service validates keys. Direct 127.0.0.1:8080
+ * + X-Frappe-Site-Name often returns 401 for token auth on multi-site benches.
+ * Set ERP_TENANT_VIA_SITE_HOST=0 to force ERP_NEXT_URL for all requests.
+ */
+function resolveFrappeBaseUrl(siteName: string, useMasterCredentials: boolean): string {
+  const internalBase = BASE_URL
+  const viaSiteHost = process.env.ERP_TENANT_VIA_SITE_HOST !== '0'
+  if (
+    viaSiteHost &&
+    IS_PRODUCTION &&
+    !useMasterCredentials &&
+    siteName !== MASTER_SITE_NAME &&
+    siteName.includes('.')
+  ) {
+    const scheme = process.env.ERP_TENANT_URL_SCHEME || 'https'
+    return `${scheme}://${siteName}`
+  }
+  return internalBase
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -62,7 +84,7 @@ const apiErrorLogLastSeen = new Map<string, number>()
 const remintInFlight = new Map<string, Promise<{ apiKey: string; apiSecret: string } | null>>()
 const remintLastAttempt = new Map<string, number>()
 /** Process-local cache for keys re-minted during RSC (cannot write cookies there) */
-const REMINTED_CREDENTIAL_TTL_MS = 10 * 60 * 1000
+const REMINTED_CREDENTIAL_TTL_MS = 2 * 60 * 1000
 const remintedCredentials = new Map<string, { apiKey: string; apiSecret: string; mintedAt: number }>()
 
 function remintCredentialKey(subdomain: string, userEmail: string): string {
@@ -773,7 +795,8 @@ async function frappeRequestWithContext(
   }
 
   // Build URL with query params for GET requests
-  let url = `${BASE_URL}/api/method/${endpoint}`
+  const frappeBaseUrl = resolveFrappeBaseUrl(siteName, options.useMasterCredentials || false)
+  let url = `${frappeBaseUrl}/api/method/${endpoint}`
 
   if (method === 'GET' && body) {
     const params = new URLSearchParams()
@@ -851,7 +874,7 @@ async function frappeRequestWithContext(
         })
       }
 
-      // Stale tenant API keys — re-mint via provisioning before falling back to session.
+      // Stale tenant API keys — re-mint via provisioning, then retry with fresh token.
       if (
         response.status === 401 &&
         effectiveContext.isTenant &&
@@ -872,23 +895,16 @@ async function frappeRequestWithContext(
         }
       }
 
-      // Last resort: session cookie (often fails server-side for frappe.client.* — prefer remint above).
+      // Do not fall back to session for tenant token auth — server-side sid does not
+      // reliably call frappe.client.* and produces misleading 403 permission errors.
       if (
         response.status === 401 &&
         effectiveContext.isTenant &&
-        !options.hasSessionFallbackAttempted &&
-        sid
+        !options.useMasterCredentials &&
+        (options.hasTokenRemintAttempted || options.credentialOverride)
       ) {
-        if (shouldEmitThrottledLog(`session-fallback:${endpoint}:${effectiveContext.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
-          console.warn(`[API] 401 on tenant token for ${endpoint}; retrying with session cookie auth`)
-        }
-        return frappeRequestWithContext(context, siteName, endpoint, method, body, {
-          ...options,
-          hasSessionFallbackAttempted: true,
-          useMasterCredentials: false,
-          useSessionAuth: true,
-          credentialOverride: options.credentialOverride,
-        })
+        logApiError(endpoint, response.status, siteName, authSource, data, body)
+        throw new Error(`SESSION_EXPIRED: Tenant API token rejected after re-mint for ${effectiveContext.siteName}`)
       }
 
       logApiError(endpoint, response.status, siteName, authSource, data, body)

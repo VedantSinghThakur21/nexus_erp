@@ -27,6 +27,7 @@ import base64
 import subprocess
 import secrets
 import logging
+import time
 import urllib.request
 import urllib.error
 from datetime import datetime
@@ -149,6 +150,11 @@ DIRECT_ASSIGNABLE_ROLES = {
 }
 
 MANAGER_ROLES = {"Sales Manager", "Accounts Manager", "Projects Manager", "Stock Manager"}
+
+# Reuse freshly generated keys across parallel Next.js workers / dashboard requests.
+# Regenerating invalidates the previous secret and causes 401 races.
+_GENERATED_USER_KEYS_CACHE: dict[str, tuple[str, str, float]] = {}
+_GENERATED_USER_KEYS_TTL_SEC = 120
 
 # Logging
 logging.basicConfig(
@@ -431,6 +437,21 @@ def _http_json(
     if final_error:
         raise final_error
     raise Exception("HTTP request failed")
+
+
+def _validate_user_api_token(site_name: str, user_email: str, api_key: str, api_secret: str) -> bool:
+    try:
+        auth = _http_json(
+            site_name,
+            "/api/method/frappe.auth.get_logged_user",
+            headers={
+                "Authorization": f"token {api_key}:{api_secret}",
+                "X-Frappe-Site-Name": site_name,
+            },
+        )
+        return auth.get("message") == user_email
+    except Exception:
+        return False
 
 
 # ============================================================================
@@ -2148,6 +2169,16 @@ async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool =
     site_name = f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
     logger.info(f"generate-user-keys: site={site_name} user={user_email[:3]}***")
 
+    cache_key = f"{site_name}:{user_email}"
+    cached = _GENERATED_USER_KEYS_CACHE.get(cache_key)
+    if cached:
+        cached_key, cached_secret, cached_at = cached
+        if time.time() - cached_at < _GENERATED_USER_KEYS_TTL_SEC:
+            if _validate_user_api_token(site_name, user_email, cached_key, cached_secret):
+                logger.info(f"generate-user-keys: returning cached keys for {user_email} on {site_name}")
+                return {"success": True, "api_key": cached_key, "api_secret": cached_secret}
+            _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
+
     # We embed the email safely via json.dumps — no shell injection risk because
     # run_frappe_code passes the code via stdin to `bench execute`.
     safe_email = json.dumps(user_email)
@@ -2157,7 +2188,7 @@ import frappe
 user_email = {safe_email}
 try:
     user = frappe.get_doc("User", user_email)
-    api_key = frappe.generate_hash(length=15)
+    api_key = user.api_key or frappe.generate_hash(length=15)
     api_secret_val = frappe.generate_hash(length=15)
     user.api_key = api_key
     user.api_secret = api_secret_val
@@ -2196,6 +2227,12 @@ except Exception as exc:
                 status_code=502,
                 detail="Frappe did not return api_key/api_secret in output",
             )
+        if not _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Generated API keys failed validation for {user_email} on {site_name}",
+            )
+        _GENERATED_USER_KEYS_CACHE[cache_key] = (api_key_val, api_secret_val, time.time())
         logger.info(f"generate-user-keys: keys generated for {user_email} on {site_name}")
         return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
     except HTTPException:
