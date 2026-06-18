@@ -20,7 +20,6 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 const REQUEST_TIMEOUT_MS = Number(process.env.ERP_REQUEST_TIMEOUT_MS || '15000')
 const DEFAULT_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_ERROR_LOG_THROTTLE_MS || '120000')
 const AUTH_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_AUTH_ERROR_LOG_THROTTLE_MS || '600000')
-const STALE_TENANT_TOKEN_COOLDOWN_MS = Number(process.env.ERP_STALE_TENANT_TOKEN_COOLDOWN_MS || '600000')
 
 // ============================================================================
 // TYPES
@@ -46,14 +45,22 @@ interface ApiRequestOptions {
   hasRoleRepairAttempted?: boolean
   hasSessionFallbackAttempted?: boolean
   hasTenantTokenRetryAttempted?: boolean
+  hasTokenRemintAttempted?: boolean
+  /** Fresh keys from provisioning — bypasses reactCache'd tenant context for this request */
+  credentialOverride?: { apiKey: string; apiSecret: string }
 }
 
 const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
 const DOCPERM_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
+/** Concurrent 403s within this window reuse the last repair and retry */
+const REPAIR_RETRY_WINDOW_MS = 30 * 1000
 const roleRepairLastAttempt = new Map<string, number>()
 const docpermRepairLastAttempt = new Map<string, number>()
+const roleRepairInFlight = new Map<string, Promise<boolean>>()
+const docpermRepairInFlight = new Map<string, Promise<boolean>>()
 const apiErrorLogLastSeen = new Map<string, number>()
-const staleTenantTokenLastSeen = new Map<string, number>()
+const remintInFlight = new Map<string, Promise<{ apiKey: string; apiSecret: string } | null>>()
+const remintLastAttempt = new Map<string, number>()
 
 function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
   const now = Date.now()
@@ -65,24 +72,77 @@ function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
   return true
 }
 
-function markTenantTokenStale(siteName: string): void {
-  staleTenantTokenLastSeen.set(siteName, Date.now())
+function withCredentialOverride(
+  context: TenantContext,
+  override?: { apiKey: string; apiSecret: string },
+): TenantContext {
+  if (!override) return context
+  return {
+    ...context,
+    apiKey: override.apiKey,
+    apiSecret: override.apiSecret,
+    hasCredentials: true,
+  }
 }
 
-function shouldBypassTenantToken(siteName: string): boolean {
-  const lastSeen = staleTenantTokenLastSeen.get(siteName)
-  if (!lastSeen) return false
+async function tryRemintTenantApiKeys(
+  context: TenantContext,
+): Promise<{ apiKey: string; apiSecret: string } | null> {
+  if (!context.isTenant || !context.subdomain) return null
 
-  if (Date.now() - lastSeen > STALE_TENANT_TOKEN_COOLDOWN_MS) {
-    staleTenantTokenLastSeen.delete(siteName)
-    return false
+  const cookieStore = await cookies()
+  const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+  if (!userEmail) return null
+
+  const flightKey = `${context.subdomain}:${userEmail}`
+  const inFlight = remintInFlight.get(flightKey)
+  if (inFlight) return inFlight
+
+  const now = Date.now()
+  const lastAttempt = remintLastAttempt.get(flightKey)
+  if (lastAttempt && now - lastAttempt < 3_000) {
+    const apiKey = cookieStore.get('tenant_api_key')?.value
+    const apiSecret = cookieStore.get('tenant_api_secret')?.value
+    if (apiKey && apiSecret) return { apiKey, apiSecret }
+    return null
   }
 
-  return true
-}
+  const promise = (async (): Promise<{ apiKey: string; apiSecret: string } | null> => {
+    remintLastAttempt.set(flightKey, Date.now())
+    try {
+      const { generateUserApiKeys } = await import('@/lib/provisioning-client')
+      const result = await generateUserApiKeys(context.subdomain!, userEmail, 30_000)
+      if (!result?.api_key || !result?.api_secret) return null
 
-function clearStaleTenantToken(siteName: string): void {
-  staleTenantTokenLastSeen.delete(siteName)
+      const cookieDomain = IS_PRODUCTION ? `.${ROOT_DOMAIN}` : undefined
+      const cookieSecure = IS_PRODUCTION
+      const cookieSameSite = IS_PRODUCTION ? ('none' as const) : ('lax' as const)
+      const cookieOpts = {
+        httpOnly: true,
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
+      }
+
+      cookieStore.set('tenant_api_key', result.api_key, cookieOpts)
+      cookieStore.set('tenant_api_secret', result.api_secret, cookieOpts)
+
+      if (shouldEmitThrottledLog(`token-remint:${flightKey}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+        console.warn(`[API] Re-minted tenant API keys for ${userEmail} on ${context.subdomain}`)
+      }
+      return { apiKey: result.api_key, apiSecret: result.api_secret }
+    } catch (error) {
+      console.warn('[API] Tenant API key re-mint failed:', error)
+      return null
+    } finally {
+      remintInFlight.delete(flightKey)
+    }
+  })()
+
+  remintInFlight.set(flightKey, promise)
+  return promise
 }
 
 function isTimeoutLikeError(error: unknown): boolean {
@@ -453,34 +513,45 @@ async function tryRepairTenantDocPerms(
   if (!userEmail) return false
 
   const cooldownKey = `${context.subdomain}:${userEmail}`
+  const inFlight = docpermRepairInFlight.get(cooldownKey)
+  if (inFlight) return inFlight
+
   const now = Date.now()
   const lastAttempt = docpermRepairLastAttempt.get(cooldownKey)
-  if (lastAttempt && now - lastAttempt < DOCPERM_REPAIR_COOLDOWN_MS) {
-    return false
+  if (lastAttempt) {
+    const elapsed = now - lastAttempt
+    if (elapsed < REPAIR_RETRY_WINDOW_MS) return true
+    if (elapsed < DOCPERM_REPAIR_COOLDOWN_MS) return false
   }
 
-  docpermRepairLastAttempt.set(cooldownKey, now)
+  const promise = (async (): Promise<boolean> => {
+    docpermRepairLastAttempt.set(cooldownKey, Date.now())
+    try {
+      const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
+      const { ROLE_SETS } = await import('@/lib/role-sets')
 
-  try {
-    const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
-    const { ROLE_SETS } = await import('@/lib/role-sets')
+      await seedTenantDocPerms(context.subdomain!)
 
-    await seedTenantDocPerms(context.subdomain)
+      const roleType = cookieStore.get('tenant_role_type')?.value || 'member'
+      const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
+      await assignUserRoles(context.subdomain!, userEmail, rolesToAssign)
 
-    const roleType = cookieStore.get('tenant_role_type')?.value || 'member'
-    const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
-    await assignUserRoles(context.subdomain, userEmail, rolesToAssign)
+      const deniedDoctype = extractDeniedDoctypeFromPermissionError(errorData)
+      console.warn(
+        `[API] Auto-repaired DocPerms/roles for ${userEmail} on ${context.subdomain}` +
+          (deniedDoctype ? ` (denied: ${deniedDoctype})` : ''),
+      )
+      return true
+    } catch (error) {
+      console.warn('[API] Automatic tenant DocPerm repair failed:', error)
+      return false
+    } finally {
+      docpermRepairInFlight.delete(cooldownKey)
+    }
+  })()
 
-    const deniedDoctype = extractDeniedDoctypeFromPermissionError(errorData)
-    console.warn(
-      `[API] Auto-repaired DocPerms/roles for ${userEmail} on ${context.subdomain}` +
-        (deniedDoctype ? ` (denied: ${deniedDoctype})` : ''),
-    )
-    return true
-  } catch (error) {
-    console.warn('[API] Automatic tenant DocPerm repair failed:', error)
-    return false
-  }
+  docpermRepairInFlight.set(cooldownKey, promise)
+  return promise
 }
 
 async function tryRepairTenantRoles(
@@ -504,31 +575,39 @@ async function tryRepairTenantRoles(
   if (!userEmail) return false
 
   const cooldownKey = `${context.subdomain}:${userEmail}`
+  const inFlight = roleRepairInFlight.get(cooldownKey)
+  if (inFlight) return inFlight
+
   const now = Date.now()
   const lastAttempt = roleRepairLastAttempt.get(cooldownKey)
-  if (lastAttempt && now - lastAttempt < ROLE_REPAIR_COOLDOWN_MS) {
-    return false
+  if (lastAttempt) {
+    const elapsed = now - lastAttempt
+    if (elapsed < REPAIR_RETRY_WINDOW_MS) return true
+    if (elapsed < ROLE_REPAIR_COOLDOWN_MS) return false
   }
 
-  roleRepairLastAttempt.set(cooldownKey, now)
+  const promise = (async (): Promise<boolean> => {
+    roleRepairLastAttempt.set(cooldownKey, Date.now())
+    try {
+      const { assignUserRoles } = await import('@/lib/provisioning-client')
+      const { ROLE_SETS } = await import('@/lib/role-sets')
 
-  try {
-    const { assignUserRoles } = await import('@/lib/provisioning-client')
-    const { ROLE_SETS } = await import('@/lib/role-sets')
+      const roleType = cookieStore.get('tenant_role_type')?.value || 'member'
+      const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
 
-    // Use the role type stored at login so we assign the correct ROLE_SET,
-    // not a hardcoded minimum — otherwise we'd defeat per-role RBAC.
-    // Default to 'member' (most restrictive non-admin set) if cookie is missing.
-    const roleType = cookieStore.get('tenant_role_type')?.value || 'member'
-    const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
+      await assignUserRoles(context.subdomain!, userEmail, rolesToAssign)
+      console.warn(`[API] Auto-repaired roles for ${userEmail} (${roleType}): ${rolesToAssign.join(', ')}`)
+      return true
+    } catch (error) {
+      console.warn('[API] Automatic tenant role repair failed:', error)
+      return false
+    } finally {
+      roleRepairInFlight.delete(cooldownKey)
+    }
+  })()
 
-    await assignUserRoles(context.subdomain, userEmail, rolesToAssign)
-    console.warn(`[API] Auto-repaired roles for ${userEmail} (${roleType}): ${rolesToAssign.join(', ')}`)
-    return true
-  } catch (error) {
-    console.warn('[API] Automatic tenant role repair failed:', error)
-    return false
-  }
+  roleRepairInFlight.set(cooldownKey, promise)
+  return promise
 }
 
 // ============================================================================
@@ -548,7 +627,7 @@ export async function frappeRequest(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null,
-  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted'> = {}
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted' | 'hasTokenRemintAttempted' | 'credentialOverride'> = {}
 ): Promise<unknown> {
   const context = await getTenantContext()
 
@@ -558,7 +637,9 @@ export async function frappeRequest(
     method === 'GET' &&
     !options.hasRoleRepairAttempted &&
     !options.hasSessionFallbackAttempted &&
-    !options.hasTenantTokenRetryAttempted
+    !options.hasTenantTokenRetryAttempted &&
+    !options.hasTokenRemintAttempted &&
+    !options.credentialOverride
 
   const run = () => frappeRequestWithContext(context, siteName, endpoint, method, body, options)
 
@@ -583,27 +664,21 @@ async function frappeRequestWithContext(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null,
-  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted'> = {}
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted' | 'hasTokenRemintAttempted' | 'credentialOverride'> = {}
 ): Promise<unknown> {
-  const sid = context.sessionId ?? undefined
-  const useSessionAuthFromStaleTenantToken =
-    context.isTenant &&
-    context.hasCredentials &&
-    !!sid &&
-    shouldBypassTenantToken(siteName)
-  const useSessionAuth =
-    options.useSessionAuth ||
-    useSessionAuthFromStaleTenantToken
+  const effectiveContext = withCredentialOverride(context, options.credentialOverride)
+  const sid = effectiveContext.sessionId ?? undefined
+  const useSessionAuth = options.useSessionAuth === true
 
   // Determine which credentials to use
   const { header: authHeader, source: authSource } = getAuthorizationHeader(
-    context,
+    effectiveContext,
     options.useMasterCredentials || false,
     useSessionAuth
   )
 
   // Log request details
-  logApiRequest(endpoint, method, siteName, authSource, context)
+  logApiRequest(endpoint, method, siteName, authSource, effectiveContext)
 
   // Build request headers
   const requestHeaders: Record<string, string> = {
@@ -615,7 +690,8 @@ async function frappeRequestWithContext(
     requestHeaders['Authorization'] = authHeader
   }
 
-  if (sid) {
+  // Only attach sid when not using API token — avoids Frappe preferring a stale session.
+  if (sid && !authHeader) {
     requestHeaders['Cookie'] = `sid=${sid}`
   }
 
@@ -656,33 +732,32 @@ async function frappeRequestWithContext(
       if (
         response.status === 403 &&
         useSessionAuth &&
-        !options.hasTenantTokenRetryAttempted &&
-        context.hasCredentials &&
-        isMethodNotWhitelistedError(data)
+        !options.hasTokenRemintAttempted &&
+        effectiveContext.isTenant
       ) {
-        if (shouldEmitThrottledLog(`session-not-whitelisted:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
-          console.warn(`[API] Session auth cannot call ${endpoint}; retrying with tenant API token`)
+        const newKeys = await tryRemintTenantApiKeys(effectiveContext)
+        if (newKeys) {
+          return frappeRequestWithContext(context, siteName, endpoint, method, body, {
+            ...options,
+            hasTokenRemintAttempted: true,
+            hasSessionFallbackAttempted: true,
+            useSessionAuth: false,
+            credentialOverride: newKeys,
+          })
         }
-        return frappeRequest(endpoint, method, body, {
-          ...options,
-          hasTenantTokenRetryAttempted: true,
-          hasSessionFallbackAttempted: true,
-          useSessionAuth: false,
-        })
       }
 
       if (
         response.status === 403 &&
-        useSessionAuthFromStaleTenantToken &&
-        !options.useSessionAuth &&
+        useSessionAuth &&
         !options.hasTenantTokenRetryAttempted &&
+        effectiveContext.hasCredentials &&
         isMethodNotWhitelistedError(data)
       ) {
-        clearStaleTenantToken(siteName)
-        if (shouldEmitThrottledLog(`session-not-whitelisted:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
-          console.warn(`[API] Session auth cannot call ${endpoint}; retrying with tenant token auth`)
+        if (shouldEmitThrottledLog(`session-not-whitelisted:${endpoint}:${effectiveContext.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+          console.warn(`[API] Session auth cannot call ${endpoint}; retrying with tenant API token`)
         }
-        return frappeRequest(endpoint, method, body, {
+        return frappeRequestWithContext(context, siteName, endpoint, method, body, {
           ...options,
           hasTenantTokenRetryAttempted: true,
           hasSessionFallbackAttempted: true,
@@ -694,31 +769,52 @@ async function frappeRequestWithContext(
         response.status === 403 &&
         !options.useMasterCredentials &&
         !options.hasRoleRepairAttempted &&
-        (await tryRepairTenantDocPerms(context, data) || await tryRepairTenantRoles(context, data))
+        (await tryRepairTenantDocPerms(effectiveContext, data) || await tryRepairTenantRoles(effectiveContext, data))
       ) {
-        return frappeRequest(endpoint, method, body, {
+        return frappeRequestWithContext(context, siteName, endpoint, method, body, {
           ...options,
           hasRoleRepairAttempted: true,
+          credentialOverride: options.credentialOverride,
         })
       }
 
-      // Tenant API keys can become stale; fall back to user session once before failing.
+      // Stale tenant API keys — re-mint via provisioning before falling back to session.
       if (
         response.status === 401 &&
-        context.isTenant &&
-        context.hasCredentials &&
+        effectiveContext.isTenant &&
+        !options.useMasterCredentials &&
+        !options.hasTokenRemintAttempted
+      ) {
+        const newKeys = await tryRemintTenantApiKeys(effectiveContext)
+        if (newKeys) {
+          if (shouldEmitThrottledLog(`token-remint-retry:${endpoint}:${effectiveContext.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+            console.warn(`[API] 401 on tenant token for ${endpoint}; re-minted keys and retrying`)
+          }
+          return frappeRequestWithContext(context, siteName, endpoint, method, body, {
+            ...options,
+            hasTokenRemintAttempted: true,
+            useSessionAuth: false,
+            credentialOverride: newKeys,
+          })
+        }
+      }
+
+      // Last resort: session cookie (often fails server-side for frappe.client.* — prefer remint above).
+      if (
+        response.status === 401 &&
+        effectiveContext.isTenant &&
         !options.hasSessionFallbackAttempted &&
         sid
       ) {
-        if (shouldEmitThrottledLog(`session-fallback:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+        if (shouldEmitThrottledLog(`session-fallback:${endpoint}:${effectiveContext.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
           console.warn(`[API] 401 on tenant token for ${endpoint}; retrying with session cookie auth`)
         }
-        markTenantTokenStale(siteName)
-        return frappeRequest(endpoint, method, body, {
+        return frappeRequestWithContext(context, siteName, endpoint, method, body, {
           ...options,
           hasSessionFallbackAttempted: true,
           useMasterCredentials: false,
           useSessionAuth: true,
+          credentialOverride: options.credentialOverride,
         })
       }
 
@@ -728,10 +824,6 @@ async function frappeRequestWithContext(
       }
       const errorMessage = parseErrorMessage(data)
       throw new Error(errorMessage)
-    }
-
-    if (context.isTenant && context.hasCredentials && authHeader && !useSessionAuth) {
-      clearStaleTenantToken(siteName)
     }
 
     return data.message ?? data.data ?? data
@@ -759,87 +851,15 @@ async function frappeRequestWithContext(
 // ============================================================================
 
 /**
- * Make authenticated request using session cookie
- * Use this for operations that need the logged-in user's context
+ * Make authenticated request using the same token/remint path as frappeRequest.
+ * Kept for call-site compatibility — session-only server fetch is unreliable for frappe.client.*.
  */
 export async function userRequest(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null
 ): Promise<unknown> {
-  const cookieStore = await cookies()
-  const sessionCookie = cookieStore.get('sid')
-
-  if (!sessionCookie) {
-    throw new Error('Not authenticated - no session cookie found')
-  }
-
-  // Get tenant context for site routing
-  const context = await getTenantContext()
-
-  // Build request headers
-  const requestHeaders: HeadersInit = {
-    'Accept': 'application/json',
-    'Cookie': `sid=${sessionCookie.value}`,
-    'Host': context.siteName,
-    'X-Frappe-Site-Name': context.siteName,
-  }
-
-  if (method !== 'GET') {
-    requestHeaders['Content-Type'] = 'application/json'
-  }
-
-  // Build URL
-  let url = `${BASE_URL}/api/method/${endpoint}`
-
-  if (method === 'GET' && body) {
-    const params = new URLSearchParams()
-    Object.entries(body).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value))
-      }
-    })
-    url += `?${params.toString()}`
-  }
-
-  // Build fetch options
-  const fetchOptions: RequestInit = {
-    method,
-    headers: requestHeaders,
-    cache: 'no-store',
-    credentials: 'include',
-  }
-
-  if (method !== 'GET' && body) {
-    fetchOptions.body = JSON.stringify(body)
-  }
-
-  // Execute request
-  try {
-    const response = await fetchWithTimeout(url, fetchOptions, REQUEST_TIMEOUT_MS)
-    const data = await parseResponseData(response)
-
-    if (!response.ok) {
-      console.error('[API] userRequest error:', {
-        status: response.status,
-        endpoint,
-        siteName: context.siteName,
-        data,
-      })
-      throw new Error(parseErrorMessage(data))
-    }
-
-    return data.message ?? data.data ?? data
-  } catch (error) {
-    if (isTimeoutLikeError(error)) {
-      throw new Error(`ERP backend timeout after ${REQUEST_TIMEOUT_MS}ms (${endpoint})`)
-    }
-
-    if (error instanceof Error) {
-      console.error(`[API] userRequest failed:`, error.message)
-    }
-    throw error
-  }
+  return frappeRequest(endpoint, method, body)
 }
 
 // ============================================================================
