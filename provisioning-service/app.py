@@ -2179,10 +2179,25 @@ async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool =
                 return {"success": True, "api_key": cached_key, "api_secret": cached_secret}
             _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
 
-    # We embed the email safely via json.dumps — no shell injection risk because
-    # run_frappe_code passes the code via stdin to `bench execute`.
+    # Read existing keys first — only rotate when missing or invalid (avoids
+    # invalidating browser cookies on every login/refresh).
     safe_email = json.dumps(user_email)
-    gen_code = f"""import json
+    read_code = f"""import json
+import frappe
+
+user_email = {safe_email}
+try:
+    user = frappe.get_doc("User", user_email)
+    api_key = user.api_key
+    api_secret_val = user.get_password("api_secret")
+    if not api_key or not api_secret_val:
+        print(json.dumps({{"missing": True}}))
+    else:
+        print(json.dumps({{"api_key": api_key, "api_secret": api_secret_val}}))
+except Exception as exc:
+    print(json.dumps({{"error": str(exc)}}))
+"""
+    rotate_code = f"""import json
 import frappe
 
 user_email = {safe_email}
@@ -2199,8 +2214,39 @@ except Exception as exc:
     print(json.dumps({{"error": str(exc)}}))
 """
 
+    def _return_validated_keys(api_key_val: str, api_secret_val: str, *, rotated: bool) -> dict:
+        if not _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
+            raise HTTPException(
+                status_code=502,
+                detail=f"API keys failed validation for {user_email} on {site_name}",
+            )
+        _GENERATED_USER_KEYS_CACHE[cache_key] = (api_key_val, api_secret_val, time.time())
+        action = "rotated" if rotated else "returned existing"
+        logger.info(f"generate-user-keys: {action} keys for {user_email} on {site_name}")
+        return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
+
     try:
-        output = run_frappe_code(site_name, gen_code)
+        output = run_frappe_code(site_name, read_code)
+        result = _parse_json_output(output)
+        if not result:
+            raise HTTPException(
+                status_code=502,
+                detail="Frappe produced no parseable JSON when reading user API keys",
+            )
+        if result.get("error"):
+            raise HTTPException(status_code=404, detail=f"Could not read keys: {result['error']}")
+
+        api_key_val = result.get("api_key")
+        api_secret_val = result.get("api_secret")
+        if api_key_val and api_secret_val and not result.get("missing"):
+            try:
+                return _return_validated_keys(api_key_val, api_secret_val, rotated=False)
+            except HTTPException:
+                logger.warning(
+                    f"generate-user-keys: existing keys invalid for {user_email} on {site_name}; rotating"
+                )
+
+        output = run_frappe_code(site_name, rotate_code)
         result = _parse_json_output(output)
         if not result:
             logger.error(
@@ -2219,22 +2265,11 @@ except Exception as exc:
         api_key_val = result.get("api_key")
         api_secret_val = result.get("api_secret")
         if not api_key_val or not api_secret_val:
-            logger.error(
-                f"generate-user-keys: JSON missing api_key/api_secret for {user_email} on {site_name}. "
-                f"Parsed keys: {list(result.keys())}. Raw output: {output[:500]!r}"
-            )
             raise HTTPException(
                 status_code=502,
                 detail="Frappe did not return api_key/api_secret in output",
             )
-        if not _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
-            raise HTTPException(
-                status_code=502,
-                detail=f"Generated API keys failed validation for {user_email} on {site_name}",
-            )
-        _GENERATED_USER_KEYS_CACHE[cache_key] = (api_key_val, api_secret_val, time.time())
-        logger.info(f"generate-user-keys: keys generated for {user_email} on {site_name}")
-        return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
+        return _return_validated_keys(api_key_val, api_secret_val, rotated=True)
     except HTTPException:
         raise
     except Exception as e:

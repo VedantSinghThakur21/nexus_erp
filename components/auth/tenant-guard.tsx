@@ -34,7 +34,21 @@ export function TenantGuard({ children, hasServerAuth }: { children: React.React
 
         // Server layout already validated auth via cookies (API key/SID/user/email or NextAuth).
         // Do not let NextAuth's unauthenticated state override the credential-based login flow.
-        if (hasServerAuth) return
+        if (hasServerAuth) {
+            // Once per browser session, sync API key cookies with Frappe after deploys.
+            try {
+                if (!sessionStorage.getItem('tenant_keys_refreshed')) {
+                    fetch('/api/auth/refresh-tenant-keys', { method: 'POST', credentials: 'include' })
+                        .then((res) => {
+                            if (res.ok) sessionStorage.setItem('tenant_keys_refreshed', '1')
+                        })
+                        .catch(() => {})
+                }
+            } catch {
+                // sessionStorage unavailable — skip
+            }
+            return
+        }
 
         // If tenant API key is missing but user is authenticated → session issue
         if (status === 'authenticated' && hasServerAuth === false) {

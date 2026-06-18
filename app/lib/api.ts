@@ -449,18 +449,12 @@ async function tryRepairTenantDocPerms(
   const promise = (async (): Promise<boolean> => {
     docpermRepairLastAttempt.set(cooldownKey, Date.now())
     try {
-      const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
-      const { ROLE_SETS } = await import('@/lib/role-sets')
-
+      const { seedTenantDocPerms } = await import('@/lib/provisioning-client')
       await seedTenantDocPerms(context.subdomain!)
-
-      const roleType = cookieStore.get('tenant_role_type')?.value || 'member'
-      const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
-      await assignUserRoles(context.subdomain!, userEmail, rolesToAssign)
 
       const deniedDoctype = extractDeniedDoctypeFromPermissionError(errorData)
       console.warn(
-        `[API] Auto-repaired DocPerms/roles for ${userEmail} on ${context.subdomain}` +
+        `[API] Auto-repaired DocPerms for ${userEmail} on ${context.subdomain}` +
           (deniedDoctype ? ` (denied: ${deniedDoctype})` : ''),
       )
       return true
@@ -474,6 +468,29 @@ async function tryRepairTenantDocPerms(
 
   docpermRepairInFlight.set(cooldownKey, promise)
   return promise
+}
+
+/** Fetch the canonical API keys from Frappe (via provisioning) without rotating when still valid. */
+async function trySyncTenantApiKeys(context: TenantContext): Promise<TenantContext | null> {
+  if (!context.isTenant || !context.subdomain) return null
+
+  const cookieStore = await cookies()
+  const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
+  if (!userEmail) return null
+
+  try {
+    const { generateUserApiKeys } = await import('@/lib/provisioning-client')
+    const keys = await generateUserApiKeys(context.subdomain, userEmail, 15_000)
+    return {
+      ...context,
+      apiKey: keys.api_key,
+      apiSecret: keys.api_secret,
+      hasCredentials: true,
+    }
+  } catch (error) {
+    console.warn('[API] Could not sync tenant API keys from provisioning:', error)
+    return null
+  }
 }
 
 async function tryRepairTenantRoles(
@@ -678,23 +695,23 @@ async function frappeRequestWithContext(
         })
       }
 
-      // Stale tenant API keys — fall back to user session once before failing.
+      // Stale cookie keys — sync from Frappe once (read-only when keys are still valid).
       if (
         response.status === 401 &&
         context.isTenant &&
-        context.hasCredentials &&
-        !options.hasSessionFallbackAttempted &&
-        sid
+        !options.hasTenantTokenRetryAttempted
       ) {
-        if (shouldEmitThrottledLog(`session-fallback:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
-          console.warn(`[API] 401 on tenant token for ${endpoint}; retrying with session cookie auth`)
+        const synced = await trySyncTenantApiKeys(context)
+        if (synced) {
+          if (shouldEmitThrottledLog(`key-sync:${endpoint}:${context.siteName}`, AUTH_ERROR_LOG_THROTTLE_MS)) {
+            console.warn(`[API] 401 on tenant token for ${endpoint}; synced keys from Frappe and retrying`)
+          }
+          return frappeRequestWithContext(synced, siteName, endpoint, method, body, {
+            ...options,
+            hasTenantTokenRetryAttempted: true,
+            useSessionAuth: false,
+          })
         }
-        return frappeRequestWithContext(context, siteName, endpoint, method, body, {
-          ...options,
-          hasSessionFallbackAttempted: true,
-          useMasterCredentials: false,
-          useSessionAuth: true,
-        })
       }
 
       logApiError(endpoint, response.status, siteName, authSource, data, body)
