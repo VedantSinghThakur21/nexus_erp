@@ -21,28 +21,6 @@ const REQUEST_TIMEOUT_MS = Number(process.env.ERP_REQUEST_TIMEOUT_MS || '15000')
 const DEFAULT_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_ERROR_LOG_THROTTLE_MS || '120000')
 const AUTH_ERROR_LOG_THROTTLE_MS = Number(process.env.ERP_AUTH_ERROR_LOG_THROTTLE_MS || '600000')
 
-/**
- * Tenant API calls in production should hit the tenant site host (via nginx),
- * matching how the provisioning service validates keys. Direct 127.0.0.1:8080
- * + X-Frappe-Site-Name often returns 401 for token auth on multi-site benches.
- * Set ERP_TENANT_VIA_SITE_HOST=0 to force ERP_NEXT_URL for all requests.
- */
-function resolveFrappeBaseUrl(siteName: string, useMasterCredentials: boolean): string {
-  const internalBase = BASE_URL
-  const viaSiteHost = process.env.ERP_TENANT_VIA_SITE_HOST !== '0'
-  if (
-    viaSiteHost &&
-    IS_PRODUCTION &&
-    !useMasterCredentials &&
-    siteName !== MASTER_SITE_NAME &&
-    siteName.includes('.')
-  ) {
-    const scheme = process.env.ERP_TENANT_URL_SCHEME || 'https'
-    return `${scheme}://${siteName}`
-  }
-  return internalBase
-}
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -67,9 +45,6 @@ interface ApiRequestOptions {
   hasRoleRepairAttempted?: boolean
   hasSessionFallbackAttempted?: boolean
   hasTenantTokenRetryAttempted?: boolean
-  hasTokenRemintAttempted?: boolean
-  /** Fresh keys from provisioning — bypasses reactCache'd tenant context for this request */
-  credentialOverride?: { apiKey: string; apiSecret: string }
 }
 
 const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
@@ -81,63 +56,6 @@ const docpermRepairLastAttempt = new Map<string, number>()
 const roleRepairInFlight = new Map<string, Promise<boolean>>()
 const docpermRepairInFlight = new Map<string, Promise<boolean>>()
 const apiErrorLogLastSeen = new Map<string, number>()
-const remintInFlight = new Map<string, Promise<{ apiKey: string; apiSecret: string } | null>>()
-const remintLastAttempt = new Map<string, number>()
-/** Process-local cache for keys re-minted during RSC (cannot write cookies there) */
-const REMINTED_CREDENTIAL_TTL_MS = 2 * 60 * 1000
-const remintedCredentials = new Map<string, { apiKey: string; apiSecret: string; mintedAt: number }>()
-
-function remintCredentialKey(subdomain: string, userEmail: string): string {
-  return `${subdomain}:${userEmail}`
-}
-
-function getRemintedCredentials(
-  subdomain: string,
-  userEmail: string,
-): { apiKey: string; apiSecret: string } | null {
-  const key = remintCredentialKey(subdomain, userEmail)
-  const entry = remintedCredentials.get(key)
-  if (!entry) return null
-  if (Date.now() - entry.mintedAt > REMINTED_CREDENTIAL_TTL_MS) {
-    remintedCredentials.delete(key)
-    return null
-  }
-  return { apiKey: entry.apiKey, apiSecret: entry.apiSecret }
-}
-
-function storeRemintedCredentials(
-  subdomain: string,
-  userEmail: string,
-  apiKey: string,
-  apiSecret: string,
-): void {
-  remintedCredentials.set(remintCredentialKey(subdomain, userEmail), {
-    apiKey,
-    apiSecret,
-    mintedAt: Date.now(),
-  })
-}
-
-async function persistTenantApiKeyCookies(apiKey: string, apiSecret: string): Promise<void> {
-  try {
-    const cookieStore = await cookies()
-    const cookieDomain = IS_PRODUCTION ? `.${ROOT_DOMAIN}` : undefined
-    const cookieSecure = IS_PRODUCTION
-    const cookieSameSite = IS_PRODUCTION ? ('none' as const) : ('lax' as const)
-    const cookieOpts = {
-      httpOnly: true,
-      secure: cookieSecure,
-      sameSite: cookieSameSite,
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-      ...(cookieDomain ? { domain: cookieDomain } : {}),
-    }
-    cookieStore.set('tenant_api_key', apiKey, cookieOpts)
-    cookieStore.set('tenant_api_secret', apiSecret, cookieOpts)
-  } catch {
-    // Cookie writes are only allowed in Server Actions / Route Handlers — RSC uses in-memory cache.
-  }
-}
 
 function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
   const now = Date.now()
@@ -147,86 +65,6 @@ function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
   }
   apiErrorLogLastSeen.set(key, now)
   return true
-}
-
-function withCredentialOverride(
-  context: TenantContext,
-  override?: { apiKey: string; apiSecret: string },
-): TenantContext {
-  if (!override) return context
-  return {
-    ...context,
-    apiKey: override.apiKey,
-    apiSecret: override.apiSecret,
-    hasCredentials: true,
-  }
-}
-
-async function enrichContextWithRemintedKeys(context: TenantContext): Promise<TenantContext> {
-  if (!context.isTenant || !context.subdomain) return context
-  try {
-    const cookieStore = await cookies()
-    const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
-    if (!userEmail) return context
-    const reminted = getRemintedCredentials(context.subdomain, userEmail)
-    if (!reminted) return context
-    return {
-      ...context,
-      apiKey: reminted.apiKey,
-      apiSecret: reminted.apiSecret,
-      hasCredentials: true,
-    }
-  } catch {
-    return context
-  }
-}
-
-async function tryRemintTenantApiKeys(
-  context: TenantContext,
-): Promise<{ apiKey: string; apiSecret: string } | null> {
-  if (!context.isTenant || !context.subdomain) return null
-
-  const cookieStore = await cookies()
-  const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
-  if (!userEmail) return null
-
-  const flightKey = remintCredentialKey(context.subdomain, userEmail)
-  const inFlight = remintInFlight.get(flightKey)
-  if (inFlight) return inFlight
-
-  const cached = getRemintedCredentials(context.subdomain, userEmail)
-  if (cached) return cached
-
-  const now = Date.now()
-  const lastAttempt = remintLastAttempt.get(flightKey)
-  if (lastAttempt && now - lastAttempt < 3_000) {
-    return getRemintedCredentials(context.subdomain, userEmail)
-  }
-
-  const promise = (async (): Promise<{ apiKey: string; apiSecret: string } | null> => {
-    remintLastAttempt.set(flightKey, Date.now())
-    try {
-      const { generateUserApiKeys } = await import('@/lib/provisioning-client')
-      const result = await generateUserApiKeys(context.subdomain!, userEmail, 30_000)
-      if (!result?.api_key || !result?.api_secret) return null
-
-      storeRemintedCredentials(context.subdomain!, userEmail, result.api_key, result.api_secret)
-      await persistTenantApiKeyCookies(result.api_key, result.api_secret)
-
-      if (shouldEmitThrottledLog(`token-remint:${flightKey}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
-        console.warn(`[API] Re-minted tenant API keys for ${userEmail} on ${context.subdomain}`)
-      }
-      return { apiKey: result.api_key, apiSecret: result.api_secret }
-    } catch (error) {
-      console.warn('[API] Tenant API key re-mint failed:', error)
-      return null
-    } finally {
-      remintInFlight.delete(flightKey)
-    }
-  })()
-
-  remintInFlight.set(flightKey, promise)
-  return promise
 }
 
 function isTimeoutLikeError(error: unknown): boolean {
@@ -314,18 +152,8 @@ async function resolveTenantContext(): Promise<TenantContext> {
     //    tokens) take priority over cookie-based user credentials.
     const headerApiKey = headersList.get('x-tenant-api-key')
     const headerApiSecret = headersList.get('x-tenant-api-secret')
-    const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
-    let tenantApiKey = headerApiKey || cookieStore.get('tenant_api_key')?.value
-    let tenantApiSecret = headerApiSecret || cookieStore.get('tenant_api_secret')?.value
-
-    // Prefer freshly re-minted keys (RSC cannot persist cookies; see tryRemintTenantApiKeys).
-    if (!headerApiKey && !headerApiSecret && isTenant && subdomain && userEmail) {
-      const reminted = getRemintedCredentials(subdomain, userEmail)
-      if (reminted) {
-        tenantApiKey = reminted.apiKey
-        tenantApiSecret = reminted.apiSecret
-      }
-    }
+    const tenantApiKey = headerApiKey || cookieStore.get('tenant_api_key')?.value
+    const tenantApiSecret = headerApiSecret || cookieStore.get('tenant_api_secret')?.value
 
     return {
       isTenant,
@@ -721,7 +549,7 @@ export async function frappeRequest(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null,
-  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted' | 'hasTokenRemintAttempted' | 'credentialOverride'> = {}
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted'> = {}
 ): Promise<unknown> {
   const context = await getTenantContext()
 
@@ -731,9 +559,7 @@ export async function frappeRequest(
     method === 'GET' &&
     !options.hasRoleRepairAttempted &&
     !options.hasSessionFallbackAttempted &&
-    !options.hasTenantTokenRetryAttempted &&
-    !options.hasTokenRemintAttempted &&
-    !options.credentialOverride
+    !options.hasTenantTokenRetryAttempted
 
   const run = () => frappeRequestWithContext(context, siteName, endpoint, method, body, options)
 
@@ -758,22 +584,20 @@ async function frappeRequestWithContext(
   endpoint: string,
   method: ApiRequestOptions['method'] = 'GET',
   body: Record<string, unknown> | null = null,
-  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted' | 'hasTokenRemintAttempted' | 'credentialOverride'> = {}
+  options: Pick<ApiRequestOptions, 'useMasterCredentials' | 'useSessionAuth' | 'siteOverride' | 'hasRoleRepairAttempted' | 'hasSessionFallbackAttempted' | 'hasTenantTokenRetryAttempted'> = {}
 ): Promise<unknown> {
-  const enrichedContext = await enrichContextWithRemintedKeys(context)
-  const effectiveContext = withCredentialOverride(enrichedContext, options.credentialOverride)
-  const sid = effectiveContext.sessionId ?? undefined
+  const sid = context.sessionId ?? undefined
   const useSessionAuth = options.useSessionAuth === true
 
   // Determine which credentials to use
   const { header: authHeader, source: authSource } = getAuthorizationHeader(
-    effectiveContext,
+    context,
     options.useMasterCredentials || false,
     useSessionAuth
   )
 
   // Log request details
-  logApiRequest(endpoint, method, siteName, authSource, effectiveContext)
+  logApiRequest(endpoint, method, siteName, authSource, context)
 
   // Build request headers
   const requestHeaders: Record<string, string> = {
@@ -795,8 +619,7 @@ async function frappeRequestWithContext(
   }
 
   // Build URL with query params for GET requests
-  const frappeBaseUrl = resolveFrappeBaseUrl(siteName, options.useMasterCredentials || false)
-  let url = `${frappeBaseUrl}/api/method/${endpoint}`
+  let url = `${BASE_URL}/api/method/${endpoint}`
 
   if (method === 'GET' && body) {
     const params = new URLSearchParams()
@@ -828,29 +651,11 @@ async function frappeRequestWithContext(
       if (
         response.status === 403 &&
         useSessionAuth &&
-        !options.hasTokenRemintAttempted &&
-        effectiveContext.isTenant
-      ) {
-        const newKeys = await tryRemintTenantApiKeys(effectiveContext)
-        if (newKeys) {
-          return frappeRequestWithContext(context, siteName, endpoint, method, body, {
-            ...options,
-            hasTokenRemintAttempted: true,
-            hasSessionFallbackAttempted: true,
-            useSessionAuth: false,
-            credentialOverride: newKeys,
-          })
-        }
-      }
-
-      if (
-        response.status === 403 &&
-        useSessionAuth &&
         !options.hasTenantTokenRetryAttempted &&
-        effectiveContext.hasCredentials &&
+        context.hasCredentials &&
         isMethodNotWhitelistedError(data)
       ) {
-        if (shouldEmitThrottledLog(`session-not-whitelisted:${endpoint}:${effectiveContext.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+        if (shouldEmitThrottledLog(`session-not-whitelisted:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
           console.warn(`[API] Session auth cannot call ${endpoint}; retrying with tenant API token`)
         }
         return frappeRequestWithContext(context, siteName, endpoint, method, body, {
@@ -865,46 +670,31 @@ async function frappeRequestWithContext(
         response.status === 403 &&
         !options.useMasterCredentials &&
         !options.hasRoleRepairAttempted &&
-        (await tryRepairTenantDocPerms(effectiveContext, data) || await tryRepairTenantRoles(effectiveContext, data))
+        (await tryRepairTenantDocPerms(context, data) || await tryRepairTenantRoles(context, data))
       ) {
         return frappeRequestWithContext(context, siteName, endpoint, method, body, {
           ...options,
           hasRoleRepairAttempted: true,
-          credentialOverride: options.credentialOverride,
         })
       }
 
-      // Stale tenant API keys — re-mint via provisioning, then retry with fresh token.
+      // Stale tenant API keys — fall back to user session once before failing.
       if (
         response.status === 401 &&
-        effectiveContext.isTenant &&
-        !options.useMasterCredentials &&
-        !options.hasTokenRemintAttempted
+        context.isTenant &&
+        context.hasCredentials &&
+        !options.hasSessionFallbackAttempted &&
+        sid
       ) {
-        const newKeys = await tryRemintTenantApiKeys(effectiveContext)
-        if (newKeys) {
-          if (shouldEmitThrottledLog(`token-remint-retry:${endpoint}:${effectiveContext.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
-            console.warn(`[API] 401 on tenant token for ${endpoint}; re-minted keys and retrying`)
-          }
-          return frappeRequestWithContext(context, siteName, endpoint, method, body, {
-            ...options,
-            hasTokenRemintAttempted: true,
-            useSessionAuth: false,
-            credentialOverride: newKeys,
-          })
+        if (shouldEmitThrottledLog(`session-fallback:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+          console.warn(`[API] 401 on tenant token for ${endpoint}; retrying with session cookie auth`)
         }
-      }
-
-      // Do not fall back to session for tenant token auth — server-side sid does not
-      // reliably call frappe.client.* and produces misleading 403 permission errors.
-      if (
-        response.status === 401 &&
-        effectiveContext.isTenant &&
-        !options.useMasterCredentials &&
-        (options.hasTokenRemintAttempted || options.credentialOverride)
-      ) {
-        logApiError(endpoint, response.status, siteName, authSource, data, body)
-        throw new Error(`SESSION_EXPIRED: Tenant API token rejected after re-mint for ${effectiveContext.siteName}`)
+        return frappeRequestWithContext(context, siteName, endpoint, method, body, {
+          ...options,
+          hasSessionFallbackAttempted: true,
+          useMasterCredentials: false,
+          useSessionAuth: true,
+        })
       }
 
       logApiError(endpoint, response.status, siteName, authSource, data, body)
@@ -940,8 +730,7 @@ async function frappeRequestWithContext(
 // ============================================================================
 
 /**
- * Make authenticated request using the same token/remint path as frappeRequest.
- * Kept for call-site compatibility — session-only server fetch is unreliable for frappe.client.*.
+ * Server-side Frappe request — uses tenant API keys from login cookies.
  */
 export async function userRequest(
   endpoint: string,
