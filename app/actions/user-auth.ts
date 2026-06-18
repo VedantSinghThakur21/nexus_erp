@@ -64,12 +64,20 @@ async function getTenantDiscoverySubdomains(): Promise<string[]> {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean)
 
+  let remembered: string | undefined
+  try {
+    const cookieStore = await cookies()
+    remembered = cookieStore.get('tenant_subdomain')?.value?.trim().toLowerCase() || undefined
+  } catch {
+    // ignore — cookies unavailable outside request context
+  }
+
   const { listActiveTenantSubdomains } = await import('@/lib/provisioning-client')
   const fromProvisioning = await listActiveTenantSubdomains()
 
   const seen = new Set<string>()
   const merged: string[] = []
-  for (const sub of [...fromEnv, ...fromProvisioning]) {
+  for (const sub of [...(remembered ? [remembered] : []), ...fromEnv, ...fromProvisioning]) {
     const normalized = sub.toLowerCase()
     if (!seen.has(normalized)) {
       seen.add(normalized)
@@ -238,7 +246,13 @@ export async function loginUser(
     const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
     const tenantsToTry: TenantRecord[] = []
 
-    if (onTenantSubdomain) {
+    // Workspace slug from the login form — always try first (works without provisioning/master DB).
+    const normalizedHint = workspaceHint?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '')
+    if (normalizedHint) {
+      tenantsToTry.push(buildTenantFromSubdomain(normalizedHint))
+    }
+
+    if (onTenantSubdomain && !normalizedHint) {
       let resolved = await lookupTenantBySubdomain(currentSubdomain)
       if (!resolved) resolved = buildTenantFromSubdomain(currentSubdomain)
       tenantsToTry.push(resolved)
@@ -255,14 +269,6 @@ export async function loginUser(
     }
 
     if (onRootDomain) {
-      const hint = workspaceHint?.trim().toLowerCase()
-      if (hint) {
-        const hinted = buildTenantFromSubdomain(hint)
-        if (!tenantsToTry.some((t) => t.subdomain === hinted.subdomain)) {
-          tenantsToTry.unshift(hinted)
-        }
-      }
-
       // Always try configured / provisioned subdomains on root login so credentials
       // can be matched to the right workspace (e.g. dabed.avariq.in) without master DB lookup.
       const discoverySubs = await getTenantDiscoverySubdomains()
@@ -278,7 +284,7 @@ export async function loginUser(
       return {
         success: false,
         error: onRootDomain
-          ? `No workspace found for this account. Enter your workspace name below (e.g. dabed) or sign in at dabed.${rootDomain}/login.`
+          ? `No workspace found for this account. Sign in at your workspace URL (e.g. dabed.${rootDomain}/login) or enter your workspace name below.`
           : 'No workspace found for this account. Please sign up to create a workspace first.',
       }
     }
@@ -642,18 +648,21 @@ export async function loginUser(
       }
 
       // ── Normalize roles on every login ──
-      // 1. If role_profile_name is set → clear it and assign explicit roles
-      // 2. If user has no module-accessible roles → add minimum roles (Sales User)
-      //    so the user can at least see the dashboard and CRM data.
       if (userEmail && !fastLogin) {
-        // Bump this version whenever ROLE_SETS changes so previously-normalized
-        // users get re-checked against the latest expected role set.
-        const ROLE_NORMALIZATION_VERSION = 'v2'
+        // Always refresh DocPerms (idempotent) — fixes empty dashboard after provision/PM2 restarts.
+        try {
+          const { seedTenantDocPerms } = await import('@/lib/provisioning-client')
+          await seedTenantDocPerms(tenant.subdomain)
+        } catch (docPermErr) {
+          console.warn('[Login] seedTenantDocPerms failed (non-fatal):', docPermErr)
+        }
+
+        const ROLE_NORMALIZATION_VERSION = 'v3'
         const normalizationMarker = `${ROLE_NORMALIZATION_VERSION}:${tenant.subdomain}:${userEmail}`
         const alreadyNormalized = cookieStore.get('tenant_roles_normalized')?.value === normalizationMarker
 
         if (alreadyNormalized) {
-          // Skip expensive role reads/writes for users already normalized in this session window.
+          // DocPerms refreshed above; role assignment already done for this version.
         } else {
         try {
           const { assignUserRoles, getUserRoles: fetchUserRoles } = await import('@/lib/provisioning-client')
@@ -743,13 +752,13 @@ export async function loginUser(
           // roles (e.g., Item Manager) were added to the set and silently fail on
           // doctype permission checks like Item.create.
           try {
-            const cookieRoleType = cookieStore.get('tenant_role_type')?.value
+            const { ROLE_SETS: ROLE_SETS_MAP } = await import('@/lib/role-sets')
             const expectedSetKey =
-              cookieRoleType && cookieRoleType in ROLE_SETS_MAP
-                ? cookieRoleType
+              roleType in ROLE_SETS_MAP
+                ? roleType
                 : userEmail === tenant.owner_email
-                ? 'admin'
-                : null
+                  ? 'admin'
+                  : null
             if (expectedSetKey) {
               const expectedRoles = ROLE_SETS_MAP[expectedSetKey] || []
               const existing = new Set(rolesToAssign)

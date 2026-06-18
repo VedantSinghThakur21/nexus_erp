@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,23 +8,16 @@ import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 import { loginUser } from "@/app/actions/user-auth"
 
-function isRootDomainHost(): boolean {
-  if (typeof window === "undefined") return false
-  const host = window.location.hostname.split(":")[0].toLowerCase()
-  const root = (process.env.NEXT_PUBLIC_ROOT_DOMAIN || "avariq.in").toLowerCase()
-  return host === root || host === `www.${root}` || host === "localhost"
-}
-
 export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [workspace, setWorkspace] = useState("")
+  const [showWorkspaceField, setShowWorkspaceField] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const showWorkspaceField = useMemo(() => isRootDomainHost(), [])
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "avariq.in"
 
   async function handleSubmit(e: React.FormEvent) {
@@ -38,7 +31,11 @@ export function LoginForm() {
         workspace.trim() || undefined,
       )
       if (!result.success) {
-        throw new Error(result.error || "Invalid credentials")
+        const msg = result.error || "Invalid credentials"
+        if (msg.toLowerCase().includes("no workspace found")) {
+          setShowWorkspaceField(true)
+        }
+        throw new Error(msg)
       }
 
       try { sessionStorage.removeItem('nexus_user_roles_cache') } catch {}
@@ -68,29 +65,6 @@ export function LoginForm() {
         <div className="flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-200">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
-        </div>
-      )}
-
-      {showWorkspaceField && (
-        <div className="space-y-1.5">
-          <Label htmlFor="workspace" className="text-sm font-medium text-neutral-200">
-            Workspace <span className="text-neutral-500 font-normal">(optional)</span>
-          </Label>
-          <div className="flex items-center gap-0 rounded-md border border-white/10 bg-white/5 overflow-hidden focus-within:border-orange-500">
-            <Input
-              id="workspace"
-              type="text"
-              placeholder="dabed"
-              value={workspace}
-              onChange={(e) => setWorkspace(e.target.value.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase())}
-              autoComplete="organization"
-              className="h-10 border-0 bg-transparent text-neutral-100 placeholder:text-neutral-500 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
-            />
-            <span className="pr-3 text-sm text-neutral-500 whitespace-nowrap">.{rootDomain}</span>
-          </div>
-          <p className="text-xs text-neutral-500">
-            Your company URL slug — e.g. if you use <span className="text-neutral-400">dabed.{rootDomain}</span>, enter <span className="text-neutral-400">dabed</span>.
-          </p>
         </div>
       )}
 
@@ -138,6 +112,29 @@ export function LoginForm() {
         </div>
       </div>
 
+      {showWorkspaceField && (
+        <div className="space-y-1.5">
+          <Label htmlFor="workspace" className="text-sm font-medium text-neutral-200">
+            Workspace
+          </Label>
+          <div className="flex items-center gap-0 rounded-md border border-white/10 bg-white/5 overflow-hidden focus-within:border-orange-500">
+            <Input
+              id="workspace"
+              type="text"
+              placeholder="dabed"
+              value={workspace}
+              onChange={(e) => setWorkspace(e.target.value.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase())}
+              autoComplete="organization"
+              className="h-10 border-0 bg-transparent text-neutral-100 placeholder:text-neutral-500 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+            />
+            <span className="pr-3 text-sm text-neutral-500 whitespace-nowrap">.{rootDomain}</span>
+          </div>
+          <p className="text-xs text-neutral-500">
+            Only needed if sign-in cannot find your workspace automatically.
+          </p>
+        </div>
+      )}
+
       <Button
         type="submit"
         className="w-full h-10 font-semibold bg-white text-black hover:bg-neutral-200"
@@ -152,6 +149,16 @@ export function LoginForm() {
           "Sign in"
         )}
       </Button>
+
+      {!showWorkspaceField && (
+        <button
+          type="button"
+          onClick={() => setShowWorkspaceField(true)}
+          className="w-full text-center text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+        >
+          Know your workspace URL? Enter it manually
+        </button>
+      )}
     </form>
   )
 }

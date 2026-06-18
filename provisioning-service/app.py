@@ -128,6 +128,8 @@ DOC_PERM_MINIMUM = [
     {"doctype": "Employee", "role": "Projects Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Employee", "role": "Stock Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
     {"doctype": "Employee", "role": "Stock User", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Pricing Rule", "role": "Sales Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+    {"doctype": "Pricing Rule", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
 ]
 
 INVITE_TYPE_TO_ROLE = {
