@@ -56,6 +56,9 @@ const docpermRepairLastAttempt = new Map<string, number>()
 const roleRepairInFlight = new Map<string, Promise<boolean>>()
 const docpermRepairInFlight = new Map<string, Promise<boolean>>()
 const apiErrorLogLastSeen = new Map<string, number>()
+const tenantKeySyncInFlight = new Map<string, Promise<TenantContext | null>>()
+const tenantKeySyncCache = new Map<string, { apiKey: string; apiSecret: string; at: number }>()
+const TENANT_KEY_SYNC_CACHE_MS = 60_000
 
 function shouldEmitThrottledLog(key: string, throttleMs: number): boolean {
   const now = Date.now()
@@ -471,25 +474,192 @@ async function tryRepairTenantDocPerms(
 }
 
 /** Fetch the canonical API keys from Frappe (via provisioning) without rotating when still valid. */
-async function trySyncTenantApiKeys(context: TenantContext): Promise<TenantContext | null> {
+async function validateTenantApiToken(
+  siteName: string,
+  apiKey: string,
+  apiSecret: string,
+  expectedEmail: string
+): Promise<boolean> {
+  try {
+    const response = await fetchWithTimeout(
+      `${BASE_URL}/api/method/frappe.auth.get_logged_user`,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `token ${apiKey}:${apiSecret}`,
+          'X-Frappe-Site-Name': siteName,
+        },
+      },
+      REQUEST_TIMEOUT_MS
+    )
+    const data = await parseResponseData(response)
+    return response.ok && data.message === expectedEmail
+  } catch {
+    return false
+  }
+}
+
+async function tryRegenerateKeysViaSession(
+  context: TenantContext,
+  siteName: string,
+  userEmail: string
+): Promise<TenantContext | null> {
+  const sid = context.sessionId
+  if (!sid) return null
+
+  try {
+    const genResponse = await fetchWithTimeout(
+      `${BASE_URL}/api/method/frappe.core.doctype.user.user.generate_keys`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-Frappe-Site-Name': siteName,
+          Cookie: `sid=${sid}`,
+        },
+        body: JSON.stringify({ user: userEmail }),
+      },
+      REQUEST_TIMEOUT_MS
+    )
+    const genData = await parseResponseData(genResponse)
+    if (!genResponse.ok) return null
+
+    let apiSecret: string | null = null
+    const message = genData.message
+    if (typeof message === 'string' && message) {
+      apiSecret = message
+    } else if (message && typeof message === 'object') {
+      const msg = message as Record<string, unknown>
+      apiSecret =
+        (typeof msg.api_secret === 'string' && msg.api_secret) ||
+        (typeof msg.apiSecret === 'string' && msg.apiSecret) ||
+        null
+    }
+    if (!apiSecret) return null
+
+    const userResponse = await fetchWithTimeout(
+      `${BASE_URL}/api/method/frappe.client.get`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-Frappe-Site-Name': siteName,
+          Cookie: `sid=${sid}`,
+        },
+        body: JSON.stringify({ doctype: 'User', name: userEmail }),
+      },
+      REQUEST_TIMEOUT_MS
+    )
+    const userData = await parseResponseData(userResponse)
+    if (!userResponse.ok) return null
+
+    const userDoc = userData.message as Record<string, unknown> | undefined
+    const apiKey = typeof userDoc?.api_key === 'string' ? userDoc.api_key : null
+    if (!apiKey) return null
+
+    if (!(await validateTenantApiToken(siteName, apiKey, apiSecret, userEmail))) {
+      return null
+    }
+
+    return {
+      ...context,
+      apiKey,
+      apiSecret,
+      hasCredentials: true,
+    }
+  } catch (error) {
+    console.warn('[API] Session key regeneration failed:', error)
+    return null
+  }
+}
+
+async function tryResolveTenantApiKeys(
+  context: TenantContext,
+  siteName: string
+): Promise<TenantContext | null> {
   if (!context.isTenant || !context.subdomain) return null
 
   const cookieStore = await cookies()
   const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
   if (!userEmail) return null
 
-  try {
-    const { generateUserApiKeys } = await import('@/lib/provisioning-client')
-    const keys = await generateUserApiKeys(context.subdomain, userEmail, 15_000)
+  const cacheKey = `${context.subdomain}:${userEmail}`
+  const cached = tenantKeySyncCache.get(cacheKey)
+  if (cached && Date.now() - cached.at < TENANT_KEY_SYNC_CACHE_MS) {
     return {
       ...context,
-      apiKey: keys.api_key,
-      apiSecret: keys.api_secret,
+      apiKey: cached.apiKey,
+      apiSecret: cached.apiSecret,
       hasCredentials: true,
     }
-  } catch (error) {
-    console.warn('[API] Could not sync tenant API keys from provisioning:', error)
-    return null
+  }
+
+  const inFlight = tenantKeySyncInFlight.get(cacheKey)
+  if (inFlight) return inFlight
+
+  const promise = (async (): Promise<TenantContext | null> => {
+    try {
+      const { generateUserApiKeys } = await import('@/lib/provisioning-client')
+      const keys = await generateUserApiKeys(context.subdomain!, userEmail, 45_000)
+      let resolved: TenantContext = {
+        ...context,
+        apiKey: keys.api_key,
+        apiSecret: keys.api_secret,
+        hasCredentials: true,
+      }
+      if (await validateTenantApiToken(siteName, keys.api_key, keys.api_secret, userEmail)) {
+        tenantKeySyncCache.set(cacheKey, {
+          apiKey: keys.api_key,
+          apiSecret: keys.api_secret,
+          at: Date.now(),
+        })
+        return resolved
+      }
+
+      console.warn(
+        `[API] Provisioning keys failed token validation for ${userEmail} on ${context.subdomain}; trying session regenerate`
+      )
+      resolved = (await tryRegenerateKeysViaSession(context, siteName, userEmail)) ?? resolved
+      if (
+        resolved.apiKey &&
+        resolved.apiSecret &&
+        (await validateTenantApiToken(siteName, resolved.apiKey, resolved.apiSecret, userEmail))
+      ) {
+        tenantKeySyncCache.set(cacheKey, {
+          apiKey: resolved.apiKey,
+          apiSecret: resolved.apiSecret,
+          at: Date.now(),
+        })
+        return resolved
+      }
+      return null
+    } catch (error) {
+      console.warn('[API] Provisioning key sync failed; trying session regenerate:', error)
+      const resolved = await tryRegenerateKeysViaSession(context, siteName, userEmail)
+      if (
+        resolved?.apiKey &&
+        resolved.apiSecret &&
+        (await validateTenantApiToken(siteName, resolved.apiKey, resolved.apiSecret, userEmail))
+      ) {
+        tenantKeySyncCache.set(cacheKey, {
+          apiKey: resolved.apiKey,
+          apiSecret: resolved.apiSecret,
+          at: Date.now(),
+        })
+        return resolved
+      }
+      return null
+    }
+  })()
+
+  tenantKeySyncInFlight.set(cacheKey, promise)
+  try {
+    return await promise
+  } finally {
+    tenantKeySyncInFlight.delete(cacheKey)
   }
 }
 
@@ -701,10 +871,10 @@ async function frappeRequestWithContext(
         context.isTenant &&
         !options.hasTenantTokenRetryAttempted
       ) {
-        const synced = await trySyncTenantApiKeys(context)
+        const synced = await tryResolveTenantApiKeys(context, siteName)
         if (synced) {
           if (shouldEmitThrottledLog(`key-sync:${endpoint}:${context.siteName}`, AUTH_ERROR_LOG_THROTTLE_MS)) {
-            console.warn(`[API] 401 on tenant token for ${endpoint}; synced keys from Frappe and retrying`)
+            console.warn(`[API] 401 on tenant token for ${endpoint}; resolved keys and retrying`)
           }
           return frappeRequestWithContext(synced, siteName, endpoint, method, body, {
             ...options,

@@ -20,6 +20,23 @@ export function TenantGuard({ children, hasServerAuth }: { children: React.React
     const pathname = usePathname()
 
     useEffect(() => {
+        if (!hasServerAuth) return
+        try {
+            if (sessionStorage.getItem('tenant_keys_refreshed')) return
+            const timer = window.setTimeout(() => {
+                fetch('/api/auth/refresh-tenant-keys', { method: 'POST', credentials: 'include' })
+                    .then((res) => {
+                        if (res.ok) sessionStorage.setItem('tenant_keys_refreshed', '1')
+                    })
+                    .catch(() => {})
+            }, 3000)
+            return () => window.clearTimeout(timer)
+        } catch {
+            // sessionStorage unavailable — skip
+        }
+    }, [hasServerAuth])
+
+    useEffect(() => {
         if (status === 'loading') return
 
         const isPublicRoute = 
@@ -34,21 +51,7 @@ export function TenantGuard({ children, hasServerAuth }: { children: React.React
 
         // Server layout already validated auth via cookies (API key/SID/user/email or NextAuth).
         // Do not let NextAuth's unauthenticated state override the credential-based login flow.
-        if (hasServerAuth) {
-            // Once per browser session, sync API key cookies with Frappe after deploys.
-            try {
-                if (!sessionStorage.getItem('tenant_keys_refreshed')) {
-                    fetch('/api/auth/refresh-tenant-keys', { method: 'POST', credentials: 'include' })
-                        .then((res) => {
-                            if (res.ok) sessionStorage.setItem('tenant_keys_refreshed', '1')
-                        })
-                        .catch(() => {})
-                }
-            } catch {
-                // sessionStorage unavailable — skip
-            }
-            return
-        }
+        if (hasServerAuth) return
 
         // If tenant API key is missing but user is authenticated → session issue
         if (status === 'authenticated' && hasServerAuth === false) {

@@ -28,6 +28,7 @@ import subprocess
 import secrets
 import logging
 import time
+import asyncio
 import urllib.request
 import urllib.error
 from datetime import datetime
@@ -57,6 +58,8 @@ DB_ROOT_PASSWORD = os.environ.get("DB_ROOT_PASSWORD", "123")
 PROVISIONING_SECRET = os.environ.get("PROVISIONING_API_SECRET", "change-me-in-production")
 DEFAULT_APPS = os.environ.get("DEFAULT_APPS", "erpnext,nexus_core").split(",")
 IS_PRODUCTION = os.environ.get("ENVIRONMENT", "production") == "production"
+# Same URL Nexus uses (ERP_NEXT_URL) — validate tokens the way server-side API calls do.
+FRAPPE_INTERNAL_URL = os.environ.get("FRAPPE_INTERNAL_URL", "http://127.0.0.1:8080").rstrip("/")
 
 REQUIRED_ERP_ROLES = [
     "System Manager",
@@ -155,6 +158,7 @@ MANAGER_ROLES = {"Sales Manager", "Accounts Manager", "Projects Manager", "Stock
 # Regenerating invalidates the previous secret and causes 401 races.
 _GENERATED_USER_KEYS_CACHE: dict[str, tuple[str, str, float]] = {}
 _GENERATED_USER_KEYS_TTL_SEC = 120
+_generate_keys_locks: dict[str, asyncio.Lock] = {}
 
 # Logging
 logging.basicConfig(
@@ -405,6 +409,30 @@ def get_site_name(subdomain: str) -> str:
     return f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
 
 
+def _frappe_api_json(
+    site_name: str,
+    path: str,
+    method: str = "GET",
+    headers: Optional[dict[str, str]] = None,
+    body: Optional[dict[str, Any]] = None,
+    timeout: int = 15,
+) -> dict[str, Any]:
+    """Call Frappe via the internal bench URL + X-Frappe-Site-Name (matches Nexus api.ts)."""
+    encoded_body = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(
+        f"{FRAPPE_INTERNAL_URL}{path}",
+        method=method,
+        data=encoded_body,
+    )
+    req.add_header("Content-Type", "application/json")
+    req.add_header("X-Frappe-Site-Name", site_name)
+    for key, value in (headers or {}).items():
+        req.add_header(key, value)
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        raw = resp.read().decode("utf-8")
+        return json.loads(raw) if raw else {}
+
+
 def _http_json(
     site_name: str,
     path: str,
@@ -441,12 +469,11 @@ def _http_json(
 
 def _validate_user_api_token(site_name: str, user_email: str, api_key: str, api_secret: str) -> bool:
     try:
-        auth = _http_json(
+        auth = _frappe_api_json(
             site_name,
             "/api/method/frappe.auth.get_logged_user",
             headers={
                 "Authorization": f"token {api_key}:{api_secret}",
-                "X-Frappe-Site-Name": site_name,
             },
         )
         return auth.get("message") == user_email
@@ -2170,19 +2197,23 @@ async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool =
     logger.info(f"generate-user-keys: site={site_name} user={user_email[:3]}***")
 
     cache_key = f"{site_name}:{user_email}"
-    cached = _GENERATED_USER_KEYS_CACHE.get(cache_key)
-    if cached:
-        cached_key, cached_secret, cached_at = cached
-        if time.time() - cached_at < _GENERATED_USER_KEYS_TTL_SEC:
-            if _validate_user_api_token(site_name, user_email, cached_key, cached_secret):
-                logger.info(f"generate-user-keys: returning cached keys for {user_email} on {site_name}")
-                return {"success": True, "api_key": cached_key, "api_secret": cached_secret}
-            _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
+    if cache_key not in _generate_keys_locks:
+        _generate_keys_locks[cache_key] = asyncio.Lock()
 
-    # Read existing keys first — only rotate when missing or invalid (avoids
-    # invalidating browser cookies on every login/refresh).
-    safe_email = json.dumps(user_email)
-    read_code = f"""import json
+    async with _generate_keys_locks[cache_key]:
+        cached = _GENERATED_USER_KEYS_CACHE.get(cache_key)
+        if cached:
+            cached_key, cached_secret, cached_at = cached
+            if time.time() - cached_at < _GENERATED_USER_KEYS_TTL_SEC:
+                if _validate_user_api_token(site_name, user_email, cached_key, cached_secret):
+                    logger.info(f"generate-user-keys: returning cached keys for {user_email} on {site_name}")
+                    return {"success": True, "api_key": cached_key, "api_secret": cached_secret}
+                _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
+
+        # Read existing keys first — only rotate when missing or invalid (avoids
+        # invalidating browser cookies on every login/refresh).
+        safe_email = json.dumps(user_email)
+        read_code = f"""import json
 import frappe
 
 user_email = {safe_email}
@@ -2197,84 +2228,81 @@ try:
 except Exception as exc:
     print(json.dumps({{"error": str(exc)}}))
 """
-    rotate_code = f"""import json
+        rotate_code = f"""import json
 import frappe
+from frappe.core.doctype.user.user import generate_keys
 
 user_email = {safe_email}
 try:
     user = frappe.get_doc("User", user_email)
-    api_key = user.api_key or frappe.generate_hash(length=15)
-    api_secret_val = frappe.generate_hash(length=15)
-    user.api_key = api_key
-    user.api_secret = api_secret_val
-    user.save(ignore_permissions=True)
+    api_secret_val = generate_keys(user)
     frappe.db.commit()
-    print(json.dumps({{"api_key": api_key, "api_secret": api_secret_val}}))
+    print(json.dumps({{"api_key": user.api_key, "api_secret": api_secret_val}}))
 except Exception as exc:
     print(json.dumps({{"error": str(exc)}}))
 """
 
-    def _return_validated_keys(api_key_val: str, api_secret_val: str, *, rotated: bool) -> dict:
-        if not _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
-            raise HTTPException(
-                status_code=502,
-                detail=f"API keys failed validation for {user_email} on {site_name}",
-            )
-        _GENERATED_USER_KEYS_CACHE[cache_key] = (api_key_val, api_secret_val, time.time())
-        action = "rotated" if rotated else "returned existing"
-        logger.info(f"generate-user-keys: {action} keys for {user_email} on {site_name}")
-        return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
-
-    try:
-        output = run_frappe_code(site_name, read_code)
-        result = _parse_json_output(output)
-        if not result:
-            raise HTTPException(
-                status_code=502,
-                detail="Frappe produced no parseable JSON when reading user API keys",
-            )
-        if result.get("error"):
-            raise HTTPException(status_code=404, detail=f"Could not read keys: {result['error']}")
-
-        api_key_val = result.get("api_key")
-        api_secret_val = result.get("api_secret")
-        if api_key_val and api_secret_val and not result.get("missing"):
-            try:
-                return _return_validated_keys(api_key_val, api_secret_val, rotated=False)
-            except HTTPException:
-                logger.warning(
-                    f"generate-user-keys: existing keys invalid for {user_email} on {site_name}; rotating"
+        def _return_validated_keys(api_key_val: str, api_secret_val: str, *, rotated: bool) -> dict:
+            if not _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"API keys failed validation for {user_email} on {site_name}",
                 )
+            _GENERATED_USER_KEYS_CACHE[cache_key] = (api_key_val, api_secret_val, time.time())
+            action = "rotated" if rotated else "returned existing"
+            logger.info(f"generate-user-keys: {action} keys for {user_email} on {site_name}")
+            return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
 
-        output = run_frappe_code(site_name, rotate_code)
-        result = _parse_json_output(output)
-        if not result:
-            logger.error(
-                f"generate-user-keys: unparseable Frappe output for {user_email} on {site_name}. "
-                f"Raw output (first 500 chars): {output[:500]!r}"
-            )
-            raise HTTPException(
-                status_code=502,
-                detail=(
-                    "Frappe produced no parseable JSON output. "
-                    "Check provisioning service logs for script stdout/stderr."
-                ),
-            )
-        if result.get("error"):
-            raise HTTPException(status_code=404, detail=f"Could not generate keys: {result['error']}")
-        api_key_val = result.get("api_key")
-        api_secret_val = result.get("api_secret")
-        if not api_key_val or not api_secret_val:
-            raise HTTPException(
-                status_code=502,
-                detail="Frappe did not return api_key/api_secret in output",
-            )
-        return _return_validated_keys(api_key_val, api_secret_val, rotated=True)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"generate-user-keys failed for {site_name}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        try:
+            output = run_frappe_code(site_name, read_code)
+            result = _parse_json_output(output)
+            if not result:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Frappe produced no parseable JSON when reading user API keys",
+                )
+            if result.get("error"):
+                raise HTTPException(status_code=404, detail=f"Could not read keys: {result['error']}")
+
+            api_key_val = result.get("api_key")
+            api_secret_val = result.get("api_secret")
+            if api_key_val and api_secret_val and not result.get("missing"):
+                try:
+                    return _return_validated_keys(api_key_val, api_secret_val, rotated=False)
+                except HTTPException:
+                    logger.warning(
+                        f"generate-user-keys: existing keys invalid for {user_email} on {site_name}; rotating"
+                    )
+
+            output = run_frappe_code(site_name, rotate_code)
+            result = _parse_json_output(output)
+            if not result:
+                logger.error(
+                    f"generate-user-keys: unparseable Frappe output for {user_email} on {site_name}. "
+                    f"Raw output (first 500 chars): {output[:500]!r}"
+                )
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        "Frappe produced no parseable JSON output. "
+                        "Check provisioning service logs for script stdout/stderr."
+                    ),
+                )
+            if result.get("error"):
+                raise HTTPException(status_code=404, detail=f"Could not generate keys: {result['error']}")
+            api_key_val = result.get("api_key")
+            api_secret_val = result.get("api_secret")
+            if not api_key_val or not api_secret_val:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Frappe did not return api_key/api_secret in output",
+                )
+            return _return_validated_keys(api_key_val, api_secret_val, rotated=True)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"generate-user-keys failed for {site_name}: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/v1/create-item/{subdomain}")
