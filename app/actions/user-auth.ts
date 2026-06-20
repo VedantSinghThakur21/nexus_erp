@@ -3,14 +3,13 @@
 import { cookies, headers } from 'next/headers'
 import {
   provisionTenantSite,
-  generateUserApiKeys,
   lookupTenantBySubdomain,
   lookupTenantByOwnerEmail,
   lookupTenantByUsername,
   lookupTenantForUserEmail,
   type TenantRecord,
 } from '@/lib/provisioning-client'
-import { verifyTenantApiToken } from '@/lib/verify-tenant-api-token'
+import { mintTenantApiKeysForLogin } from '@/lib/mint-tenant-api-keys'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 import { buildTenantFromSubdomain, resolveTenantId } from '@/lib/tenant'
 
@@ -451,8 +450,8 @@ export async function loginUser(
         ...(cookieDomain ? { domain: cookieDomain } : {}),
       })
 
-      // Role-type probe + API key mint run in parallel — both hit the network and
-      // previously ran sequentially (added noticeable latency on every login).
+      const sessionId = setCookieHeader?.match(/sid=([^;]+)/)?.[1]
+
       const resolveTenantRoleType = async (): Promise<string> => {
         if (!userEmail) return 'member'
         if (userEmail === tenant.owner_email) return 'admin'
@@ -485,43 +484,50 @@ export async function loginUser(
         }
       }
 
-      const mintApiKeys = async (): Promise<{ apiKey: string | null; apiSecret: string | null }> => {
-        if (fastLogin || !userEmail) return { apiKey: null, apiSecret: null }
+      const roleType = await resolveTenantRoleType()
+
+      // Roles + DocPerms must exist before API key mint and before dashboard loads.
+      const ROLE_NORMALIZATION_VERSION = 'v4'
+      const normalizationMarker = `${ROLE_NORMALIZATION_VERSION}:${tenant.subdomain}:${userEmail}`
+      if (userEmail && !fastLogin) {
         try {
-          let provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
-          if (
-            !(await verifyTenantApiToken(
-              siteName,
-              provKeys.api_key,
-              provKeys.api_secret,
-              userEmail,
-            ))
-          ) {
-            console.warn('[Login] Minted keys failed HTTP verification — forcing rotate')
-            provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000, {
-              forceRotate: true,
-            })
-          }
-          if (
-            !(await verifyTenantApiToken(
-              siteName,
-              provKeys.api_key,
-              provKeys.api_secret,
-              userEmail,
-            ))
-          ) {
-            console.warn('[Login] API keys still invalid after rotate — using SID session only')
-            return { apiKey: null, apiSecret: null }
-          }
-          return { apiKey: provKeys.api_key, apiSecret: provKeys.api_secret }
-        } catch (apiError: any) {
-          console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
-          console.warn('[Login] Proceeding with SID session cookie authentication.')
-          return { apiKey: null, apiSecret: null }
+          const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
+          const { ROLE_SETS } = await import('@/lib/role-sets')
+          const roleKey =
+            userEmail === tenant.owner_email
+              ? 'admin'
+              : roleType in ROLE_SETS
+                ? roleType
+                : 'member'
+          await seedTenantDocPerms(tenant.subdomain)
+          await assignUserRoles(
+            tenant.subdomain,
+            userEmail,
+            ROLE_SETS[roleKey] || ROLE_SETS.member,
+          )
+          cookieStore.set('tenant_roles_normalized', normalizationMarker, {
+            httpOnly: true,
+            secure: cookieSecure,
+            sameSite: cookieSameSite,
+            maxAge: 60 * 60 * 24,
+            path: '/',
+            ...(cookieDomain ? { domain: cookieDomain } : {}),
+          })
+          console.warn(`[Login] Applied roles/docperms for ${userEmail} (${roleKey}) before key mint`)
+        } catch (setupErr: unknown) {
+          const message = setupErr instanceof Error ? setupErr.message : String(setupErr)
+          console.warn('[Login] Pre-mint role/docperm setup failed:', message)
         }
       }
 
-      const [roleType, { apiKey, apiSecret }] = await Promise.all([resolveTenantRoleType(), mintApiKeys()])
+      const { apiKey, apiSecret } = await mintTenantApiKeysForLogin({
+        subdomain: tenant.subdomain,
+        siteName,
+        userEmail: userEmail || usernameOrEmail,
+        sessionId,
+        baseUrl: masterUrl,
+        fastLogin,
+      })
 
       try {
         cookieStore.set('tenant_role_type', roleType, {
@@ -648,221 +654,40 @@ export async function loginUser(
         }
       } else {
         console.warn('API key generation incomplete — user will authenticate via session cookie only')
-        // Without API keys, server-side ERP calls fail. Repair roles/docperms via provisioning
-        // so the next login (or auto-repair on 403) can mint working keys.
-        if (userEmail && !fastLogin) {
-          void (async () => {
-            try {
-              const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
-              const { ROLE_SETS } = await import('@/lib/role-sets')
-              await seedTenantDocPerms(tenant.subdomain)
-              const rolesToAssign = ROLE_SETS[roleType] || ROLE_SETS.member
-              await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
-              console.warn(`[Login] Repaired roles/docperms for ${userEmail} after API key mint failure`)
-            } catch (repairErr) {
-              console.warn('[Login] Post-login permission repair failed:', repairErr)
-            }
-          })()
-        }
       }
 
-      // ── Normalize roles on every login ──
+      // ── Fallback normalization if pre-mint block above failed ──
       if (userEmail && !fastLogin) {
-        // Always refresh DocPerms (idempotent) — fixes empty dashboard after provision/PM2 restarts.
-        try {
-          const { seedTenantDocPerms } = await import('@/lib/provisioning-client')
-          await seedTenantDocPerms(tenant.subdomain)
-        } catch (docPermErr) {
-          console.warn('[Login] seedTenantDocPerms failed (non-fatal):', docPermErr)
-        }
+        const alreadyNormalized =
+          cookieStore.get('tenant_roles_normalized')?.value === normalizationMarker
 
-        const ROLE_NORMALIZATION_VERSION = 'v3'
-        const normalizationMarker = `${ROLE_NORMALIZATION_VERSION}:${tenant.subdomain}:${userEmail}`
-        const alreadyNormalized = cookieStore.get('tenant_roles_normalized')?.value === normalizationMarker
-
-        if (alreadyNormalized) {
-          // DocPerms refreshed above; role assignment already done for this version.
-        } else {
-        try {
-          const { assignUserRoles, getUserRoles: fetchUserRoles } = await import('@/lib/provisioning-client')
-          const { getAccessibleModules: getModules } = await import('@/lib/role-permissions')
-
-          // Fetch user's current roles — try provisioning service first (ignore_permissions),
-          // fall back to direct Frappe API call using the API keys we just generated.
-          let currentRoles: string[] = []
-          let profileName: string | null = null
-
+        if (!alreadyNormalized) {
           try {
-            const roleData = await fetchUserRoles(tenant.subdomain, userEmail, 8_000)
-            currentRoles = roleData.roles || []
-            profileName = roleData.role_profile_name || null
-          } catch (provFetchErr: any) {
-            // Provisioning service may not have the get-user-roles endpoint yet (old container).
-            // Fall back: direct fetch using the API keys we generated in this same login request.
-            console.warn('[Login Normalization] getUserRoles failed, falling back to direct API:', provFetchErr.message)
-            try {
-              const controller = new AbortController()
-              const timeoutId = setTimeout(() => controller.abort(), 8000)
-              const directResp = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Frappe-Site-Name': siteName,
-                  ...(apiKey && apiSecret
-                    ? { 'Authorization': `token ${apiKey}:${apiSecret}` }
-                    : { 'Cookie': `sid=${setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''}` }),
-                },
-                body: JSON.stringify({ doctype: 'User', name: userEmail }),
-                signal: controller.signal,
-              })
-              clearTimeout(timeoutId)
-              const directData = await directResp.json()
-              const userDoc = directData?.message || directData
-              currentRoles = (userDoc?.roles || [])
-                .map((r: any) => r.role || r.name)
-                .filter((r: string) => r && r !== 'All')
-              profileName = userDoc?.role_profile_name || null
-            } catch { /* leave currentRoles empty — module-access check will trigger */ }
-          }
-
-
-
-          const { ROLE_SETS: ROLE_SETS_MAP } = await import('@/lib/role-sets')
-
-          // Map legacy Frappe role_profile_name values to our canonical ROLE_SETS.
-          // Also handles old invite-form role type strings ('member', 'sales', etc.)
-          const PROFILE_TO_ROLE_TYPE: Record<string, string> = {
-            'Administrator': 'admin', 'System Manager': 'admin',
-            'Sales Manager': 'sales', 'Sales User': 'sales',
-            'Accounts Manager': 'accounts', 'Accounts User': 'accounts',
-            'Projects Manager': 'projects', 'Projects User': 'projects',
-            'Stock Manager': 'projects', 'Stock User': 'projects',
-            'Standard User': 'member', 'Employee': 'member',
-            // Old invite-form role type keys pass through directly
-            'admin': 'admin', 'sales': 'sales',
-            'accounts': 'accounts', 'projects': 'projects', 'member': 'member',
-          }
-
-          let needsUpdate = false
-          let rolesToAssign = currentRoles
-
-          // Step 1: If role_profile_name is set, map it to explicit roles via ROLE_SETS
-          if (profileName) {
-            const roleType = PROFILE_TO_ROLE_TYPE[profileName]
-            if (roleType) {
-              rolesToAssign = ROLE_SETS_MAP[roleType] || ROLE_SETS_MAP.member
-              needsUpdate = true
-            }
-          }
-
-          // Step 2: Check if user has any module-accessible roles
-          const accessibleModules = getModules(rolesToAssign)
-          if (accessibleModules.length === 0) {
-            // User has no module access at all — assign the 'member' ROLE_SET as a
-            // safe baseline (Employee + Sales User + Accounts User). The repair path
-            // in frappeRequest will later upgrade to the correct role type if needed.
-            rolesToAssign = ROLE_SETS_MAP.member
-
-            needsUpdate = true
-          }
-
-          // Step 3: Ensure the user has every role from the expected ROLE_SET for
-          // their role type. This catches users who were provisioned before new
-          // roles (e.g., Item Manager) were added to the set and silently fail on
-          // doctype permission checks like Item.create.
-          try {
-            const { ROLE_SETS: ROLE_SETS_MAP } = await import('@/lib/role-sets')
-            const expectedSetKey =
-              roleType in ROLE_SETS_MAP
-                ? roleType
-                : userEmail === tenant.owner_email
-                  ? 'admin'
-                  : null
-            if (expectedSetKey) {
-              const expectedRoles = ROLE_SETS_MAP[expectedSetKey] || []
-              const existing = new Set(rolesToAssign)
-              const missing = expectedRoles.filter((r) => !existing.has(r))
-              if (missing.length > 0) {
-                rolesToAssign = Array.from(new Set([...rolesToAssign, ...missing]))
-                needsUpdate = true
-                console.warn(
-                  `[Login Normalization] Adding missing roles for ${userEmail} (${expectedSetKey}): ${missing.join(', ')}`,
-                )
-              }
-            }
+            const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
+            const { ROLE_SETS } = await import('@/lib/role-sets')
+            const roleKey =
+              userEmail === tenant.owner_email
+                ? 'admin'
+                : roleType in ROLE_SETS
+                  ? roleType
+                  : 'member'
+            await seedTenantDocPerms(tenant.subdomain)
+            await assignUserRoles(
+              tenant.subdomain,
+              userEmail,
+              ROLE_SETS[roleKey] || ROLE_SETS.member,
+            )
+            cookieStore.set('tenant_roles_normalized', normalizationMarker, {
+              httpOnly: true,
+              secure: cookieSecure,
+              sameSite: cookieSameSite,
+              maxAge: 60 * 60 * 24,
+              path: '/',
+              ...(cookieDomain ? { domain: cookieDomain } : {}),
+            })
           } catch {
-            // Best effort — if we can't determine the role type, skip the top-up.
+            console.warn('Role normalization fallback failed (non-fatal)')
           }
-
-          if (needsUpdate) {
-            // Use provisioning service (ignore_permissions=True) as the primary mechanism.
-            // Master credentials (ERP_API_KEY) return 401 on tenant sites, so we skip that
-            // path and go straight to the provisioning service which is known to work for
-            // role assignment (same path used by updateTeamMemberRole in team.ts).
-            try {
-              await assignUserRoles(tenant.subdomain, userEmail, rolesToAssign)
-            } catch (provErr: any) {
-              // Provisioning service unavailable — try master credentials as last resort
-              try {
-                const controller = new AbortController()
-                const timeoutId = setTimeout(() => controller.abort(), 8000)
-                const docResp = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-Frappe-Site-Name': siteName,
-                    'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
-                  },
-                  body: JSON.stringify({ doctype: 'User', name: userEmail }),
-                  signal: controller.signal,
-                })
-                clearTimeout(timeoutId)
-                if (docResp.ok) {
-                  const docData = await docResp.json()
-                  const userDoc = docData?.message || docData
-                  if (userDoc?.name) {
-                    userDoc.role_profile_name = null
-                    userDoc.roles = rolesToAssign.map((role: string) => ({
-                      doctype: 'Has Role',
-                      role,
-                      parent: userEmail,
-                      parenttype: 'User',
-                      parentfield: 'roles',
-                    }))
-                    
-                    const saveController = new AbortController()
-                    const saveTimeoutId = setTimeout(() => saveController.abort(), 8000)
-                    await fetch(`${masterUrl}/api/method/frappe.client.save`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'X-Frappe-Site-Name': siteName,
-                        'Authorization': `token ${process.env.ERP_API_KEY}:${process.env.ERP_API_SECRET}`,
-                      },
-                      body: JSON.stringify({ doc: userDoc }),
-                      signal: saveController.signal,
-                    })
-                    clearTimeout(saveTimeoutId)
-                  }
-                }
-              } catch {
-                console.warn('Role normalization: both provisioning service and master credentials failed')
-              }
-            }
-          }
-
-          cookieStore.set('tenant_roles_normalized', normalizationMarker, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24,
-            path: '/',
-            ...(cookieDomain ? { domain: cookieDomain } : {}),
-          })
-        } catch (roleNormErr: any) {
-          // Non-fatal — role normalization is best-effort
-          console.warn('Role normalization failed (non-fatal)')
-        }
         }
       }
 

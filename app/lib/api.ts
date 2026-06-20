@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers'
 import { coalesceFrappeGet, frappeGetCoalesceKey } from '@/lib/performance/frappe-get-coalesce'
 import { verifyTenantApiToken } from '@/lib/verify-tenant-api-token'
+import { mintTenantApiKeysViaSession } from '@/lib/mint-tenant-api-keys'
 import {
   readFrappeGetCache,
   writeFrappeGetCache,
@@ -474,7 +475,6 @@ async function tryRepairTenantDocPerms(
   return promise
 }
 
-/** Fetch the canonical API keys from Frappe (via provisioning) without rotating when still valid. */
 /** @deprecated Use verifyTenantApiToken from @/lib/verify-tenant-api-token */
 async function validateTenantApiToken(
   siteName: string,
@@ -485,79 +485,26 @@ async function validateTenantApiToken(
   return verifyTenantApiToken(siteName, apiKey, apiSecret, expectedEmail)
 }
 
-async function tryRegenerateKeysViaSession(
+async function sessionKeysToContext(
   context: TenantContext,
   siteName: string,
-  userEmail: string
+  userEmail: string,
 ): Promise<TenantContext | null> {
   const sid = context.sessionId
   if (!sid) return null
-
-  try {
-    const genResponse = await fetchWithTimeout(
-      `${BASE_URL}/api/method/frappe.core.doctype.user.user.generate_keys`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'X-Frappe-Site-Name': siteName,
-          Cookie: `sid=${sid}`,
-        },
-        body: JSON.stringify({ user: userEmail }),
-      },
-      REQUEST_TIMEOUT_MS
-    )
-    const genData = await parseResponseData(genResponse)
-    if (!genResponse.ok) return null
-
-    let apiSecret: string | null = null
-    const message = genData.message
-    if (typeof message === 'string' && message) {
-      apiSecret = message
-    } else if (message && typeof message === 'object') {
-      const msg = message as Record<string, unknown>
-      apiSecret =
-        (typeof msg.api_secret === 'string' && msg.api_secret) ||
-        (typeof msg.apiSecret === 'string' && msg.apiSecret) ||
-        null
-    }
-    if (!apiSecret) return null
-
-    const userResponse = await fetchWithTimeout(
-      `${BASE_URL}/api/method/frappe.client.get`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'X-Frappe-Site-Name': siteName,
-          Cookie: `sid=${sid}`,
-        },
-        body: JSON.stringify({ doctype: 'User', name: userEmail }),
-      },
-      REQUEST_TIMEOUT_MS
-    )
-    const userData = await parseResponseData(userResponse)
-    if (!userResponse.ok) return null
-
-    const userDoc = userData.message as Record<string, unknown> | undefined
-    const apiKey = typeof userDoc?.api_key === 'string' ? userDoc.api_key : null
-    if (!apiKey) return null
-
-    if (!(await validateTenantApiToken(siteName, apiKey, apiSecret, userEmail))) {
-      return null
-    }
-
-    return {
-      ...context,
-      apiKey,
-      apiSecret,
-      hasCredentials: true,
-    }
-  } catch (error) {
-    console.warn('[API] Session key regeneration failed:', error)
-    return null
+  const keys = await mintTenantApiKeysViaSession(
+    siteName,
+    userEmail,
+    sid,
+    BASE_URL,
+    REQUEST_TIMEOUT_MS,
+  )
+  if (!keys) return null
+  return {
+    ...context,
+    apiKey: keys.apiKey,
+    apiSecret: keys.apiSecret,
+    hasCredentials: true,
   }
 }
 
@@ -604,7 +551,7 @@ async function tryResolveTenantApiKeys(
         return applyKeys(keys.api_key, keys.api_secret)
       }
 
-      const resolved = await tryRegenerateKeysViaSession(context, siteName, userEmail)
+      const resolved = await sessionKeysToContext(context, siteName, userEmail)
       if (
         resolved?.apiKey &&
         resolved.apiSecret &&
@@ -615,12 +562,8 @@ async function tryResolveTenantApiKeys(
       return null
     } catch (error) {
       console.warn('[API] Provisioning key sync failed; trying session regenerate:', error)
-      const resolved = await tryRegenerateKeysViaSession(context, siteName, userEmail)
+      const resolved = await sessionKeysToContext(context, siteName, userEmail)
       if (!resolved?.apiKey || !resolved.apiSecret) return null
-      if (!(await validateTenantApiToken(siteName, resolved.apiKey, resolved.apiSecret, userEmail))) {
-        console.warn(`[API] Session-regenerated keys still invalid for ${userEmail} on ${context.subdomain}`)
-        return null
-      }
       return applyKeys(resolved.apiKey, resolved.apiSecret)
     }
   })()

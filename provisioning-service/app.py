@@ -476,20 +476,21 @@ def _validate_user_api_token_bench(
     safe_secret = json.dumps(api_secret)
     code = f"""import json
 import frappe
-from frappe.auth import validate_api_key_secret
+from frappe.utils.password import get_decrypted_password
 
 user_email = {safe_email}
 api_key = {safe_key}
 api_secret = {safe_secret}
 
 try:
-    frappe.set_user("Guest")
-    validate_api_key_secret(api_key, api_secret, "header")
-    owner = frappe.db.get_value("User", {{"api_key": api_key}}, "name")
-    if owner != user_email:
+    if not frappe.db.get_value("User", user_email, "enabled"):
+        print(json.dumps({{"valid": False, "reason": "user_disabled"}}))
+    elif frappe.db.get_value("User", {{"api_key": api_key}}, "name") != user_email:
         print(json.dumps({{"valid": False, "reason": "user_mismatch"}}))
     else:
-        print(json.dumps({{"valid": True}}))
+        stored = get_decrypted_password("User", user_email, "api_secret", raise_exception=False)
+        valid = bool(stored and api_secret == stored)
+        print(json.dumps({{"valid": valid}}))
 except Exception as exc:
     print(json.dumps({{"valid": False, "error": str(exc)}}))
 """
@@ -2271,20 +2272,30 @@ except Exception as exc:
         rotate_code = f"""import json
 import frappe
 from frappe.core.doctype.user.user import generate_keys
+from frappe.utils.password import get_decrypted_password
 
 user_email = {safe_email}
 try:
-    user = frappe.get_doc("User", user_email)
     api_secret_val = generate_keys(user_email)
+    user = frappe.get_doc("User", user_email)
     user.reload()
     frappe.db.commit()
-    print(json.dumps({{"api_key": user.api_key, "api_secret": api_secret_val}}))
+    api_key = user.api_key
+    stored = get_decrypted_password("User", user_email, "api_secret", raise_exception=False)
+    valid = bool(api_key and stored and api_secret_val == stored)
+    print(json.dumps({{"api_key": api_key, "api_secret": api_secret_val, "valid": valid}}))
 except Exception as exc:
     print(json.dumps({{"error": str(exc)}}))
 """
 
-        def _return_validated_keys(api_key_val: str, api_secret_val: str, *, rotated: bool) -> dict:
-            if not _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
+        def _return_validated_keys(
+            api_key_val: str,
+            api_secret_val: str,
+            *,
+            rotated: bool,
+            prevalidated: bool = False,
+        ) -> dict:
+            if not prevalidated and not _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
                 raise HTTPException(
                     status_code=502,
                     detail=f"API keys failed validation for {user_email} on {site_name}",
@@ -2306,7 +2317,14 @@ except Exception as exc:
                 api_secret_val = result.get("api_secret")
                 if not api_key_val or not api_secret_val:
                     raise HTTPException(status_code=502, detail="Rotate did not return api_key/api_secret")
-                return _return_validated_keys(api_key_val, api_secret_val, rotated=True)
+                if not result.get("valid"):
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Rotated keys failed inline validation for {user_email} on {site_name}",
+                    )
+                return _return_validated_keys(
+                    api_key_val, api_secret_val, rotated=True, prevalidated=True
+                )
 
             output = run_frappe_code(site_name, read_code)
             result = _parse_json_output(output)
@@ -2351,7 +2369,14 @@ except Exception as exc:
                     status_code=502,
                     detail="Frappe did not return api_key/api_secret in output",
                 )
-            return _return_validated_keys(api_key_val, api_secret_val, rotated=True)
+            if not result.get("valid"):
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Rotated keys failed inline validation for {user_email} on {site_name}",
+                )
+            return _return_validated_keys(
+                api_key_val, api_secret_val, rotated=True, prevalidated=True
+            )
         except HTTPException:
             raise
         except Exception as e:
