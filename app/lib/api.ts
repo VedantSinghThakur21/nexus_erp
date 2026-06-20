@@ -1,5 +1,6 @@
 import { cookies, headers } from 'next/headers'
 import { coalesceFrappeGet, frappeGetCoalesceKey } from '@/lib/performance/frappe-get-coalesce'
+import { verifyTenantApiToken } from '@/lib/verify-tenant-api-token'
 import {
   readFrappeGetCache,
   writeFrappeGetCache,
@@ -474,30 +475,14 @@ async function tryRepairTenantDocPerms(
 }
 
 /** Fetch the canonical API keys from Frappe (via provisioning) without rotating when still valid. */
+/** @deprecated Use verifyTenantApiToken from @/lib/verify-tenant-api-token */
 async function validateTenantApiToken(
   siteName: string,
   apiKey: string,
   apiSecret: string,
   expectedEmail: string
 ): Promise<boolean> {
-  try {
-    const response = await fetchWithTimeout(
-      `${BASE_URL}/api/method/frappe.auth.get_logged_user`,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          Authorization: `token ${apiKey}:${apiSecret}`,
-          'X-Frappe-Site-Name': siteName,
-        },
-      },
-      REQUEST_TIMEOUT_MS
-    )
-    const data = await parseResponseData(response)
-    return response.ok && data.message === expectedEmail
-  } catch {
-    return false
-  }
+  return verifyTenantApiToken(siteName, apiKey, apiSecret, expectedEmail)
 }
 
 async function tryRegenerateKeysViaSession(
@@ -608,9 +593,26 @@ async function tryResolveTenantApiKeys(
 
     try {
       const { generateUserApiKeys } = await import('@/lib/provisioning-client')
-      const keys = await generateUserApiKeys(context.subdomain!, userEmail, 45_000)
-      // Provisioning validates keys in-process on the tenant site — trust the response.
-      return applyKeys(keys.api_key, keys.api_secret)
+      let keys = await generateUserApiKeys(context.subdomain!, userEmail, 45_000)
+      if (!(await verifyTenantApiToken(siteName, keys.api_key, keys.api_secret, userEmail))) {
+        console.warn(
+          `[API] Provisioning keys failed HTTP validation for ${userEmail} on ${context.subdomain}; forcing rotate`
+        )
+        keys = await generateUserApiKeys(context.subdomain!, userEmail, 45_000, { forceRotate: true })
+      }
+      if (await verifyTenantApiToken(siteName, keys.api_key, keys.api_secret, userEmail)) {
+        return applyKeys(keys.api_key, keys.api_secret)
+      }
+
+      const resolved = await tryRegenerateKeysViaSession(context, siteName, userEmail)
+      if (
+        resolved?.apiKey &&
+        resolved.apiSecret &&
+        (await verifyTenantApiToken(siteName, resolved.apiKey, resolved.apiSecret, userEmail))
+      ) {
+        return applyKeys(resolved.apiKey, resolved.apiSecret)
+      }
+      return null
     } catch (error) {
       console.warn('[API] Provisioning key sync failed; trying session regenerate:', error)
       const resolved = await tryRegenerateKeysViaSession(context, siteName, userEmail)
@@ -850,6 +852,24 @@ async function frappeRequestWithContext(
             useSessionAuth: false,
           })
         }
+      }
+
+      // Fresh login often has a valid sid before cookie keys propagate — use session once.
+      if (
+        response.status === 401 &&
+        context.isTenant &&
+        options.hasTenantTokenRetryAttempted &&
+        !options.hasSessionFallbackAttempted &&
+        sid
+      ) {
+        if (shouldEmitThrottledLog(`session-fallback:${endpoint}:${context.siteName}`, AUTH_ERROR_LOG_THROTTLE_MS)) {
+          console.warn(`[API] Tenant token auth failed for ${endpoint}; retrying with session cookie`)
+        }
+        return frappeRequestWithContext(context, siteName, endpoint, method, body, {
+          ...options,
+          hasSessionFallbackAttempted: true,
+          useSessionAuth: true,
+        })
       }
 
       logApiError(endpoint, response.status, siteName, authSource, data, body)

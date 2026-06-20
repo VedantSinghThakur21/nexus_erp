@@ -10,6 +10,7 @@ import {
   lookupTenantForUserEmail,
   type TenantRecord,
 } from '@/lib/provisioning-client'
+import { verifyTenantApiToken } from '@/lib/verify-tenant-api-token'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 import { buildTenantFromSubdomain, resolveTenantId } from '@/lib/tenant'
 
@@ -487,14 +488,32 @@ export async function loginUser(
       const mintApiKeys = async (): Promise<{ apiKey: string | null; apiSecret: string | null }> => {
         if (fastLogin || !userEmail) return { apiKey: null, apiSecret: null }
         try {
-          const provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
-          if (provKeys && typeof provKeys === 'object' && 'api_key' in provKeys && 'api_secret' in provKeys) {
-            return {
-              apiKey: typeof provKeys.api_key === 'string' ? provKeys.api_key : null,
-              apiSecret: typeof provKeys.api_secret === 'string' ? provKeys.api_secret : null,
-            }
+          let provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000)
+          if (
+            !(await verifyTenantApiToken(
+              siteName,
+              provKeys.api_key,
+              provKeys.api_secret,
+              userEmail,
+            ))
+          ) {
+            console.warn('[Login] Minted keys failed HTTP verification — forcing rotate')
+            provKeys = await generateUserApiKeys(tenant.subdomain, userEmail, 60_000, {
+              forceRotate: true,
+            })
           }
-          throw new Error('Provisioning response missing api_key/api_secret')
+          if (
+            !(await verifyTenantApiToken(
+              siteName,
+              provKeys.api_key,
+              provKeys.api_secret,
+              userEmail,
+            ))
+          ) {
+            console.warn('[Login] API keys still invalid after rotate — using SID session only')
+            return { apiKey: null, apiSecret: null }
+          }
+          return { apiKey: provKeys.api_key, apiSecret: provKeys.api_secret }
         } catch (apiError: any) {
           console.warn('[Login] API key generation via provisioning service failed:', apiError?.message ?? String(apiError))
           console.warn('[Login] Proceeding with SID session cookie authentication.')

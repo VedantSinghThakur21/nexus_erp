@@ -2229,6 +2229,7 @@ async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool =
 
     body = await request.json()
     user_email = body.get("user_email", "").strip()
+    force_rotate = bool(body.get("force_rotate"))
     if not user_email or "@" not in user_email:
         raise HTTPException(status_code=400, detail="user_email is required and must be a valid email")
 
@@ -2274,7 +2275,8 @@ from frappe.core.doctype.user.user import generate_keys
 user_email = {safe_email}
 try:
     user = frappe.get_doc("User", user_email)
-    api_secret_val = generate_keys(user)
+    api_secret_val = generate_keys(user_email)
+    user.reload()
     frappe.db.commit()
     print(json.dumps({{"api_key": user.api_key, "api_secret": api_secret_val}}))
 except Exception as exc:
@@ -2293,6 +2295,19 @@ except Exception as exc:
             return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
 
         try:
+            if force_rotate:
+                _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
+                output = run_frappe_code(site_name, rotate_code)
+                result = _parse_json_output(output)
+                if not result or result.get("error"):
+                    detail = result.get("error") if result else "no output"
+                    raise HTTPException(status_code=502, detail=f"Could not rotate keys: {detail}")
+                api_key_val = result.get("api_key")
+                api_secret_val = result.get("api_secret")
+                if not api_key_val or not api_secret_val:
+                    raise HTTPException(status_code=502, detail="Rotate did not return api_key/api_secret")
+                return _return_validated_keys(api_key_val, api_secret_val, rotated=True)
+
             output = run_frappe_code(site_name, read_code)
             result = _parse_json_output(output)
             if not result:

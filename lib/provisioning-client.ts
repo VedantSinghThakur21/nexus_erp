@@ -466,12 +466,13 @@ export async function generateUserApiKeys(
   subdomain: string,
   userEmail: string,
   timeout = 30_000,
+  options: { forceRotate?: boolean } = {},
 ): Promise<{ success: boolean; api_key: string; api_secret: string }> {
   const response = await serviceRequest<unknown>(
     `/api/v1/generate-user-keys/${encodeURIComponent(subdomain)}`,
     {
       method: 'POST',
-      body: { user_email: userEmail },
+      body: { user_email: userEmail, force_rotate: options.forceRotate === true },
       timeout,
     },
   )
