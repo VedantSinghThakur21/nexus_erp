@@ -2410,7 +2410,14 @@ from frappe.utils.password import get_decrypted_password
 
 user_email = {safe_email}
 try:
-    api_secret_val = generate_keys(user_email)
+    _gen = generate_keys(user_email)
+    # Frappe versions differ: older returns the api_secret as a bare string,
+    # newer returns a dict like {{"api_secret": "..."}}. Normalize to the string
+    # or every comparison below silently fails (dict != str -> valid=False).
+    if isinstance(_gen, dict):
+        api_secret_val = _gen.get("api_secret") or _gen.get("apiSecret")
+    else:
+        api_secret_val = _gen
     user = frappe.get_doc("User", user_email)
     user.reload()
     frappe.db.commit()
