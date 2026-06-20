@@ -2415,9 +2415,28 @@ try:
     user.reload()
     frappe.db.commit()
     api_key = user.api_key
-    stored = get_decrypted_password("User", user_email, "api_secret", raise_exception=False)
+    decrypt_error = None
+    try:
+        stored = get_decrypted_password("User", user_email, "api_secret", raise_exception=False)
+    except Exception as de:
+        stored = None
+        decrypt_error = str(de)
     valid = bool(api_key and stored and api_secret_val == stored)
-    print(json.dumps({{"api_key": api_key, "api_secret": api_secret_val, "valid": valid}}))
+    enc_key = frappe.local.conf.get("encryption_key")
+    print(json.dumps({{
+        "api_key": api_key,
+        "api_secret": api_secret_val,
+        "valid": valid,
+        "diag": {{
+            "api_key_present": bool(api_key),
+            "secret_present": bool(api_secret_val),
+            "stored_present": bool(stored),
+            "match": bool(stored) and api_secret_val == stored,
+            "decrypt_error": decrypt_error,
+            "encryption_key_present": bool(enc_key),
+            "encryption_key_len": len(enc_key) if enc_key else 0,
+        }},
+    }}))
 except Exception as exc:
     print(json.dumps({{"error": str(exc)}}))
 """
@@ -2501,6 +2520,10 @@ except Exception as exc:
                 if not api_key_val or not api_secret_val:
                     raise HTTPException(status_code=502, detail="Rotate did not return api_key/api_secret")
                 if not result.get("valid"):
+                    logger.error(
+                        f"generate-user-keys: inline validation failed for {user_email} on {site_name} "
+                        f"(forced rotate). diag={result.get('diag')}"
+                    )
                     raise HTTPException(
                         status_code=502,
                         detail=f"Rotated keys failed inline validation for {user_email} on {site_name}",
@@ -2553,6 +2576,10 @@ except Exception as exc:
                     detail="Frappe did not return api_key/api_secret in output",
                 )
             if not result.get("valid"):
+                logger.error(
+                    f"generate-user-keys: inline validation failed for {user_email} on {site_name}. "
+                    f"diag={result.get('diag')}"
+                )
                 raise HTTPException(
                     status_code=502,
                     detail=f"Rotated keys failed inline validation for {user_email} on {site_name}",
