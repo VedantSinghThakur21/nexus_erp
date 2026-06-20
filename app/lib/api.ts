@@ -155,8 +155,8 @@ async function resolveTenantContext(): Promise<TenantContext> {
     //    tokens) take priority over cookie-based user credentials.
     const headerApiKey = headersList.get('x-tenant-api-key')
     const headerApiSecret = headersList.get('x-tenant-api-secret')
-    const tenantApiKey = headerApiKey || cookieStore.get('tenant_api_key')?.value
-    const tenantApiSecret = headerApiSecret || cookieStore.get('tenant_api_secret')?.value
+    const tenantApiKey = (headerApiKey || cookieStore.get('tenant_api_key')?.value)?.trim()
+    const tenantApiSecret = (headerApiSecret || cookieStore.get('tenant_api_secret')?.value)?.trim()
 
     return {
       isTenant,
@@ -601,57 +601,25 @@ async function tryResolveTenantApiKeys(
   if (inFlight) return inFlight
 
   const promise = (async (): Promise<TenantContext | null> => {
+    const applyKeys = (apiKey: string, apiSecret: string): TenantContext => {
+      tenantKeySyncCache.set(cacheKey, { apiKey, apiSecret, at: Date.now() })
+      return { ...context, apiKey, apiSecret, hasCredentials: true }
+    }
+
     try {
       const { generateUserApiKeys } = await import('@/lib/provisioning-client')
       const keys = await generateUserApiKeys(context.subdomain!, userEmail, 45_000)
-      let resolved: TenantContext = {
-        ...context,
-        apiKey: keys.api_key,
-        apiSecret: keys.api_secret,
-        hasCredentials: true,
-      }
-      if (await validateTenantApiToken(siteName, keys.api_key, keys.api_secret, userEmail)) {
-        tenantKeySyncCache.set(cacheKey, {
-          apiKey: keys.api_key,
-          apiSecret: keys.api_secret,
-          at: Date.now(),
-        })
-        return resolved
-      }
-
-      console.warn(
-        `[API] Provisioning keys failed token validation for ${userEmail} on ${context.subdomain}; trying session regenerate`
-      )
-      resolved = (await tryRegenerateKeysViaSession(context, siteName, userEmail)) ?? resolved
-      if (
-        resolved.apiKey &&
-        resolved.apiSecret &&
-        (await validateTenantApiToken(siteName, resolved.apiKey, resolved.apiSecret, userEmail))
-      ) {
-        tenantKeySyncCache.set(cacheKey, {
-          apiKey: resolved.apiKey,
-          apiSecret: resolved.apiSecret,
-          at: Date.now(),
-        })
-        return resolved
-      }
-      return null
+      // Provisioning validates keys in-process on the tenant site — trust the response.
+      return applyKeys(keys.api_key, keys.api_secret)
     } catch (error) {
       console.warn('[API] Provisioning key sync failed; trying session regenerate:', error)
       const resolved = await tryRegenerateKeysViaSession(context, siteName, userEmail)
-      if (
-        resolved?.apiKey &&
-        resolved.apiSecret &&
-        (await validateTenantApiToken(siteName, resolved.apiKey, resolved.apiSecret, userEmail))
-      ) {
-        tenantKeySyncCache.set(cacheKey, {
-          apiKey: resolved.apiKey,
-          apiSecret: resolved.apiSecret,
-          at: Date.now(),
-        })
-        return resolved
+      if (!resolved?.apiKey || !resolved.apiSecret) return null
+      if (!(await validateTenantApiToken(siteName, resolved.apiKey, resolved.apiSecret, userEmail))) {
+        console.warn(`[API] Session-regenerated keys still invalid for ${userEmail} on ${context.subdomain}`)
+        return null
       }
-      return null
+      return applyKeys(resolved.apiKey, resolved.apiSecret)
     }
   })()
 

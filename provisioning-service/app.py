@@ -467,7 +467,46 @@ def _http_json(
     raise Exception("HTTP request failed")
 
 
+def _validate_user_api_token_bench(
+    site_name: str, user_email: str, api_key: str, api_secret: str
+) -> bool:
+    """Validate API keys inside the Frappe site context (same check as HTTP auth)."""
+    safe_email = json.dumps(user_email)
+    safe_key = json.dumps(api_key)
+    safe_secret = json.dumps(api_secret)
+    code = f"""import json
+import frappe
+from frappe.auth import validate_api_key_secret
+
+user_email = {safe_email}
+api_key = {safe_key}
+api_secret = {safe_secret}
+
+try:
+    frappe.set_user("Guest")
+    validate_api_key_secret(api_key, api_secret, "header")
+    owner = frappe.db.get_value("User", {{"api_key": api_key}}, "name")
+    if owner != user_email:
+        print(json.dumps({{"valid": False, "reason": "user_mismatch"}}))
+    else:
+        print(json.dumps({{"valid": True}}))
+except Exception as exc:
+    print(json.dumps({{"valid": False, "error": str(exc)}}))
+"""
+    try:
+        output = run_frappe_code(site_name, code)
+        result = _parse_json_output(output)
+        return bool(result.get("valid"))
+    except Exception as exc:
+        logger.warning(f"bench token validation failed for {user_email} on {site_name}: {exc}")
+        return False
+
+
 def _validate_user_api_token(site_name: str, user_email: str, api_key: str, api_secret: str) -> bool:
+    # Prefer in-process validation — provisioning often runs in Docker where
+    # FRAPPE_INTERNAL_URL (127.0.0.1:8080) does not reach the host Frappe port.
+    if _validate_user_api_token_bench(site_name, user_email, api_key, api_secret):
+        return True
     try:
         auth = _frappe_api_json(
             site_name,

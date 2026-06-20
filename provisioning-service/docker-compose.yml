@@ -22,6 +22,9 @@ services:
       - PROVISIONING_API_SECRET=${PROVISIONING_API_SECRET:-change-me-in-production}
       - DEFAULT_APPS=erpnext,nexus_core
       - ENVIRONMENT=${ENVIRONMENT:-production}
+      # Optional — only used as HTTP fallback for token checks; bench validation is primary.
+      # From inside Docker use host Frappe, e.g. http://host.docker.internal:8080
+      - FRAPPE_INTERNAL_URL=${FRAPPE_INTERNAL_URL:-http://host.docker.internal:8080}
     volumes:
       # Mount Docker socket so we can docker exec into the backend container
       - /var/run/docker.sock:/var/run/docker.sock
