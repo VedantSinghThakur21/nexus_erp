@@ -521,6 +521,93 @@ def _validate_user_api_token(site_name: str, user_email: str, api_key: str, api_
         return False
 
 
+def _http_check_user_api_token(
+    site_name: str,
+    user_email: str,
+    api_key: str,
+    api_secret: str,
+    retries: int = 4,
+    delay: float = 0.4,
+) -> str:
+    """Check keys over HTTP exactly like Frappe's web auth (and the Nexus app) does.
+
+    Returns one of:
+      - "ok":          a reachable endpoint authenticated the keys as user_email
+      - "rejected":    a reachable endpoint returned 401/403 for the keys
+      - "unreachable": no endpoint could be reached (e.g. provisioning runs in
+                       Docker and cannot hit Frappe over HTTP)
+
+    `_validate_user_api_token` short-circuits on the bench check and reports keys
+    as valid even when Frappe's HTTP layer rejects them — the bench-valid-but-
+    HTTP-401 gap that drives the client-side rotation storm. This asserts the
+    keys actually authenticate over the same channel the web app uses, retrying
+    briefly to absorb commit/propagation timing, while degrading gracefully when
+    HTTP simply isn't reachable from here.
+    """
+    path = "/api/method/frappe.auth.get_logged_user"
+    headers = {
+        "Authorization": f"token {api_key}:{api_secret}",
+        "Content-Type": "application/json",
+    }
+
+    urls: list[tuple[str, dict[str, str]]] = [
+        (f"{FRAPPE_INTERNAL_URL}{path}", {**headers, "X-Frappe-Site-Name": site_name}),
+    ]
+    for scheme in (["https", "http"] if IS_PRODUCTION else ["http"]):
+        urls.append((f"{scheme}://{site_name}{path}", dict(headers)))
+
+    last = "unreachable"
+    for attempt in range(retries):
+        for url, hdrs in urls:
+            req = urllib.request.Request(url, method="GET")
+            for key, value in hdrs.items():
+                req.add_header(key, value)
+            try:
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    raw = resp.read().decode("utf-8")
+                    data = json.loads(raw) if raw else {}
+                    if data.get("message") == user_email:
+                        return "ok"
+                    last = "rejected"
+            except urllib.error.HTTPError as exc:
+                # A response came back, so Frappe is reachable. 401/403 means the
+                # keys genuinely do not authenticate.
+                last = "rejected" if exc.code in (401, 403) else "unreachable"
+            except Exception:
+                # Connection refused / DNS / timeout — cannot conclude anything.
+                if last != "rejected":
+                    last = "unreachable"
+        if last == "rejected" and attempt < retries - 1:
+            time.sleep(delay)
+        elif last != "rejected":
+            # Unreachable won't fix itself within this call; stop early.
+            break
+    return last
+
+
+def _read_user_api_keys(site_name: str, user_email: str) -> tuple[Optional[str], Optional[str]]:
+    """Read the currently stored api_key + decrypted api_secret for a user."""
+    safe_email = json.dumps(user_email)
+    code = f"""import json
+import frappe
+
+user_email = {safe_email}
+try:
+    user = frappe.get_doc("User", user_email)
+    secret = user.get_password("api_secret")
+    print(json.dumps({{"api_key": user.api_key, "api_secret": secret}}))
+except Exception as exc:
+    print(json.dumps({{"error": str(exc)}}))
+"""
+    try:
+        res = _parse_json_output(run_frappe_code(site_name, code))
+        if res.get("error"):
+            return None, None
+        return res.get("api_key"), res.get("api_secret")
+    except Exception:
+        return None, None
+
+
 # ============================================================================
 # API Endpoints
 # ============================================================================
@@ -2284,7 +2371,16 @@ async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool =
         if cached:
             cached_key, cached_secret, cached_at = cached
             if time.time() - cached_at < _GENERATED_USER_KEYS_TTL_SEC:
-                if _validate_user_api_token(site_name, user_email, cached_key, cached_secret):
+                cached_status = _http_check_user_api_token(
+                    site_name, user_email, cached_key, cached_secret, retries=2, delay=0.3
+                )
+                cached_ok = cached_status == "ok" or (
+                    cached_status == "unreachable"
+                    and _validate_user_api_token_bench(
+                        site_name, user_email, cached_key, cached_secret
+                    )
+                )
+                if cached_ok:
                     logger.info(f"generate-user-keys: returning cached keys for {user_email} on {site_name}")
                     return {"success": True, "api_key": cached_key, "api_secret": cached_secret}
                 _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
@@ -2326,26 +2422,75 @@ except Exception as exc:
     print(json.dumps({{"error": str(exc)}}))
 """
 
+        def _accept_keys(api_key_val: str, api_secret_val: str, action: str) -> dict:
+            _GENERATED_USER_KEYS_CACHE[cache_key] = (api_key_val, api_secret_val, time.time())
+            logger.info(f"generate-user-keys: {action} keys for {user_email} on {site_name}")
+            return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
+
         def _return_validated_keys(
             api_key_val: str,
             api_secret_val: str,
             *,
             rotated: bool,
-            prevalidated: bool = False,
+            prevalidated: bool = False,  # kept for call-site compat; no longer trusted
         ) -> dict:
-            if not prevalidated and not _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
+            action = "rotated" if rotated else "returned existing"
+
+            # Confirm over the same HTTP channel the web app uses. The bench-only
+            # check reports keys as valid even when Frappe's HTTP auth rejects
+            # them, and that gap is what makes the Nexus client force-rotate in a
+            # loop (each rotation clobbering the previous secret -> permanent 401
+            # storm).
+            status = _http_check_user_api_token(site_name, user_email, api_key_val, api_secret_val)
+            if status == "ok":
+                return _accept_keys(api_key_val, api_secret_val, action)
+
+            if status == "rejected":
+                # Our secret does not authenticate over HTTP — most likely a
+                # concurrent rotation (another web instance) won. Adopt whatever
+                # is currently stored and validate that, so all callers converge
+                # on one working secret instead of fighting each other.
+                cur_key, cur_secret = _read_user_api_keys(site_name, user_email)
+                if (
+                    cur_key
+                    and cur_secret
+                    and (cur_key != api_key_val or cur_secret != api_secret_val)
+                    and _http_check_user_api_token(site_name, user_email, cur_key, cur_secret) == "ok"
+                ):
+                    return _accept_keys(cur_key, cur_secret, "adopted concurrently-stored")
                 raise HTTPException(
                     status_code=502,
-                    detail=f"API keys failed validation for {user_email} on {site_name}",
+                    detail=f"API keys failed HTTP validation for {user_email} on {site_name}",
                 )
-            _GENERATED_USER_KEYS_CACHE[cache_key] = (api_key_val, api_secret_val, time.time())
-            action = "rotated" if rotated else "returned existing"
-            logger.info(f"generate-user-keys: {action} keys for {user_email} on {site_name}")
-            return {"success": True, "api_key": api_key_val, "api_secret": api_secret_val}
+
+            # status == "unreachable": HTTP cannot be reached from here (Docker
+            # networking). Fall back to in-process bench validation so we don't
+            # break environments where this service can't hit Frappe over HTTP.
+            if prevalidated or _validate_user_api_token_bench(
+                site_name, user_email, api_key_val, api_secret_val
+            ):
+                return _accept_keys(api_key_val, api_secret_val, action)
+            raise HTTPException(
+                status_code=502,
+                detail=f"API keys failed validation for {user_email} on {site_name}",
+            )
 
         try:
             if force_rotate:
                 _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
+                # Convergence guard: if another web instance already rotated to a
+                # secret that authenticates over HTTP, reuse it instead of rotating
+                # again. Rotating here would clobber their secret and perpetuate
+                # the cross-instance rotate storm (we have no shared lock because
+                # REDIS_URL is disabled on the web tier). Only skips when HTTP
+                # positively confirms the current keys — "unreachable" still rotates.
+                cur_key, cur_secret = _read_user_api_keys(site_name, user_email)
+                if (
+                    cur_key
+                    and cur_secret
+                    and _http_check_user_api_token(site_name, user_email, cur_key, cur_secret) == "ok"
+                ):
+                    return _accept_keys(cur_key, cur_secret, "reused current (skipped forced rotate)")
                 output = run_frappe_code(site_name, rotate_code)
                 result = _parse_json_output(output)
                 if not result or result.get("error"):
