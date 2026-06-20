@@ -988,6 +988,15 @@ for row in matrix:
         doc.insert(ignore_permissions=True)
     updated.append(f'{{row["doctype"]}}:{{row["role"]}}')
 frappe.db.commit()
+# Refresh cached doctype meta so the new DocPerm rows take effect on live
+# web workers (committing alone leaves workers on the stale perm matrix).
+_cleared = []
+for row in matrix:
+    dt = row["doctype"]
+    if dt not in _cleared:
+        _cleared.append(dt)
+        frappe.clear_cache(doctype=dt)
+frappe.clear_cache()
 print(json.dumps({{"updated": updated, "count": len(updated)}}))
 """
         docperm_result = _parse_json_output(run_frappe_code(site_name, docperm_code))
@@ -1666,6 +1675,17 @@ if healed_users:
     result["healed_users"] = healed_users
 
 frappe.db.commit()
+
+# Refresh cached doctype meta / user role caches so the DocPerm read-access
+# fixes and self-healed roles above take effect on live web workers instead
+# of being masked by the stale cached permission matrix.
+for dt in docperms_fixed:
+    frappe.clear_cache(doctype=dt)
+for u in healed_users:
+    frappe.clear_cache(user=u)
+if docperms_fixed or healed_users:
+    frappe.clear_cache()
+
 print(json.dumps(result))
 """
 
@@ -1850,6 +1870,24 @@ for row in matrix:
     upsert(row)
 
 frappe.db.commit()
+
+# CRITICAL: DocPerm rows are served from cached doctype meta held by the
+# running web workers. Committing new rows from this out-of-process script
+# does NOT refresh that cache, so workers keep evaluating against the stale
+# (often empty) permission matrix and return 403 "does not have doctype
+# access via role permission" indefinitely. Clear the cache so the new
+# permissions take effect immediately on the live site.
+cleared = set()
+for row in matrix:
+    dt = row.get("doctype")
+    if dt and dt not in cleared:
+        try:
+            frappe.clear_cache(doctype=dt)
+            cleared.add(dt)
+        except Exception as e:
+            errors.append(f'clear_cache:{{dt}}: {{e}}')
+frappe.clear_cache()
+
 print(json.dumps({{"updated": updated, "count": len(updated), "errors": errors}}))
 """
 
@@ -2541,6 +2579,10 @@ try:
 
     user.save(ignore_permissions=True)
     frappe.db.commit()
+    # Clear the user's cached role set so live requests authenticated via an
+    # existing session cookie pick up the new roles immediately instead of
+    # looping on stale 403s.
+    frappe.clear_cache(user=user_email)
     assigned = [r.role for r in user.roles]
     print(json.dumps({{"assigned": assigned}}))
 except Exception as exc:
