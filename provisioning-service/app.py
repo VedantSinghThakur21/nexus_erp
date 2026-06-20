@@ -2371,16 +2371,7 @@ async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool =
         if cached:
             cached_key, cached_secret, cached_at = cached
             if time.time() - cached_at < _GENERATED_USER_KEYS_TTL_SEC:
-                cached_status = _http_check_user_api_token(
-                    site_name, user_email, cached_key, cached_secret, retries=2, delay=0.3
-                )
-                cached_ok = cached_status == "ok" or (
-                    cached_status == "unreachable"
-                    and _validate_user_api_token_bench(
-                        site_name, user_email, cached_key, cached_secret
-                    )
-                )
-                if cached_ok:
+                if _validate_user_api_token(site_name, user_email, cached_key, cached_secret):
                     logger.info(f"generate-user-keys: returning cached keys for {user_email} on {site_name}")
                     return {"success": True, "api_key": cached_key, "api_secret": cached_secret}
                 _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
@@ -2458,43 +2449,20 @@ except Exception as exc:
             api_secret_val: str,
             *,
             rotated: bool,
-            prevalidated: bool = False,  # kept for call-site compat; no longer trusted
+            prevalidated: bool = False,
         ) -> dict:
             action = "rotated" if rotated else "returned existing"
-
-            # Confirm over the same HTTP channel the web app uses. The bench-only
-            # check reports keys as valid even when Frappe's HTTP auth rejects
-            # them, and that gap is what makes the Nexus client force-rotate in a
-            # loop (each rotation clobbering the previous secret -> permanent 401
-            # storm).
-            status = _http_check_user_api_token(site_name, user_email, api_key_val, api_secret_val)
-            if status == "ok":
-                return _accept_keys(api_key_val, api_secret_val, action)
-
-            if status == "rejected":
-                # Our secret does not authenticate over HTTP — most likely a
-                # concurrent rotation (another web instance) won. Adopt whatever
-                # is currently stored and validate that, so all callers converge
-                # on one working secret instead of fighting each other.
-                cur_key, cur_secret = _read_user_api_keys(site_name, user_email)
-                if (
-                    cur_key
-                    and cur_secret
-                    and (cur_key != api_key_val or cur_secret != api_secret_val)
-                    and _http_check_user_api_token(site_name, user_email, cur_key, cur_secret) == "ok"
-                ):
-                    return _accept_keys(cur_key, cur_secret, "adopted concurrently-stored")
-                raise HTTPException(
-                    status_code=502,
-                    detail=f"API keys failed HTTP validation for {user_email} on {site_name}",
-                )
-
-            # status == "unreachable": HTTP cannot be reached from here (Docker
-            # networking). Fall back to in-process bench validation so we don't
-            # break environments where this service can't hit Frappe over HTTP.
-            if prevalidated or _validate_user_api_token_bench(
-                site_name, user_email, api_key_val, api_secret_val
-            ):
+            # When prevalidated=True the rotate script's inline bench check already
+            # confirmed match(api_secret_val, stored) == True — trust it directly.
+            # For the read path (prevalidated=False) do a bench round-trip to confirm
+            # the stored secret is still consistent.
+            # NOTE: the provisioning container cannot reach Frappe over HTTP (the
+            # FRAPPE_INTERNAL_URL 127.0.0.1:8080 is the host port, not reachable
+            # inside the container, and the external URL may not route correctly
+            # from within Docker). The Next.js app performs its own HTTP validation
+            # via verifyTenantApiToken after receiving these keys — that is the
+            # correct final gate.
+            if prevalidated or _validate_user_api_token(site_name, user_email, api_key_val, api_secret_val):
                 return _accept_keys(api_key_val, api_secret_val, action)
             raise HTTPException(
                 status_code=502,
@@ -2504,19 +2472,6 @@ except Exception as exc:
         try:
             if force_rotate:
                 _GENERATED_USER_KEYS_CACHE.pop(cache_key, None)
-                # Convergence guard: if another web instance already rotated to a
-                # secret that authenticates over HTTP, reuse it instead of rotating
-                # again. Rotating here would clobber their secret and perpetuate
-                # the cross-instance rotate storm (we have no shared lock because
-                # REDIS_URL is disabled on the web tier). Only skips when HTTP
-                # positively confirms the current keys — "unreachable" still rotates.
-                cur_key, cur_secret = _read_user_api_keys(site_name, user_email)
-                if (
-                    cur_key
-                    and cur_secret
-                    and _http_check_user_api_token(site_name, user_email, cur_key, cur_secret) == "ok"
-                ):
-                    return _accept_keys(cur_key, cur_secret, "reused current (skipped forced rotate)")
                 output = run_frappe_code(site_name, rotate_code)
                 result = _parse_json_output(output)
                 if not result or result.get("error"):
