@@ -75,23 +75,35 @@ REQUIRED_ERP_ROLES = [
 ]
 
 DOC_PERM_MINIMUM = [
+    # System Manager always gets full access — this role is the "super-admin"
+    # in every ERPNext installation. Without explicit DocPerm rows the default
+    # ERPNext permission matrix may be missing them on a fresh tenant or after
+    # a bench upgrade, so we assert them unconditionally. This also protects
+    # admin users whose site-level role set cannot include Sales Manager (e.g.
+    # when that Role record doesn't exist yet on a new site).
+    {"doctype": "Lead", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Lead", "role": "Sales Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Lead", "role": "Sales User", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Opportunity", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Opportunity", "role": "Sales Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Opportunity", "role": "Sales User", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Quotation", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Quotation", "role": "Sales Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Quotation", "role": "Sales User", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Quotation", "role": "Accounts Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Sales Order", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Sales Order", "role": "Sales Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Sales Order", "role": "Sales User", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Sales Order", "role": "Accounts Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
     {"doctype": "Sales Order", "role": "Accounts User", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Sales Order", "role": "Projects Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Sales Invoice", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Sales Invoice", "role": "Sales Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Sales Invoice", "role": "Sales User", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Sales Invoice", "role": "Accounts Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Sales Invoice", "role": "Accounts User", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Sales Invoice", "role": "Projects Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
+    {"doctype": "Payment Entry", "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Payment Entry", "role": "Accounts Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
     {"doctype": "Payment Entry", "role": "Accounts User", "read": 1, "write": 0, "create": 0, "delete": 0},
     {"doctype": "Payment Entry", "role": "Sales Manager", "read": 1, "write": 0, "create": 0, "delete": 0},
