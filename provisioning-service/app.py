@@ -31,6 +31,7 @@ import time
 import asyncio
 import urllib.request
 import urllib.error
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Any
@@ -421,6 +422,18 @@ def get_site_name(subdomain: str) -> str:
     return f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
 
 
+def _frappe_site_headers(site_name: str) -> dict[str, str]:
+    """Headers for multi-tenant Frappe when calling via loopback/internal URL."""
+    headers = {"X-Frappe-Site-Name": site_name}
+    try:
+        host = urllib.parse.urlparse(FRAPPE_INTERNAL_URL).hostname or ""
+    except Exception:
+        host = ""
+    if site_name and "." in site_name and host in ("127.0.0.1", "localhost", "host.docker.internal", "::1"):
+        headers["Host"] = site_name
+    return headers
+
+
 def _frappe_api_json(
     site_name: str,
     path: str,
@@ -437,7 +450,8 @@ def _frappe_api_json(
         data=encoded_body,
     )
     req.add_header("Content-Type", "application/json")
-    req.add_header("X-Frappe-Site-Name", site_name)
+    for key, value in _frappe_site_headers(site_name).items():
+        req.add_header(key, value)
     for key, value in (headers or {}).items():
         req.add_header(key, value)
     with urllib.request.urlopen(req, timeout=timeout) as resp:

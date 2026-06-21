@@ -1,4 +1,5 @@
 import { generateUserApiKeys } from '@/lib/provisioning-client'
+import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 import { verifyTenantApiToken } from '@/lib/verify-tenant-api-token'
 
 export async function mintTenantApiKeysViaSession(
@@ -16,12 +17,11 @@ export async function mintTenantApiKeysViaSession(
       `${baseUrl}/api/method/frappe.core.doctype.user.user.generate_keys`,
       {
         method: 'POST',
-        headers: {
+        headers: frappeSiteRequestHeaders(siteName, baseUrl, {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          'X-Frappe-Site-Name': siteName,
           Cookie: `sid=${sessionId}`,
-        },
+        }),
         body: JSON.stringify({ user: userEmail }),
         signal: controller.signal,
         cache: 'no-store',
@@ -46,12 +46,11 @@ export async function mintTenantApiKeysViaSession(
 
     const userResponse = await fetch(`${baseUrl}/api/method/frappe.client.get`, {
       method: 'POST',
-      headers: {
+      headers: frappeSiteRequestHeaders(siteName, baseUrl, {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'X-Frappe-Site-Name': siteName,
         Cookie: `sid=${sessionId}`,
-      },
+      }),
       body: JSON.stringify({ doctype: 'User', name: userEmail }),
       signal: controller.signal,
       cache: 'no-store',

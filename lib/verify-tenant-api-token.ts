@@ -1,3 +1,5 @@
+import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+
 /**
  * Verify tenant user API keys against Frappe the same way server-side ERP calls do.
  */
@@ -17,11 +19,10 @@ export async function verifyTenantApiToken(
   try {
     const response = await fetch(`${baseUrl}/api/method/frappe.auth.get_logged_user`, {
       method: 'GET',
-      headers: {
+      headers: frappeSiteRequestHeaders(siteName, baseUrl, {
         Accept: 'application/json',
         Authorization: `token ${apiKey}:${apiSecret}`,
-        'X-Frappe-Site-Name': siteName,
-      },
+      }),
       signal: controller.signal,
       cache: 'no-store',
     })
