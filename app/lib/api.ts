@@ -407,22 +407,32 @@ function isMethodNotWhitelistedError(data: Record<string, unknown>): boolean {
 }
 
 function extractDeniedDoctypeFromPermissionError(data: Record<string, unknown>): string | null {
-  // Common shapes:
-  // - "No permission for Quality Inspection"
-  // - "User <strong>...</strong> does not have doctype access ... document <strong>Quality Inspection</strong>"
-  const raw = [
+  // Common Frappe error shapes:
+  //   _error_message: "No permission for Sales Order"
+  //   _server_messages: "User ... does not have doctype access ... document <strong>Sales Order</strong>"
+  //
+  // IMPORTANT: search each source field independently — do NOT join them with spaces first.
+  // Joining creates "No permission for Quotation User <strong>..." which causes the greedy
+  // space-inclusive regex to capture "Quotation User" instead of just "Quotation".
+  const sources = [
     typeof data._error_message === 'string' ? data._error_message : null,
     parseErrorMessage(data),
     typeof data.exception === 'string' ? data.exception : null,
-  ]
-    .filter(Boolean)
-    .join(' ')
+  ].filter((s): s is string => typeof s === 'string' && s.length > 0)
 
-  const m1 = raw.match(/No permission for\s+([A-Za-z0-9 _-]+)/i)
-  if (m1?.[1]) return m1[1].trim()
+  for (const src of sources) {
+    // "No permission for Sales Order"
+    const m1 = src.match(/No permission for\s+([A-Za-z0-9][A-Za-z0-9 _-]*)/i)
+    if (m1?.[1]) return m1[1].trim()
 
-  const m2 = raw.match(/document\s+<strong>([^<]+)<\/strong>/i)
-  if (m2?.[1]) return m2[1].trim()
+    // "document <strong>Sales Order</strong>"
+    const m2 = src.match(/document\s+<strong>([^<]+)<\/strong>/i)
+    if (m2?.[1]) return m2[1].trim()
+
+    // "for document Sales Order" (plain-text variant without HTML)
+    const m3 = src.match(/for document\s+([A-Za-z0-9][A-Za-z0-9 _-]*)/i)
+    if (m3?.[1]) return m3[1].trim()
+  }
 
   return null
 }
