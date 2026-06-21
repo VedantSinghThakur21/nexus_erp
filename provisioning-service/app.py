@@ -422,11 +422,29 @@ def get_site_name(subdomain: str) -> str:
     return f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
 
 
-def _frappe_site_headers(site_name: str) -> dict[str, str]:
+def _frappe_effective_base_url(site_name: str) -> str:
+    """Prefer tenant FQDN over loopback — nginx vhost routes auth correctly."""
+    try:
+        host = urllib.parse.urlparse(FRAPPE_INTERNAL_URL).hostname or ""
+    except Exception:
+        host = ""
+    if host not in ("127.0.0.1", "localhost", "host.docker.internal", "::1"):
+        return FRAPPE_INTERNAL_URL
+    if site_name == MASTER_SITE:
+        return FRAPPE_INTERNAL_URL
+    if site_name.endswith(f".{PARENT_DOMAIN}"):
+        scheme = "https" if IS_PRODUCTION else "http"
+        return f"{scheme}://{site_name}"
+    if site_name.endswith(".localhost"):
+        return f"http://{site_name}"
+    return FRAPPE_INTERNAL_URL
+
+
+def _frappe_site_headers(site_name: str, base_url: str) -> dict[str, str]:
     """Headers for multi-tenant Frappe when calling via loopback/internal URL."""
     headers = {"X-Frappe-Site-Name": site_name}
     try:
-        host = urllib.parse.urlparse(FRAPPE_INTERNAL_URL).hostname or ""
+        host = urllib.parse.urlparse(base_url).hostname or ""
     except Exception:
         host = ""
     if site_name and "." in site_name and host in ("127.0.0.1", "localhost", "host.docker.internal", "::1"):
@@ -442,15 +460,16 @@ def _frappe_api_json(
     body: Optional[dict[str, Any]] = None,
     timeout: int = 15,
 ) -> dict[str, Any]:
-    """Call Frappe via the internal bench URL + X-Frappe-Site-Name (matches Nexus api.ts)."""
+    """Call Frappe via tenant FQDN or internal URL + site headers (matches Nexus api.ts)."""
+    base_url = _frappe_effective_base_url(site_name)
     encoded_body = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(
-        f"{FRAPPE_INTERNAL_URL}{path}",
+        f"{base_url}{path}",
         method=method,
         data=encoded_body,
     )
     req.add_header("Content-Type", "application/json")
-    for key, value in _frappe_site_headers(site_name).items():
+    for key, value in _frappe_site_headers(site_name, base_url).items():
         req.add_header(key, value)
     for key, value in (headers or {}).items():
         req.add_header(key, value)
@@ -502,7 +521,7 @@ def _validate_user_api_token_bench(
     safe_secret = json.dumps(api_secret)
     code = f"""import json
 import frappe
-from frappe.utils.password import get_decrypted_password
+from frappe.auth import validate_api_key_secret
 
 user_email = {safe_email}
 api_key = {safe_key}
@@ -514,9 +533,11 @@ try:
     elif frappe.db.get_value("User", {{"api_key": api_key}}, "name") != user_email:
         print(json.dumps({{"valid": False, "reason": "user_mismatch"}}))
     else:
-        stored = get_decrypted_password("User", user_email, "api_secret", raise_exception=False)
-        valid = bool(stored and api_secret == stored)
-        print(json.dumps({{"valid": valid}}))
+        try:
+            validate_api_key_secret(api_key, api_secret, authorization_source="header")
+            print(json.dumps({{"valid": True, "method": "frappe.auth.validate_api_key_secret"}}))
+        except Exception as auth_exc:
+            print(json.dumps({{"valid": False, "reason": "auth_rejected", "error": str(auth_exc)}}))
 except Exception as exc:
     print(json.dumps({{"valid": False, "error": str(exc)}}))
 """
@@ -2407,12 +2428,13 @@ async def generate_user_api_keys(subdomain: str, request: Request, _auth: bool =
         safe_email = json.dumps(user_email)
         read_code = f"""import json
 import frappe
+from frappe.utils.password import get_decrypted_password
 
 user_email = {safe_email}
 try:
     user = frappe.get_doc("User", user_email)
     api_key = user.api_key
-    api_secret_val = user.get_password("api_secret")
+    api_secret_val = get_decrypted_password("User", user_email, "api_secret", raise_exception=False)
     if not api_key or not api_secret_val:
         print(json.dumps({{"missing": True}}))
     else:

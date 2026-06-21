@@ -1,4 +1,4 @@
-import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+import { frappeEffectiveBaseUrl, frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 /**
  * Verify tenant user API keys against Frappe the same way server-side ERP calls do.
@@ -10,7 +10,8 @@ export async function verifyTenantApiToken(
   expectedEmail: string,
   options: { baseUrl?: string; timeoutMs?: number } = {}
 ): Promise<boolean> {
-  const baseUrl = options.baseUrl || process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const configuredBase = options.baseUrl || process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const baseUrl = frappeEffectiveBaseUrl(siteName, configuredBase)
   const timeoutMs = options.timeoutMs ?? 15_000
 
   const controller = new AbortController()

@@ -6,7 +6,7 @@ import {
   readFrappeGetCache,
   writeFrappeGetCache,
 } from '@/lib/performance/frappe-get-response-cache'
-import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+import { frappeEffectiveBaseUrl, frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 import { parseTenantSubdomainFromHost } from '@/lib/tenant'
 import { cache as reactCache } from 'react'
 
@@ -710,8 +710,9 @@ async function frappeRequestWithContext(
   // Log request details
   logApiRequest(endpoint, method, siteName, authSource, context)
 
-  // Build request headers (Host required when ERP_NEXT_URL is loopback — see frappe-site-headers.ts)
-  const requestHeaders: Record<string, string> = frappeSiteRequestHeaders(siteName, BASE_URL, {
+  // Build request headers (tenant FQDN URL when ERP_NEXT_URL is loopback — see frappe-site-headers.ts)
+  const frappeBaseUrl = frappeEffectiveBaseUrl(siteName, BASE_URL)
+  const requestHeaders: Record<string, string> = frappeSiteRequestHeaders(siteName, frappeBaseUrl, {
     Accept: 'application/json',
   })
 
@@ -729,7 +730,7 @@ async function frappeRequestWithContext(
   }
 
   // Build URL with query params for GET requests
-  let url = `${BASE_URL}/api/method/${endpoint}`
+  let url = `${frappeBaseUrl}/api/method/${endpoint}`
 
   if (method === 'GET' && body) {
     const params = new URLSearchParams()

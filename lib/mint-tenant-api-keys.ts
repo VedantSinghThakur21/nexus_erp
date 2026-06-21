@@ -1,5 +1,5 @@
 import { generateUserApiKeys } from '@/lib/provisioning-client'
-import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+import { frappeEffectiveBaseUrl, frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 import { verifyTenantApiToken } from '@/lib/verify-tenant-api-token'
 
 export async function mintTenantApiKeysViaSession(
@@ -9,15 +9,16 @@ export async function mintTenantApiKeysViaSession(
   baseUrl: string,
   timeoutMs = 20_000,
 ): Promise<{ apiKey: string; apiSecret: string } | null> {
+  const frappeBaseUrl = frappeEffectiveBaseUrl(siteName, baseUrl)
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const genResponse = await fetch(
-      `${baseUrl}/api/method/frappe.core.doctype.user.user.generate_keys`,
+      `${frappeBaseUrl}/api/method/frappe.core.doctype.user.user.generate_keys`,
       {
         method: 'POST',
-        headers: frappeSiteRequestHeaders(siteName, baseUrl, {
+        headers: frappeSiteRequestHeaders(siteName, frappeBaseUrl, {
           'Content-Type': 'application/json',
           Accept: 'application/json',
           Cookie: `sid=${sessionId}`,
@@ -44,9 +45,9 @@ export async function mintTenantApiKeysViaSession(
     }
     if (!apiSecret) return null
 
-    const userResponse = await fetch(`${baseUrl}/api/method/frappe.client.get`, {
+    const userResponse = await fetch(`${frappeBaseUrl}/api/method/frappe.client.get`, {
       method: 'POST',
-      headers: frappeSiteRequestHeaders(siteName, baseUrl, {
+      headers: frappeSiteRequestHeaders(siteName, frappeBaseUrl, {
         'Content-Type': 'application/json',
         Accept: 'application/json',
         Cookie: `sid=${sessionId}`,
@@ -62,7 +63,7 @@ export async function mintTenantApiKeysViaSession(
     if (!apiKey) return null
 
     const valid = await verifyTenantApiToken(siteName, apiKey, apiSecret, userEmail, {
-      baseUrl,
+      baseUrl: frappeBaseUrl,
       timeoutMs,
     })
     if (!valid) return null
