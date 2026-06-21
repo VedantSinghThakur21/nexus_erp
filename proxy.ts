@@ -68,6 +68,7 @@ const PUBLIC_ROUTES = [
   '/signup',
   '/onboarding',
   '/auth/login',
+  '/auth/complete',
   '/auth/callback',
   '/api/auth',
   '/join',

@@ -259,11 +259,34 @@ export async function lookupTenantByUsername(username: string): Promise<TenantRe
 
 /** Find the tenant workspace where a user (owner or invited member) has an account. */
 export async function lookupTenantForUserEmail(email: string): Promise<TenantRecord | null> {
-  const result = await optionalTenantRecordRequest(
-    '/api/v1/tenant-record/lookup',
-    { method: 'POST', body: { user_email: email }, timeout: 120_000 },
+  const tenants = await listTenantsForUserEmail(email)
+  if (tenants.length === 0) return null
+  const first = tenants[0]
+  return {
+    name: first.subdomain,
+    subdomain: first.subdomain,
+    site_url: first.site_url,
+    status: first.status || 'active',
+    owner_email: first.owner_email,
+  }
+}
+
+export interface TenantByUserResult {
+  subdomain: string
+  site_name: string
+  site_url: string
+  display_name: string
+  status?: string
+  owner_email?: string
+}
+
+/** All workspaces an email can access — for root-domain login and OAuth. */
+export async function listTenantsForUserEmail(email: string): Promise<TenantByUserResult[]> {
+  const result = await optionalServiceRequest<{ tenants?: TenantByUserResult[] }>(
+    `/api/v1/tenant-by-user?email=${encodeURIComponent(email)}`,
+    { timeout: 120_000 },
   )
-  return result?.found && result.tenant ? result.tenant : null
+  return (result?.tenants || []).filter((t) => typeof t.subdomain === 'string' && t.subdomain.length > 0)
 }
 
 /** Active tenant subdomains from master DB — used for root-domain login discovery. */

@@ -48,16 +48,23 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   )
 }
 
-// ── Helper: Lookup tenant by email in Master DB ──
-async function lookupTenantInMasterDB(email: string): Promise<{
+// ── Helper: Lookup tenant(s) by email in Master DB + tenant sites ──
+async function lookupTenantsForEmail(email: string): Promise<{
   hasTenant: boolean
   subdomain?: string
+  subdomains?: string[]
 }> {
   try {
-    const { lookupTenantByOwnerEmail } = await import('@/lib/provisioning-client')
-    const tenant = await lookupTenantByOwnerEmail(email)
-    if (tenant && String(tenant.status || '').toLowerCase() === 'active') {
-      return { hasTenant: true, subdomain: tenant.subdomain }
+    const { listTenantsForUserEmail } = await import('@/lib/provisioning-client')
+    const tenants = await listTenantsForUserEmail(email)
+    if (tenants.length === 1) {
+      return { hasTenant: true, subdomain: tenants[0].subdomain, subdomains: [tenants[0].subdomain] }
+    }
+    if (tenants.length > 1) {
+      return {
+        hasTenant: true,
+        subdomains: tenants.map((t) => t.subdomain),
+      }
     }
     return { hasTenant: false }
   } catch {
@@ -90,7 +97,7 @@ async function lookupTenantInMasterDB(email: string): Promise<{
       const tenants = data.message || data.data || []
 
       if (tenants.length > 0) {
-        return { hasTenant: true, subdomain: tenants[0].subdomain }
+        return { hasTenant: true, subdomain: tenants[0].subdomain, subdomains: [tenants[0].subdomain] }
       }
       return { hasTenant: false }
     } catch (error) {
@@ -115,9 +122,10 @@ const callbacks = {
       token.name = user.name
       token.picture = user.image
 
-      const lookup = await lookupTenantInMasterDB(user.email)
+      const lookup = await lookupTenantsForEmail(user.email)
       token.hasTenant = lookup.hasTenant
       token.tenantSubdomain = lookup.subdomain || null
+      token.tenantSubdomains = lookup.subdomains || null
     }
 
     // CVE-4 Fix: On session update, re-validate the claimed subdomain against
@@ -127,7 +135,7 @@ const callbacks = {
       if (session.hasTenant !== undefined) token.hasTenant = session.hasTenant
       if (session.tenantSubdomain) {
         // Server-side verification: the token's email must own the subdomain
-        const verified = await lookupTenantInMasterDB(token.email as string)
+        const verified = await lookupTenantsForEmail(token.email as string)
         if (verified.hasTenant && verified.subdomain === session.tenantSubdomain) {
           token.tenantSubdomain = session.tenantSubdomain
         }
@@ -149,6 +157,7 @@ const callbacks = {
     // NOT in the NextAuth session — never expose secrets to client JS.
     session.hasTenant = token.hasTenant as boolean
     session.tenantSubdomain = token.tenantSubdomain as string | null
+    session.tenantSubdomains = (token.tenantSubdomains as string[] | null) || null
     if (token.tenantSubdomain) {
       session.frappeSiteName = IS_PRODUCTION
         ? `${token.tenantSubdomain}.${ROOT_DOMAIN}`

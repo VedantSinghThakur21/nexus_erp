@@ -6,7 +6,6 @@ import {
   lookupTenantBySubdomain,
   lookupTenantByOwnerEmail,
   lookupTenantByUsername,
-  lookupTenantForUserEmail,
   type TenantRecord,
 } from '@/lib/provisioning-client'
 import { mintTenantApiKeysForLogin } from '@/lib/mint-tenant-api-keys'
@@ -59,33 +58,49 @@ function validateTenantStatus(tenant: TenantRecord): LoginResult | null {
   return null
 }
 
-async function getTenantDiscoverySubdomains(): Promise<string[]> {
-  const fromEnv = (process.env.NEXUS_TENANT_DISCOVERY_SUBDOMAINS || '')
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean)
-
-  let remembered: string | undefined
-  try {
-    const cookieStore = await cookies()
-    remembered = cookieStore.get('tenant_subdomain')?.value?.trim().toLowerCase() || undefined
-  } catch {
-    // ignore — cookies unavailable outside request context
+async function resolveLoginTenants(
+  usernameOrEmail: string,
+  email: string | null,
+  workspaceHint: string | undefined,
+  onTenantSubdomain: boolean,
+  currentSubdomain: string,
+): Promise<{ tenants: TenantRecord[]; needsWorkspacePick: boolean }> {
+  const normalizedHint = workspaceHint?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '')
+  if (normalizedHint) {
+    return { tenants: [buildTenantFromSubdomain(normalizedHint)], needsWorkspacePick: false }
   }
 
-  const { listActiveTenantSubdomains } = await import('@/lib/provisioning-client')
-  const fromProvisioning = await listActiveTenantSubdomains()
+  if (onTenantSubdomain) {
+    let resolved = await lookupTenantBySubdomain(currentSubdomain)
+    if (!resolved) resolved = buildTenantFromSubdomain(currentSubdomain)
+    return { tenants: [resolved], needsWorkspacePick: false }
+  }
 
-  const seen = new Set<string>()
-  const merged: string[] = []
-  for (const sub of [...(remembered ? [remembered] : []), ...fromEnv, ...fromProvisioning]) {
-    const normalized = sub.toLowerCase()
-    if (!seen.has(normalized)) {
-      seen.add(normalized)
-      merged.push(normalized)
+  if (email) {
+    const { listTenantsForUserEmail } = await import('@/lib/provisioning-client')
+    const discovered = await listTenantsForUserEmail(email)
+    const tenants: TenantRecord[] = discovered.map((t) => ({
+      name: t.subdomain,
+      subdomain: t.subdomain,
+      site_url: t.site_url,
+      status: String(t.status || 'active'),
+      owner_email: t.owner_email,
+    }))
+
+    if (tenants.length > 1) {
+      return { tenants, needsWorkspacePick: true }
     }
+    if (tenants.length === 1) {
+      return { tenants, needsWorkspacePick: false }
+    }
+
+    const owned = await lookupTenantByOwnerEmail(email)
+    if (owned) return { tenants: [owned], needsWorkspacePick: false }
+    return { tenants: [], needsWorkspacePick: false }
   }
-  return merged.slice(0, 20)
+
+  const byUsername = await lookupTenantByUsername(usernameOrEmail)
+  return { tenants: byUsername ? [byUsername] : [], needsWorkspacePick: false }
 }
 
 function normalizeTenantRecord(tenant: TenantRecord): TenantRecord {
@@ -117,7 +132,7 @@ interface TenantData {
 type LoginResult =
   | { success: true; user: string; userType: 'admin'; dashboardUrl: string; requirePasswordChange?: boolean }
   | { success: true; user: string; subdomain: string; userType: 'tenant'; redirectUrl: string; requirePasswordChange?: boolean }
-  | { success: false; error: string }
+  | { success: false; error: string; tenantChoices?: { subdomain: string; label: string }[] }
 
 /**
  * Validate email format
@@ -245,39 +260,25 @@ export async function loginUser(
     const onTenantSubdomain = !onRootDomain
 
     const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-    const tenantsToTry: TenantRecord[] = []
 
-    // Workspace slug from the login form — always try first (works without provisioning/master DB).
-    const normalizedHint = workspaceHint?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '')
-    if (normalizedHint) {
-      tenantsToTry.push(buildTenantFromSubdomain(normalizedHint))
-    }
+    const { tenants: tenantsToTry, needsWorkspacePick } = await resolveLoginTenants(
+      usernameOrEmail,
+      email,
+      workspaceHint,
+      onTenantSubdomain,
+      currentSubdomain,
+    )
 
-    if (onTenantSubdomain && !normalizedHint) {
-      let resolved = await lookupTenantBySubdomain(currentSubdomain)
-      if (!resolved) resolved = buildTenantFromSubdomain(currentSubdomain)
-      tenantsToTry.push(resolved)
-    } else if (email) {
-      const owned = await lookupTenantByOwnerEmail(email)
-      if (owned) tenantsToTry.push(owned)
-      else {
-        const member = await lookupTenantForUserEmail(email)
-        if (member) tenantsToTry.push(member)
-      }
-    } else {
-      const byUsername = await lookupTenantByUsername(usernameOrEmail)
-      if (byUsername) tenantsToTry.push(byUsername)
-    }
-
-    if (onRootDomain) {
-      // Always try configured / provisioned subdomains on root login so credentials
-      // can be matched to the right workspace (e.g. dabed.avariq.in) without master DB lookup.
-      const discoverySubs = await getTenantDiscoverySubdomains()
-      for (const sub of discoverySubs) {
-        const built = buildTenantFromSubdomain(sub)
-        if (!tenantsToTry.some((t) => t.subdomain === built.subdomain)) {
-          tenantsToTry.push(built)
-        }
+    if (needsWorkspacePick && tenantsToTry.length > 1) {
+      return {
+        success: false,
+        error: 'Select your workspace to continue',
+        tenantChoices: tenantsToTry.map((t) => ({
+          subdomain: t.subdomain,
+          label:
+            t.site_url?.replace(/^https?:\/\//, '') ||
+            `${t.subdomain}.${rootDomain}`,
+        })),
       }
     }
 
@@ -285,7 +286,7 @@ export async function loginUser(
       return {
         success: false,
         error: onRootDomain
-          ? `No workspace found for this account. Sign in at your workspace URL (e.g. dabed.${rootDomain}/login) or enter your workspace name below.`
+          ? 'No workspace found for this email. Ask your admin to invite you, or visit avariq.in/signup to create one.'
           : 'No workspace found for this account. Please sign up to create a workspace first.',
       }
     }
@@ -363,10 +364,9 @@ export async function loginUser(
     if (!tenant) {
       return {
         success: false,
-        error:
-          typeof data?.message === 'string' && data.message && data.message !== 'Incorrect password'
-            ? data.message
-            : `Invalid email or password. Try entering workspace "dabed" below, or sign in at dabed.${rootDomain}/login.`,
+        error: onRootDomain
+          ? 'Invalid email or password.'
+          : `Invalid email or password. Wrong workspace? Sign in at ${rootDomain}/login to find yours.`,
       }
     }
 
@@ -883,6 +883,90 @@ export async function logoutUser() {
   } catch (error: any) {
     console.error('Logout error:', error)
     return { success: false, error: error.message }
+  }
+}
+
+
+export async function completeSsoLogin(
+  subdomain?: string,
+): Promise<{
+  success: boolean
+  redirectUrl?: string
+  error?: string
+  tenantChoices?: { subdomain: string; label: string }[]
+}> {
+  const { auth } = await import('@/auth')
+  const session = await auth()
+  const userEmail = session?.user?.email
+  if (!userEmail) {
+    return { success: false, error: 'Not signed in with Google' }
+  }
+
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+  const { listTenantsForUserEmail } = await import('@/lib/provisioning-client')
+  const discovered = await listTenantsForUserEmail(userEmail)
+
+  let targetSub = subdomain?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '')
+  if (!targetSub) {
+    if (discovered.length > 1) {
+      return {
+        success: false,
+        error: 'Select your workspace to continue',
+        tenantChoices: discovered.map((t) => ({
+          subdomain: t.subdomain,
+          label: t.display_name || `${t.subdomain}.${rootDomain}`,
+        })),
+      }
+    }
+    if (discovered.length === 1) targetSub = discovered[0].subdomain
+    else if (session?.tenantSubdomain) targetSub = session.tenantSubdomain
+  }
+
+  if (!targetSub) {
+    return {
+      success: false,
+      error: 'No workspace found for this Google account. Sign up at avariq.in/signup to create one.',
+    }
+  }
+
+  const siteName = getTenantSiteName(targetSub)
+  const masterUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const cookieStore = await cookies()
+  const cookieDomain =
+    process.env.NODE_ENV === 'production' ? `.${rootDomain}` : undefined
+  const cookieSameSite = process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  const cookieSecure = process.env.NODE_ENV === 'production'
+  const cookieOpts = {
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: cookieSameSite as 'lax' | 'none',
+    maxAge: 60 * 60 * 24 * 7,
+    path: '/',
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
+  }
+
+  cookieStore.set('user_email', userEmail, cookieOpts)
+  cookieStore.set('tenant_subdomain', targetSub, cookieOpts)
+  cookieStore.set('user_type', 'tenant', cookieOpts)
+
+  const { apiKey, apiSecret } = await mintTenantApiKeysForLogin({
+    subdomain: targetSub,
+    siteName,
+    userEmail,
+    baseUrl: masterUrl,
+  })
+
+  if (apiKey && apiSecret) {
+    cookieStore.set('tenant_api_key', apiKey, cookieOpts)
+    cookieStore.set('tenant_api_secret', apiSecret, cookieOpts)
+  }
+
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+  const baseHost =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || rootDomain
+  return {
+    success: true,
+    redirectUrl: `${protocol}://${targetSub}.${baseHost}/dashboard`,
   }
 }
 

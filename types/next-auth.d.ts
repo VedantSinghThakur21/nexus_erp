@@ -7,6 +7,8 @@ declare module "next-auth" {
     interface Session {
         hasTenant: boolean
         tenantSubdomain?: string | null
+        /** When the user belongs to multiple workspaces (OAuth / lookup). */
+        tenantSubdomains?: string[] | null
         /** Tenant Frappe site FQDN, e.g. testorg.avariq.in — NOT erp.localhost */
         frappeSiteName?: string | null
         user: {
@@ -19,6 +21,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
     interface JWT {
         hasTenant: boolean
-        tenantSubdomain?: string
+        tenantSubdomain?: string | null
+        tenantSubdomains?: string[] | null
     }
 }
