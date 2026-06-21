@@ -327,6 +327,56 @@ def run_bench_command(args: list[str], timeout: int = 300) -> subprocess.Complet
     )
 
 
+def _ping_site_via_bench(site_name: str) -> dict[str, Any]:
+    """Verify a site is alive via bench (no HTTP — provisioning container cannot reach host :8080)."""
+    code = """import json
+print(json.dumps({"message": "pong", "site": frappe.local.site}))
+"""
+    result = _parse_json_output(run_frappe_code(site_name, code))
+    if result.get("message") != "pong":
+        raise Exception(f"Unexpected bench ping response: {result}")
+    return result
+
+
+def _validate_owner_user_via_bench(site_name: str, admin_email: str) -> dict[str, bool]:
+    safe_email = json.dumps(str(admin_email))
+    code = f"""import json
+email = {safe_email}
+user = frappe.get_doc("User", email)
+roles = {{r.role for r in user.roles}}
+print(json.dumps({{
+    "user_exists": bool(user.enabled) and user.user_type == "System User",
+    "roles_correct": "System Manager" in roles and "All" in roles,
+}}))
+"""
+    return _parse_json_output(run_frappe_code(site_name, code))
+
+
+def _validate_lead_docperms_via_bench(site_name: str) -> bool:
+    code = """import json
+rows = frappe.get_all(
+    "DocPerm",
+    filters={"parent": "Lead"},
+    fields=["role", "read", "write", "create", "delete"],
+)
+sm = next((r for r in rows if r.get("role") == "Sales Manager"), None)
+su = next((r for r in rows if r.get("role") == "Sales User"), None)
+ok = bool(
+    sm and su
+    and int(sm.get("read", 0)) == 1
+    and int(sm.get("write", 0)) == 1
+    and int(sm.get("create", 0)) == 1
+    and int(sm.get("delete", 0)) == 1
+    and int(su.get("read", 0)) == 1
+    and int(su.get("write", 0)) == 0
+    and int(su.get("create", 0)) == 0
+    and int(su.get("delete", 0)) == 0
+)
+print(json.dumps({"docperms_set": ok}))
+"""
+    return bool(_parse_json_output(run_frappe_code(site_name, code)).get("docperms_set"))
+
+
 def run_frappe_code(site_name: str, python_code: str) -> str:
     """
     Execute Python code in the context of a specific Frappe site.
@@ -1082,9 +1132,7 @@ print(json.dumps({{"subdomain_exists": bool(subdomain_exists), "email_exists": i
 
     # Step 1b: ping check (must pass before continuing)
     try:
-        ping_result = _frappe_api_json(site_name, "/api/method/frappe.ping")
-        if ping_result.get("message") != "pong":
-            raise Exception(f"Unexpected ping response: {ping_result}")
+        _ping_site_via_bench(site_name)
         steps_completed.append("ping_ok")
     except Exception as e:
         logger.error(f"Ping check failed for {site_name}: {e}")
@@ -1092,7 +1140,7 @@ print(json.dumps({{"subdomain_exists": bool(subdomain_exists), "email_exists": i
             success=False,
             site_name=site_name,
             subdomain=subdomain,
-            error=f"Site ping failed; remediation: verify site install and reload nginx ({e})",
+            error=f"Site ping failed; remediation: verify site install and bench site list ({e})",
             steps_completed=steps_completed,
         )
 
@@ -1583,44 +1631,23 @@ else:
         "docperms_set": False,
     }
     try:
-        checks["site_alive"] = _http_json(site_name, "/api/method/frappe.ping").get("message") == "pong"
+        checks["site_alive"] = _ping_site_via_bench(site_name).get("message") == "pong"
     except Exception as e:
-        warnings.append(f"site_alive failed; remediation attempted: ping retry; error={e}")
+        warnings.append(f"site_alive failed; remediation attempted: bench ping retry; error={e}")
     try:
-        user_data = _http_json(
-            site_name,
-            f"/api/resource/User/{req.admin_email}",
-            headers={"Authorization": f"token {api_key}:{api_secret}", "X-Frappe-Site-Name": site_name},
-        )
-        user_doc = user_data.get("data", {})
-        checks["user_exists"] = int(user_doc.get("enabled", 0)) == 1 and user_doc.get("user_type") == "System User"
-        role_rows = user_doc.get("roles", [])
-        owner_roles = {r.get("role") for r in role_rows if isinstance(r, dict)}
-        checks["roles_correct"] = "System Manager" in owner_roles and "All" in owner_roles
+        owner_check = _validate_owner_user_via_bench(site_name, str(req.admin_email))
+        checks["user_exists"] = bool(owner_check.get("user_exists"))
+        checks["roles_correct"] = bool(owner_check.get("roles_correct"))
     except Exception as e:
         warnings.append(f"user/roles check failed; remediation attempted: owner role patch; error={e}")
     try:
-        auth_data = _http_json(
-            site_name,
-            "/api/method/frappe.auth.get_logged_user",
-            headers={"Authorization": f"token {api_key}:{api_secret}", "X-Frappe-Site-Name": site_name},
+        checks["api_key_valid"] = _validate_user_api_token_bench(
+            site_name, str(req.admin_email), api_key, api_secret
         )
-        checks["api_key_valid"] = auth_data.get("message") == str(req.admin_email)
     except Exception as e:
         warnings.append(f"api_key_valid failed; remediation attempted: regenerate owner keys; error={e}")
     try:
-        spot = _http_json(
-            site_name,
-            '/api/resource/DocPerm?filters=[["parent","=","Lead"]]',
-            headers={"Authorization": f"token {api_key}:{api_secret}", "X-Frappe-Site-Name": site_name},
-        )
-        entries = spot.get("data", [])
-        sm = next((r for r in entries if r.get("role") == "Sales Manager"), None)
-        su = next((r for r in entries if r.get("role") == "Sales User"), None)
-        checks["docperms_set"] = bool(
-            sm and su and int(sm.get("read", 0)) == 1 and int(sm.get("write", 0)) == 1 and int(sm.get("create", 0)) == 1 and int(sm.get("delete", 0)) == 1
-            and int(su.get("read", 0)) == 1 and int(su.get("write", 0)) == 0 and int(su.get("create", 0)) == 0 and int(su.get("delete", 0)) == 0
-        )
+        checks["docperms_set"] = _validate_lead_docperms_via_bench(site_name)
     except Exception as e:
         warnings.append(f"docperms spot-check failed; remediation attempted: docperm upsert rerun; error={e}")
 

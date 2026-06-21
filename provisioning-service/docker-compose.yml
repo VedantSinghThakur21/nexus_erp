@@ -22,9 +22,10 @@ services:
       - PROVISIONING_API_SECRET=${PROVISIONING_API_SECRET:-change-me-in-production}
       - DEFAULT_APPS=erpnext,nexus_core
       - ENVIRONMENT=${ENVIRONMENT:-production}
-      # frappe_docker :8080 frontend nginx often drops Authorization — prefer gunicorn :8000
-      # when published on the host, or fix frontend nginx proxy_set_header Authorization.
-      - FRAPPE_INTERNAL_URL=${FRAPPE_INTERNAL_URL:-http://host.docker.internal:8080}
+      # HTTP fallback for validation checks — prefer bench where possible.
+      # host.docker.internal:8080 often times out from this container; optional shared Docker
+      # network: FRAPPE_INTERNAL_URL=http://frappe_docker-frontend-1:8080
+      - FRAPPE_INTERNAL_URL=${FRAPPE_INTERNAL_URL:-http://frappe_docker-frontend-1:8080}
     volumes:
       # Mount Docker socket so we can docker exec into the backend container
       - /var/run/docker.sock:/var/run/docker.sock
