@@ -1233,7 +1233,7 @@ frappe.utils.password.update_password(email, pwd)
 owner_roles = ["System Manager", "Sales Manager", "Accounts Manager", "Projects Manager", "Stock Manager", "Employee", "All"]
 user.roles = []
 for role_name in owner_roles:
-    user.append("roles", {"role": role_name, "doctype": "Has Role"})
+    user.append("roles", {{"role": role_name, "doctype": "Has Role"}})
 user.save(ignore_permissions=True)
 
 frappe.db.commit()
@@ -1257,11 +1257,11 @@ import json
 email = {json.dumps(str(req.admin_email))}
 user = frappe.get_doc("User", email)
 current_roles = [r.role for r in user.roles]
-required = {"System Manager", "Sales Manager", "Accounts Manager", "Projects Manager", "Stock Manager", "Employee", "All"}
+required = {{"System Manager", "Sales Manager", "Accounts Manager", "Projects Manager", "Stock Manager", "Employee", "All"}}
 if set(current_roles) != required:
     user.roles = []
     for r in required:
-        user.append("roles", {"role": r, "doctype": "Has Role"})
+        user.append("roles", {{"role": r, "doctype": "Has Role"}})
     user.save(ignore_permissions=True)
     frappe.db.commit()
     current_roles = [r.role for r in user.roles]
