@@ -14,6 +14,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 const MASTER_SITE = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
@@ -132,12 +133,11 @@ async function handler(
     try {
       upstreamResponse = await fetch(upstreamUrl.toString(), {
         method: request.method,
-        headers: {
+        headers: frappeSiteRequestHeaders(siteName, BASE_URL, {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': authHeader,
-          'X-Frappe-Site-Name': siteName,
-        },
+          Accept: 'application/json',
+          Authorization: authHeader,
+        }),
         body: body || undefined,
         cache: 'no-store',
         signal: controller.signal,

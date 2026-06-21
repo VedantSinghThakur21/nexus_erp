@@ -95,14 +95,16 @@ export async function mintTenantApiKeysForLogin(options: {
   }
 
   try {
-    let provKeys = await generateUserApiKeys(subdomain, userEmail, 90_000)
-    let accepted = await accept(provKeys.api_key, provKeys.api_secret)
+    const provKeys = await generateUserApiKeys(subdomain, userEmail, 90_000)
+    const accepted = await accept(provKeys.api_key, provKeys.api_secret)
     if (accepted) return accepted
 
-    console.warn('[Login] Provisioning keys failed HTTP check — forcing rotate')
-    provKeys = await generateUserApiKeys(subdomain, userEmail, 90_000, { forceRotate: true })
-    accepted = await accept(provKeys.api_key, provKeys.api_secret)
-    if (accepted) return accepted
+    console.warn(
+      `[Login] Keys from provisioning failed verify on ${siteName} — rotating once`,
+    )
+    const rotated = await generateUserApiKeys(subdomain, userEmail, 90_000, { forceRotate: true })
+    const rotatedAccepted = await accept(rotated.api_key, rotated.api_secret)
+    if (rotatedAccepted) return rotatedAccepted
   } catch (apiError: unknown) {
     const message = apiError instanceof Error ? apiError.message : String(apiError)
     console.warn('[Login] Provisioning key mint failed:', message)

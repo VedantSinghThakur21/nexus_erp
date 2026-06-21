@@ -10,6 +10,7 @@ import {
   type TenantRecord,
 } from '@/lib/provisioning-client'
 import { mintTenantApiKeysForLogin } from '@/lib/mint-tenant-api-keys'
+import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 import { buildTenantFromSubdomain, resolveTenantId } from '@/lib/tenant'
 
@@ -308,10 +309,9 @@ export async function loginUser(
       for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
         response = await fetch(`${masterUrl}/api/method/login`, {
           method: 'POST',
-          headers: {
+          headers: frappeSiteRequestHeaders(siteName, masterUrl, {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Frappe-Site-Name': siteName,
-          },
+          }),
           body: new URLSearchParams({
             usr: usernameOrEmail,
             pwd: password,
@@ -459,11 +459,10 @@ export async function loginUser(
           const sid = setCookieHeader?.match(/sid=([^;]+)/)?.[1]
           const userDocReq = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
             method: 'POST',
-            headers: {
+            headers: frappeSiteRequestHeaders(siteName, masterUrl, {
               'Content-Type': 'application/json',
-              'X-Frappe-Site-Name': siteName,
               ...(sid ? { Cookie: `sid=${sid}` } : {}),
-            },
+            }),
             body: JSON.stringify({ doctype: 'User', name: userEmail }),
             signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
           })
@@ -705,11 +704,10 @@ export async function loginUser(
           const sidForCheck = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
           const userInfo = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
             method: 'POST',
-            headers: {
+            headers: frappeSiteRequestHeaders(siteName, masterUrl, {
               'Content-Type': 'application/json',
-              'X-Frappe-Site-Name': siteName,
               ...(sidForCheck ? { Cookie: `sid=${sidForCheck}` } : {}),
-            },
+            }),
             body: JSON.stringify({
               doctype: 'User',
               filters: userEmail,
@@ -877,6 +875,7 @@ export async function logoutUser() {
     cookieStore.delete('tenant_api_secret')
     cookieStore.delete('tenant_role_type')
     cookieStore.delete('tenant_roles_normalized')
+    cookieStore.delete('tenant_docperm_repaired')
     cookieStore.delete('full_name')
     cookieStore.delete('system_user')
 
@@ -968,11 +967,10 @@ export async function changePassword(currentPassword: string, newPassword: strin
       `${masterUrl}/api/method/frappe.core.doctype.user.user.update_password`,
       {
         method: 'POST',
-        headers: {
+        headers: frappeSiteRequestHeaders(siteName, masterUrl, {
           'Content-Type': 'application/json',
-          'X-Frappe-Site-Name': siteName,
           ...(sid ? { Cookie: `sid=${sid}` } : {}),
-        },
+        }),
         body: JSON.stringify({
           old_password: currentPassword,
           new_password: newPassword,

@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers'
+import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 type FrappeMethod = 'GET' | 'POST'
 
@@ -48,11 +49,11 @@ async function doFrappeRequest<T>(
   authHeader?: string,
   sid?: string
 ): Promise<{ response: Response; data: FrappeEnvelope<T> & Record<string, unknown> }> {
-  const requestHeaders: Record<string, string> = {
-    'Accept': 'application/json',
+  const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const requestHeaders: Record<string, string> = frappeSiteRequestHeaders(siteName, baseUrl, {
+    Accept: 'application/json',
     'Content-Type': 'application/json',
-    'X-Frappe-Site-Name': siteName,
-  }
+  })
 
   if (authHeader) {
     requestHeaders['Authorization'] = authHeader

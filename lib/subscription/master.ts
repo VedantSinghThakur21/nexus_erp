@@ -6,6 +6,7 @@ import {
   type SubscriptionStatus,
   type SubscriptionTier,
 } from '@/types/subscription'
+import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 type FrappeEnvelope<T> = {
   message?: T
@@ -64,12 +65,14 @@ function masterHeaders(): Record<string, string> {
     throw new Error('ERP_API_KEY/ERP_API_SECRET are required for subscription sync')
   }
 
-  return {
+  const masterSite = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
+  const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+
+  return frappeSiteRequestHeaders(masterSite, baseUrl, {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': `token ${apiKey}:${apiSecret}`,
-    'X-Frappe-Site-Name': process.env.FRAPPE_SITE_NAME || 'erp.localhost',
-  }
+    Accept: 'application/json',
+    Authorization: `token ${apiKey}:${apiSecret}`,
+  })
 }
 
 export async function masterFrappeCall<T>(

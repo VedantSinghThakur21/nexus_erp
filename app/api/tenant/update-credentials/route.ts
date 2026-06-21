@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 const API_KEY = process.env.ERP_API_KEY
@@ -37,6 +38,11 @@ export async function POST(request: NextRequest) {
     }
 
     const authHeader = `token ${API_KEY}:${API_SECRET}`
+    const masterHeaders = (extra: Record<string, string> = {}) =>
+      frappeSiteRequestHeaders(MASTER_SITE_NAME, BASE_URL, {
+        Authorization: authHeader,
+        ...extra,
+      })
     const siteUrl = providedSiteUrl || `https://${tenantName}.avariq.in`
 
 
@@ -52,10 +58,7 @@ export async function POST(request: NextRequest) {
 
     const findResponse = await fetch(searchUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'X-Frappe-Site-Name': MASTER_SITE_NAME,
-      },
+      headers: masterHeaders(),
     })
 
     let tenantRecordName: string | null = null
@@ -81,11 +84,7 @@ export async function POST(request: NextRequest) {
       const createEndpoint = `${BASE_URL}/api/resource/SaaS Tenant`
       const createResponse = await fetch(createEndpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-          'X-Frappe-Site-Name': MASTER_SITE_NAME,
-        },
+        headers: masterHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           subdomain: tenantName,
           site_url: siteUrl,
@@ -122,11 +121,7 @@ export async function POST(request: NextRequest) {
 
       const updateResponse = await fetch(updateEndpoint, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-          'X-Frappe-Site-Name': MASTER_SITE_NAME,
-        },
+        headers: masterHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           api_key: apiKey,
           api_secret: apiSecret,

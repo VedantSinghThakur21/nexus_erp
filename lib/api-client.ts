@@ -54,9 +54,15 @@ export async function apiRequest<T = unknown>(
     // We ignore if the import errors on client side, standard dynamic pattern
     try {
       const { cookies, headers } = await import('next/headers')
+      const { frappeSiteRequestHeaders } = await import('@/lib/frappe-site-headers')
       const cookieStore = await cookies()
       const apiKey = cookieStore.get('tenant_api_key')?.value
       const apiSecret = cookieStore.get('tenant_api_secret')?.value
+
+      const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
+      const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+      const MASTER_SITE = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
+      const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 
       if (apiKey && apiSecret) {
         finalHeaders['Authorization'] = `token ${apiKey}:${apiSecret}`
@@ -69,22 +75,21 @@ export async function apiRequest<T = unknown>(
         }
       }
 
-      // Automatically construct site name header
       const headersList = await headers()
       const tenantId = headersList.get('x-tenant-id')
-      if (tenantId && tenantId !== 'master') {
-             const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'avariq.in'
-             const IS_PRODUCTION = process.env.NODE_ENV === 'production'
-             finalHeaders['X-Frappe-Site-Name'] = IS_PRODUCTION ? `${tenantId}.${ROOT_DOMAIN}` : `${tenantId}.localhost`
-      } else {
-             finalHeaders['X-Frappe-Site-Name'] = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
-      }
+      const siteName =
+        tenantId && tenantId !== 'master'
+          ? IS_PRODUCTION
+            ? `${tenantId}.${ROOT_DOMAIN}`
+            : `${tenantId}.localhost`
+          : MASTER_SITE
+
+      Object.assign(finalHeaders, frappeSiteRequestHeaders(siteName, BASE_URL))
     } catch (e) {
       console.error('[API-CLIENT] Error reading server cookies/headers:', e)
     }
 
-    const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-    url = `${BASE_URL}/api/method/${normalised}`
+    url = `${process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'}/api/method/${normalised}`
 
   } else {
     // Client environment (Browser)

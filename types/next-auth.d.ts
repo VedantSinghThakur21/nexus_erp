@@ -6,7 +6,9 @@ declare module "next-auth" {
      */
     interface Session {
         hasTenant: boolean
-        tenantSubdomain?: string
+        tenantSubdomain?: string | null
+        /** Tenant Frappe site FQDN, e.g. testorg.avariq.in — NOT erp.localhost */
+        frappeSiteName?: string | null
         user: {
             /** The user's postal address. */
             address?: string

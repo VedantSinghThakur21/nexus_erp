@@ -54,6 +54,7 @@ const ROLE_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
 const DOCPERM_REPAIR_COOLDOWN_MS = 10 * 60 * 1000
 /** Concurrent 403s within this window reuse the last repair and retry */
 const REPAIR_RETRY_WINDOW_MS = 30 * 1000
+const DOCPERM_REPAIR_COOKIE = 'tenant_docperm_repaired'
 const roleRepairLastAttempt = new Map<string, number>()
 const docpermRepairLastAttempt = new Map<string, number>()
 const roleRepairInFlight = new Map<string, Promise<boolean>>()
@@ -446,9 +447,19 @@ async function tryRepairTenantDocPerms(
     return false
   }
 
+  // Never repair when the request targeted the master site (routing misconfig).
+  if (context.siteName === MASTER_SITE_NAME) {
+    return false
+  }
+
   const cookieStore = await cookies()
   const userEmail = cookieStore.get('user_email')?.value || cookieStore.get('user_id')?.value
   if (!userEmail) return false
+
+  const repairMarker = `${context.subdomain}:${userEmail}`
+  if (cookieStore.get(DOCPERM_REPAIR_COOKIE)?.value === repairMarker) {
+    return false
+  }
 
   const cooldownKey = `${context.subdomain}:${userEmail}`
   const inFlight = docpermRepairInFlight.get(cooldownKey)
@@ -473,6 +484,13 @@ async function tryRepairTenantDocPerms(
         `[API] Auto-repaired DocPerms for ${userEmail} on ${context.subdomain}` +
           (deniedDoctype ? ` (denied: ${deniedDoctype})` : ''),
       )
+      cookieStore.set(DOCPERM_REPAIR_COOKIE, repairMarker, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 60 * 60 * 24,
+        path: '/',
+      })
       return true
     } catch (error) {
       console.warn('[API] Automatic tenant DocPerm repair failed:', error)

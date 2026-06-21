@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
+import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 /**
  * NextAuth Configuration for Nexus ERP Multi-Tenant SaaS
@@ -76,10 +77,9 @@ async function lookupTenantInMasterDB(email: string): Promise<{
       const response = await fetch(
         `${ERP_URL}/api/method/frappe.client.get_list?${params}`,
         {
-          headers: {
-            'Authorization': `token ${apiKey}:${apiSecret}`,
-            'X-Frappe-Site-Name': MASTER_SITE,
-          },
+          headers: frappeSiteRequestHeaders(MASTER_SITE, ERP_URL, {
+            Authorization: `token ${apiKey}:${apiSecret}`,
+          }),
           cache: 'no-store',
         }
       )
@@ -144,9 +144,18 @@ const callbacks = {
       session.user.name = token.name as string
       session.user.image = token.picture as string
     }
-    // Attach tenant info to session (accessible client-side)
+    // Attach tenant info to session (accessible client-side).
+    // API keys intentionally live in httpOnly cookies (tenant_api_key / tenant_api_secret),
+    // NOT in the NextAuth session — never expose secrets to client JS.
     session.hasTenant = token.hasTenant as boolean
     session.tenantSubdomain = token.tenantSubdomain as string | null
+    if (token.tenantSubdomain) {
+      session.frappeSiteName = IS_PRODUCTION
+        ? `${token.tenantSubdomain}.${ROOT_DOMAIN}`
+        : `${token.tenantSubdomain}.localhost`
+    } else {
+      session.frappeSiteName = null
+    }
     return session
   },
 
