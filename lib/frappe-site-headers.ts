@@ -23,13 +23,26 @@ export function isLoopbackFrappeBaseUrl(baseUrl: string): boolean {
 }
 
 /**
- * Base URL for server-side Frappe API calls.
- * Never use the tenant Next.js subdomain — use ERP_NEXT_URL or ERP_FRAPPE_DIRECT_URL.
+ * Ordered Frappe base URLs to try (direct/gunicorn first, then nginx front door).
+ * Port 8080 in frappe_docker often strips Authorization; :8000 gunicorn does not.
+ */
+export function frappeBaseUrlCandidates(configuredBase?: string): string[] {
+  const urls: string[] = []
+  const add = (raw?: string) => {
+    if (!raw) return
+    const normalized = raw.replace(/\/+$/, '')
+    if (!urls.includes(normalized)) urls.push(normalized)
+  }
+  add(process.env.ERP_FRAPPE_DIRECT_URL)
+  add(configuredBase || process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080')
+  return urls
+}
+
+/**
+ * Base URL for server-side Frappe API calls (first candidate).
  */
 export function frappeEffectiveBaseUrl(_siteName: string, configuredBase?: string): string {
-  const direct = process.env.ERP_FRAPPE_DIRECT_URL?.replace(/\/+$/, '')
-  if (direct) return direct
-  return configuredBase || process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  return frappeBaseUrlCandidates(configuredBase)[0]
 }
 
 export function frappeSiteRequestHeaders(

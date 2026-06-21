@@ -1,33 +1,56 @@
 #!/bin/bash
-# Fix Frappe multi-tenant configuration
+# Enable Frappe multi-tenant (per-Host) routing on frappe_docker.
+#
+# The Nexus app already sends Host + X-Frappe-Site-Name = <tenant>.avariq.in on
+# every server-side ERP call (see lib/frappe-site-headers.ts). For those headers
+# to actually select the tenant site, the frappe_docker FRONTEND nginx must
+# resolve the upstream site from the request Host ($host) — NOT a pinned value
+# such as erp.localhost. A pinned FRAPPE_SITE_NAME_HEADER forces ALL tenants
+# onto the master site and produces 403 PermissionErrors + API-key "rotate"
+# storms even though each tenant has its own provisioned site.
+set -euo pipefail
 
-echo "=== Fixing Frappe Multi-Tenant Configuration ==="
+FRONTEND_CONTAINER="${FRONTEND_CONTAINER:-frappe_docker-frontend-1}"
+BACKEND_CONTAINER="${BACKEND_CONTAINER:-frappe_docker-backend-1}"
 
-# Set the default site to the master site (erp.localhost)
-# This allows X-Frappe-Site-Name header to override and route to tenant sites
-echo "Setting default_site to master site..."
-docker exec frappe_docker-backend-1 bash -c 'cat > /home/frappe/frappe-bench/sites/common_site_config.json << EOF
-{
-  "db_host": "db",
-  "redis_cache": "redis://redis-cache:6379",
-  "redis_queue": "redis://redis-queue:6379",
-  "redis_socketio": "redis://redis-queue:6379",
-  "socketio_port": 9000,
-  "webserver_port": 8000,
-  "default_site": "erp.localhost",
-  "allow_cors": "https://avariq.in",
-  "http_timeout": 120,
-  "gunicorn_workers": 4
-}
-EOF'
+echo "=== Enabling per-Host multi-tenant routing ==="
 
-echo "Restarting Frappe backend..."
-docker restart frappe_docker-backend-1
+# 1. Live unblock: rewrite any pinned `proxy_set_header Host ...;` to use $host
+#    and reload nginx in-place. This takes effect immediately, without waiting
+#    for a container recreate.
+echo "Patching frontend nginx to route by request Host ($FRONTEND_CONTAINER)..."
+docker exec "$FRONTEND_CONTAINER" sh -c '
+  conf=$(grep -rl "proxy_set_header Host" /etc/nginx/conf.d/ 2>/dev/null || true)
+  if [ -z "$conf" ]; then
+    echo "  WARNING: no proxy_set_header Host directive found under /etc/nginx/conf.d/"
+  fi
+  for f in $conf; do
+    sed -i "s/proxy_set_header Host [^;]*;/proxy_set_header Host \$host;/g" "$f"
+    echo "  patched: $f"
+  done
+  nginx -t && nginx -s reload
+'
+
+# 2. dns_multitenant must be enabled so Frappe maps the incoming Host to the
+#    correct site DB (idempotent safety check).
+echo "Ensuring dns_multitenant is enabled ($BACKEND_CONTAINER)..."
+docker exec "$BACKEND_CONTAINER" bash -c \
+  'cd /home/frappe/frappe-bench && bench set-config -g dns_multitenant true' || \
+  echo "  WARNING: could not set dns_multitenant (check backend container name)"
 
 echo ""
-echo "=== Configuration Complete ==="
-echo "Frappe will now:"
-echo "  1. Use erp.localhost as the default site"
-echo "  2. Route to tenant sites when X-Frappe-Site-Name header is provided"
+echo "=== Live routing patched ==="
+echo "Frappe will now resolve the tenant site from the request Host header,"
+echo "so <tenant>.avariq.in calls hit the tenant DB (not erp.localhost)."
 echo ""
-echo "Wait 30 seconds for restart, then test login again"
+echo "IMPORTANT — make the fix PERMANENT (survives container recreate)."
+echo "The frontend container regenerates its nginx config from FRAPPE_SITE_NAME_HEADER"
+echo "on every start, so set this in frappe_docker/.env:"
+echo ""
+echo "    FRAPPE_SITE_NAME_HEADER=\$\$host"
+echo ""
+echo "then recreate the frontend container:"
+echo ""
+echo "    docker compose -f frappe_docker/compose.yaml up -d frontend"
+echo ""
+echo "(The \$\$ is docker-compose escaping so the literal \$host reaches nginx.)"

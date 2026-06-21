@@ -2755,6 +2755,15 @@ try:
     # existing session cookie pick up the new roles immediately instead of
     # looping on stale 403s.
     frappe.clear_cache(user=user_email)
+    # Also drop any active sessions: session data caches the role set at login,
+    # so an already-logged-in user would otherwise keep the stale roles until
+    # re-login. Clearing forces the next request to rebuild from the freshly
+    # committed Has Role rows.
+    try:
+        frappe.sessions.clear_sessions(user=user_email)
+        frappe.db.commit()
+    except Exception:
+        pass
     assigned = [r.role for r in user.roles]
     print(json.dumps({{"assigned": assigned}}))
 except Exception as exc:
