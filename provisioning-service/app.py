@@ -422,12 +422,51 @@ def get_site_name(subdomain: str) -> str:
     return f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
 
 
-def _frappe_effective_base_url(_site_name: str) -> str:
+def _frappe_site_scoped_base_url(site_name: str, base_url: str) -> Optional[str]:
+    """Rewrite loopback/internal base URL to use site FQDN (Host derived from URL)."""
+    if not site_name or "." not in site_name:
+        return None
+    try:
+        parsed = urllib.parse.urlparse(base_url.rstrip("/"))
+        if parsed.hostname not in ("127.0.0.1", "localhost", "host.docker.internal", "::1"):
+            return None
+        port = parsed.port
+        if port is None:
+            port = 443 if parsed.scheme == "https" else 80
+        netloc = f"{site_name}:{port}" if port not in (80, 443) else site_name
+        return f"{parsed.scheme}://{netloc}"
+    except Exception:
+        return None
+
+
+def _frappe_base_url_candidates(site_name: str) -> list[str]:
+    """Ordered Frappe bases for server-side calls (Docker container or host)."""
+    urls: list[str] = []
+    seen: set[str] = set()
+
+    def add(raw: Optional[str]) -> None:
+        if not raw:
+            return
+        normalized = raw.rstrip("/")
+        if normalized in seen:
+            return
+        seen.add(normalized)
+        urls.append(normalized)
+
+    for raw in (
+        os.environ.get("ERP_FRAPPE_DIRECT_URL", "").rstrip("/") or None,
+        FRAPPE_INTERNAL_URL,
+    ):
+        add(_frappe_site_scoped_base_url(site_name, raw))
+        add(raw)
+
+    return urls or [FRAPPE_INTERNAL_URL]
+
+
+def _frappe_effective_base_url(site_name: str) -> str:
     """Direct Frappe URL only — never tenant Next.js subdomain (testorg.avariq.in)."""
-    direct = os.environ.get("ERP_FRAPPE_DIRECT_URL", "").rstrip("/")
-    if direct:
-        return direct
-    return FRAPPE_INTERNAL_URL
+    candidates = _frappe_base_url_candidates(site_name)
+    return candidates[0]
 
 
 def _frappe_site_headers(site_name: str, base_url: str) -> dict[str, str]:
@@ -450,22 +489,32 @@ def _frappe_api_json(
     body: Optional[dict[str, Any]] = None,
     timeout: int = 15,
 ) -> dict[str, Any]:
-    """Call Frappe via tenant FQDN or internal URL + site headers (matches Nexus api.ts)."""
-    base_url = _frappe_effective_base_url(site_name)
+    """Call Frappe via internal/loopback URL + site Host header (works from Docker)."""
     encoded_body = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(
-        f"{base_url}{path}",
-        method=method,
-        data=encoded_body,
-    )
-    req.add_header("Content-Type", "application/json")
-    for key, value in _frappe_site_headers(site_name, base_url).items():
-        req.add_header(key, value)
-    for key, value in (headers or {}).items():
-        req.add_header(key, value)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        raw = resp.read().decode("utf-8")
-        return json.loads(raw) if raw else {}
+    last_error: Optional[Exception] = None
+
+    for base_url in _frappe_base_url_candidates(site_name):
+        try:
+            req = urllib.request.Request(
+                f"{base_url.rstrip('/')}{path}",
+                method=method,
+                data=encoded_body,
+            )
+            req.add_header("Content-Type", "application/json")
+            for key, value in _frappe_site_headers(site_name, base_url).items():
+                req.add_header(key, value)
+            for key, value in (headers or {}).items():
+                req.add_header(key, value)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read().decode("utf-8")
+                return json.loads(raw) if raw else {}
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    if last_error:
+        raise last_error
+    raise Exception("Frappe API request failed")
 
 
 def _http_json(
@@ -476,6 +525,7 @@ def _http_json(
     body: Optional[dict[str, Any]] = None,
     timeout: int = 15,
 ) -> dict[str, Any]:
+    """HTTP to tenant FQDN (public nginx) with fallback to internal Frappe routing."""
     schemes = ["https", "http"] if IS_PRODUCTION else ["http"]
     encoded_body = json.dumps(body).encode() if body is not None else None
     final_error: Optional[Exception] = None
@@ -497,9 +547,14 @@ def _http_json(
             final_error = exc
             continue
 
-    if final_error:
-        raise final_error
-    raise Exception("HTTP request failed")
+    # From the provisioning container, tenant FQDN on :443/:80 often hits Next.js (404).
+    # Reach Frappe on host.docker.internal:8080 with Host: <site_name> instead.
+    try:
+        return _frappe_api_json(site_name, path, method, headers, body, timeout)
+    except Exception as internal_exc:
+        if final_error:
+            raise final_error from internal_exc
+        raise internal_exc
 
 
 def _validate_user_api_token_bench(
@@ -1027,7 +1082,7 @@ print(json.dumps({{"subdomain_exists": bool(subdomain_exists), "email_exists": i
 
     # Step 1b: ping check (must pass before continuing)
     try:
-        ping_result = _http_json(site_name, "/api/method/frappe.ping")
+        ping_result = _frappe_api_json(site_name, "/api/method/frappe.ping")
         if ping_result.get("message") != "pong":
             raise Exception(f"Unexpected ping response: {ping_result}")
         steps_completed.append("ping_ok")

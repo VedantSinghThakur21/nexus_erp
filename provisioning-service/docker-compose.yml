@@ -24,10 +24,12 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-production}
       # frappe_docker :8080 frontend nginx often drops Authorization — prefer gunicorn :8000
       # when published on the host, or fix frontend nginx proxy_set_header Authorization.
-      - FRAPPE_INTERNAL_URL=${FRAPPE_INTERNAL_URL:-http://host.docker.internal:8000}
+      - FRAPPE_INTERNAL_URL=${FRAPPE_INTERNAL_URL:-http://host.docker.internal:8080}
     volumes:
       # Mount Docker socket so we can docker exec into the backend container
       - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
