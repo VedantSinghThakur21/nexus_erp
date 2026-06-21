@@ -9,7 +9,7 @@ import {
   type TenantRecord,
 } from '@/lib/provisioning-client'
 import { mintTenantApiKeysForLogin } from '@/lib/mint-tenant-api-keys'
-import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+import { frappeSiteRequestHeaders, frappeBaseUrlCandidates } from '@/lib/frappe-site-headers'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 import { buildTenantFromSubdomain, resolveTenantId } from '@/lib/tenant'
 
@@ -186,6 +186,87 @@ async function explainLoginFailure(
   }
 }
 
+function isFrappeLoginRejected(data: { message?: string; exc_type?: string }, response: Response): boolean {
+  const msg = String(data.message || '').toLowerCase()
+  return (
+    response.status === 401 ||
+    response.status === 403 ||
+    data.exc_type === 'AuthenticationError' ||
+    msg.includes('invalid login') ||
+    msg.includes('incorrect password') ||
+    msg.includes('authentication failed')
+  )
+}
+
+async function resolveFailedLoginResult(
+  email: string | null,
+  tenantsToTry: TenantRecord[],
+  onRootDomain: boolean,
+  rootDomain: string,
+  tryNextTenant: boolean,
+): Promise<LoginResult | 'continue'> {
+  if (tryNextTenant) return 'continue'
+  const failure = await explainLoginFailure(email, tenantsToTry, onRootDomain, rootDomain)
+  return { success: false, ...failure }
+}
+
+/** POST /api/method/login — tries :8000 direct gunicorn when :8080 nginx misroutes. */
+async function postFrappeLogin(
+  siteName: string,
+  usernameOrEmail: string,
+  password: string,
+  configuredBase: string,
+): Promise<{ response: Response; data: Record<string, unknown>; parsed: boolean; responseText: string }> {
+  let lastResponse!: Response
+  let lastData: Record<string, unknown> = {}
+  let lastParsed = false
+  let lastText = ''
+
+  for (const baseUrl of frappeBaseUrlCandidates(configuredBase)) {
+    const response = await fetch(`${baseUrl}/api/method/login`, {
+      method: 'POST',
+      headers: frappeSiteRequestHeaders(siteName, baseUrl, {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      }),
+      body: new URLSearchParams({
+        usr: usernameOrEmail,
+        pwd: password,
+      }),
+      signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
+    })
+
+    const responseText = await response.text()
+    let data: Record<string, unknown> = {}
+    let parsed = false
+    try {
+      data = JSON.parse(responseText) as Record<string, unknown>
+      parsed = true
+    } catch {
+      data = {}
+    }
+
+    lastResponse = response
+    lastData = data
+    lastParsed = parsed
+    lastText = responseText
+
+    if (parsed && (data.message || data.exc_type)) {
+      return { response, data, parsed, responseText }
+    }
+    if (response.status === 401 || response.status === 403) {
+      return { response, data, parsed, responseText }
+    }
+    // nginx 404 HTML on :8080 — try ERP_FRAPPE_DIRECT_URL (:8000) next
+    if (response.status === 404 && !parsed) {
+      continue
+    }
+
+    return { response, data, parsed, responseText }
+  }
+
+  return { response: lastResponse, data: lastData, parsed: lastParsed, responseText: lastText }
+}
+
 /**
  * Validate email format
  */
@@ -360,39 +441,31 @@ export async function loginUser(
       siteName = getTenantSiteName(candidate.subdomain)
 
       for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
-        response = await fetch(`${masterUrl}/api/method/login`, {
-          method: 'POST',
-          headers: frappeSiteRequestHeaders(siteName, masterUrl, {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          }),
-          body: new URLSearchParams({
-            usr: usernameOrEmail,
-            pwd: password,
-          }),
-          signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
-        })
+        const loginAttempt = await postFrappeLogin(
+          siteName,
+          usernameOrEmail,
+          password,
+          masterUrl,
+        )
+        response = loginAttempt.response
+        data = loginAttempt.data
+        const responseText = loginAttempt.responseText
 
-        const responseText = await response.text()
-
-        try {
-          data = JSON.parse(responseText)
-        } catch {
-          if (response.status === 404) {
-            if (onRootDomain && tenantsToTry.length > 1) break
-            return { success: false, error: 'Workspace not found. Please check your site URL and try again.' }
-          }
-          if (response.status === 403 || response.status === 401) {
-            if (onRootDomain && tenantsToTry.length > 1) break
-            const failure = await explainLoginFailure(email, tenantsToTry, onRootDomain, rootDomain)
-            return { success: false, ...failure }
-          }
+        if (!loginAttempt.parsed) {
           if (response.status >= 500) {
             return { success: false, error: 'Server error. Please try again later.' }
           }
-          return {
-            success: false,
-            error: 'Unable to connect to your workspace. Please ensure your site is properly configured.',
-          }
+          const tryNext =
+            onRootDomain && tenantsToTry.length > 1 && (response.status === 404 || response.status === 401 || response.status === 403)
+          const failure = await resolveFailedLoginResult(
+            email,
+            tenantsToTry,
+            onRootDomain,
+            rootDomain,
+            tryNext,
+          )
+          if (failure === 'continue') break
+          return failure
         }
 
         const isOperationalError =
@@ -403,6 +476,10 @@ export async function loginUser(
           console.warn(`⚠️ Login OperationalError (attempt ${attempt}/${MAX_LOGIN_ATTEMPTS}) — retrying after delay...`)
           await new Promise((r) => setTimeout(r, 1000 * attempt))
           continue
+        }
+
+        if (isFrappeLoginRejected(data, response)) {
+          break
         }
 
         break
