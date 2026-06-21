@@ -1,9 +1,12 @@
 /**
  * Headers required for multi-tenant Frappe routing.
  *
- * When ERP_NEXT_URL points at loopback (127.0.0.1:8080), Frappe's dns_multitenant
- * mode cannot infer the site from the URL host. Prefer frappeEffectiveBaseUrl()
- * so requests hit the tenant vhost (https://tenant.domain) instead of loopback.
+ * Server-side ERP calls must use ERP_NEXT_URL (loopback / internal port), NOT the
+ * tenant app subdomain (https://tenant.avariq.in) — that hostname serves Next.js
+ * and middleware returns { code: "UNAUTHORIZED" } for /api/* without cookies.
+ *
+ * When ERP_NEXT_URL is loopback, set Host to the Frappe site name so dns_multitenant
+ * connects to the correct site DB before token auth runs.
  */
 export function isLoopbackFrappeBaseUrl(baseUrl: string): boolean {
   try {
@@ -20,30 +23,13 @@ export function isLoopbackFrappeBaseUrl(baseUrl: string): boolean {
 }
 
 /**
- * Resolve the Frappe base URL for a site.
- * Tenant sites on production should use their FQDN (nginx vhost) rather than
- * loopback — port 8080 often strips or mishandles Authorization / site routing.
+ * Base URL for server-side Frappe API calls.
+ * Never use the tenant Next.js subdomain — use ERP_NEXT_URL or ERP_FRAPPE_DIRECT_URL.
  */
-export function frappeEffectiveBaseUrl(siteName: string, configuredBase?: string): string {
-  const base = configuredBase || process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-  if (!isLoopbackFrappeBaseUrl(base)) return base
-
-  const masterSite = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
-  if (siteName === masterSite) return base
-
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN
-  if (rootDomain && siteName.endsWith(`.${rootDomain}`)) {
-    const scheme =
-      process.env.ERP_TENANT_FRAPPE_SCHEME ||
-      (process.env.NODE_ENV === 'production' ? 'https' : 'http')
-    return `${scheme}://${siteName}`
-  }
-
-  if (siteName.endsWith('.localhost')) {
-    return `http://${siteName}`
-  }
-
-  return base
+export function frappeEffectiveBaseUrl(_siteName: string, configuredBase?: string): string {
+  const direct = process.env.ERP_FRAPPE_DIRECT_URL?.replace(/\/+$/, '')
+  if (direct) return direct
+  return configuredBase || process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 }
 
 export function frappeSiteRequestHeaders(
@@ -56,7 +42,6 @@ export function frappeSiteRequestHeaders(
     'X-Frappe-Site-Name': siteName,
   }
 
-  // Only needed when still calling loopback; FQDN URLs carry Host in the URL.
   if (siteName.includes('.') && isLoopbackFrappeBaseUrl(baseUrl)) {
     headers.Host = siteName
   }

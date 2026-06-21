@@ -422,21 +422,11 @@ def get_site_name(subdomain: str) -> str:
     return f"{subdomain}.{PARENT_DOMAIN}" if IS_PRODUCTION else f"{subdomain}.localhost"
 
 
-def _frappe_effective_base_url(site_name: str) -> str:
-    """Prefer tenant FQDN over loopback — nginx vhost routes auth correctly."""
-    try:
-        host = urllib.parse.urlparse(FRAPPE_INTERNAL_URL).hostname or ""
-    except Exception:
-        host = ""
-    if host not in ("127.0.0.1", "localhost", "host.docker.internal", "::1"):
-        return FRAPPE_INTERNAL_URL
-    if site_name == MASTER_SITE:
-        return FRAPPE_INTERNAL_URL
-    if site_name.endswith(f".{PARENT_DOMAIN}"):
-        scheme = "https" if IS_PRODUCTION else "http"
-        return f"{scheme}://{site_name}"
-    if site_name.endswith(".localhost"):
-        return f"http://{site_name}"
+def _frappe_effective_base_url(_site_name: str) -> str:
+    """Direct Frappe URL only — never tenant Next.js subdomain (testorg.avariq.in)."""
+    direct = os.environ.get("ERP_FRAPPE_DIRECT_URL", "").rstrip("/")
+    if direct:
+        return direct
     return FRAPPE_INTERNAL_URL
 
 
