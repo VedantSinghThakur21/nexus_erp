@@ -132,7 +132,59 @@ interface TenantData {
 type LoginResult =
   | { success: true; user: string; userType: 'admin'; dashboardUrl: string; requirePasswordChange?: boolean }
   | { success: true; user: string; subdomain: string; userType: 'tenant'; redirectUrl: string; requirePasswordChange?: boolean }
-  | { success: false; error: string; tenantChoices?: { subdomain: string; label: string }[] }
+  | { success: false; error: string; tenantChoices?: { subdomain: string; label: string }[]; suggestGoogleSignIn?: boolean }
+
+const OAUTH_LOGIN_MESSAGE =
+  "This account uses Google Sign-In. Please click 'Sign in with Google' instead, or reset your password to enable email login."
+
+async function explainLoginFailure(
+  email: string | null,
+  tenantsToTry: TenantRecord[],
+  onRootDomain: boolean,
+  rootDomain: string,
+): Promise<{ error: string; suggestGoogleSignIn?: boolean }> {
+  const { listTenantsForUserEmail, getTenantUserLoginHint } = await import('@/lib/provisioning-client')
+
+  let candidates = tenantsToTry
+  if (email && candidates.length === 0) {
+    const discovered = await listTenantsForUserEmail(email)
+    candidates = discovered.map((t) => ({
+      name: t.subdomain,
+      subdomain: t.subdomain,
+      site_url: t.site_url,
+      status: String(t.status || 'active'),
+      owner_email: t.owner_email,
+    }))
+    if (candidates.length === 0) {
+      return {
+        error: 'No workspace found for this email. Ask your admin to invite you or visit avariq.in/signup to create one.',
+      }
+    }
+  }
+
+  if (!email) {
+    return {
+      error: onRootDomain
+        ? 'Invalid email or password.'
+        : `Invalid email or password. Wrong workspace? Sign in at ${rootDomain}/login to find yours.`,
+    }
+  }
+
+  for (const t of candidates) {
+    const hint = await getTenantUserLoginHint(t.subdomain, email)
+    if (hint?.exists && hint.has_social_login) {
+      return { error: OAUTH_LOGIN_MESSAGE, suggestGoogleSignIn: true }
+    }
+  }
+
+  if (candidates.length > 0) {
+    return { error: 'Invalid email or password.' }
+  }
+
+  return {
+    error: 'No workspace found for this email. Ask your admin to invite you or visit avariq.in/signup to create one.',
+  }
+}
 
 /**
  * Validate email format
@@ -331,7 +383,8 @@ export async function loginUser(
           }
           if (response.status === 403 || response.status === 401) {
             if (onRootDomain && tenantsToTry.length > 1) break
-            return { success: false, error: 'Invalid credentials or access denied.' }
+            const failure = await explainLoginFailure(email, tenantsToTry, onRootDomain, rootDomain)
+            return { success: false, ...failure }
           }
           if (response.status >= 500) {
             return { success: false, error: 'Server error. Please try again later.' }
@@ -362,12 +415,8 @@ export async function loginUser(
     }
 
     if (!tenant) {
-      return {
-        success: false,
-        error: onRootDomain
-          ? 'Invalid email or password.'
-          : `Invalid email or password. Wrong workspace? Sign in at ${rootDomain}/login to find yours.`,
-      }
+      const failure = await explainLoginFailure(email, tenantsToTry, onRootDomain, rootDomain)
+      return { success: false, ...failure }
     }
 
     // ── Successful auth: set cookies and complete login ──
@@ -883,6 +932,76 @@ export async function logoutUser() {
   } catch (error: any) {
     console.error('Logout error:', error)
     return { success: false, error: error.message }
+  }
+}
+
+
+export async function requestPasswordReset(
+  email: string,
+  workspaceHint?: string,
+): Promise<{ success: true; message: string } | { success: false; error: string }> {
+  const trimmed = email.trim()
+  if (!isValidEmail(trimmed)) {
+    return { success: false, error: 'Enter a valid email address.' }
+  }
+
+  const masterUrl = process.env.ERP_NEXT_URL || process.env.NEXT_PUBLIC_ERPNEXT_URL || 'http://127.0.0.1:8080'
+  const { listTenantsForUserEmail } = await import('@/lib/provisioning-client')
+
+  let subdomain = workspaceHint?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '')
+  if (!subdomain) {
+    const currentSubdomain = await resolveTenantId()
+    if (currentSubdomain !== 'master') {
+      subdomain = currentSubdomain
+    } else {
+      const tenants = await listTenantsForUserEmail(trimmed)
+      if (tenants.length === 0) {
+        return { success: false, error: 'No workspace found for this email.' }
+      }
+      if (tenants.length > 1) {
+        return {
+          success: false,
+          error: 'Multiple workspaces found. Enter your workspace slug below and try again.',
+        }
+      }
+      subdomain = tenants[0].subdomain
+    }
+  }
+
+  const siteName = getTenantSiteName(subdomain)
+
+  try {
+    const response = await fetch(
+      `${masterUrl}/api/method/frappe.core.doctype.user.user.reset_password`,
+      {
+        method: 'POST',
+        headers: frappeSiteRequestHeaders(siteName, masterUrl, {
+          'Content-Type': 'application/json',
+        }),
+        body: JSON.stringify({ user: trimmed }),
+        signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
+      },
+    )
+
+    const bodyText = await response.text()
+    let body: { exc?: string; message?: string } = {}
+    try {
+      body = JSON.parse(bodyText)
+    } catch {
+      // non-JSON — still show generic confirmation
+    }
+
+    if (!response.ok && body.exc) {
+      console.error('Password reset error:', body.exc)
+    }
+
+    return {
+      success: true,
+      message: 'If an account exists, a password reset email has been sent. Check your inbox.',
+    }
+  } catch (error) {
+    console.error('Password reset failed:', error)
+    return { success: false, error: 'Unable to send reset email. Please try again later.' }
   }
 }
 

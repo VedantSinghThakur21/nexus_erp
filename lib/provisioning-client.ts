@@ -280,6 +280,23 @@ export interface TenantByUserResult {
   owner_email?: string
 }
 
+export interface TenantUserLoginHint {
+  exists: boolean
+  has_social_login: boolean
+  providers?: string[]
+}
+
+/** Check if a tenant user exists and uses social/OAuth login (login error hints). */
+export async function getTenantUserLoginHint(
+  subdomain: string,
+  email: string,
+): Promise<TenantUserLoginHint | null> {
+  return optionalServiceRequest<TenantUserLoginHint>(
+    `/api/v1/user-login-hint/${encodeURIComponent(subdomain)}?email=${encodeURIComponent(email)}`,
+    { timeout: 30_000 },
+  )
+}
+
 /** All workspaces an email can access — for root-domain login and OAuth. */
 export async function listTenantsForUserEmail(email: string): Promise<TenantByUserResult[]> {
   const result = await optionalServiceRequest<{ tenants?: TenantByUserResult[] }>(

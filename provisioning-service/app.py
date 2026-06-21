@@ -848,6 +848,45 @@ async def get_tenants_by_user(email: str, _auth: bool = Depends(verify_api_secre
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/v1/user-login-hint/{subdomain}")
+async def get_user_login_hint(
+    subdomain: str,
+    email: str,
+    _auth: bool = Depends(verify_api_secret),
+):
+    """Whether a tenant user exists and uses social/OAuth login (for login error hints)."""
+    user_email = (email or "").strip()
+    if not user_email or "@" not in user_email:
+        raise HTTPException(status_code=400, detail="A valid email query parameter is required")
+
+    site_name = get_site_name(subdomain)
+    code = f"""import json
+email = {json.dumps(user_email)}
+hint = {{"exists": False, "has_social_login": False, "providers": []}}
+if not frappe.db.exists("User", email):
+    print(json.dumps(hint))
+else:
+    hint["exists"] = True
+    user = frappe.get_doc("User", email)
+    for row in user.get("social_logins") or []:
+        prov = row.provider if hasattr(row, "provider") else (row.get("provider") if isinstance(row, dict) else None)
+        if prov:
+            hint["providers"].append(str(prov))
+    if not hint["providers"]:
+        for row in frappe.get_all("User Social Login", filters={{"parent": email}}, fields=["provider"]) or []:
+            if row.get("provider"):
+                hint["providers"].append(str(row["provider"]))
+    hint["has_social_login"] = len(hint["providers"]) > 0
+    print(json.dumps(hint))
+"""
+    try:
+        output = run_frappe_code(site_name, code)
+        return _parse_json_output(output)
+    except Exception as e:
+        logger.error(f"user-login-hint failed for {site_name}/{user_email}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/v1/tenant-record/subdomain/{subdomain}", response_model=TenantRecordLookupResponse)
 async def get_tenant_record_by_subdomain(subdomain: str, _auth: bool = Depends(verify_api_secret)):
     """Resolve a tenant by subdomain from the Master DB (ignores API user DocPerms)."""
@@ -2933,16 +2972,20 @@ async def create_tenant_user(
             raise HTTPException(status_code=400, detail="Conflicting manager roles are not allowed")
 
     create_code = f"""import json
+import frappe.utils
+from frappe.utils.password import update_password
+
 email = {json.dumps(str(payload.user_email))}
 first_name = {json.dumps(payload.first_name.strip())}
 last_name = {json.dumps((payload.last_name or "").strip())}
 roles = {json.dumps(desired_roles)}
 
-if frappe.db.exists("User", email):
-    user = frappe.get_doc("User", email)
-else:
+is_new_user = not frappe.db.exists("User", email)
+if is_new_user:
     user = frappe.new_doc("User")
     user.email = email
+else:
+    user = frappe.get_doc("User", email)
 
 user.first_name = first_name
 user.last_name = last_name
@@ -2954,8 +2997,17 @@ user.roles = []
 for role_name in roles:
     user.append("roles", {{"role": role_name, "doctype": "Has Role"}})
 user.save(ignore_permissions=True)
+
+initial_password = None
+if is_new_user:
+    initial_password = frappe.utils.random_string(12)
+    update_password(email, initial_password, logout_all_sessions=0)
+
 frappe.db.commit()
-print(json.dumps({{"roles": [r.role for r in user.roles]}}))
+result = {{"roles": [r.role for r in user.roles], "is_new": is_new_user}}
+if initial_password:
+    result["initial_password"] = initial_password
+print(json.dumps(result))
 """
     try:
         create_result = _parse_json_output(run_frappe_code(site_name, create_code))
@@ -2982,11 +3034,15 @@ print(json.dumps({{"roles": [r.role for r in user.roles]}}))
                 detail=f"Role assignment mismatch. expected={desired_roles} got={assigned}",
             )
 
-        return {
+        response_payload: dict = {
             "success": True,
             "user_email": str(payload.user_email),
             "roles": assigned,
         }
+        if create_result.get("initial_password"):
+            response_payload["initial_password"] = create_result["initial_password"]
+            response_payload["is_new"] = True
+        return response_payload
     except HTTPException:
         raise
     except Exception as e:
