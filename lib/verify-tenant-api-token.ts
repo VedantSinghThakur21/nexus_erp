@@ -12,7 +12,7 @@ export async function verifyTenantApiToken(
 ): Promise<boolean> {
   const timeoutMs = options.timeoutMs ?? 15_000
 
-  for (const baseUrl of frappeBaseUrlCandidates(options.baseUrl)) {
+  for (const baseUrl of frappeBaseUrlCandidates(siteName, options.baseUrl)) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
 

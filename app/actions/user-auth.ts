@@ -9,7 +9,7 @@ import {
   type TenantRecord,
 } from '@/lib/provisioning-client'
 import { mintTenantApiKeysForLogin } from '@/lib/mint-tenant-api-keys'
-import { frappeSiteRequestHeaders, frappeBaseUrlCandidates } from '@/lib/frappe-site-headers'
+import { frappeSiteRequestHeaders, frappeBaseUrlCandidates, frappeEffectiveBaseUrl } from '@/lib/frappe-site-headers'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 import { buildTenantFromSubdomain, resolveTenantId } from '@/lib/tenant'
 
@@ -222,7 +222,7 @@ async function postFrappeLogin(
   let lastParsed = false
   let lastText = ''
 
-  for (const baseUrl of frappeBaseUrlCandidates(configuredBase)) {
+  for (const baseUrl of frappeBaseUrlCandidates(siteName, configuredBase)) {
     const response = await fetch(`${baseUrl}/api/method/login`, {
       method: 'POST',
       headers: frappeSiteRequestHeaders(siteName, baseUrl, {
@@ -280,11 +280,13 @@ function isValidEmail(email: string): boolean {
  */
 async function loginToMasterSite(usernameOrEmail: string, password: string, masterUrl: string): Promise<LoginResult> {
   try {
-    const response = await fetch(`${masterUrl}/api/method/login`, {
+    const masterSite = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
+    const frappeBase = frappeEffectiveBaseUrl(masterSite, masterUrl)
+    const response = await fetch(`${frappeBase}/api/method/login`, {
       method: 'POST',
-      headers: {
+      headers: frappeSiteRequestHeaders(masterSite, frappeBase, {
         'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      }),
       body: new URLSearchParams({
         usr: usernameOrEmail,
         pwd: password
@@ -583,9 +585,9 @@ export async function loginUser(
         if (userEmail === tenant.owner_email) return 'admin'
         try {
           const sid = setCookieHeader?.match(/sid=([^;]+)/)?.[1]
-          const userDocReq = await fetch(`${masterUrl}/api/method/frappe.client.get`, {
+          const userDocReq = await fetch(`${frappeEffectiveBaseUrl(siteName, masterUrl)}/api/method/frappe.client.get`, {
             method: 'POST',
-            headers: frappeSiteRequestHeaders(siteName, masterUrl, {
+            headers: frappeSiteRequestHeaders(siteName, frappeEffectiveBaseUrl(siteName, masterUrl), {
               'Content-Type': 'application/json',
               ...(sid ? { Cookie: `sid=${sid}` } : {}),
             }),
@@ -828,9 +830,9 @@ export async function loginUser(
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 8000)
           const sidForCheck = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
-          const userInfo = await fetch(`${masterUrl}/api/method/frappe.client.get_value`, {
+          const userInfo = await fetch(`${frappeEffectiveBaseUrl(siteName, masterUrl)}/api/method/frappe.client.get_value`, {
             method: 'POST',
-            headers: frappeSiteRequestHeaders(siteName, masterUrl, {
+            headers: frappeSiteRequestHeaders(siteName, frappeEffectiveBaseUrl(siteName, masterUrl), {
               'Content-Type': 'application/json',
               ...(sidForCheck ? { Cookie: `sid=${sidForCheck}` } : {}),
             }),
@@ -1048,11 +1050,12 @@ export async function requestPasswordReset(
   const siteName = getTenantSiteName(subdomain)
 
   try {
+    const frappeBase = frappeEffectiveBaseUrl(siteName, masterUrl)
     const response = await fetch(
-      `${masterUrl}/api/method/frappe.core.doctype.user.user.reset_password`,
+      `${frappeBase}/api/method/frappe.core.doctype.user.user.reset_password`,
       {
         method: 'POST',
-        headers: frappeSiteRequestHeaders(siteName, masterUrl, {
+        headers: frappeSiteRequestHeaders(siteName, frappeBase, {
           'Content-Type': 'application/json',
         }),
         body: JSON.stringify({ user: trimmed }),
@@ -1243,11 +1246,12 @@ export async function changePassword(currentPassword: string, newPassword: strin
 
     // Use Frappe's built-in update_password method with the user's own session.
     // This validates old_password server-side — no admin credentials needed.
+    const frappeBase = frappeEffectiveBaseUrl(siteName, masterUrl)
     const response = await fetch(
-      `${masterUrl}/api/method/frappe.core.doctype.user.user.update_password`,
+      `${frappeBase}/api/method/frappe.core.doctype.user.user.update_password`,
       {
         method: 'POST',
-        headers: frappeSiteRequestHeaders(siteName, masterUrl, {
+        headers: frappeSiteRequestHeaders(siteName, frappeBase, {
           'Content-Type': 'application/json',
           ...(sid ? { Cookie: `sid=${sid}` } : {}),
         }),

@@ -14,7 +14,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+import { frappeSiteRequestHeaders, frappeEffectiveBaseUrl } from '@/lib/frappe-site-headers'
 
 const BASE_URL = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 const MASTER_SITE = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
@@ -50,9 +50,14 @@ function isTimeoutLikeError(error: unknown): boolean {
  * Resolve the Frappe site name from the x-tenant-id middleware header.
  */
 async function getSiteName(): Promise<string> {
-  const headersList = await headers()
-  const tenantId = headersList.get('x-tenant-id')
-  if (tenantId && tenantId !== 'master') {
+  const [headersList, cookieStore] = await Promise.all([headers(), cookies()])
+  const tenantId =
+    (headersList.get('x-tenant-id') && headersList.get('x-tenant-id') !== 'master'
+      ? headersList.get('x-tenant-id')
+      : null) ||
+    cookieStore.get('tenant_subdomain')?.value?.trim().toLowerCase() ||
+    null
+  if (tenantId) {
     return IS_PRODUCTION
       ? `${tenantId}.${ROOT_DOMAIN}`
       : `${tenantId}.localhost`
@@ -105,11 +110,9 @@ async function handler(
     )
   }
 
-  // Build the upstream Frappe URL
-  const upstreamUrl = new URL(
-    `/api/method/${frappePath}`,
-    BASE_URL
-  )
+  // Build the upstream Frappe URL (site FQDN hostname when ERP_NEXT_URL is loopback)
+  const frappeBase = frappeEffectiveBaseUrl(siteName, BASE_URL)
+  const upstreamUrl = new URL(`/api/method/${frappePath}`, frappeBase)
 
   // Forward query string (for GET requests)
   request.nextUrl.searchParams.forEach((value, key) => {
@@ -133,7 +136,7 @@ async function handler(
     try {
       upstreamResponse = await fetch(upstreamUrl.toString(), {
         method: request.method,
-        headers: frappeSiteRequestHeaders(siteName, BASE_URL, {
+        headers: frappeSiteRequestHeaders(siteName, frappeBase, {
           'Content-Type': 'application/json',
           Accept: 'application/json',
           Authorization: authHeader,

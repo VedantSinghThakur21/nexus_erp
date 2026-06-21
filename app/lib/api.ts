@@ -139,9 +139,11 @@ async function resolveTenantContext(): Promise<TenantContext> {
     const headerTenantId = headersList.get('x-tenant-id')
     const host = headersList.get('x-forwarded-host') || headersList.get('host') || ''
     const hostTenantId = parseTenantSubdomainFromHost(host)
+    const cookieSubdomain = cookieStore.get('tenant_subdomain')?.value?.trim().toLowerCase() || null
     const effectiveTenantId =
       (headerTenantId && headerTenantId !== 'master' ? headerTenantId : null) ||
-      hostTenantId
+      hostTenantId ||
+      cookieSubdomain
 
     // 2. Determine Subdomain
     const subdomain = effectiveTenantId || null
