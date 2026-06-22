@@ -6,7 +6,7 @@ import {
   type SubscriptionStatus,
   type SubscriptionTier,
 } from '@/types/subscription'
-import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+import { frappeEffectiveBaseUrl, frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 type FrappeEnvelope<T> = {
   message?: T
@@ -66,9 +66,10 @@ function masterHeaders(): Record<string, string> {
   }
 
   const masterSite = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
-  const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const configuredBase = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const frappeBase = frappeEffectiveBaseUrl(masterSite, configuredBase)
 
-  return frappeSiteRequestHeaders(masterSite, baseUrl, {
+  return frappeSiteRequestHeaders(masterSite, frappeBase, {
     'Content-Type': 'application/json',
     Accept: 'application/json',
     Authorization: `token ${apiKey}:${apiSecret}`,
@@ -80,8 +81,10 @@ export async function masterFrappeCall<T>(
   payload: Record<string, unknown>,
   method: 'GET' | 'POST' = 'POST'
 ): Promise<T> {
-  const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-  const url = new URL(`${baseUrl}/api/method/${endpoint}`)
+  const masterSite = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
+  const configuredBase = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const frappeBase = frappeEffectiveBaseUrl(masterSite, configuredBase)
+  const url = new URL(`${frappeBase}/api/method/${endpoint}`)
 
   if (method === 'GET') {
     for (const [key, value] of Object.entries(payload)) {
@@ -243,16 +246,22 @@ async function enrichOrganizationFromDoc(row: OrganizationRow): Promise<Organiza
 }
 
 export async function getOrganizationBySlug(slug: string): Promise<OrganizationRow | null> {
-  const rows = await masterFrappeCall<Pick<OrganizationRow, 'name'>[]>('frappe.client.get_list', {
-    doctype: 'Organization',
-    filters: { slug },
-    fields: ['name'],
-    limit_page_length: 1,
-  })
+  try {
+    const rows = await masterFrappeCall<Pick<OrganizationRow, 'name'>[]>('frappe.client.get_list', {
+      doctype: 'Organization',
+      filters: { slug },
+      fields: ['name'],
+      limit_page_length: 1,
+    })
 
-  const row = rows[0]
-  if (!row?.name) return null
-  return enrichOrganizationFromDoc({ ...row, slug })
+    const row = rows[0]
+    if (!row?.name) return null
+    return enrichOrganizationFromDoc({ ...row, slug })
+  } catch (error) {
+    // Organization mirror is optional — missing DocType or master routing must not break login/dashboard.
+    console.warn('[Subscription] Organization lookup failed:', error)
+    return null
+  }
 }
 
 export async function upsertOrganizationMirror(input: {

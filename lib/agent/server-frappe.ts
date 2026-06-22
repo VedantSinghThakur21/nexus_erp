@@ -1,5 +1,5 @@
 import { cookies, headers } from 'next/headers'
-import { frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+import { frappeEffectiveBaseUrl, frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 type FrappeMethod = 'GET' | 'POST'
 
@@ -49,8 +49,9 @@ async function doFrappeRequest<T>(
   authHeader?: string,
   sid?: string
 ): Promise<{ response: Response; data: FrappeEnvelope<T> & Record<string, unknown> }> {
-  const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
-  const requestHeaders: Record<string, string> = frappeSiteRequestHeaders(siteName, baseUrl, {
+  const configuredBase = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const frappeBase = frappeEffectiveBaseUrl(siteName, configuredBase)
+  const requestHeaders: Record<string, string> = frappeSiteRequestHeaders(siteName, frappeBase, {
     Accept: 'application/json',
     'Content-Type': 'application/json',
   })
@@ -79,7 +80,7 @@ export async function serverFrappeCall<T = unknown>(
   method: FrappeMethod,
   payload?: Record<string, unknown>
 ): Promise<T> {
-  const baseUrl = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
+  const configuredBase = process.env.ERP_NEXT_URL || 'http://127.0.0.1:8080'
 
   const headerStore = await headers()
   const cookieStore = await cookies()
@@ -99,7 +100,8 @@ export async function serverFrappeCall<T = unknown>(
       ? `token ${masterApiKey}:${masterApiSecret}`
       : undefined
 
-  const url = new URL(`${baseUrl}/api/method/${endpoint}`)
+  const frappeBase = frappeEffectiveBaseUrl(siteName, configuredBase)
+  const url = new URL(`${frappeBase}/api/method/${endpoint}`)
 
   if (method === 'GET' && payload) {
     for (const [key, value] of Object.entries(payload)) {
