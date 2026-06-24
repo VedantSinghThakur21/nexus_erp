@@ -26,8 +26,9 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/contexts/user-context'
 import { canAccessModule } from '@/lib/role-permissions'
-import { getUserProfile, type UserProfile } from '@/app/actions/profile'
+import type { UserProfile } from '@/app/actions/profile'
 import { logoutUser } from '@/app/actions/user-auth'
+import { useProfile } from '@/contexts/profile-context'
 import { signOut } from 'next-auth/react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -323,12 +324,8 @@ function SidebarNav({
 
 function SidebarUser({ collapsed }: { collapsed: boolean }) {
   const router = useRouter()
-  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const { profile } = useProfile()
   const [loggingOut, setLoggingOut] = useState(false)
-
-  useEffect(() => {
-    getUserProfile().then(setProfile).catch(() => setProfile(null))
-  }, [])
 
   async function handleLogout() {
     setLoggingOut(true)

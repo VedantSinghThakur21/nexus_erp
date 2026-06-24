@@ -1,8 +1,10 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { TenantGuard } from "@/components/auth/tenant-guard";
 import { FloatingAIChatLazy } from "@/components/ai/floating-chat-lazy";
+import { MainDataProviders } from "@/components/main-data-providers";
 import { RouteTransitionIndicator } from "@/components/route-transition-indicator";
-import { requireAuth } from "@/lib/auth-guard"
+import { getUserProfile } from "@/app/actions/profile"
+import { getUserRoles, requireAuth } from "@/lib/auth-guard"
 import { cookies } from "next/headers"
 
 /**
@@ -19,6 +21,11 @@ export default async function DashboardLayout({
   // Server-side authentication check
   // Will redirect to login if user is not authenticated
   await requireAuth()
+
+  const [initialRoles, initialProfile] = await Promise.all([
+    getUserRoles(),
+    getUserProfile(),
+  ])
   
   const cookieStore = await cookies()
   const hasServerAuth =
@@ -29,17 +36,19 @@ export default async function DashboardLayout({
     cookieStore.has('__Secure-next-auth.session-token')
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background text-foreground">
-      <RouteTransitionIndicator />
-      <AppSidebar />
-      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain">
-        <TenantGuard hasServerAuth={hasServerAuth}>
-          {children}
-        </TenantGuard>
-      </main>
-      {/* FloatingAIChat must be outside <main> — overflow-x-hidden on main clips
-          position:fixed children in Chromium, making the button invisible. */}
-      <FloatingAIChatLazy />
-    </div>
+    <MainDataProviders initialRoles={initialRoles} initialProfile={initialProfile}>
+      <div className="flex h-dvh overflow-hidden bg-background text-foreground">
+        <RouteTransitionIndicator />
+        <AppSidebar />
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+          <TenantGuard hasServerAuth={hasServerAuth}>
+            {children}
+          </TenantGuard>
+        </main>
+        {/* FloatingAIChat must be outside <main> — overflow-x-hidden on main clips
+            position:fixed children in Chromium, making the button invisible. */}
+        <FloatingAIChatLazy />
+      </div>
+    </MainDataProviders>
   )
 }

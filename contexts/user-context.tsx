@@ -90,16 +90,26 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | null>(null)
 
-export function UserProvider({ children }: { children: React.ReactNode }) {
+export function UserProvider({
+  children,
+  initialRoles,
+}: {
+  children: React.ReactNode
+  initialRoles?: string[]
+}) {
+  const hasServerRoles = initialRoles !== undefined
+
   // Hydrate from cache only when we have a non-empty role list. A cached `[]`
   // often comes from a timed-out fetch (previously written) and must not skip
   // a fresh network round-trip.
   const [roles, setRoles] = useState<string[]>(() => {
+    if (hasServerRoles) return initialRoles ?? []
     if (typeof window === 'undefined') return []
     const cached = readCache()
     return cached && cached.length > 0 ? cached : []
   })
   const [loading, setLoading] = useState(() => {
+    if (hasServerRoles) return false
     if (typeof window === 'undefined') return true
     const cached = readCache()
     return cached === null || cached.length === 0
@@ -187,6 +197,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // Roles were resolved on the server for (main) routes — skip client fetch.
+    if (hasServerRoles) return
+
     // Public pages do not need role resolution and can generate noisy failures
     // while users are unauthenticated. Keep provider lightweight there.
     if (typeof window !== 'undefined' && isPublicPath(window.location.pathname)) {
@@ -195,7 +208,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchRoles()
-  }, [fetchRoles])
+  }, [fetchRoles, hasServerRoles])
 
   const hasRole = useCallback(
     (role: string) => roles.includes(role),

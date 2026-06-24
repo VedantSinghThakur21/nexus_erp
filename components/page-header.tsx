@@ -2,8 +2,8 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { getUserProfile, type UserProfile } from '@/app/actions/profile'
 import { logoutUser } from '@/app/actions/user-auth'
+import { useProfile } from '@/contexts/profile-context'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -93,17 +93,13 @@ export function PageHeader({
     children
 }: PageHeaderProps) {
     const router = useRouter()
-    const [profile, setProfile] = useState<UserProfile | null>(null)
+    const { profile } = useProfile()
     const [showDropdown, setShowDropdown] = useState(false)
     const [searchFocused, setSearchFocused] = useState(false)
     const [loggingOut, setLoggingOut] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const intentActions = useMemo(() => getIntentActions(searchQuery), [searchQuery])
     const showIntentActions = searchFocused && intentActions.length > 0
-
-    useEffect(() => {
-        getUserProfile().then(setProfile)
-    }, [])
 
     // Close dropdown when clicking outside
     useEffect(() => {
