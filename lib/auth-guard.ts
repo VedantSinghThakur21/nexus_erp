@@ -78,6 +78,28 @@ export async function getAuthSession(): Promise<AuthSession | null> {
 }
 
 /**
+ * Validate the Frappe backend session is still active.
+ * Call after login or token refresh — not on every navigation.
+ */
+export async function validateFrappeSession(callbackUrl?: string): Promise<void> {
+  try {
+    await frappeRequest('frappe.auth.get_logged_user', 'GET')
+  } catch (error: unknown) {
+    const message = String(error instanceof Error ? error.message : error || '')
+    if (
+      message.includes('SESSION_EXPIRED') ||
+      message.includes('AuthenticationError') ||
+      message.toLowerCase().includes('session expired')
+    ) {
+      const loginUrl = callbackUrl
+        ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}&reason=session_expired`
+        : '/login?reason=session_expired'
+      redirect(loginUrl)
+    }
+  }
+}
+
+/**
  * Require authentication - redirects to login if not authenticated
  * Use in Server Components
  */
@@ -89,23 +111,6 @@ export async function requireAuth(callbackUrl?: string): Promise<AuthSession> {
       ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}&reason=unauthenticated`
       : '/login?reason=unauthenticated'
     redirect(loginUrl)
-  }
-  
-  // Validate current backend auth to avoid blank pages when token/session is expired.
-  try {
-    await frappeRequest('frappe.auth.get_logged_user', 'GET')
-  } catch (error: any) {
-    const message = String(error?.message || '')
-    if (
-      message.includes('SESSION_EXPIRED') ||
-      message.includes('AuthenticationError') ||
-      message.toLowerCase().includes('session expired')
-    ) {
-      const loginUrl = callbackUrl
-        ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}&reason=session_expired`
-        : '/login?reason=session_expired'
-      redirect(loginUrl)
-    }
   }
 
   return session
