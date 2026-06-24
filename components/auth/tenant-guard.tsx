@@ -67,7 +67,7 @@ export function TenantGuard({ children, hasServerAuth }: { children: React.React
         }
     }, [status, router, pathname, hasServerAuth])
 
-    if (status === 'loading') {
+    if (status === 'loading' && !hasServerAuth) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
