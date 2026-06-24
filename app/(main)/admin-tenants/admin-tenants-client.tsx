@@ -35,12 +35,13 @@ export function AdminTenantsClient() {
     const result = await listAllTenants()
     if (result.success && result.tenants) {
       setTenants(result.tenants)
-      
-      // Load site status for each tenant
-      for (const tenant of result.tenants) {
-        const status = await getTenantSiteStatus(tenant.site_url)
-        setSiteStatuses(prev => ({ ...prev, [tenant.name]: status }))
-      }
+
+      const statuses = await Promise.all(
+        result.tenants.map((tenant) => getTenantSiteStatus(tenant.site_url))
+      )
+      setSiteStatuses(
+        Object.fromEntries(result.tenants.map((tenant, i) => [tenant.name, statuses[i]]))
+      )
     }
     setLoading(false)
   }, [])
