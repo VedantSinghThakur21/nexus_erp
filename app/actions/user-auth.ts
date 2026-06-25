@@ -9,6 +9,7 @@ import {
   type TenantRecord,
 } from '@/lib/provisioning-client'
 import { mintTenantApiKeysForLogin } from '@/lib/mint-tenant-api-keys'
+import { frappeFetch } from '@/lib/frappe-fetch'
 import { frappeSiteRequestHeaders, frappeBaseUrlCandidates, frappeEffectiveBaseUrl } from '@/lib/frappe-site-headers'
 import { frappeRequest as apiFrappeRequest, masterRequest, tenantAdminRequest, getTenantContext } from '@/app/lib/api'
 import { buildTenantFromSubdomain, resolveTenantId } from '@/lib/tenant'
@@ -223,7 +224,7 @@ async function postFrappeLogin(
   let lastText = ''
 
   for (const baseUrl of frappeBaseUrlCandidates(siteName, configuredBase)) {
-    const response = await fetch(`${baseUrl}/api/method/login`, {
+    const response = await frappeFetch(`${baseUrl}/api/method/login`, {
       method: 'POST',
       headers: frappeSiteRequestHeaders(siteName, baseUrl, {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -282,7 +283,7 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
   try {
     const masterSite = process.env.FRAPPE_SITE_NAME || 'erp.localhost'
     const frappeBase = frappeEffectiveBaseUrl(masterSite, masterUrl)
-    const response = await fetch(`${frappeBase}/api/method/login`, {
+    const response = await frappeFetch(`${frappeBase}/api/method/login`, {
       method: 'POST',
       headers: frappeSiteRequestHeaders(masterSite, frappeBase, {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -347,6 +348,64 @@ async function loginToMasterSite(usernameOrEmail: string, password: string, mast
       success: false,
       error: 'Unable to connect to authentication service.'
     }
+  }
+}
+
+/** Fire-and-forget role/docperm normalization — must not block login redirect. */
+function scheduleLoginRoleNormalization(
+  tenant: TenantRecord,
+  userEmail: string,
+  roleType: string,
+): void {
+  void (async () => {
+    try {
+      const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
+      const { ROLE_SETS } = await import('@/lib/role-sets')
+      const roleKey =
+        userEmail === tenant.owner_email
+          ? 'admin'
+          : roleType in ROLE_SETS
+            ? roleType
+            : 'member'
+      await Promise.all([
+        seedTenantDocPerms(tenant.subdomain),
+        assignUserRoles(tenant.subdomain, userEmail, ROLE_SETS[roleKey] || ROLE_SETS.member),
+      ])
+    } catch (setupErr: unknown) {
+      const message = setupErr instanceof Error ? setupErr.message : String(setupErr)
+      console.warn('[Login] Background role/docperm setup failed:', message)
+    }
+  })()
+}
+
+async function detectRequirePasswordChange(
+  siteName: string,
+  masterUrl: string,
+  userEmail: string,
+  sessionId: string | undefined,
+): Promise<boolean> {
+  if (!userEmail || !sessionId) return false
+  try {
+    const frappeBase = frappeEffectiveBaseUrl(siteName, masterUrl)
+    const userInfo = await frappeFetch(`${frappeBase}/api/method/frappe.client.get_value`, {
+      method: 'POST',
+      headers: frappeSiteRequestHeaders(siteName, frappeBase, {
+        'Content-Type': 'application/json',
+        Cookie: `sid=${sessionId}`,
+      }),
+      body: JSON.stringify({
+        doctype: 'User',
+        filters: userEmail,
+        fieldname: 'last_login',
+      }),
+      signal: timeoutSignal(8_000),
+    })
+    if (!userInfo.ok) return false
+    const userInfoData = await userInfo.json()
+    const lastLogin = userInfoData?.message?.last_login
+    return !lastLogin
+  } catch {
+    return false
   }
 }
 
@@ -580,58 +639,15 @@ export async function loginUser(
 
       const sessionId = setCookieHeader?.match(/sid=([^;]+)/)?.[1]
 
-      const resolveTenantRoleType = async (): Promise<string> => {
-        if (!userEmail) return 'member'
-        if (userEmail === tenant.owner_email) return 'admin'
-        try {
-          const sid = setCookieHeader?.match(/sid=([^;]+)/)?.[1]
-          const userDocReq = await fetch(`${frappeEffectiveBaseUrl(siteName, masterUrl)}/api/method/frappe.client.get`, {
-            method: 'POST',
-            headers: frappeSiteRequestHeaders(siteName, frappeEffectiveBaseUrl(siteName, masterUrl), {
-              'Content-Type': 'application/json',
-              ...(sid ? { Cookie: `sid=${sid}` } : {}),
-            }),
-            body: JSON.stringify({ doctype: 'User', name: userEmail }),
-            signal: timeoutSignal(FRAPPE_FETCH_TIMEOUT),
-          })
-          if (!userDocReq.ok) return 'member'
-          const userDocData = await userDocReq.json()
-          const userDoc = userDocData?.message || userDocData
-          const roles: string[] = (userDoc?.roles || [])
-            .map((r: any) => r.role || r.name)
-            .filter(Boolean)
+      // Fast heuristic — skip frappe.client.get on the login critical path.
+      const roleType = userEmail === tenant.owner_email ? 'admin' : 'member'
 
-          if (roles.includes('System Manager')) return 'admin'
-          if (roles.includes('Accounts Manager')) return 'accounts'
-          if (roles.includes('Projects Manager')) return 'projects'
-          if (roles.includes('Sales Manager')) return 'sales'
-          return 'member'
-        } catch {
-          return 'member'
-        }
-      }
-
-      const roleType = await resolveTenantRoleType()
-
-      // Roles + DocPerms must exist before API key mint and before dashboard loads.
       const ROLE_NORMALIZATION_VERSION = 'v4'
       const normalizationMarker = `${ROLE_NORMALIZATION_VERSION}:${tenant.subdomain}:${userEmail}`
       if (userEmail && !fastLogin) {
-        try {
-          const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
-          const { ROLE_SETS } = await import('@/lib/role-sets')
-          const roleKey =
-            userEmail === tenant.owner_email
-              ? 'admin'
-              : roleType in ROLE_SETS
-                ? roleType
-                : 'member'
-          await seedTenantDocPerms(tenant.subdomain)
-          await assignUserRoles(
-            tenant.subdomain,
-            userEmail,
-            ROLE_SETS[roleKey] || ROLE_SETS.member,
-          )
+        const alreadyNormalized =
+          cookieStore.get('tenant_roles_normalized')?.value === normalizationMarker
+        if (!alreadyNormalized) {
           cookieStore.set('tenant_roles_normalized', normalizationMarker, {
             httpOnly: true,
             secure: cookieSecure,
@@ -640,21 +656,21 @@ export async function loginUser(
             path: '/',
             ...(cookieDomain ? { domain: cookieDomain } : {}),
           })
-          console.warn(`[Login] Applied roles/docperms for ${userEmail} (${roleKey}) before key mint`)
-        } catch (setupErr: unknown) {
-          const message = setupErr instanceof Error ? setupErr.message : String(setupErr)
-          console.warn('[Login] Pre-mint role/docperm setup failed:', message)
+          scheduleLoginRoleNormalization(tenant, userEmail, roleType)
         }
       }
 
-      const { apiKey, apiSecret } = await mintTenantApiKeysForLogin({
-        subdomain: tenant.subdomain,
-        siteName,
-        userEmail: userEmail || usernameOrEmail,
-        sessionId,
-        baseUrl: masterUrl,
-        fastLogin,
-      })
+      const [{ apiKey, apiSecret }, requirePasswordChange] = await Promise.all([
+        mintTenantApiKeysForLogin({
+          subdomain: tenant.subdomain,
+          siteName,
+          userEmail: userEmail || usernameOrEmail,
+          sessionId,
+          baseUrl: masterUrl,
+          fastLogin,
+        }),
+        detectRequirePasswordChange(siteName, masterUrl, userEmail || '', sessionId),
+      ])
 
       try {
         cookieStore.set('tenant_role_type', roleType, {
@@ -781,81 +797,6 @@ export async function loginUser(
         }
       } else {
         console.warn('API key generation incomplete — user will authenticate via session cookie only')
-      }
-
-      // ── Fallback normalization if pre-mint block above failed ──
-      if (userEmail && !fastLogin) {
-        const alreadyNormalized =
-          cookieStore.get('tenant_roles_normalized')?.value === normalizationMarker
-
-        if (!alreadyNormalized) {
-          try {
-            const { seedTenantDocPerms, assignUserRoles } = await import('@/lib/provisioning-client')
-            const { ROLE_SETS } = await import('@/lib/role-sets')
-            const roleKey =
-              userEmail === tenant.owner_email
-                ? 'admin'
-                : roleType in ROLE_SETS
-                  ? roleType
-                  : 'member'
-            await seedTenantDocPerms(tenant.subdomain)
-            await assignUserRoles(
-              tenant.subdomain,
-              userEmail,
-              ROLE_SETS[roleKey] || ROLE_SETS.member,
-            )
-            cookieStore.set('tenant_roles_normalized', normalizationMarker, {
-              httpOnly: true,
-              secure: cookieSecure,
-              sameSite: cookieSameSite,
-              maxAge: 60 * 60 * 24,
-              path: '/',
-              ...(cookieDomain ? { domain: cookieDomain } : {}),
-            })
-          } catch {
-            console.warn('Role normalization fallback failed (non-fatal)')
-          }
-        }
-      }
-
-      // Detect first-time login (invited users with temp passwords).
-      // Frappe stores the PREVIOUS login time in last_login, so on a brand-new user's
-      // very first login it is still null — perfect signal for "never logged in before".
-      // We MUST use the user's own SID here — master credentials (ERP_API_KEY) return
-      // 401 on tenant sites and would cause last_login to always appear null, making
-      // every login redirect to change-password.
-      let requirePasswordChange = false
-      if (userEmail) {
-        try {
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 8000)
-          const sidForCheck = setCookieHeader?.match(/sid=([^;]+)/)?.[1] || ''
-          const userInfo = await fetch(`${frappeEffectiveBaseUrl(siteName, masterUrl)}/api/method/frappe.client.get_value`, {
-            method: 'POST',
-            headers: frappeSiteRequestHeaders(siteName, frappeEffectiveBaseUrl(siteName, masterUrl), {
-              'Content-Type': 'application/json',
-              ...(sidForCheck ? { Cookie: `sid=${sidForCheck}` } : {}),
-            }),
-            body: JSON.stringify({
-              doctype: 'User',
-              filters: userEmail,
-              fieldname: 'last_login',
-            }),
-            signal: controller.signal,
-          })
-          clearTimeout(timeoutId)
-          if (userInfo.ok) {
-            const userInfoData = await userInfo.json()
-            const lastLogin = userInfoData?.message?.last_login
-            // null/empty = first ever login → prompt to set a real password
-            if (!lastLogin) {
-              requirePasswordChange = true
-            }
-          }
-          // If the request fails for any reason, default to NOT requiring change
-        } catch {
-          // Non-fatal — don't block login if detection fails
-        }
       }
 
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'

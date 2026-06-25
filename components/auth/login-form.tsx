@@ -29,6 +29,20 @@ export function LoginForm() {
 
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "avariq.in"
 
+  function navigateAfterLogin(targetUrl: string) {
+    try {
+      const target = new URL(targetUrl, window.location.origin)
+      if (target.hostname === window.location.hostname) {
+        router.push(`${target.pathname}${target.search}`)
+        router.refresh()
+        return
+      }
+    } catch {
+      /* fall through to full navigation */
+    }
+    window.location.href = targetUrl
+  }
+
   async function handleGoogleSignIn() {
     setGoogleLoading(true)
     setError(null)
@@ -69,14 +83,15 @@ export function LoginForm() {
       }
 
       try { sessionStorage.removeItem('nexus_user_roles_cache') } catch {}
+      try { sessionStorage.setItem('nexus_login_just_completed', '1') } catch {}
 
       if ("redirectUrl" in result && result.redirectUrl) {
-        window.location.href = result.redirectUrl
+        navigateAfterLogin(result.redirectUrl)
         return
       }
 
       if ("dashboardUrl" in result && result.dashboardUrl) {
-        window.location.href = result.dashboardUrl
+        navigateAfterLogin(result.dashboardUrl)
         return
       }
 

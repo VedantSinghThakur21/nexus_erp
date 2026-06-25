@@ -22,6 +22,7 @@ export function SsoCompleteClient() {
     setError(null)
     const result = await completeSsoLogin(subdomain)
     if (result.success && result.redirectUrl) {
+      try { sessionStorage.setItem('nexus_login_just_completed', '1') } catch {}
       window.location.href = result.redirectUrl
       return
     }

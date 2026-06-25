@@ -6,7 +6,7 @@ import { getUserProfile } from '@/app/actions/profile'
 import { ensureTenantApiCredentials } from '@/lib/ensure-tenant-api-credentials'
 import { getUserRoles, requireAuth } from '@/lib/auth-guard'
 import { cookies } from 'next/headers'
-import { FloatingAIChat } from '@/components/ai/floating-chat'
+import { FloatingAIChatLazy } from '@/components/ai/floating-chat-lazy'
 
 /**
  * Tenant app layout — mirrors the existing app/(main)/layout.tsx
@@ -46,7 +46,7 @@ export default async function TenantAppLayout({
         </main>
         {/* Mirror app/(main)/layout.tsx: keep FloatingAIChat outside <main>
             so fixed positioning is not clipped by overflow settings. */}
-        <FloatingAIChat />
+        <FloatingAIChatLazy />
       </div>
     </MainDataProviders>
   )

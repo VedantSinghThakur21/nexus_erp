@@ -2,7 +2,6 @@
 
 import { SessionProvider } from 'next-auth/react'
 import { SWRConfig } from 'swr'
-import { UserProvider } from '@/contexts/user-context'
 import { useSubscription } from '@/lib/hooks/use-subscription'
 
 const swrDefaults = {
@@ -20,10 +19,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SWRConfig value={swrDefaults}>
       <SessionProvider>
-        <UserProvider>
-          <SubscriptionWarmPrefetch />
-          {children}
-        </UserProvider>
+        <SubscriptionWarmPrefetch />
+        {children}
       </SessionProvider>
     </SWRConfig>
   )

@@ -1,4 +1,5 @@
 import { generateUserApiKeys } from '@/lib/provisioning-client'
+import { frappeFetch } from '@/lib/frappe-fetch'
 import { frappeEffectiveBaseUrl, frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 import { verifyTenantApiToken } from '@/lib/verify-tenant-api-token'
 
@@ -14,7 +15,7 @@ export async function mintTenantApiKeysViaSession(
   const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    const genResponse = await fetch(
+    const genResponse = await frappeFetch(
       `${frappeBaseUrl}/api/method/frappe.core.doctype.user.user.generate_keys`,
       {
         method: 'POST',
@@ -45,7 +46,7 @@ export async function mintTenantApiKeysViaSession(
     }
     if (!apiSecret) return null
 
-    const userResponse = await fetch(`${frappeBaseUrl}/api/method/frappe.client.get`, {
+    const userResponse = await frappeFetch(`${frappeBaseUrl}/api/method/frappe.client.get`, {
       method: 'POST',
       headers: frappeSiteRequestHeaders(siteName, frappeBaseUrl, {
         'Content-Type': 'application/json',
@@ -94,17 +95,14 @@ export async function mintTenantApiKeysForLogin(options: {
     return null
   }
 
+  const LOGIN_KEY_MINT_TIMEOUT = Number(process.env.LOGIN_KEY_MINT_TIMEOUT_MS || '20000')
+
   try {
-    const provKeys = await generateUserApiKeys(subdomain, userEmail, 90_000)
+    const provKeys = await generateUserApiKeys(subdomain, userEmail, LOGIN_KEY_MINT_TIMEOUT)
     const accepted = await accept(provKeys.api_key, provKeys.api_secret)
     if (accepted) return accepted
 
-    console.warn(
-      `[Login] Keys from provisioning failed verify on ${siteName} — rotating once`,
-    )
-    const rotated = await generateUserApiKeys(subdomain, userEmail, 90_000, { forceRotate: true })
-    const rotatedAccepted = await accept(rotated.api_key, rotated.api_secret)
-    if (rotatedAccepted) return rotatedAccepted
+    console.warn(`[Login] Keys from provisioning failed verify on ${siteName} — trying session fallback`)
   } catch (apiError: unknown) {
     const message = apiError instanceof Error ? apiError.message : String(apiError)
     console.warn('[Login] Provisioning key mint failed:', message)

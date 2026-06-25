@@ -189,7 +189,21 @@ function SidebarNav({
       }
     }
 
-    loadPendingCount()
+    const scheduleLoad = () => {
+      const idleApi = globalThis as unknown as {
+        requestIdleCallback?: (cb: () => void) => number
+        cancelIdleCallback?: (id: number) => void
+      }
+      const ric = idleApi.requestIdleCallback
+      if (ric) {
+        const id = ric(() => void loadPendingCount())
+        return () => idleApi.cancelIdleCallback?.(id)
+      }
+      const t = setTimeout(() => void loadPendingCount(), 400)
+      return () => clearTimeout(t)
+    }
+
+    const cancelScheduled = scheduleLoad()
 
     const onVisibility = () => {
       if (document.visibilityState === 'visible') void loadPendingCount()
@@ -201,6 +215,7 @@ function SidebarNav({
 
     return () => {
       active = false
+      cancelScheduled?.()
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('nexus-agent-inbox-changed', onInboxChanged)
     }
@@ -351,16 +366,16 @@ function SidebarUser({ collapsed }: { collapsed: boolean }) {
           <Button
             variant="ghost"
             className="w-full justify-start text-sm"
-            onClick={() => router.push('/settings')}
+            asChild
           >
-            Settings
+            <Link href="/settings">Settings</Link>
           </Button>
           <Button
             variant="ghost"
             className="w-full justify-start text-sm"
-            onClick={() => router.push('/team')}
+            asChild
           >
-            Team
+            <Link href="/team">Team</Link>
           </Button>
           <Button
             variant="ghost"

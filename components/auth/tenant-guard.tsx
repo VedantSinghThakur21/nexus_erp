@@ -23,6 +23,12 @@ export function TenantGuard({ children, hasServerAuth }: { children: React.React
         if (!hasServerAuth) return
         try {
             if (sessionStorage.getItem('tenant_keys_refreshed')) return
+            // Skip right after login — keys were just minted server-side.
+            if (sessionStorage.getItem('nexus_login_just_completed')) {
+                sessionStorage.removeItem('nexus_login_just_completed')
+                sessionStorage.setItem('tenant_keys_refreshed', '1')
+                return
+            }
             void fetch('/api/auth/refresh-tenant-keys', { method: 'POST', credentials: 'include' })
                 .then((res) => {
                     if (res.ok) sessionStorage.setItem('tenant_keys_refreshed', '1')

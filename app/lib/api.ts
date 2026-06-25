@@ -7,6 +7,7 @@ import {
   writeFrappeGetCache,
 } from '@/lib/performance/frappe-get-response-cache'
 import { frappeEffectiveBaseUrl, frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
+import { frappeFetch } from '@/lib/frappe-fetch'
 import { parseTenantSubdomainFromHost } from '@/lib/tenant'
 import { cache as reactCache } from 'react'
 
@@ -87,21 +88,25 @@ function isTimeoutLikeError(error: unknown): boolean {
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
-  // Respect externally provided signals if present.
-  if (options.signal) {
-    return fetch(url, options)
-  }
+  const controller = options.signal ? null : new AbortController()
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null
+  const signal = options.signal ?? controller?.signal
 
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const start = process.env.FRAPPE_TIMING === '1' ? Date.now() : 0
 
   try {
-    return await fetch(url, {
+    const response = await frappeFetch(url, {
       ...options,
-      signal: controller.signal,
+      signal,
     })
+    if (start && process.env.FRAPPE_TIMING === '1') {
+      const method = options.method || 'GET'
+      const path = url.replace(/^https?:\/\/[^/]+/, '')
+      console.log(`[frappe] ${method} ${path} ${Date.now() - start}ms`)
+    }
+    return response
   } finally {
-    clearTimeout(timer)
+    if (timer) clearTimeout(timer)
   }
 }
 

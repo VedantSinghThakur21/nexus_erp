@@ -1,3 +1,4 @@
+import { frappeFetch } from '@/lib/frappe-fetch'
 import { frappeBaseUrlCandidates, frappeSiteRequestHeaders } from '@/lib/frappe-site-headers'
 
 /**
@@ -17,7 +18,7 @@ export async function verifyTenantApiToken(
     const timer = setTimeout(() => controller.abort(), timeoutMs)
 
     try {
-      const response = await fetch(`${baseUrl}/api/method/frappe.auth.get_logged_user`, {
+      const response = await frappeFetch(`${baseUrl}/api/method/frappe.auth.get_logged_user`, {
         method: 'GET',
         headers: frappeSiteRequestHeaders(siteName, baseUrl, {
           Accept: 'application/json',
