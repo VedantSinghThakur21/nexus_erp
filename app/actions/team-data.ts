@@ -31,19 +31,15 @@ async function resolveTenantId(): Promise<string> {
   return headerStore.get('x-tenant-id') || headerStore.get('X-Subdomain') || 'default'
 }
 
-export const getCachedTeamRoles = unstable_cache(
-  async (tenantId: string) => {
-    void tenantId
-    const roles = await frappeRequest('frappe.client.get_list', 'GET', {
-      doctype: 'Role',
-      fields: '["name"]',
-      limit_page_length: 100,
-    }).catch(() => [])
-    return roles as { name: string }[]
-  },
-  ['tenant-roles'],
-  { revalidate: 60, tags: ['teams-settings'] }
-)
+/** Frappe-backed — cannot use unstable_cache (frappeRequest reads cookies for auth). */
+async function fetchTeamRoles(): Promise<{ name: string }[]> {
+  const roles = await frappeRequest('frappe.client.get_list', 'GET', {
+    doctype: 'Role',
+    fields: '["name"]',
+    limit_page_length: 100,
+  }).catch(() => [])
+  return roles as { name: string }[]
+}
 
 export const getCachedPlanLimits = unstable_cache(
   async (tenantId: string) => {
@@ -94,7 +90,7 @@ export async function getTeamPageData(): Promise<{
   const tenantId = await resolveTenantId()
   const [members, roles, planLimits] = await Promise.all([
     fetchTeamMembersList(),
-    getCachedTeamRoles(tenantId),
+    fetchTeamRoles(),
     getCachedPlanLimits(tenantId),
   ])
   return { members, roles, planLimits }

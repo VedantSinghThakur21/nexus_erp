@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ComponentType } from 'react'
 import {
   Bot,
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/contexts/user-context'
 import { canAccessModule } from '@/lib/role-permissions'
+import { useSubscription } from '@/lib/hooks/use-subscription'
 import type { UserProfile } from '@/app/actions/profile'
 import { logoutUser } from '@/app/actions/user-auth'
 import { useProfile } from '@/contexts/profile-context'
@@ -112,8 +113,8 @@ function SidebarNav({
   const pathname = usePathname()
   const router = useRouter()
   const { roles, loading, error, refreshRoles } = useUser()
+  const { agenticAllowed, refresh: refreshSubscription } = useSubscription()
   const [pendingAgentActions, setPendingAgentActions] = useState<number>(0)
-  const [agenticAllowed, setAgenticAllowed] = useState(false)
 
   // Prefetch routes once roles are resolved so clicking the sidebar feels instant.
   useEffect(() => {
@@ -158,32 +159,11 @@ function SidebarNav({
     return () => clearTimeout(t)
   }, [loading, roles, router, agenticAllowed])
 
-  const loadAgenticEntitlement = useCallback(async () => {
-    const ac = new AbortController()
-    const timer = window.setTimeout(() => ac.abort(), 12_000)
-    try {
-      const response = await fetch('/api/agentic/entitlement', {
-        cache: 'no-store',
-        signal: ac.signal,
-      })
-      const data = (await response.json().catch(() => ({}))) as { allowed?: boolean }
-      setAgenticAllowed(response.ok && !!data.allowed)
-    } catch {
-      setAgenticAllowed(false)
-    } finally {
-      window.clearTimeout(timer)
-    }
-  }, [])
-
   useEffect(() => {
-    void loadAgenticEntitlement()
-  }, [loadAgenticEntitlement])
-
-  useEffect(() => {
-    const onSynced = () => void loadAgenticEntitlement()
+    const onSynced = () => void refreshSubscription()
     window.addEventListener('nexus-subscription-synced', onSynced)
     return () => window.removeEventListener('nexus-subscription-synced', onSynced)
-  }, [loadAgenticEntitlement])
+  }, [refreshSubscription])
 
   useEffect(() => {
     let active = true
@@ -294,9 +274,6 @@ function SidebarNav({
                       try {
                         router.prefetch(item.href)
                       } catch {}
-                      if (item.module === 'agents' || item.module === 'agent-inbox') {
-                        void loadAgenticEntitlement()
-                      }
                     }}
                     className={cn(
                       'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors',
