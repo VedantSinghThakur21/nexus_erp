@@ -23,14 +23,11 @@ export function TenantGuard({ children, hasServerAuth }: { children: React.React
         if (!hasServerAuth) return
         try {
             if (sessionStorage.getItem('tenant_keys_refreshed')) return
-            const timer = window.setTimeout(() => {
-                fetch('/api/auth/refresh-tenant-keys', { method: 'POST', credentials: 'include' })
-                    .then((res) => {
-                        if (res.ok) sessionStorage.setItem('tenant_keys_refreshed', '1')
-                    })
-                    .catch(() => {})
-            }, 3000)
-            return () => window.clearTimeout(timer)
+            void fetch('/api/auth/refresh-tenant-keys', { method: 'POST', credentials: 'include' })
+                .then((res) => {
+                    if (res.ok) sessionStorage.setItem('tenant_keys_refreshed', '1')
+                })
+                .catch(() => {})
         } catch {
             // sessionStorage unavailable — skip
         }

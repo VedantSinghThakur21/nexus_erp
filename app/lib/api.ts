@@ -381,6 +381,8 @@ function parseErrorMessage(data: Record<string, unknown>): string {
 
 function isAuthenticationFailure(status: number, data: Record<string, unknown>): boolean {
   if (status !== 401 && status !== 403) return false
+  // Guest/session hitting a non-whitelisted method is not a session-expiry signal.
+  if (isMethodNotWhitelistedError(data)) return false
 
   const excType = String(data.exc_type || '')
   const exception = String(data.exception || '')
@@ -779,6 +781,28 @@ async function frappeRequestWithContext(
     const data = await parseResponseData(response)
 
     if (!response.ok) {
+      // Session/Guest or stale sid cannot call server methods — mint tenant API keys and retry.
+      if (
+        response.status === 403 &&
+        context.isTenant &&
+        !options.hasTenantTokenRetryAttempted &&
+        isMethodNotWhitelistedError(data) &&
+        (!authHeader || useSessionAuth)
+      ) {
+        const synced = await tryResolveTenantApiKeys(context, siteName)
+        if (synced?.hasCredentials) {
+          if (shouldEmitThrottledLog(`session-not-whitelisted:${endpoint}:${context.siteName}`, DEFAULT_ERROR_LOG_THROTTLE_MS)) {
+            console.warn(`[API] Session auth cannot call ${endpoint}; retrying with tenant API token`)
+          }
+          return frappeRequestWithContext(synced, siteName, endpoint, method, body, {
+            ...options,
+            hasTenantTokenRetryAttempted: true,
+            hasSessionFallbackAttempted: true,
+            useSessionAuth: false,
+          })
+        }
+      }
+
       if (
         response.status === 403 &&
         useSessionAuth &&

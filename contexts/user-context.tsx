@@ -97,19 +97,22 @@ export function UserProvider({
   children: React.ReactNode
   initialRoles?: string[]
 }) {
-  const hasServerRoles = initialRoles !== undefined
+  // Only skip the client fetch when the server supplied a non-empty role list.
+  // An empty server array may mean credentials were missing — allow client retry.
+  const hasHydratedServerRoles =
+    initialRoles !== undefined && initialRoles.length > 0
 
   // Hydrate from cache only when we have a non-empty role list. A cached `[]`
   // often comes from a timed-out fetch (previously written) and must not skip
   // a fresh network round-trip.
   const [roles, setRoles] = useState<string[]>(() => {
-    if (hasServerRoles) return initialRoles ?? []
+    if (initialRoles !== undefined) return initialRoles
     if (typeof window === 'undefined') return []
     const cached = readCache()
     return cached && cached.length > 0 ? cached : []
   })
   const [loading, setLoading] = useState(() => {
-    if (hasServerRoles) return false
+    if (hasHydratedServerRoles) return false
     if (typeof window === 'undefined') return true
     const cached = readCache()
     return cached === null || cached.length === 0
@@ -198,7 +201,7 @@ export function UserProvider({
 
   useEffect(() => {
     // Roles were resolved on the server for (main) routes — skip client fetch.
-    if (hasServerRoles) return
+    if (hasHydratedServerRoles) return
 
     // Public pages do not need role resolution and can generate noisy failures
     // while users are unauthenticated. Keep provider lightweight there.
@@ -208,7 +211,7 @@ export function UserProvider({
     }
 
     fetchRoles()
-  }, [fetchRoles, hasServerRoles])
+  }, [fetchRoles, hasHydratedServerRoles])
 
   const hasRole = useCallback(
     (role: string) => roles.includes(role),

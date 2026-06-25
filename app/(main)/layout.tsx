@@ -4,6 +4,7 @@ import { FloatingAIChatLazy } from "@/components/ai/floating-chat-lazy";
 import { MainDataProviders } from "@/components/main-data-providers";
 import { RouteTransitionIndicator } from "@/components/route-transition-indicator";
 import { getUserProfile } from "@/app/actions/profile"
+import { ensureTenantApiCredentials } from "@/lib/ensure-tenant-api-credentials"
 import { getUserRoles, requireAuth } from "@/lib/auth-guard"
 import { cookies } from "next/headers"
 
@@ -21,6 +22,7 @@ export default async function DashboardLayout({
   // Server-side authentication check
   // Will redirect to login if user is not authenticated
   await requireAuth()
+  await ensureTenantApiCredentials()
 
   const [initialRoles, initialProfile] = await Promise.all([
     getUserRoles(),

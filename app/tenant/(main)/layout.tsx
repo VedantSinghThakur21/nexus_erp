@@ -3,6 +3,7 @@ import { TenantGuard } from '@/components/auth/tenant-guard'
 import { MainDataProviders } from '@/components/main-data-providers'
 import { RouteTransitionIndicator } from '@/components/route-transition-indicator'
 import { getUserProfile } from '@/app/actions/profile'
+import { ensureTenantApiCredentials } from '@/lib/ensure-tenant-api-credentials'
 import { getUserRoles, requireAuth } from '@/lib/auth-guard'
 import { cookies } from 'next/headers'
 import { FloatingAIChat } from '@/components/ai/floating-chat'
@@ -18,6 +19,7 @@ export default async function TenantAppLayout({
 }) {
   // Server-side authentication check
   await requireAuth()
+  await ensureTenantApiCredentials()
 
   const [initialRoles, initialProfile] = await Promise.all([
     getUserRoles(),
