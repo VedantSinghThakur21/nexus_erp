@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
 import {
   ArrowUpRight,
   Briefcase,
@@ -144,18 +143,13 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
   return (
     <div className="app-shell flex flex-col">
       <PageHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-      <motion.main
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="app-content space-y-6"
-      >
+      <main className="app-content animate-in fade-in slide-in-from-bottom-1 duration-200 space-y-6">
         <div className="app-container space-y-6">
           {isPending && (
-            <motion.div className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            <div className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground animate-in fade-in duration-200">
               <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
               Refreshing dashboard
-            </motion.div>
+            </div>
           )}
 
           <div className="flex items-center justify-between border-b border-border pb-6">
@@ -189,7 +183,10 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                 const DeltaIcon = item.delta >= 0 ? TrendingUp : TrendingDown
                 const StatIcon = item.icon
                 return (
-                  <motion.div key={item.title} whileHover={{ scale: 1.01 }} transition={{ duration: 0.2 }}>
+                  <div
+                    key={item.title}
+                    className="transition-transform duration-200 hover:scale-[1.01]"
+                  >
                     <Card className="rounded-xl border border-border bg-card shadow-none">
                       <CardContent className="p-5">
                         <div className="flex items-start justify-between">
@@ -206,7 +203,7 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                         </Badge>
                       </CardContent>
                     </Card>
-                  </motion.div>
+                  </div>
                 )
               })}
             </div>
@@ -257,13 +254,10 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                                 </td>
                               </tr>
                             ) : (
-                              highProbOpportunities.map((opp, index) => (
-                                <motion.tr
+                              highProbOpportunities.map((opp) => (
+                                <tr
                                   key={opp.name}
-                                  initial={{ opacity: 0, y: 4 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: index * 0.04 }}
-                                  className="group h-12 cursor-pointer hover:bg-muted/50"
+                                  className="group h-12 cursor-pointer transition-colors hover:bg-muted/50 animate-in fade-in duration-200"
                                   onClick={() => router.push(`/crm/opportunities/${opp.name}`)}
                                 >
                                   <td className="px-4 text-sm font-medium text-foreground">
@@ -288,7 +282,7 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                                   <td className="px-4 text-right text-sm font-medium text-foreground">
                                     {opp.probability}%
                                   </td>
-                                </motion.tr>
+                                </tr>
                               ))
                             )}
                           </tbody>
@@ -308,18 +302,16 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                       <CardTitle className="text-base">Sales Funnel</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {funnelData.map((item, index) => (
+                      {funnelData.map((item) => (
                         <div key={item.stage} className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>{item.stage}</span>
                             <span>{item.count} deals</span>
                           </div>
                           <div className="h-2 rounded-full bg-muted">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${item.width}%` }}
-                              transition={{ duration: 0.2, delay: index * 0.04 }}
-                              className="h-2 rounded-full bg-primary"
+                            <div
+                              className="h-2 rounded-full bg-primary transition-[width] duration-200 ease-out"
+                              style={{ width: `${item.width}%` }}
                             />
                           </div>
                         </div>
@@ -339,19 +331,16 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                       {leadSourceData.length === 0 && (
                         <p className="text-sm text-muted-foreground">No source distribution data available.</p>
                       )}
-                      {leadSourceData.map((source, index) => (
-                        <motion.div
+                      {leadSourceData.map((source) => (
+                        <div
                           key={source.name}
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.04 }}
-                          className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2"
+                          className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 animate-in fade-in duration-200"
                         >
                           <p className="text-sm font-medium text-foreground">{source.name}</p>
                           <Badge variant="outline" className="rounded-md text-[11px] font-medium">
                             {source.percent}% ({source.count})
                           </Badge>
-                        </motion.div>
+                        </div>
                       ))}
                     </CardContent>
                   </Card>
@@ -369,12 +358,9 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {activities.slice(0, 6).map((activity, index) => (
-                      <motion.div
+                      <div
                         key={`${activity.owner}-${index}`}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.04 }}
-                        className="flex items-start gap-3 rounded-md border border-border bg-muted/20 p-3"
+                        className="flex items-start gap-3 rounded-md border border-border bg-muted/20 p-3 animate-in fade-in duration-200"
                       >
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
                           {getInitials(activity.owner)}
@@ -384,7 +370,7 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                           <p className="truncate text-sm text-muted-foreground">{activity.company}</p>
                           <RelativeTime value={activity.time} />
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </CardContent>
                 </Card>
@@ -401,18 +387,15 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
                     {atRiskDeals.length === 0 && (
                       <p className="text-sm text-muted-foreground">No deals currently flagged by risk checks.</p>
                     )}
-                    {atRiskDeals.slice(0, 4).map((deal, index) => (
-                      <motion.div
+                    {atRiskDeals.slice(0, 4).map((deal) => (
+                      <div
                         key={deal.name}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.04 }}
-                        className="rounded-md border border-border p-3"
+                        className="rounded-md border border-border p-3 animate-in fade-in duration-200"
                       >
                         <p className="text-sm font-medium text-foreground">{deal.customer_name}</p>
                         <p className="text-xs text-muted-foreground">{deal.days_since_activity} days inactive</p>
                         <p className="mt-1 text-xs text-red-600">{deal.reason}</p>
-                      </motion.div>
+                      </div>
                     ))}
                   </CardContent>
                 </Card>
@@ -437,7 +420,7 @@ export function DashboardView({ initialData, accessibleModules }: DashboardViewP
             </div>
           </div>
         </div>
-      </motion.main>
+      </main>
     </div>
   )
 }
